@@ -52,11 +52,11 @@ This file is the source of truth for what has been built, what is in progress, a
 - `schemas/auth.py` — TokenResponse, CurrentUser ✅
 
 ### Backend — Layer 3: Services (Business Logic)
-`backend/services/` does not exist yet.
+`backend/services/` created.
 
-- `services/__init__.py`
-- `services/scoring.py` — compute_vote_budget, compute_level, compute_submission_score (pure functions, EraConfig param)
-- `services/auth.py` — create_or_get_account, issue_jwt, decode_jwt, get_current_character
+- `services/__init__.py` ✅
+- `services/scoring.py` — compute_vote_budget, compute_level, compute_submission_score ✅ 2026-04-01
+- `services/auth.py` — create_jwt, decode_jwt, get_current_account, create_or_get_account ✅ 2026-04-01
 - `services/character.py` — create_character (level gate), update_character, soft_delete_character, handle_faction_assignment
 - `services/task.py` — signup_for_task (cap + level gate), drop_task, propose_task, approve_task
 - `services/submission.py` — create_submission, edit_submission, flag_submission, compute_submission_score_from_db

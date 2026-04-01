@@ -1,0 +1,103 @@
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+from fastapi import Cookie, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from config import settings
+from db import get_db
+from models.account import Account, OAuthProvider
+
+_ALGORITHM = "HS256"
+_TOKEN_EXPIRE_DAYS = 7
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+def create_jwt(account_id: int) -> str:
+    payload = {
+        "sub": str(account_id),
+        "exp": datetime.now(timezone.utc) + timedelta(days=_TOKEN_EXPIRE_DAYS),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=_ALGORITHM)
+
+
+def decode_jwt(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[_ALGORITHM])
+        if payload.get("sub") is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+
+async def get_current_account(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+    access_token: Optional[str] = Cookie(default=None),
+    session: AsyncSession = Depends(get_db),
+) -> Account:
+    token = None
+    if credentials:
+        token = credentials.credentials
+    elif access_token:
+        token = access_token
+
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    payload = decode_jwt(token)
+    account_id = int(payload["sub"])
+
+    result = await session.execute(select(Account).where(Account.id == account_id))
+    account = result.scalar_one_or_none()
+    if account is None or not account.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account not found")
+
+    return account
+
+
+async def create_or_get_account(
+    provider: str,
+    provider_user_id: str,
+    email: str,
+    access_token: str,
+    session: AsyncSession,
+) -> Account:
+    # Check if this OAuth identity already exists
+    result = await session.execute(
+        select(OAuthProvider).where(
+            OAuthProvider.provider == provider,
+            OAuthProvider.provider_user_id == provider_user_id,
+        )
+    )
+    oauth_row = result.scalar_one_or_none()
+
+    if oauth_row:
+        result = await session.execute(
+            select(Account).where(Account.id == oauth_row.account_id)
+        )
+        return result.scalar_one()
+
+    # No existing OAuth link — find or create the Account by email
+    result = await session.execute(select(Account).where(Account.email == email))
+    account = result.scalar_one_or_none()
+
+    if account is None:
+        account = Account(email=email)
+        session.add(account)
+        await session.flush()  # get account.id without committing
+
+    oauth_row = OAuthProvider(
+        account_id=account.id,
+        provider=provider,
+        provider_user_id=provider_user_id,
+        access_token=access_token,
+    )
+    session.add(oauth_row)
+    await session.commit()
+    await session.refresh(account)
+    return account
