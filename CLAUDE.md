@@ -66,4 +66,14 @@ complete real-world tasks, post proof ("praxis"), and earn points through commun
 - Expose account_id or email in public API responses
 - Put business logic in route handlers
 
-Complete project specification is in docs/SPEC.md. Read it before starting any feature.
+## Key documents (read before starting any session)
+- `docs/SPEC.md` — Complete project specification. Read before implementing any feature.
+- `docs/BUILD_STATE.md` — What has been built vs. what's missing. Read to understand current state.
+- `docs/TASKS.md` — Structured task queue. Read to find what to work on in this session.
+
+## Multi-agent workflow
+This project uses git worktrees for parallel agent sessions. Each agent works on its own branch.
+- Check docs/TASKS.md for which session/tasks are assigned to your role
+- Do not modify files outside the scope defined in your task
+- Do not start a higher-numbered session until lower-numbered sessions are complete
+- Update docs/BUILD_STATE.md when you finish a task: mark it ✅ with the completion date
