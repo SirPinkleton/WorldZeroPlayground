@@ -67,9 +67,18 @@ complete real-world tasks, post proof ("praxis"), and earn points through commun
 - Put business logic in route handlers
 
 ## Key documents (read before starting any session)
-- `docs/SPEC.md` — Complete project specification. Read before implementing any feature.
 - `docs/BUILD_STATE.md` — What has been built vs. what's missing. Read to understand current state.
 - `docs/TASKS.md` — Structured task queue. Read to find what to work on in this session.
+
+## Spec (read the relevant section only — do not load all sections)
+The spec has been split into focused files in `docs/spec/`:
+- `SPEC-architecture.md` — Project overview, stack, identity model (Account vs Character), EraConfig design, project structure. Read for any architectural decision.
+- `SPEC-data-models.md` — All DB models and their fields. Read when writing models, schemas, or migrations.
+- `SPEC-game-rules.md` — Scoring, vote budget, level privileges, factions, era reset logic. Read when working on game logic or services.
+- `SPEC-api.md` — All API endpoint definitions. Read when adding or modifying routes.
+- `SPEC-frontend.md` — Pages, navigation, and UI spec. Read when working on React.
+- `SPEC-testing.md` — Testing philosophy, file structure, examples, CI config. Read when writing or debugging tests.
+- `SPEC-deployment.md` — Media handling, build order, out-of-scope items, Render deployment, production checklist. Read when touching infra or deployment.
 
 ## Multi-agent workflow
 This project uses git worktrees for parallel agent sessions. Each agent works on its own branch.
