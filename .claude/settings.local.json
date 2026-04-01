@@ -3,7 +3,9 @@
     "allow": [
       "Bash(mkdir -p docs)",
       "Bash(cp ../WorldZero_Spec_v3.md docs/SPEC.md)",
-      "Read(//c/Users/pixie/**)"
+      "Read(//c/Users/pixie/**)",
+      "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.claude\\\\memory\\\\\"\")",
+      "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.claude\\\\skills\\\\\"\")"
     ]
   }
 }

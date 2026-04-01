@@ -39,18 +39,17 @@ This file is the source of truth for what has been built, what is in progress, a
 
 ## What's Missing (❌ Not Started)
 
-### Backend — Layer 2: Schemas
-`backend/schemas/` does not exist yet.
+### Backend — Layer 2: Schemas ✅ 2026-04-01
+`backend/schemas/` created.
 
-- `schemas/__init__.py`
-- `schemas/account.py` — AccountOut (private: no email in public responses)
-- `schemas/character.py` — CharacterOut (public profile), CharacterCreate, CharacterUpdate
-- `schemas/task.py` — TaskOut, TaskCreate, CharacterTaskOut
-- `schemas/submission.py` — SubmissionOut, SubmissionCreate, MediaItemOut
-- `schemas/vote.py` — VoteIn, VoteOut
-- `schemas/relationship.py` — RelationshipOut, RelationshipCreate
-- `schemas/message.py` — MessageOut, MessageCreate
-- `schemas/auth.py` — TokenResponse, CurrentUser
+- `schemas/__init__.py` ✅
+- `schemas/character.py` — CharacterOut, CharacterCreate, CharacterUpdate ✅
+- `schemas/task.py` — TaskOut, TaskCreate, CharacterTaskOut ✅
+- `schemas/submission.py` — SubmissionOut, SubmissionCreate, MediaItemOut ✅
+- `schemas/vote.py` — VoteIn, VoteOut, VoteSummary ✅
+- `schemas/relationship.py` — RelationshipOut, RelationshipCreate ✅
+- `schemas/message.py` — MessageOut, MessageCreate ✅
+- `schemas/auth.py` — TokenResponse, CurrentUser ✅
 
 ### Backend — Layer 3: Services (Business Logic)
 `backend/services/` does not exist yet.
