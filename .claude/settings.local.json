@@ -23,7 +23,25 @@
       "Bash(cmd /c \"cd /d C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground && git add backend/alembic/env.py .claude/settings.local.json && git status\")",
       "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground''; git add backend/alembic/env.py .claude/settings.local.json; git status\")",
       "Bash(powershell -Command \"New-Item -Path ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.git\\\\test.tmp'' -ItemType File 2>&1; Remove-Item -Path ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.git\\\\test.tmp'' -ErrorAction SilentlyContinue\")",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(ls \"C:/Users/MollyShove/Documents/GitHub/WorldZeroPlayground\"/.env*)",
+      "Bash(ls \"C:/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend\"/.env*)",
+      "Bash(docker exec:*)",
+      "Bash(DATABASE_URL=\"postgresql+asyncpg://worldzero:devpassword@localhost:5432/worldzero\" python -m alembic upgrade head)",
+      "Bash(PGPASSWORD=devpass psql -h localhost -U worldzero -d worldzero -c \"SELECT 1;\")",
+      "Bash(DATABASE_URL=postgresql+asyncpg://worldzero:devpassword@localhost:5432/worldzero python -m alembic upgrade head)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:8000/openapi.json)",
+      "Bash(DATABASE_URL=postgresql+asyncpg://worldzero:devpassword@localhost:5432/worldzero python -m alembic history)",
+      "Bash(DATABASE_URL=postgresql+asyncpg://worldzero:devpassword@localhost:5432/worldzero python -m alembic revision --autogenerate -m \"drift_check\")",
+      "Bash(powershell -Command \"New-Item -Path ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py'' -ItemType File -Value ''# test'' 2>&1; Remove-Item ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py'' -ErrorAction SilentlyContinue\")",
+      "Bash(icacls \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\")",
+      "Bash(powershell -Command \"Get-Item ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions'' | Select-Object FullName, Attributes, LinkType, Target\")",
+      "Bash(DATABASE_URL=postgresql+asyncpg://worldzero:devpassword@localhost:5432/worldzero python -m alembic check)",
+      "Bash(cmd /c \"del C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py\")",
+      "Bash(powershell -Command \"Remove-Item -Force ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py''; Write-Output ''done''\")",
+      "Bash(ls /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.ini /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.toml /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/setup.cfg)"
     ]
   }
 }

@@ -10,7 +10,7 @@
 
 ---
 
-## 🔴 SESSION 1 — Backend Layer 1: Schemas + Services + Unit Tests
+## ✅ SESSION 1 — Backend Layer 1: Schemas + Services + Unit Tests — COMPLETE 2026-04-01
 
 **Goal:** Build the pure Python layer — Pydantic schemas, service functions, and unit tests.
 No routes, no main.py yet. This layer has zero external dependencies beyond what's already in the repo.
@@ -181,7 +181,7 @@ Create `backend/tests/__init__.py`, `backend/tests/unit/__init__.py`, and:
 
 ---
 
-## 🟡 SESSION 2 — Backend Layer 2: Routers + main.py + Integration Tests
+## ✅ SESSION 2 — Backend Layer 2: Routers + main.py + Integration Tests — COMPLETE 2026-04-02
 
 > Do not start this session until Session 1 is complete and unit tests pass.
 
@@ -238,7 +238,7 @@ Integration tests: see SPEC.md Section 12 for required test files and what each 
 
 ---
 
-## 🔵 SESSION 3 — Alembic Migration + CI
+## ✅ SESSION 3 — Alembic Migration + CI — COMPLETE 2026-04-02
 
 > Do not start until Session 2 integration tests pass.
 
@@ -266,4 +266,6 @@ Pages needed: see docs/BUILD_STATE.md and SPEC.md Section 10.
 
 ## Completed Sessions
 
-*(None yet — this file was created 2026-03-30)*
+- **Session 1** — Schemas + Services + Unit Tests ✅ 2026-04-01
+- **Session 2** — Routers + main.py + Integration Tests ✅ 2026-04-02
+- **Session 3** — Alembic Migration + CI ✅ 2026-04-02

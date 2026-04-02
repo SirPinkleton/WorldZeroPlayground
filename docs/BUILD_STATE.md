@@ -1,7 +1,7 @@
 # World Zero — Build State
 
 > Last updated: 2026-04-02
-> Updated by: Claude Code — Session 2 complete
+> Updated by: Claude Code — Session 3 complete
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -26,7 +26,7 @@ This file is the source of truth for what has been built, what is in progress, a
 - `backend/game_config.py` — Complete. EraConfig, FactionConfig, ERA_1 (all 9 factions), CURRENT_ERA
 - `backend/db.py` — Async SQLAlchemy engine + session
 - `backend/config.py` — Settings via env vars
-- `backend/alembic/` — Migration scaffolding initialized (no migration files yet)
+- `backend/alembic/` — Migration scaffolding + initial schema migration applied ✅
 - `backend/requirements.txt`
 - `backend/Dockerfile`
 - `docker-compose.yml`
@@ -82,8 +82,8 @@ This file is the source of truth for what has been built, what is in progress, a
 - `backend/main.py` — FastAPI app, CORS config, SessionMiddleware, router registration, static file mount for media ✅
 - Added `itsdangerous` and `python-multipart` to requirements.txt (required by SessionMiddleware and file upload) ✅
 
-### Backend — Database Migrations
-- `backend/alembic/versions/0001_initial.py` — First migration (all tables). Must be generated AFTER models are stable.
+### Backend — Database Migrations ✅ 2026-04-02
+- `backend/alembic/versions/a1b2c3d4e5f6_initial_schema.py` — Initial migration (all 17 tables + enums). Applied and verified drift-free via `alembic check`. ✅
 
 ### Backend — Tests ✅ (unit + integration scaffold) 2026-04-02
 `backend/tests/` created.
@@ -118,10 +118,10 @@ Pages needed (see SPEC.md Section 10 for full detail):
 - Admin (`/admin`)
 
 ### Deployment
-- `backend/alembic/versions/` — migration files
-- Render deploy config
-- GitHub Actions CI workflow (`.github/workflows/test.yml`)
-- GoDaddy DNS config (external — worldzero.org)
+- `.github/workflows/test.yml` — GitHub Actions CI: push/PR triggers, Postgres service, pip install, alembic upgrade, pytest --cov ✅ 2026-04-02
+- `backend/pytest.ini` — asyncio_mode = auto ✅ 2026-04-02
+- Render deploy config — ❌ not started
+- GoDaddy DNS config (external — worldzero.org) — ❌ not started
 
 ---
 

@@ -3,21 +3,27 @@
   "configurations": [
     {
       "name": "Backend (FastAPI)",
-      "runtimeExecutable": "uvicorn",
-      "runtimeArgs": ["main:app", "--reload"],
-      "port": 8000
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "main:app", "--reload", "--port", "8000"],
+      "cwd": "${workspaceRoot}/backend",
+      "port": 8000,
+      "autoPort": false
     },
     {
       "name": "Frontend (React)",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
-      "port": 3000
+      "cwd": "${workspaceRoot}/frontend",
+      "port": 3000,
+      "autoPort": false
     },
     {
       "name": "Database (PostgreSQL via Docker)",
       "runtimeExecutable": "docker-compose",
       "runtimeArgs": ["up", "-d"],
-      "port": 5432
+      "cwd": "${workspaceRoot}",
+      "port": 5432,
+      "autoPort": true
     }
   ]
 }
