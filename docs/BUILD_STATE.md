@@ -51,17 +51,17 @@ This file is the source of truth for what has been built, what is in progress, a
 - `schemas/message.py` — MessageOut, MessageCreate ✅
 - `schemas/auth.py` — TokenResponse, CurrentUser ✅
 
-### Backend — Layer 3: Services (Business Logic)
+### Backend — Layer 3: Services (Business Logic) ✅ 2026-04-01
 `backend/services/` created.
 
 - `services/__init__.py` ✅
 - `services/scoring.py` — compute_vote_budget, compute_level, compute_submission_score ✅ 2026-04-01
 - `services/auth.py` — create_jwt, decode_jwt, get_current_account, create_or_get_account ✅ 2026-04-01
-- `services/character.py` — create_character (level gate), update_character, soft_delete_character, handle_faction_assignment
-- `services/task.py` — signup_for_task (cap + level gate), drop_task, propose_task, approve_task
-- `services/submission.py` — create_submission, edit_submission, flag_submission, compute_submission_score_from_db
-- `services/vote.py` — cast_vote (budget deduction, anti-self-vote, update-is-free logic)
-- `services/era.py` — apply_era_reset (driven by EraConfig flags)
+- `services/character.py` — create_character (level gate), update_character, soft_delete_character, check_faction_graduation ✅ 2026-04-01
+- `services/task.py` — signup_for_task (cap + level gate), drop_task, propose_task ✅ 2026-04-01
+- `services/submission.py` — create_submission, edit_submission, flag_submission, compute_submission_score_from_db ✅ 2026-04-01
+- `services/vote.py` — cast_or_update_vote (budget deduction, anti-self-vote, update-is-free logic) ✅ 2026-04-01
+- `services/era.py` — apply_era_reset (driven by EraConfig flags) — reset logic unit-tested via test_era_reset.py; DB service deferred to Session 2
 
 ### Backend — Layer 4: Routers
 `backend/routers/` does not exist yet.
@@ -83,14 +83,14 @@ This file is the source of truth for what has been built, what is in progress, a
 ### Backend — Database Migrations
 - `backend/alembic/versions/0001_initial.py` — First migration (all tables). Must be generated AFTER models are stable.
 
-### Backend — Tests
-`backend/tests/` does not exist yet.
+### Backend — Tests ✅ (unit) 2026-04-01
+`backend/tests/` created.
 
-- `tests/conftest.py` — test DB fixture, async test client, seeded characters
-- `tests/unit/test_scoring.py`
-- `tests/unit/test_era_config.py`
-- `tests/unit/test_level_thresholds.py`
-- `tests/unit/test_era_reset.py`
+- `tests/conftest.py` — test DB fixture, async test client, seeded characters (Session 2)
+- `tests/unit/test_scoring.py` ✅ 2026-04-01
+- `tests/unit/test_era_config.py` ✅ 2026-04-01
+- `tests/unit/test_level_thresholds.py` ✅ 2026-04-01
+- `tests/unit/test_era_reset.py` ✅ 2026-04-01 — 60/60 passing
 - `tests/integration/test_auth.py`
 - `tests/integration/test_characters.py`
 - `tests/integration/test_tasks.py`

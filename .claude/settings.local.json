@@ -6,7 +6,9 @@
       "Read(//c/Users/pixie/**)",
       "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.claude\\\\memory\\\\\"\")",
       "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.claude\\\\skills\\\\\"\")",
-      "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\services\\\\\"\")"
+      "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\services\\\\\"\")",
+      "Bash(python -m pip install -r requirements.txt -q)",
+      "Bash(python -m pytest tests/unit/ -v --tb=short)"
     ]
   }
 }
