@@ -1,7 +1,7 @@
 # World Zero — Build State
 
-> Last updated: 2026-03-30
-> Updated by: Cowork session with Molly
+> Last updated: 2026-04-02
+> Updated by: Claude Code — Session 2 complete
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -63,40 +63,44 @@ This file is the source of truth for what has been built, what is in progress, a
 - `services/vote.py` — cast_or_update_vote (budget deduction, anti-self-vote, update-is-free logic) ✅ 2026-04-01
 - `services/era.py` — apply_era_reset (driven by EraConfig flags) — reset logic unit-tested via test_era_reset.py; DB service deferred to Session 2
 
-### Backend — Layer 4: Routers
-`backend/routers/` does not exist yet.
+### Backend — Layer 4: Routers ✅ 2026-04-02
+`backend/routers/` created. All 40 routes registered and importing cleanly.
 
-- `routers/__init__.py`
-- `routers/auth.py` — GET /auth/google, GET /auth/google/callback, GET /auth/me, POST /auth/logout
-- `routers/characters.py` — GET /characters, GET /characters/{id}, POST /characters, PUT /characters/{id}, DELETE /characters/{id}
-- `routers/tasks.py` — GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id}, POST /tasks/{id}/signup, DELETE /tasks/{id}/signup
-- `routers/submissions.py` — GET /submissions, GET /submissions/{id}, POST /submissions, PUT /submissions/{id}, POST /submissions/{id}/media, POST /submissions/{id}/flag
-- `routers/votes.py` — POST /submissions/{id}/vote, GET /submissions/{id}/votes
-- `routers/relationships.py` — POST /relationships, PUT /relationships/{id}, DELETE /relationships/{id}
-- `routers/messages.py` — GET /messages, POST /messages, GET /messages/{id}
-- `routers/admin.py` — task approval, flagged submissions, era reset
-- `routers/leaderboard.py` — GET /leaderboard
+- `routers/__init__.py` ✅
+- `routers/auth.py` — GET /auth/google, GET /auth/google/callback, GET /auth/me, POST /auth/logout ✅
+- `routers/characters.py` — GET /characters, GET /characters/{id}, POST /characters, PUT /characters/{id}, DELETE /characters/{id}, GET /characters/{id}/submissions, GET /characters/{id}/relationships ✅
+- `routers/tasks.py` — GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id}, POST /tasks/{id}/signup, DELETE /tasks/{id}/signup ✅
+- `routers/submissions.py` — GET /submissions, GET /submissions/{id}, POST /submissions, PUT /submissions/{id}, POST /submissions/{id}/media, POST /submissions/{id}/flag ✅
+- `routers/votes.py` — POST /submissions/{id}/vote, GET /submissions/{id}/votes ✅
+- `routers/relationships.py` — POST /relationships, PUT /relationships/{id}, DELETE /relationships/{id} ✅
+- `routers/messages.py` — GET /messages, POST /messages, GET /messages/{id} ✅
+- `routers/admin.py` — task approval/retire, submission delete, character ban, admin task create ✅
+- `routers/leaderboard.py` — GET /leaderboard ✅
+- `backend/dependencies.py` — shared get_current_character + require_admin deps ✅
 
-### Backend — App Entry Point
-- `backend/main.py` — FastAPI app, CORS config, router registration, static file mount for media
+### Backend — App Entry Point ✅ 2026-04-02
+- `backend/main.py` — FastAPI app, CORS config, SessionMiddleware, router registration, static file mount for media ✅
+- Added `itsdangerous` and `python-multipart` to requirements.txt (required by SessionMiddleware and file upload) ✅
 
 ### Backend — Database Migrations
 - `backend/alembic/versions/0001_initial.py` — First migration (all tables). Must be generated AFTER models are stable.
 
-### Backend — Tests ✅ (unit) 2026-04-01
+### Backend — Tests ✅ (unit + integration scaffold) 2026-04-02
 `backend/tests/` created.
 
-- `tests/conftest.py` — test DB fixture, async test client, seeded characters (Session 2)
+- `tests/conftest.py` — minimal (unit tests need no env vars) ✅
 - `tests/unit/test_scoring.py` ✅ 2026-04-01
 - `tests/unit/test_era_config.py` ✅ 2026-04-01
 - `tests/unit/test_level_thresholds.py` ✅ 2026-04-01
 - `tests/unit/test_era_reset.py` ✅ 2026-04-01 — 60/60 passing
-- `tests/integration/test_auth.py`
-- `tests/integration/test_characters.py`
-- `tests/integration/test_tasks.py`
-- `tests/integration/test_submissions.py`
-- `tests/integration/test_votes.py`
-- `tests/integration/test_admin.py`
+- `tests/integration/conftest.py` — async test DB, AsyncClient, seeded Account/Character fixtures ✅ 2026-04-02
+- `tests/integration/test_auth.py` ✅ 2026-04-02
+- `tests/integration/test_characters.py` ✅ 2026-04-02
+- `tests/integration/test_tasks.py` ✅ 2026-04-02
+- `tests/integration/test_submissions.py` ✅ 2026-04-02
+- `tests/integration/test_votes.py` ✅ 2026-04-02
+- `tests/integration/test_admin.py` ✅ 2026-04-02
+- Integration tests require TEST_DATABASE_URL env var pointing to a `worldzero_test` Postgres DB
 
 ### Frontend
 `frontend/` does not exist yet. React app with React Router, Axios, mobile-first CSS.

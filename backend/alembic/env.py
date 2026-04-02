@@ -14,7 +14,7 @@ from alembic import context
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from models.base import Base
-import models  # noqa: F401 — registers all mapped classes with Base.metadata
+import models  # noqa: F401 - registers all mapped classes with Base.metadata
 
 config = context.config
 

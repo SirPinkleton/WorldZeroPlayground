@@ -8,7 +8,22 @@
       "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.claude\\\\skills\\\\\"\")",
       "Bash(cmd /c \"mkdir \\\\\"c:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\services\\\\\"\")",
       "Bash(python -m pip install -r requirements.txt -q)",
-      "Bash(python -m pytest tests/unit/ -v --tb=short)"
+      "Bash(python -m pytest tests/unit/ -v --tb=short)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker info:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(python -m alembic upgrade head)",
+      "Bash(python -c \":*)",
+      "Bash(python:*)",
+      "Bash(git -C \"C:/Users/MollyShove/Documents/GitHub/WorldZeroPlayground\" add backend/alembic/env.py .claude/settings.local.json)",
+      "Bash(git -C \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\" add backend/alembic/env.py .claude/settings.local.json)",
+      "Bash(cmd /c \"git add backend/alembic/env.py .claude/settings.local.json && git status\")",
+      "Bash(cmd /c \"cd /d C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground && git add backend/alembic/env.py .claude/settings.local.json && git status\")",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground''; git add backend/alembic/env.py .claude/settings.local.json; git status\")",
+      "Bash(powershell -Command \"New-Item -Path ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.git\\\\test.tmp'' -ItemType File 2>&1; Remove-Item -Path ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\.git\\\\test.tmp'' -ErrorAction SilentlyContinue\")",
+      "Bash(pip install:*)"
     ]
   }
 }
