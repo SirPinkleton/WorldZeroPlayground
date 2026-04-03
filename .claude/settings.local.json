@@ -41,7 +41,8 @@
       "Bash(DATABASE_URL=postgresql+asyncpg://worldzero:devpassword@localhost:5432/worldzero python -m alembic check)",
       "Bash(cmd /c \"del C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py\")",
       "Bash(powershell -Command \"Remove-Item -Force ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py''; Write-Output ''done''\")",
-      "Bash(ls /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.ini /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.toml /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/setup.cfg)"
+      "Bash(ls /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.ini /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.toml /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/setup.cfg)",
+      "Bash(npm install:*)"
     ]
   }
 }

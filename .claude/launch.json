@@ -12,9 +12,9 @@
     {
       "name": "Frontend (React)",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
+      "runtimeArgs": ["run", "dev"],
       "cwd": "${workspaceRoot}/frontend",
-      "port": 3000,
+      "port": 5173,
       "autoPort": false
     },
     {

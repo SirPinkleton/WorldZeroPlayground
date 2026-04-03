@@ -254,13 +254,76 @@ Create `.github/workflows/test.yml`:
 
 ---
 
-## 🟢 SESSION 4+ — Frontend
+## 🟡 SESSION 4 — Frontend MVP
 
-> Do not start until Session 3 is complete and backend is deployed or at minimum running locally end-to-end.
+> Do not start until Session 3 is complete and backend running locally end-to-end. ✅ Ready.
 
-Frontend is a separate React app. Scaffold with Vite + React. Details TBD — Molly will define in a Cowork session before this session begins.
+**Stack:** Vite + React + TypeScript, Tailwind CSS v3, React Router v6, Axios
+**Aesthetic:** Graph paper background, Caveat (headings) + Kalam (body) fonts, hard offset shadows, faction color accents
+**Done when:** `npm run build` has zero TS errors and `/tasks` renders cards against the live backend
 
-Pages needed: see docs/BUILD_STATE.md and SPEC.md Section 10.
+### TASK 4.1 — Scaffold + config
+- `npm create vite@latest frontend -- --template react-ts`
+- Install: `tailwindcss`, `postcss`, `autoprefixer`, `react-router-dom`, `axios`
+- Configure `tailwind.config.ts` with custom palette, shadows, and fonts
+- Add Google Fonts (Caveat + Kalam) to `index.html`
+- Set `VITE_API_URL=http://localhost:8000` in `frontend/.env.local`
+
+### TASK 4.2 — API layer (`src/api/`)
+- `axios.ts` — single Axios instance, baseURL from `VITE_API_URL`, `withCredentials: true`
+- `auth.ts` — `getMe()`, `logout()`
+- `characters.ts` — `getCharacter()`, `listCharacters()`, `createCharacter()`, `updateCharacter()`
+- `tasks.ts` — `listTasks()`, `getTask()`, `signupTask()`, `dropTask()`, `proposeTask()`
+- `submissions.ts` — `listSubmissions()`, `getSubmission()`, `createSubmission()`, `uploadMedia()`, `flagSubmission()`
+- `votes.ts` — `castVote()`, `getVotes()`
+- `leaderboard.ts` — `getLeaderboard()`
+- `messages.ts` — `getMessages()`, `sendMessage()`, `getMessage()`
+- `admin.ts` — `getPendingTasks()`, `approveTask()`, `retireTask()`, `deleteSubmission()`, `banCharacter()`
+
+### TASK 4.3 — Auth (`src/auth/`)
+- `AuthContext.tsx` — `AuthProvider`, `useAuth` hook; calls `GET /auth/me` on mount
+- `ProtectedRoute.tsx` — redirects to `/` with `?login=required` if unauthenticated
+
+### TASK 4.4 — Shared components (`src/components/`)
+- `Layout.tsx` — top nav + bottom footer wrapper
+- `NavBar.tsx` — links + login/profile toggle (state-aware)
+- `TaskCard.tsx` — faction stripe, title, desc, sign-up button, footer stats
+- `SubmissionCard.tsx` — character badge, title, score, preview
+- `StarRating.tsx` — 1–5 interactive star widget (calls `castVote`)
+- `CharacterBadge.tsx` — avatar + username chip
+- `MediaGallery.tsx` — image/video/audio display from `MediaItem[]`
+
+### TASK 4.5 — Pages (`src/pages/`)
+- `Home.tsx` — About landing (logged out) / recent praxis feed (logged in)
+- `Tasks.tsx` — card grid + status/faction/level filters
+- `TaskDetail.tsx` — full task + submissions list sorted by score + "Submit Proof" CTA
+- `SubmitProof.tsx` — auth-gated; title, body textarea, media upload, submit
+- `SubmissionDetail.tsx` — full proof, MediaGallery, StarRating, flag button (lvl 4+)
+- `CharacterProfile.tsx` — avatar, bio, level, faction badge, score, submission grid
+- `Leaderboard.tsx` — ranked character list, paginated
+- `Groups.tsx` — faction cards with colors, description, gameplay note (static data)
+- `Updates.tsx` — auth-gated; recent activity feed (own submissions + messages)
+- `Admin.tsx` — auth+admin-gated; pending tasks queue, flagged submissions
+
+### TASK 4.6 — Wire routes + verify build
+- `App.tsx` — all routes via React Router v6
+- `npm run build` — zero TS errors
+- `npm run dev` — `/tasks` renders cards from live backend
+
+---
+
+## 🟣 SESSION 5+ — Ambitious Frontend (post-launch)
+
+> Do not start until the site is live on worldzero.org and the MVP frontend is stable.
+
+**Vision:** Faction-specific UI themes — each faction gets its own color palette, typography, background textures, and layout variations driven by a `data-faction` attribute on `<body>` + CSS custom properties.
+
+**Planned features:**
+- Per-faction design tokens (colors, fonts, borders) toggled when a logged-in character's faction changes
+- Easter eggs: invisible clickable elements scattered through pages that trigger hidden messages, sounds, or lore
+- Secrets: hidden routes or interactions unlocked by specific player levels (level 5 and 8 already have UX secrets in the game spec)
+- Full design system (tokens, component library) built before this phase begins
+- Sunyata and Terminal faction UI (currently hidden factions) revealed when those factions go live
 
 ---
 
