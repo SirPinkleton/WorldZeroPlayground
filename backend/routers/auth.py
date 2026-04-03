@@ -50,7 +50,7 @@ async def auth_google_callback(
     )
 
     jwt_token = create_jwt(account.id)
-    response = Response(status_code=302, headers={"location": "/"})
+    response = Response(status_code=302, headers={"location": settings.FRONTEND_URL})
     response.set_cookie(
         key="access_token",
         value=jwt_token,
@@ -58,6 +58,7 @@ async def auth_google_callback(
         samesite="lax",
         secure=settings.ENVIRONMENT == "production",
         max_age=_COOKIE_MAX_AGE,
+        domain=settings.COOKIE_DOMAIN,
     )
     return response
 
