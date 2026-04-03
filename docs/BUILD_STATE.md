@@ -1,7 +1,7 @@
 # World Zero — Build State
 
-> Last updated: 2026-04-02
-> Updated by: Claude Code — Session 3 complete
+> Last updated: 2026-04-03
+> Updated by: Claude Code — Session 4 complete
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -102,20 +102,23 @@ This file is the source of truth for what has been built, what is in progress, a
 - `tests/integration/test_admin.py` ✅ 2026-04-02
 - Integration tests require TEST_DATABASE_URL env var pointing to a `worldzero_test` Postgres DB
 
-### Frontend
-`frontend/` does not exist yet. React app with React Router, Axios, mobile-first CSS.
+### Frontend ✅ Session 4 — 2026-04-03
+`frontend/` scaffolded with Vite + React + TypeScript + Tailwind CSS v3, React Router v6, Axios.
 
-Pages needed (see SPEC.md Section 10 for full detail):
-- Home (`/`) — activity feed / about
-- Tasks (`/tasks`) — browse + filter
-- Task Detail (`/tasks/:id`)
-- Submit Proof (`/tasks/:id/submit`)
-- Submission Detail (`/submissions/:id`)
-- Character Profile (`/characters/:id`)
-- Leaderboard (`/leaderboard`)
-- Groups (`/groups`)
-- Updates (`/updates`)
-- Admin (`/admin`)
+- `frontend/src/api/` — axios.ts, auth.ts, characters.ts, tasks.ts, submissions.ts, votes.ts, leaderboard.ts, messages.ts, admin.ts ✅
+- `frontend/src/auth/` — AuthContext.tsx, ProtectedRoute.tsx ✅
+- `frontend/src/components/` — Layout.tsx, NavBar.tsx, TaskCard.tsx, SubmissionCard.tsx, StarRating.tsx, CharacterBadge.tsx, MediaGallery.tsx ✅
+- `frontend/src/pages/` — Home, Tasks, TaskDetail, SubmitProof, SubmissionDetail, CharacterProfile, Leaderboard, Groups, Updates, Admin, Submissions ✅
+- `frontend/src/App.tsx` — all routes wired ✅
+- `frontend/src/vite-env.d.ts` — Vite client types for `import.meta.env` ✅
+- `frontend/tailwind.config.ts` — custom palette, shadows, fonts (Caveat + Kalam) ✅
+- `npm run build` — zero TypeScript errors ✅
+- NavBar links verified (Tasks, Praxis /submissions, Players /leaderboard, Groups, Updates) ✅
+- Dev server running on port 5173 (`npm run dev`) ✅
+
+Seed data:
+- `backend/seed.py` — 9 factions, 8 accounts/characters, 14 tasks, 24 submissions, ~101 votes ✅
+- Character scores/levels verified against ERA_1 math (corvus_king L5, sable_ink L4, pixel_drift/terra_nova L3, etc.) ✅
 
 ### Deployment
 - `.github/workflows/test.yml` — GitHub Actions CI: push/PR triggers, Postgres service, pip install, alembic upgrade, pytest --cov ✅ 2026-04-02
