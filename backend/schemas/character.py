@@ -22,14 +22,14 @@ class CharacterOut(BaseModel):
 
 class CharacterCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=30)
-    display_name: str
-    bio: Optional[str] = None
-    avatar_url: Optional[str] = None
-    location: Optional[str] = None
+    display_name: str = Field(..., max_length=50)
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    location: Optional[str] = Field(None, max_length=100)
 
 
 class CharacterUpdate(BaseModel):
-    display_name: Optional[str] = None
-    bio: Optional[str] = None
-    avatar_url: Optional[str] = None
-    location: Optional[str] = None
+    display_name: Optional[str] = Field(None, max_length=50)
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    location: Optional[str] = Field(None, max_length=100)

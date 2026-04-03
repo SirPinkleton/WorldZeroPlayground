@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MediaItemOut(BaseModel):
@@ -30,5 +30,5 @@ class SubmissionOut(BaseModel):
 
 class SubmissionCreate(BaseModel):
     task_id: int
-    title: str
-    body_text: Optional[str] = None
+    title: str = Field(..., max_length=200)
+    body_text: Optional[str] = Field(None, max_length=10000)

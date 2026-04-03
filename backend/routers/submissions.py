@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -60,10 +61,7 @@ async def list_submissions(
         query = query.where(Submission.task_id == task_id)
     if character_id:
         query = query.where(Submission.character_id == character_id)
-    if sort == "top":
-        query = query.order_by(Submission.created_at.desc())  # Score sort handled post-query for now
-    else:
-        query = query.order_by(Submission.created_at.desc())
+    query = query.order_by(Submission.created_at.desc())
     query = query.limit(limit).offset(offset)
     result = await session.execute(query)
     submissions = result.scalars().all()
@@ -136,11 +134,14 @@ async def upload_media(
     rel_dir = os.path.join(str(character.id), str(submission_id))
     abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
     os.makedirs(abs_dir, exist_ok=True)
-    filename = file.filename or "upload"
+    raw_name = os.path.basename(file.filename or "upload")
+    filename = re.sub(r"[^\w.\-]", "_", raw_name)[:100] or "upload"
     abs_path = os.path.join(abs_dir, filename)
     rel_path = os.path.join(rel_dir, filename)
 
     contents = await file.read()
+    if len(contents) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 50 MB).")
     with open(abs_path, "wb") as f:
         f.write(contents)
 

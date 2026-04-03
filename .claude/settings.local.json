@@ -43,7 +43,17 @@
       "Bash(powershell -Command \"Remove-Item -Force ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\alembic\\\\versions\\\\test_write.py''; Write-Output ''done''\")",
       "Bash(ls /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.ini /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/*.toml /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/backend/setup.cfg)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git rm:*)",
+      "Bash(GIT_DIR=/c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/.git GIT_WORK_TREE=/c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground git rm --cached frontend/.env.local)",
+      "Bash(git update-index:*)",
+      "Bash(touch /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/.git/index.lock.test)",
+      "Bash(rm /c/Users/MollyShove/Documents/GitHub/WorldZeroPlayground/.git/index.lock.test)",
+      "Bash(touch .git/test_write)",
+      "Bash(rm .git/test_write)",
+      "Bash(powershell.exe -Command \"cd ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground''; git rm --cached frontend/.env.local\")",
+      "Bash(git add:*)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
