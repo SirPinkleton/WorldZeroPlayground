@@ -13,3 +13,4 @@ dist/
 /.claude
 frontend/node_modules/
 frontend/dist/
+frontend/.env.local
