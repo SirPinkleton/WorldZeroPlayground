@@ -10,6 +10,7 @@ import CharacterProfile from './pages/CharacterProfile'
 import Leaderboard from './pages/Leaderboard'
 import Groups from './pages/Groups'
 import Updates from './pages/Updates'
+import Submissions from './pages/Submissions'
 import Admin from './pages/Admin'
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/submissions" element={<Submissions />} />
         <Route path="/submissions/:id" element={<SubmissionDetail />} />
         <Route path="/characters/:id" element={<CharacterProfile />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
