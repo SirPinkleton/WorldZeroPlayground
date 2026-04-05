@@ -3,7 +3,7 @@ services:
     name: worldzero-backend
     runtime: docker
     rootDir: backend
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     branch: main
     autoDeploy: true
     port: 8000
