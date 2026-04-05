@@ -10,8 +10,10 @@ class Settings(BaseSettings):
     MEDIA_BASE_URL: str
     ENVIRONMENT: str = "development"
     MEDIA_ROOT: str = "/media"
+    FRONTEND_URL: str = "http://localhost:3000"
+    COOKIE_DOMAIN: str | None = None
 
-    model_config = {"env_file": ".env"}
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()

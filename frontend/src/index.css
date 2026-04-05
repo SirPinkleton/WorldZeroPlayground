@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper font-body text-ink;
+    background-image: theme('backgroundImage.graph-paper');
+    background-size: theme('backgroundSize.graph-paper');
+    background-color: theme('colors.paper');
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Hard-offset sketch card */
+  .card {
+    @apply bg-card border-2 border-border shadow-sketch;
+  }
+
+  /* Sketch button — dark fill */
+  .btn-primary {
+    @apply font-body bg-ink text-paper border-2 border-border shadow-sketch-sm
+           px-4 py-1.5 text-sm cursor-pointer
+           transition-all duration-100
+           hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch;
+  }
+
+  /* Sketch button — outline */
+  .btn-outline {
+    @apply font-body bg-card text-ink border-2 border-border shadow-sketch-sm
+           px-4 py-1.5 text-sm cursor-pointer
+           transition-all duration-100
+           hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch;
+  }
+
+  /* Filter chip */
+  .chip {
+    @apply font-body text-xs border-2 border-border bg-card shadow-sketch-sm
+           px-2.5 py-0.5 cursor-pointer
+           transition-all duration-100
+           hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch;
+  }
+  .chip-active {
+    @apply bg-ink text-paper;
+  }
+
+  /* Page wrapper */
+  .page {
+    @apply max-w-5xl mx-auto px-4 sm:px-6 py-8;
+  }
+
+  /* Section heading with underline */
+  .page-heading {
+    @apply font-display text-4xl font-bold border-b-2 border-border pb-2 mb-6;
+  }
+}
