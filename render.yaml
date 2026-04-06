@@ -2,7 +2,6 @@ services:
   - type: web
     name: worldzero-backend
     runtime: docker
-    rootDir: backend
     dockerfilePath: ./backend/Dockerfile
     branch: main
     autoDeploy: true
