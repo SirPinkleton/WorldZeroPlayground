@@ -11,6 +11,7 @@ from models.relationship import Relationship
 from models.message import Message
 from models.era import Era
 from models.meta_task import MetaTask, SubmissionMetaTask
+from models.contact import ContactMessage
 
 __all__ = [
     "Faction",
@@ -31,4 +32,5 @@ __all__ = [
     "Era",
     "MetaTask",
     "SubmissionMetaTask",
+    "ContactMessage",
 ]

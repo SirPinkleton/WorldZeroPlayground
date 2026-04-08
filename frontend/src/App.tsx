@@ -12,6 +12,11 @@ import Groups from './pages/Groups'
 import Updates from './pages/Updates'
 import Submissions from './pages/Submissions'
 import Admin from './pages/Admin'
+import About from './pages/About'
+import Contact from './pages/Contact'
+import Disclaimer from './pages/Disclaimer'
+import Attributions from './pages/Attributions'
+import Donate from './pages/Donate'
 
 export default function App() {
   return (
@@ -49,6 +54,11 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/disclaimer" element={<Disclaimer />} />
+        <Route path="/attributions" element={<Attributions />} />
+        <Route path="/donate" element={<Donate />} />
       </Routes>
     </Layout>
   )
