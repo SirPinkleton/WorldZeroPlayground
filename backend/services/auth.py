@@ -29,10 +29,10 @@ def decode_jwt(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[_ALGORITHM])
         if payload.get("sub") is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your session is invalid. Please log in again.")
         return payload
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your session has expired. Please log in again.")
 
 
 async def get_current_account(
@@ -47,7 +47,7 @@ async def get_current_account(
         token = access_token
 
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You need to be logged in to do that.")
 
     payload = decode_jwt(token)
     account_id = int(payload["sub"])
@@ -55,7 +55,7 @@ async def get_current_account(
     result = await session.execute(select(Account).where(Account.id == account_id))
     account = result.scalar_one_or_none()
     if account is None or not account.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account not found")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account could not be found. Please log in again.")
 
     return account
 

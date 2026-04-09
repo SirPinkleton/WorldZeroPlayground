@@ -1,36 +1,57 @@
 import { useEffect, useState } from 'react'
-import { getPendingTasks, approveTask, retireTask, getFlaggedSubmissions } from '../api/admin'
+import { getPendingTasks, approveTask, retireTask, getFlaggedSubmissions, deleteSubmission } from '../api/admin'
 import type { TaskOut } from '../api/tasks'
 import type { SubmissionOut } from '../api/submissions'
-import { deleteSubmission } from '../api/admin'
+import { extractError } from '../utils/errors'
 
 export default function Admin() {
   const [pending, setPending] = useState<TaskOut[]>([])
   const [flagged, setFlagged] = useState<SubmissionOut[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
 
   const refresh = () => {
+    setFetchError(null)
     Promise.all([getPendingTasks(), getFlaggedSubmissions()])
       .then(([p, f]) => { setPending(p); setFlagged(f) })
+      .catch((err) => setFetchError(extractError(err, "Couldn't load admin data.")))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { refresh() }, [])
 
   const handleApprove = async (id: number) => {
-    await approveTask(id)
-    refresh()
+    setActionError(null)
+    try {
+      await approveTask(id)
+      refresh()
+    } catch (err) {
+      setActionError(extractError(err, 'Could not approve this task.'))
+    }
   }
 
   const handleRetire = async (id: number) => {
-    await retireTask(id)
-    refresh()
+    setActionError(null)
+    try {
+      await retireTask(id)
+      refresh()
+    } catch (err) {
+      setActionError(extractError(err, 'Could not retire this task.'))
+    }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this submission?')) return
-    await deleteSubmission(id)
-    refresh()
+    setActionError(null)
+    try {
+      await deleteSubmission(id)
+      setDeleteTarget(null)
+      refresh()
+    } catch (err) {
+      setDeleteTarget(null)
+      setActionError(extractError(err, 'Could not delete this submission.'))
+    }
   }
 
   if (loading) return <div className="page font-body text-muted">Loading...</div>
@@ -38,6 +59,19 @@ export default function Admin() {
   return (
     <div className="page">
       <h1 className="page-heading">Admin</h1>
+
+      {fetchError && (
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2 mb-4">
+          {fetchError}{' '}
+          <button onClick={refresh} className="underline">Try again.</button>
+        </p>
+      )}
+
+      {actionError && (
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2 mb-4">
+          {actionError}
+        </p>
+      )}
 
       {/* Pending tasks */}
       <section className="mb-10">
@@ -79,9 +113,17 @@ export default function Admin() {
                   <p className="font-display text-lg font-bold">{s.title}</p>
                   <p className="font-body text-xs text-muted">by #{s.character_id}</p>
                 </div>
-                <button onClick={() => void handleDelete(s.id)} className="btn-primary text-xs bg-red-700 border-red-900">
-                  delete
-                </button>
+                {deleteTarget === s.id ? (
+                  <div className="flex items-center gap-2 font-body text-xs">
+                    <span className="text-muted">Sure?</span>
+                    <button onClick={() => void handleDelete(s.id)} className="btn-primary text-xs bg-red-700 border-red-900">yes, delete</button>
+                    <button onClick={() => setDeleteTarget(null)} className="btn-outline text-xs">cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setDeleteTarget(s.id)} className="btn-primary text-xs bg-red-700 border-red-900">
+                    delete
+                  </button>
+                )}
               </div>
             ))}
           </div>

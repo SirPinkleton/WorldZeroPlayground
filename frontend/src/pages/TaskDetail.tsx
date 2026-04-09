@@ -4,6 +4,7 @@ import { getTask, signupTask, type TaskOut } from '../api/tasks'
 import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import SubmissionCard from '../components/SubmissionCard'
 import { useAuth } from '../auth/AuthContext'
+import { extractError } from '../utils/errors'
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>()
@@ -11,26 +12,40 @@ export default function TaskDetail() {
   const [task, setTask] = useState<TaskOut | null>(null)
   const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [signupError, setSignupError] = useState<string | null>(null)
+  const [signupSuccess, setSignupSuccess] = useState(false)
 
   useEffect(() => {
     if (!id) return
     const taskId = parseInt(id, 10)
     Promise.all([getTask(taskId), listSubmissions({ task_id: taskId })])
       .then(([t, s]) => { setTask(t); setSubmissions(s) })
+      .catch((err) => setFetchError(extractError(err, "Couldn't load this task.")))
       .finally(() => setLoading(false))
   }, [id])
 
   const handleSignup = async () => {
     if (!task) return
+    setSignupError(null)
+    setSignupSuccess(false)
     try {
       await signupTask(task.id)
-      alert('Signed up!')
-    } catch {
-      alert('Could not sign up.')
+      setSignupSuccess(true)
+    } catch (err) {
+      setSignupError(extractError(err, 'Could not sign up for this task.'))
     }
   }
 
   if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (fetchError) return (
+    <div className="page">
+      <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+        {fetchError}{' '}
+        <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+      </p>
+    </div>
+  )
   if (!task) return <div className="page font-body text-muted">Task not found.</div>
 
   return (
@@ -45,10 +60,17 @@ export default function TaskDetail() {
             </p>
             <h1 className="font-display text-4xl font-bold leading-tight">{task.title}</h1>
           </div>
-          {user && (
+          {user && !signupSuccess && (
             <button onClick={handleSignup} className="btn-primary shrink-0">sign up</button>
           )}
+          {signupSuccess && (
+            <span className="font-body text-sm text-muted shrink-0">signed up ✓</span>
+          )}
         </div>
+
+        {signupError && (
+          <p className="font-body text-xs text-red-600 mt-2">{signupError}</p>
+        )}
 
         {task.description && (
           <p className="font-body text-base text-muted mt-4 leading-relaxed whitespace-pre-wrap">

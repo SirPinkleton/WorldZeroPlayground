@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listTasks, signupTask, type TaskOut } from '../api/tasks'
 import TaskCard from '../components/TaskCard'
+import { extractError } from '../utils/errors'
 
 const STATUS_FILTERS = ['All', 'active', 'pending', 'retired']
 const FACTION_FILTERS = [
@@ -19,24 +20,29 @@ export default function Tasks() {
   const [faction, setFaction] = useState('')
   const [level, setLevel] = useState<number | ''>('')
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [signupMsg, setSignupMsg] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
 
   useEffect(() => {
     setLoading(true)
+    setFetchError(null)
     listTasks({
       status: status === 'All' ? undefined : status,
       faction: faction || undefined,
       level: level === '' ? undefined : level,
     })
       .then(setTasks)
+      .catch((err) => setFetchError(extractError(err, "Couldn't load tasks.")))
       .finally(() => setLoading(false))
   }, [status, faction, level])
 
   const handleSignup = async (id: number) => {
+    setSignupMsg(null)
     try {
       await signupTask(id)
-      alert('Signed up!')
-    } catch {
-      alert('Could not sign up — make sure you are logged in.')
+      setSignupMsg({ id, msg: "You're signed up!", ok: true })
+    } catch (err) {
+      setSignupMsg({ id, msg: extractError(err, 'Could not sign up — make sure you are logged in.'), ok: false })
     }
   }
 
@@ -87,8 +93,19 @@ export default function Tasks() {
         ))}
       </div>
 
+      {signupMsg && (
+        <p className={`font-body text-sm mb-4 border-2 px-3 py-2 ${signupMsg.ok ? 'border-border text-ink' : 'border-red-300 text-red-600'}`}>
+          {signupMsg.msg}
+        </p>
+      )}
+
       {loading ? (
         <p className="font-body text-muted">Loading tasks...</p>
+      ) : fetchError ? (
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+          {fetchError}{' '}
+          <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+        </p>
       ) : tasks.length === 0 ? (
         <p className="font-body text-muted">No tasks match your filters.</p>
       ) : (

@@ -1,8 +1,11 @@
+import logging
 import os
 import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -133,17 +136,26 @@ async def upload_media(
     # Save file to local filesystem (relative path)
     rel_dir = os.path.join(str(character.id), str(submission_id))
     abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
-    os.makedirs(abs_dir, exist_ok=True)
     raw_name = os.path.basename(file.filename or "upload")
     filename = re.sub(r"[^\w.\-]", "_", raw_name)[:100] or "upload"
     abs_path = os.path.join(abs_dir, filename)
     rel_path = os.path.join(rel_dir, filename)
 
-    contents = await file.read()
-    if len(contents) > 50 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large (max 50 MB).")
-    with open(abs_path, "wb") as f:
-        f.write(contents)
+    try:
+        os.makedirs(abs_dir, exist_ok=True)
+        contents = await file.read()
+        if len(contents) > 50 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File too large (max 50 MB).")
+        with open(abs_path, "wb") as f:
+            f.write(contents)
+    except HTTPException:
+        raise
+    except OSError:
+        logger.exception("Failed to save media for submission %s", submission_id)
+        raise HTTPException(
+            status_code=500,
+            detail="We couldn't save your file. Please check the file and try again.",
+        )
 
     media_item = MediaItem(
         submission_id=submission_id,

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { castVote } from '../api/votes'
 import { useAuth } from '../auth/AuthContext'
+import { extractError } from '../utils/errors'
 
 interface Props {
   submissionId: number
@@ -17,14 +18,13 @@ export default function StarRating({ submissionId, currentStars, averageStars, t
   const [error, setError] = useState('')
 
   const handleVote = async (stars: number) => {
-    if (!user) { setError('Log in to vote'); return }
     setSaving(true)
     setError('')
     try {
       await castVote(submissionId, stars)
       setSelected(stars)
-    } catch {
-      setError('Could not save vote')
+    } catch (err) {
+      setError(extractError(err, 'Could not save your rating. Please try again.'))
     } finally {
       setSaving(false)
     }

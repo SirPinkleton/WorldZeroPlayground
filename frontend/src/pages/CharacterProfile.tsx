@@ -3,22 +3,33 @@ import { useParams } from 'react-router-dom'
 import { getCharacter, type CharacterOut } from '../api/characters'
 import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import SubmissionCard from '../components/SubmissionCard'
+import { extractError } from '../utils/errors'
 
 export default function CharacterProfile() {
   const { id } = useParams<{ id: string }>()
   const [character, setCharacter] = useState<CharacterOut | null>(null)
   const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
     const cid = parseInt(id, 10)
     Promise.all([getCharacter(cid), listSubmissions({ character_id: cid })])
       .then(([c, s]) => { setCharacter(c); setSubmissions(s) })
+      .catch((err) => setFetchError(extractError(err, "Couldn't load this character.")))
       .finally(() => setLoading(false))
   }, [id])
 
   if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (fetchError) return (
+    <div className="page">
+      <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+        {fetchError}{' '}
+        <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+      </p>
+    </div>
+  )
   if (!character) return <div className="page font-body text-muted">Character not found.</div>
 
   return (

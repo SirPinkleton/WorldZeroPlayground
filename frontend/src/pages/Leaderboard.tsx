@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLeaderboard } from '../api/leaderboard'
 import type { CharacterOut } from '../api/auth'
+import { extractError } from '../utils/errors'
 
 export default function Leaderboard() {
   const [characters, setCharacters] = useState<CharacterOut[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
-    getLeaderboard({ limit: 50 }).then(setCharacters).finally(() => setLoading(false))
+    getLeaderboard({ limit: 50 })
+      .then(setCharacters)
+      .catch((err) => setFetchError(extractError(err, "Couldn't load the leaderboard.")))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -17,6 +22,11 @@ export default function Leaderboard() {
 
       {loading ? (
         <p className="font-body text-muted">Loading...</p>
+      ) : fetchError ? (
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+          {fetchError}{' '}
+          <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+        </p>
       ) : characters.length === 0 ? (
         <p className="font-body text-muted">No players yet.</p>
       ) : (
