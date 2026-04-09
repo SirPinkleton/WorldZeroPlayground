@@ -1,8 +1,19 @@
-import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import NavBar from './NavBar'
 
 export default function Layout({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    if (!loading && user && !user.character && pathname !== '/characters/create') {
+      navigate('/characters/create')
+    }
+  }, [user, loading, pathname, navigate])
+
   return (
     <div className="min-h-screen flex flex-col">
       <NavBar />

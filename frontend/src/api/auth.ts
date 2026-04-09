@@ -32,3 +32,8 @@ export async function logout(): Promise<void> {
 export function loginWithGoogle(): void {
   window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8000'}/auth/google`
 }
+
+/** Dev-only: log in as a test account without Google OAuth */
+export async function devLogin(): Promise<void> {
+  await api.post('/auth/dev-login')
+}

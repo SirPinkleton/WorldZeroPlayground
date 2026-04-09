@@ -12,6 +12,7 @@ import Groups from './pages/Groups'
 import Updates from './pages/Updates'
 import Submissions from './pages/Submissions'
 import Admin from './pages/Admin'
+import CreateCharacter from './pages/CreateCharacter'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Disclaimer from './pages/Disclaimer'
@@ -51,6 +52,14 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/characters/create"
+          element={
+            <ProtectedRoute>
+              <CreateCharacter />
             </ProtectedRoute>
           }
         />

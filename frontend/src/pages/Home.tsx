@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { listSubmissions, type SubmissionOut } from '../api/submissions'
-import { loginWithGoogle } from '../api/auth'
+import { loginWithGoogle, devLogin } from '../api/auth'
 import SubmissionCard from '../components/SubmissionCard'
 
 export default function Home() {
-  const { user } = useAuth()
+  const { user, refetch } = useAuth()
   const [searchParams] = useSearchParams()
   const loginRequired = searchParams.get('login') === 'required'
   const [feed, setFeed] = useState<SubmissionOut[]>([])
@@ -33,6 +33,14 @@ export default function Home() {
         <button onClick={loginWithGoogle} className="btn-primary text-base px-8 py-2">
           Login with Google
         </button>
+        {import.meta.env.DEV && (
+          <button
+            onClick={async () => { await devLogin(); await refetch() }}
+            className="btn-outline text-xs px-4 py-1 mt-4"
+          >
+            dev login (no OAuth)
+          </button>
+        )}
       </div>
     )
   }

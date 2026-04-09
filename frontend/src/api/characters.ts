@@ -37,3 +37,10 @@ export async function updateCharacter(id: number, body: CharacterUpdate): Promis
   const { data } = await api.put<CharacterOut>(`/characters/${id}`, body)
   return data
 }
+
+export async function uploadCharacterAvatar(id: number, file: File): Promise<CharacterOut> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<CharacterOut>(`/characters/${id}/avatar`, form)
+  return data
+}
