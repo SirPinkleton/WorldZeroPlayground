@@ -34,7 +34,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSON
     elif "unique" in msg or "duplicate" in msg:
         detail = "That value is already in use. Please try a different one."
     else:
-        detail = "A conflict occurred. Please try again."
+        detail = msg
     return JSONResponse(status_code=409, content={"detail": detail})
 
 
