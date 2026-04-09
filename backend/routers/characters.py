@@ -1,8 +1,11 @@
+import logging
 import os
 import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -161,17 +164,26 @@ async def upload_avatar(
 
     rel_dir = os.path.join(str(character_id), "avatar")
     abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
-    os.makedirs(abs_dir, exist_ok=True)
     raw_name = os.path.basename(file.filename or "avatar")
     filename = re.sub(r"[^\w.\-]", "_", raw_name)[:100] or "avatar"
     abs_path = os.path.join(abs_dir, filename)
     rel_path = os.path.join(rel_dir, filename)
 
-    contents = await file.read()
-    if len(contents) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Avatar too large (max 10 MB).")
-    with open(abs_path, "wb") as f:
-        f.write(contents)
+    try:
+        os.makedirs(abs_dir, exist_ok=True)
+        contents = await file.read()
+        if len(contents) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Avatar too large (max 10 MB).")
+        with open(abs_path, "wb") as f:
+            f.write(contents)
+    except HTTPException:
+        raise
+    except OSError:
+        logger.exception("Failed to save avatar for character %s", character_id)
+        raise HTTPException(
+            status_code=500,
+            detail="We couldn't save your avatar. Please try again or paste a URL instead.",
+        )
 
     character.avatar_url = rel_path
     await session.commit()

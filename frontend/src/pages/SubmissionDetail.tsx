@@ -5,6 +5,7 @@ import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
 import StarRating from '../components/StarRating'
 import { useAuth } from '../auth/AuthContext'
+import { extractError } from '../utils/errors'
 
 export default function SubmissionDetail() {
   const { id } = useParams<{ id: string }>()
@@ -12,13 +13,16 @@ export default function SubmissionDetail() {
   const [submission, setSubmission] = useState<SubmissionOut | null>(null)
   const [votes, setVotes] = useState<VoteSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [flagging, setFlagging] = useState(false)
+  const [flagError, setFlagError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
     const sid = parseInt(id, 10)
     Promise.all([getSubmission(sid), getVotes(sid)])
       .then(([s, v]) => { setSubmission(s); setVotes(v) })
+      .catch((err) => setFetchError(extractError(err, "Couldn't load this submission.")))
       .finally(() => setLoading(false))
   }, [id])
 
@@ -27,17 +31,26 @@ export default function SubmissionDetail() {
     const reason = window.prompt('Reason for flagging:')
     if (!reason) return
     setFlagging(true)
+    setFlagError(null)
     try {
       const updated = await flagSubmission(submission.id, reason)
       setSubmission(updated)
-    } catch {
-      alert('Could not flag — requires level 4+.')
+    } catch (err) {
+      setFlagError(extractError(err, 'Could not flag this submission.'))
     } finally {
       setFlagging(false)
     }
   }
 
   if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (fetchError) return (
+    <div className="page">
+      <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+        {fetchError}{' '}
+        <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+      </p>
+    </div>
+  )
   if (!submission) return <div className="page font-body text-muted">Not found.</div>
 
   const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== submission.character_id
@@ -91,6 +104,9 @@ export default function SubmissionDetail() {
           </button>
         )}
       </div>
+      {flagError && (
+        <p className="font-body text-xs text-red-600 mt-1">{flagError}</p>
+      )}
     </div>
   )
 }

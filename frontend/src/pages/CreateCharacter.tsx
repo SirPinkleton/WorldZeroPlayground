@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { createCharacter, uploadCharacterAvatar } from '../api/characters'
+import { extractError } from '../utils/errors'
 
 export default function CreateCharacter() {
   const { refetch } = useAuth()
@@ -74,11 +75,8 @@ export default function CreateCharacter() {
 
       await refetch()
       navigate(`/characters/${character.id}`)
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-        ?? 'Something went wrong. Please try again.'
-      setError(msg)
+    } catch (err) {
+      setError(extractError(err))
     } finally {
       setSubmitting(false)
     }

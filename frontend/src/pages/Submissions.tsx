@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react'
 import { listSubmissions } from '../api/submissions'
 import type { SubmissionOut } from '../api/submissions'
 import SubmissionCard from '../components/SubmissionCard'
+import { extractError } from '../utils/errors'
 
 export default function Submissions() {
   const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
-    listSubmissions().then(setSubmissions).finally(() => setLoading(false))
+    listSubmissions()
+      .then(setSubmissions)
+      .catch((err) => setFetchError(extractError(err, "Couldn't load submissions.")))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -20,6 +25,11 @@ export default function Submissions() {
 
       {loading ? (
         <p className="font-body text-muted">Loading praxis...</p>
+      ) : fetchError ? (
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+          {fetchError}{' '}
+          <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+        </p>
       ) : submissions.length === 0 ? (
         <p className="font-body text-muted">No submissions yet. Be the first.</p>
       ) : (

@@ -1,14 +1,19 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
 
 from config import settings
 from routers import admin, auth, characters, leaderboard, messages, relationships, submissions, tasks, votes
 from routers import contact
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -19,6 +24,28 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="World Zero", version="1.0.0", lifespan=lifespan)
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+    msg = str(exc.orig).lower()
+    if "username" in msg:
+        detail = "That username is already taken. Please choose a different one."
+    elif "unique" in msg or "duplicate" in msg:
+        detail = "That value is already in use. Please try a different one."
+    else:
+        detail = "A conflict occurred. Please try again."
+    return JSONResponse(status_code=409, content={"detail": detail})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Something went wrong on our end. Please try again in a moment."},
+    )
+
 
 # Session middleware is required by Authlib for OAuth state management
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
