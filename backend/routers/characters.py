@@ -1,9 +1,12 @@
+import os
+import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from db import get_db
 from dependencies import get_current_character
 from models.account import Account
@@ -134,6 +137,46 @@ async def get_character_submissions(
             )
         )
     return out
+
+
+@router.post("/{character_id}/avatar", response_model=CharacterOut)
+async def upload_avatar(
+    character_id: int,
+    file: UploadFile = File(...),
+    account: Account = Depends(get_current_account),
+    session: AsyncSession = Depends(get_db),
+):
+    result = await session.execute(
+        select(Character).where(Character.id == character_id, Character.is_active == True)
+    )
+    character = result.scalar_one_or_none()
+    if character is None:
+        raise HTTPException(status_code=404, detail="Character not found.")
+    if character.account_id != account.id:
+        raise HTTPException(status_code=403, detail="Cannot update another character's avatar.")
+
+    content_type = file.content_type or ""
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="Avatar must be an image file.")
+
+    rel_dir = os.path.join(str(character_id), "avatar")
+    abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
+    os.makedirs(abs_dir, exist_ok=True)
+    raw_name = os.path.basename(file.filename or "avatar")
+    filename = re.sub(r"[^\w.\-]", "_", raw_name)[:100] or "avatar"
+    abs_path = os.path.join(abs_dir, filename)
+    rel_path = os.path.join(rel_dir, filename)
+
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Avatar too large (max 10 MB).")
+    with open(abs_path, "wb") as f:
+        f.write(contents)
+
+    character.avatar_url = rel_path
+    await session.commit()
+    await session.refresh(character)
+    return CharacterOut.model_validate(character)
 
 
 @router.get("/{character_id}/relationships", response_model=list[RelationshipOut])

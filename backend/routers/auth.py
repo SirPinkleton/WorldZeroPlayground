@@ -87,3 +87,33 @@ async def auth_logout(response: Response):
     """Clear the JWT cookie."""
     response.delete_cookie("access_token")
     return {"message": "Logged out"}
+
+
+@router.post("/dev-login")
+async def dev_login(
+    response: Response,
+    session: AsyncSession = Depends(get_db),
+):
+    """Dev-only: create/get a test account and set a JWT cookie. Disabled in production."""
+    if settings.ENVIRONMENT == "production":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Not found.")
+
+    account = await create_or_get_account(
+        provider="dev",
+        provider_user_id="dev-user-1",
+        email="dev@localhost",
+        access_token="",
+        session=session,
+    )
+
+    jwt_token = create_jwt(account.id)
+    response.set_cookie(
+        key="access_token",
+        value=jwt_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=_COOKIE_MAX_AGE,
+    )
+    return {"message": "Dev login successful"}

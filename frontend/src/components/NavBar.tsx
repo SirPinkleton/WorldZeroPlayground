@@ -61,12 +61,21 @@ export default function NavBar() {
         <div className="flex items-center gap-3 shrink-0">
           {user ? (
             <>
-              <NavLink
-                to={user.character ? `/characters/${user.character.id}` : '/'}
-                className="font-body text-sm text-muted hover:text-ink transition-colors"
-              >
-                {user.character?.username ?? 'No character'}
-              </NavLink>
+              {user.character ? (
+                <NavLink
+                  to={`/characters/${user.character.id}`}
+                  className="font-body text-sm text-muted hover:text-ink transition-colors"
+                >
+                  {user.character.username}
+                </NavLink>
+              ) : (
+                <NavLink
+                  to="/characters/create"
+                  className="font-body text-sm text-muted hover:text-ink transition-colors"
+                >
+                  create character →
+                </NavLink>
+              )}
               <button onClick={handleLogout} className="btn-outline text-xs py-1 px-3">
                 logout
               </button>
