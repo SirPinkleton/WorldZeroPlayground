@@ -53,7 +53,8 @@
       "Bash(rm .git/test_write)",
       "Bash(powershell.exe -Command \"cd ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground''; git rm --cached frontend/.env.local\")",
       "Bash(git add:*)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(git mv:*)"
     ]
   }
 }
