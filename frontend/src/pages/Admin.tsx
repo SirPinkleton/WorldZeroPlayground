@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getPendingTasks, approveTask, retireTask, getFlaggedSubmissions, deleteSubmission } from '../api/admin'
+import { getFactions, updateFaction } from '../api/factions'
+import type { FactionOut } from '../api/factions'
 import type { TaskOut } from '../api/tasks'
 import type { SubmissionOut } from '../api/submissions'
 import { extractError } from '../utils/errors'
@@ -7,15 +9,21 @@ import { extractError } from '../utils/errors'
 export default function Admin() {
   const [pending, setPending] = useState<TaskOut[]>([])
   const [flagged, setFlagged] = useState<SubmissionOut[]>([])
+  const [factions, setFactions] = useState<FactionOut[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
 
+  // Faction inline edit state: slug → { name, description } | null (null = not editing)
+  const [factionEdits, setFactionEdits] = useState<Record<string, { name: string; description: string } | null>>({})
+  const [factionSaving, setFactionSaving] = useState<string | null>(null)
+  const [factionError, setFactionError] = useState<string | null>(null)
+
   const refresh = () => {
     setFetchError(null)
-    Promise.all([getPendingTasks(), getFlaggedSubmissions()])
-      .then(([p, f]) => { setPending(p); setFlagged(f) })
+    Promise.all([getPendingTasks(), getFlaggedSubmissions(), getFactions()])
+      .then(([p, f, fa]) => { setPending(p); setFlagged(f); setFactions(fa) })
       .catch((err) => setFetchError(extractError(err, "Couldn't load admin data.")))
       .finally(() => setLoading(false))
   }
@@ -51,6 +59,37 @@ export default function Admin() {
     } catch (err) {
       setDeleteTarget(null)
       setActionError(extractError(err, 'Could not delete this submission.'))
+    }
+  }
+
+  const startEditFaction = (f: FactionOut) => {
+    setFactionEdits((prev) => ({
+      ...prev,
+      [f.slug]: { name: f.name, description: f.description ?? '' },
+    }))
+    setFactionError(null)
+  }
+
+  const cancelEditFaction = (slug: string) => {
+    setFactionEdits((prev) => ({ ...prev, [slug]: null }))
+  }
+
+  const saveFaction = async (slug: string) => {
+    const edit = factionEdits[slug]
+    if (!edit) return
+    setFactionSaving(slug)
+    setFactionError(null)
+    try {
+      const updated = await updateFaction(slug, {
+        name: edit.name,
+        description: edit.description || null,
+      })
+      setFactions((prev) => prev.map((f) => (f.slug === slug ? updated : f)))
+      setFactionEdits((prev) => ({ ...prev, [slug]: null }))
+    } catch (err) {
+      setFactionError(extractError(err, 'Could not save faction.'))
+    } finally {
+      setFactionSaving(null)
     }
   }
 
@@ -96,6 +135,64 @@ export default function Admin() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Factions */}
+      <section className="mb-10">
+        <h2 className="font-display text-2xl font-bold mb-3 border-b-2 border-border pb-1">
+          Factions
+        </h2>
+        {factionError && (
+          <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2 mb-3">{factionError}</p>
+        )}
+        <div className="flex flex-col gap-3">
+          {factions.map((f) => {
+            const edit = factionEdits[f.slug]
+            const saving = factionSaving === f.slug
+            return (
+              <div key={f.slug} className="card px-4 py-3">
+                {edit ? (
+                  <div className="flex flex-col gap-2">
+                    <input
+                      className="border-2 border-border bg-card px-3 py-1 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink"
+                      value={edit.name}
+                      onChange={(e) => setFactionEdits((prev) => ({ ...prev, [f.slug]: { ...edit, name: e.target.value } }))}
+                      placeholder="Name"
+                    />
+                    <textarea
+                      className="border-2 border-border bg-card px-3 py-1 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink resize-none"
+                      rows={3}
+                      value={edit.description}
+                      onChange={(e) => setFactionEdits((prev) => ({ ...prev, [f.slug]: { ...edit, description: e.target.value } }))}
+                      placeholder="Description"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => void saveFaction(f.slug)}
+                        disabled={saving}
+                        className="btn-primary text-xs"
+                      >
+                        {saving ? 'saving...' : 'save'}
+                      </button>
+                      <button onClick={() => cancelEditFaction(f.slug)} className="btn-outline text-xs">cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <p className="font-display text-lg font-bold">{f.name}</p>
+                      <p className="font-body text-xs text-muted">{f.slug}</p>
+                      {f.description && (
+                        <p className="font-body text-sm text-ink mt-1">{f.description}</p>
+                      )}
+                    </div>
+                    <button onClick={() => startEditFaction(f)} className="btn-outline text-xs shrink-0">edit</button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </section>
 
       {/* Flagged submissions */}

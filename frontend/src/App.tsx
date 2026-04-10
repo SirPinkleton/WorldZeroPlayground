@@ -8,7 +8,7 @@ import SubmitProof from './pages/SubmitProof'
 import SubmissionDetail from './pages/SubmissionDetail'
 import CharacterProfile from './pages/CharacterProfile'
 import Leaderboard from './pages/Leaderboard'
-import Groups from './pages/Groups'
+import Factions from './pages/Factions'
 import Updates from './pages/Updates'
 import Submissions from './pages/Submissions'
 import Admin from './pages/Admin'
@@ -38,7 +38,7 @@ export default function App() {
         <Route path="/submissions/:id" element={<SubmissionDetail />} />
         <Route path="/characters/:id" element={<CharacterProfile />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/groups" element={<Groups />} />
+        <Route path="/factions" element={<Factions />} />
         <Route
           path="/updates"
           element={

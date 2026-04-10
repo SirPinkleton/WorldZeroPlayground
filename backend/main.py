@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
 
 from config import settings
-from routers import admin, auth, characters, leaderboard, messages, relationships, submissions, tasks, votes
+from routers import admin, auth, characters, factions, leaderboard, messages, relationships, submissions, tasks, votes
 from routers import contact
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,7 @@ app.include_router(relationships.router, prefix="/relationships", tags=["relatio
 app.include_router(messages.router, prefix="/messages", tags=["messages"])
 app.include_router(leaderboard.router, prefix="/leaderboard", tags=["leaderboard"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(factions.router, prefix="/factions", tags=["factions"])
 app.include_router(contact.router, prefix="/contact", tags=["contact"])
 
 

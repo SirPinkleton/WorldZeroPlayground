@@ -7,7 +7,7 @@ const links = [
   { to: '/tasks', label: 'Tasks' },
   { to: '/submissions', label: 'Praxis' },
   { to: '/leaderboard', label: 'Players' },
-  { to: '/groups', label: 'Groups' },
+  { to: '/factions', label: 'Factions' },
   { to: '/updates', label: 'Updates' },
 ]
 
