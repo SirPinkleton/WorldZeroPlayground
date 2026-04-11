@@ -139,10 +139,10 @@ async def update_task_route(
             detail="Only the proposer can edit a pending task.",
         )
     task.title = data.title
-    task.description = data.description
+    task.description = data.description or ""
     task.point_value = data.point_value
     task.level_required = data.level_required
-    task.primary_faction_slug = data.primary_faction_slug
+    task.primary_faction_slug = data.primary_faction_slug or "na"
     await session.commit()
     await session.refresh(task)
     return TaskOut(

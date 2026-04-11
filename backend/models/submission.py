@@ -21,16 +21,17 @@ class Submission(Base):
     task_id: Mapped[int] = mapped_column(ForeignKey("task.id"), nullable=False)
     character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
-    body_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    body_text: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     is_flagged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # flagged_at is nullable: NULL means "not yet flagged" — semantic NULL, not missing data
     flagged_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -45,5 +46,5 @@ class MediaItem(Base):
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

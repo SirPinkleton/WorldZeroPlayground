@@ -4,8 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
+from models.character_stats import CharacterStats
 from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
 from schemas.task import TaskCreate
+from services.era import get_current_era_row, get_or_create_stats
 
 
 async def signup_for_task(
@@ -14,10 +16,13 @@ async def signup_for_task(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> CharacterTask:
-    if character.level < task.level_required:
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character.id, era_row.id)
+
+    if stats.level < task.level_required:
         raise HTTPException(
             status_code=403,
-            detail=f"Task requires level {task.level_required}; your character is level {character.level}.",
+            detail=f"Task requires level {task.level_required}; your character is level {stats.level}.",
         )
 
     result = await session.execute(
@@ -65,7 +70,10 @@ async def propose_task(
     data: TaskCreate,
     session: AsyncSession,
 ) -> Task:
-    if character.level < 3:
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character.id, era_row.id)
+
+    if stats.level < 3:
         raise HTTPException(
             status_code=403,
             detail="Must be level 3 or above to propose tasks.",
@@ -73,10 +81,10 @@ async def propose_task(
 
     task = Task(
         title=data.title,
-        description=data.description,
+        description=data.description or "",
         point_value=data.point_value,
         level_required=data.level_required,
-        primary_faction_slug=data.primary_faction_slug,
+        primary_faction_slug=data.primary_faction_slug or "na",
         created_by=character.id,
         status=TaskStatus.pending,
     )

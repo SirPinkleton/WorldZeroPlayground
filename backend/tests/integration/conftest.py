@@ -20,6 +20,7 @@ from main import app
 from models.account import Account, OAuthProvider  # noqa: F401
 from models.base import Base
 from models.character import Character  # noqa: F401
+from models.character_stats import CharacterStats  # noqa: F401
 from models.era import Era  # noqa: F401  # ensure all models are registered
 from models.faction import Faction  # noqa: F401
 from models.flag import Flag  # noqa: F401
@@ -97,38 +98,89 @@ async def account2(db_session: AsyncSession) -> Account:
 
 
 @pytest_asyncio.fixture
-async def character(db_session: AsyncSession, account: Account) -> Character:
+async def era(db_session: AsyncSession, account: Account) -> Era:
+    """Seed the current Era 1 row required for CharacterStats FK."""
+    from game_config import CURRENT_ERA
+    e = Era(
+        name=CURRENT_ERA.name,
+        config_key=CURRENT_ERA.config_key,
+        started_by=account.id,
+    )
+    db_session.add(e)
+    await db_session.commit()
+    await db_session.refresh(e)
+    return e
+
+
+@pytest_asyncio.fixture
+async def faction_ua(db_session: AsyncSession) -> Faction:
+    """Seed the 'ua' and 'na' factions required for FK constraints."""
+    from models.faction import FactionStatus
+    from sqlalchemy import select
+
+    factions_to_seed = [
+        Faction(slug="ua", name="UA", description="Default starting faction", status=FactionStatus.visible),
+        Faction(slug="na", name="None", description="Sentinel for no faction affiliation", status=FactionStatus.hidden),
+    ]
+    for f in factions_to_seed:
+        result = await db_session.execute(select(Faction).where(Faction.slug == f.slug))
+        if result.scalar_one_or_none() is None:
+            db_session.add(f)
+    await db_session.commit()
+
+    result = await db_session.execute(select(Faction).where(Faction.slug == "ua"))
+    return result.scalar_one()
+
+
+@pytest_asyncio.fixture
+async def character(db_session: AsyncSession, account: Account, era: Era, faction_ua: Faction) -> Character:
     ch = Character(
         account_id=account.id,
         username="testcharacter",
         display_name="Test Character",
-        level=0,
-        score=0,
-        all_time_score=0,
         faction_slug="ua",
-        votes_available=10,
     )
     db_session.add(ch)
+    await db_session.flush()
+
+    stats = CharacterStats(
+        character_id=ch.id,
+        era_id=era.id,
+        score=0,
+        all_time_score=0,
+        level=0,
+        votes_available=10,
+    )
+    db_session.add(stats)
     await db_session.commit()
     await db_session.refresh(ch)
+    await db_session.refresh(stats)
     return ch
 
 
 @pytest_asyncio.fixture
-async def character2(db_session: AsyncSession, account2: Account) -> Character:
+async def character2(db_session: AsyncSession, account2: Account, era: Era, faction_ua: Faction) -> Character:
     ch = Character(
         account_id=account2.id,
         username="othercharacter",
         display_name="Other Character",
-        level=5,
-        score=500,
-        all_time_score=500,
         faction_slug="ua",
-        votes_available=10,
     )
     db_session.add(ch)
+    await db_session.flush()
+
+    stats = CharacterStats(
+        character_id=ch.id,
+        era_id=era.id,
+        score=500,
+        all_time_score=500,
+        level=5,
+        votes_available=10,
+    )
+    db_session.add(stats)
     await db_session.commit()
     await db_session.refresh(ch)
+    await db_session.refresh(stats)
     return ch
 
 
@@ -154,6 +206,7 @@ async def active_task(db_session: AsyncSession, character: Character) -> Task:
         level_required=0,
         status=TaskStatus.active,
         created_by=character.id,
+        primary_faction_slug="na",
     )
     db_session.add(task)
     await db_session.commit()

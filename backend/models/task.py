@@ -1,6 +1,5 @@
 import enum
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -25,21 +24,25 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     point_value: Mapped[int] = mapped_column(Integer, nullable=False)
     level_required: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), default=TaskStatus.pending, nullable=False
     )
     created_by: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
-    primary_faction_slug: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("faction.slug"), nullable=True
+    # "na" is the sentinel for generic cross-faction tasks
+    primary_faction_slug: Mapped[str] = mapped_column(
+        ForeignKey("faction.slug"), nullable=False, server_default="na"
     )
     is_task_vision_eligible: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -62,10 +65,13 @@ class CharacterTask(Base):
     character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
     task_id: Mapped[int] = mapped_column(ForeignKey("task.id"), nullable=False)
     signed_up_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     status: Mapped[CharacterTaskStatus] = mapped_column(
         Enum(CharacterTaskStatus),
         default=CharacterTaskStatus.in_progress,
         nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )

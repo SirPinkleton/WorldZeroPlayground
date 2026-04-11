@@ -10,6 +10,7 @@ from models.submission import Submission
 from models.task import Task
 from models.vote import Vote
 from schemas.submission import SubmissionCreate
+from services.era import get_current_era_row, get_or_create_stats
 from services.scoring import compute_submission_score
 
 
@@ -23,7 +24,7 @@ async def create_submission(
         task_id=task.id,
         character_id=character.id,
         title=data.title,
-        body_text=data.body_text,
+        body_text=data.body_text or "",
     )
     session.add(submission)
     await session.commit()
@@ -37,6 +38,8 @@ async def edit_submission(
     session: AsyncSession,
 ) -> Submission:
     for field, value in data.model_dump(exclude_unset=True, exclude={"task_id"}).items():
+        if value is None:
+            value = ""
         setattr(submission, field, value)
     await session.commit()
     await session.refresh(submission)
@@ -49,7 +52,10 @@ async def flag_submission(
     reason: str,
     session: AsyncSession,
 ) -> Submission:
-    if flagged_by.level < 4:
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, flagged_by.id, era_row.id)
+
+    if stats.level < 4:
         raise HTTPException(
             status_code=403,
             detail="Must be level 4 or above to flag submissions.",
@@ -63,7 +69,7 @@ async def flag_submission(
     flag = Flag(
         submission_id=submission.id,
         flagged_by=flagged_by.id,
-        reason=reason,
+        reason=reason or "",
     )
     session.add(flag)
     await session.commit()

@@ -1,10 +1,16 @@
+import enum
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+
+
+class CharacterStatus(enum.Enum):
+    active = "active"
+    paused = "paused"
+    banned = "banned"
 
 
 class Character(Base):
@@ -14,17 +20,20 @@ class Character(Base):
     account_id: Mapped[int] = mapped_column(ForeignKey("account.id"), nullable=False)
     username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String, nullable=False)
-    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    avatar_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    all_time_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    votes_available: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    faction_slug: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("faction.slug"), nullable=True
+    bio: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    avatar_url: Mapped[str] = mapped_column(String, nullable=False, server_default="")
+    location: Mapped[str] = mapped_column(String, nullable=False, server_default="")
+    # faction_slug defaults to "ua" — the starting faction for all new characters
+    faction_slug: Mapped[str] = mapped_column(
+        ForeignKey("faction.slug"), nullable=False, server_default="ua"
+    )
+    status: Mapped[CharacterStatus] = mapped_column(
+        Enum(CharacterStatus), nullable=False, default=CharacterStatus.active
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+    # score, level, votes_available, all_time_score live in CharacterStats (star schema split)

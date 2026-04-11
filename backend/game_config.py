@@ -143,6 +143,16 @@ ERA_1_FACTIONS = {
         own_faction_multiplier=1.0,
         other_faction_multiplier=1.0,
     ),
+    "na": FactionConfig(
+        slug="na",
+        name="None",
+        description="Sentinel value for tasks with no specific faction affiliation.",
+        point_multiplier=1.0,
+        duel_bonus_multiplier=0.0,
+        is_selectable=False,
+        own_faction_multiplier=1.0,
+        other_faction_multiplier=1.0,
+    ),
 }
 
 

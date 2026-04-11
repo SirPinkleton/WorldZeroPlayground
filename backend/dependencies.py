@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from models.account import Account
-from models.character import Character
+from models.character import Character, CharacterStatus
 from models.roles import AccountRole, Role
 from services.auth import get_current_account
 
@@ -20,7 +20,10 @@ async def get_current_character(
     """
     result = await session.execute(
         select(Character)
-        .where(Character.account_id == account.id, Character.is_active == True)
+        .where(
+            Character.account_id == account.id,
+            Character.status == CharacterStatus.active,
+        )
         .order_by(Character.created_at)
         .limit(1)
     )

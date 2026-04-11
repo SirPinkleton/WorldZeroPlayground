@@ -22,7 +22,9 @@ from game_config import ERA_1
 from script_utils import add_env_argument, get_settings
 from models.account import Account, OAuthProvider
 from models.character import Character
-from models.faction import Faction
+from models.character_stats import CharacterStats
+from models.era import Era
+from models.faction import Faction, FactionStatus
 from models.submission import Submission
 from models.task import Task, TaskStatus, CharacterTask, CharacterTaskStatus
 from models.vote import Vote
@@ -48,15 +50,17 @@ def compute_vote_budget(score: int) -> int:
 # ---------------------------------------------------------------------------
 
 FACTIONS = [
-    ("ua",           "UA",               "The default starting faction. Full points on all tasks. Must leave at level 3."),
-    ("ua_masters",   "UA Masters",        "Veterans who aged out of UA. Can sign up for any task at reduced points."),
-    ("snide",        "Snide",             "Specialists in one-on-one competition. Bonus points for winning duels."),
-    ("gestalt",      "Gestalt",           "Collective-minded. Excel at their own faction's tasks; reduced elsewhere."),
-    ("journeymen",   "Journeymen",        "Explorers with access to select retired tasks (Task Vision ability)."),
-    ("analog",       "Analog",            "Depth over breadth. Can repeat one task per level for points (Double Dipper)."),
-    ("singularity",  "Singularity",       "TBD"),
-    ("albescent",    "/Albescent",        "Full points and any meta tasks from any group. Unlock-only."),
-    ("aged_out",     "AgedOutOfUA",       "Placeholder faction for characters who hit level 3 while offline."),
+    # (slug, name, description, status)
+    ("ua",           "UA",               "The default starting faction. Full points on all tasks. Must leave at level 3.", FactionStatus.visible),
+    ("ua_masters",   "UA Masters",        "Veterans who aged out of UA. Can sign up for any task at reduced points.",     FactionStatus.visible),
+    ("snide",        "Snide",             "Specialists in one-on-one competition. Bonus points for winning duels.",        FactionStatus.visible),
+    ("gestalt",      "Gestalt",           "Collective-minded. Excel at their own faction's tasks; reduced elsewhere.",     FactionStatus.visible),
+    ("journeymen",   "Journeymen",        "Explorers with access to select retired tasks (Task Vision ability).",          FactionStatus.visible),
+    ("analog",       "Analog",            "Depth over breadth. Can repeat one task per level for points (Double Dipper).", FactionStatus.visible),
+    ("singularity",  "Singularity",       "TBD",                                                                          FactionStatus.visible),
+    ("albescent",    "/Albescent",        "Full points and any meta tasks from any group. Unlock-only.",                   FactionStatus.hidden),
+    ("aged_out",     "AgedOutOfUA",       "Placeholder faction for characters who hit level 3 while offline.",             FactionStatus.hidden),
+    ("na",           "None",              "Sentinel for tasks with no specific faction affiliation.",                      FactionStatus.hidden),
 ]
 
 # (username, display_name, bio, faction_slug, email)
@@ -475,23 +479,42 @@ async def seed(env: str = "dev"):
         # ------------------------------------------------------------------
         print("  >Factions")
         factions = []
-        for slug, name, desc in FACTIONS:
-            f = Faction(slug=slug, name=name, description=desc)
+        for slug, name, desc, status in FACTIONS:
+            f = Faction(slug=slug, name=name, description=desc, status=status)
             session.add(f)
             factions.append(f)
         await session.flush()
 
         # ------------------------------------------------------------------
-        # 2. Accounts + Characters (first pass — score=0, level=0)
+        # 1b. Era (required for CharacterStats FK)
+        # ------------------------------------------------------------------
+        print("  >Era 1")
+        # Use the first account created below — need a placeholder for now.
+        # We create accounts first, then set started_by afterward.
+        era_row = None  # set after first account is created
+
+        # ------------------------------------------------------------------
+        # 2. Accounts + Characters (first pass — stats in CharacterStats)
         # ------------------------------------------------------------------
         print("  >Accounts & Characters")
         char_map: dict[str, Character] = {}
         account_map: dict[str, Account] = {}
+        first_account_id: int | None = None
 
         for username, display_name, bio, faction_slug, email in CHARACTERS_DEF:
-            acc = Account(email=email, is_active=True)
+            acc = Account(email=email)
             session.add(acc)
             await session.flush()
+
+            if first_account_id is None:
+                first_account_id = acc.id
+                era_row = Era(
+                    name=ERA_1.name,
+                    config_key=ERA_1.config_key,
+                    started_by=acc.id,
+                )
+                session.add(era_row)
+                await session.flush()
 
             # Dummy OAuth provider row so the account looks legitimate
             oauth = OAuthProvider(
@@ -506,12 +529,8 @@ async def seed(env: str = "dev"):
                 account_id=acc.id,
                 username=username,
                 display_name=display_name,
-                bio=bio,
+                bio=bio or "",
                 faction_slug=faction_slug,
-                level=0,
-                score=0,
-                all_time_score=0,
-                votes_available=ERA_1.vote_budget_base,
             )
             session.add(char)
             await session.flush()
@@ -611,16 +630,22 @@ async def seed(env: str = "dev"):
                 sub_score = avg_stars * task.point_value
                 char_scores[char_username] += sub_score
 
-        # Apply to characters
+        # Apply to CharacterStats
         for username, score in char_scores.items():
             score_int = round(score)
             level = compute_level(score_int)
             vote_budget = compute_vote_budget(score_int)
             char = char_map[username]
-            char.score = score_int
-            char.all_time_score = score_int
-            char.level = level
-            char.votes_available = vote_budget
+
+            stats = CharacterStats(
+                character_id=char.id,
+                era_id=era_row.id,
+                score=score_int,
+                all_time_score=score_int,
+                level=level,
+                votes_available=vote_budget,
+            )
+            session.add(stats)
 
             expected = EXPECTED_SCORES.get(username, "?")
             match = "OK" if score_int == expected else f"MISMATCH (expected {expected})"
