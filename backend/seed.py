@@ -12,13 +12,14 @@ Scoring formula (ERA_1):
     vote_budget      = 100 + floor(2.0 * score)
 """
 
+import argparse
 import asyncio
 from math import floor
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from config import settings
 from game_config import ERA_1
+from script_utils import add_env_argument, get_settings
 from models.account import Account, OAuthProvider
 from models.character import Character
 from models.faction import Faction
@@ -459,7 +460,10 @@ EXPECTED_SCORES = {
 # Main seed function
 # ---------------------------------------------------------------------------
 
-async def seed():
+async def seed(env: str = "dev"):
+    settings = get_settings(env)
+    print(f"Environment : {env}")
+    print(f"Database    : {settings.DATABASE_URL.split('@')[-1]}\n")  # host/db only, no creds
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     async_session = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -629,4 +633,7 @@ async def seed():
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    parser = argparse.ArgumentParser(description="Seed the World Zero database.")
+    add_env_argument(parser)
+    args = parser.parse_args()
+    asyncio.run(seed(args.env))

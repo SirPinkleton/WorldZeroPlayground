@@ -54,7 +54,12 @@
       "Bash(powershell.exe -Command \"cd ''C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground''; git rm --cached frontend/.env.local\")",
       "Bash(git add:*)",
       "Bash(echo \"exit: $?\")",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(ls C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\\\\.env*)",
+      "Bash(dir /b \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\")",
+      "Bash(cmd /c \"dir /b C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\")",
+      "Bash(findstr /i env)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
