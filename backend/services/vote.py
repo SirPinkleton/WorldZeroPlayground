@@ -6,6 +6,7 @@ from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.submission import Submission
 from models.vote import Vote
+from services.era import get_current_era_row, get_or_create_stats
 
 
 async def cast_or_update_vote(
@@ -19,9 +20,6 @@ async def cast_or_update_vote(
         raise HTTPException(status_code=422, detail="Stars must be between 1 and 5.")
 
     if voter.account_id == submission.character_id:
-        # We need to check account-level, so we need the submission author's account_id.
-        # The caller must ensure submission is loaded with its character's account_id.
-        # This check is a secondary guard; routers should also pass author_account_id explicitly.
         raise HTTPException(status_code=403, detail="Cannot vote on your own submission.")
 
     result = await session.execute(
@@ -39,8 +37,11 @@ async def cast_or_update_vote(
         await session.refresh(existing)
         return existing
 
-    # New vote — deduct from budget
-    if voter.votes_available <= 0:
+    # New vote — deduct from budget via CharacterStats
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, voter.id, era_row.id)
+
+    if stats.votes_available <= 0:
         raise HTTPException(status_code=403, detail="No votes remaining in your budget.")
 
     vote = Vote(
@@ -49,7 +50,7 @@ async def cast_or_update_vote(
         voter_account_id=voter.account_id,
         stars=stars,
     )
-    voter.votes_available -= 1
+    stats.votes_available -= 1
     session.add(vote)
     await session.commit()
     await session.refresh(vote)

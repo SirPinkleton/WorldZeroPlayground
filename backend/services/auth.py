@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from db import get_db
-from models.account import Account, OAuthProvider
+from models.account import Account, AccountStatus, OAuthProvider
 
 _ALGORITHM = "HS256"
 _TOKEN_EXPIRE_DAYS = 1
@@ -54,7 +54,7 @@ async def get_current_account(
 
     result = await session.execute(select(Account).where(Account.id == account_id))
     account = result.scalar_one_or_none()
-    if account is None or not account.is_active:
+    if account is None or account.status != AccountStatus.active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account could not be found. Please log in again.")
 
     return account

@@ -7,10 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from db import get_db
 from models.account import Account
-from models.character import Character
+from models.character import Character, CharacterStatus
+from routers.characters import _build_character_out, _load_stats
 from schemas.auth import CurrentUser
 from schemas.character import CharacterOut
 from services.auth import create_jwt, create_or_get_account, get_current_account
+from services.era import get_current_era_row
 
 router = APIRouter()
 
@@ -71,15 +73,25 @@ async def auth_me(
     """Return the current account and its first active character."""
     result = await session.execute(
         select(Character)
-        .where(Character.account_id == account.id, Character.is_active == True)
+        .where(
+            Character.account_id == account.id,
+            Character.status == CharacterStatus.active,
+        )
         .order_by(Character.created_at)
         .limit(1)
     )
     character = result.scalar_one_or_none()
-    return CurrentUser(
-        account_id=account.id,
-        character=CharacterOut.model_validate(character) if character else None,
-    )
+
+    char_out = None
+    if character:
+        try:
+            era_row = await get_current_era_row(session)
+            stats = await _load_stats(character.id, era_row.id, session)
+        except Exception:
+            stats = None
+        char_out = _build_character_out(character, stats)
+
+    return CurrentUser(account_id=account.id, character=char_out)
 
 
 @router.post("/logout")

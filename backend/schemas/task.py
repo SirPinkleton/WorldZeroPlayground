@@ -9,12 +9,12 @@ class TaskOut(BaseModel):
 
     id: int
     title: str
-    description: Optional[str]
+    description: str
     point_value: int
     level_required: int
     status: str
     created_by: int
-    primary_faction_slug: Optional[str]
+    primary_faction_slug: str
     is_task_vision_eligible: bool
     created_at: datetime
 

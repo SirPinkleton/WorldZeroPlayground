@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 from dependencies import require_admin
 from models.account import Account
-from models.character import Character
+from models.character import Character, CharacterStatus
 from models.submission import Submission
 from models.task import Task, TaskStatus
 from schemas.task import TaskCreate, TaskOut
@@ -123,7 +123,7 @@ async def ban_character(
     character = await session.get(Character, character_id)
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
-    character.is_active = not data.banned
+    character.status = CharacterStatus.banned if data.banned else CharacterStatus.active
     await session.commit()
     return {"character_id": character_id, "banned": data.banned}
 
@@ -135,10 +135,12 @@ async def admin_create_task(
     session: AsyncSession = Depends(get_db),
 ):
     """Admin-only: create a task directly in active status."""
-    # Find any character associated with admin account to use as created_by
     result = await session.execute(
         select(Character)
-        .where(Character.account_id == admin.id, Character.is_active == True)
+        .where(
+            Character.account_id == admin.id,
+            Character.status == CharacterStatus.active,
+        )
         .limit(1)
     )
     character = result.scalar_one_or_none()
@@ -147,10 +149,10 @@ async def admin_create_task(
 
     task = Task(
         title=data.title,
-        description=data.description,
+        description=data.description or "",
         point_value=data.point_value,
         level_required=data.level_required,
-        primary_faction_slug=data.primary_faction_slug,
+        primary_faction_slug=data.primary_faction_slug or "na",
         created_by=character.id,
         status=TaskStatus.active,
     )

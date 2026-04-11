@@ -25,8 +25,8 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from models.account import Account
-from models.character import Character
+from models.account import Account, AccountStatus
+from models.character import Character, CharacterStatus
 from models.faction import Faction
 from models.roles import AccountRole, Role
 from models.task import Task, TaskStatus
@@ -171,7 +171,7 @@ async def run(csv_path: Path, dry_run: bool, env: str) -> None:
             select(Account)
             .join(AccountRole, AccountRole.account_id == Account.id)
             .join(Role, Role.id == AccountRole.role_id)
-            .where(Role.name == "admin", Account.is_active == True)
+            .where(Role.name == "admin", Account.status == AccountStatus.active)
             .limit(1)
         )
         admin_account = admin_result.scalar_one_or_none()
@@ -184,7 +184,7 @@ async def run(csv_path: Path, dry_run: bool, env: str) -> None:
             select(Character)
             .where(
                 Character.account_id == admin_account.id,
-                Character.is_active == True,
+                Character.status == CharacterStatus.active,
             )
             .limit(1)
         )

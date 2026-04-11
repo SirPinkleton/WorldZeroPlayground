@@ -23,7 +23,10 @@ class MetaTask(Base):
     bonus_value: Mapped[float] = mapped_column(Float, nullable=False)
     level_required: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -37,5 +40,5 @@ class SubmissionMetaTask(Base):
         ForeignKey("meta_task.id"), primary_key=True
     )
     applied_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
