@@ -18,7 +18,7 @@ import sys
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 
 from game_config import ERA_1
 from script_utils import add_env_argument, get_settings
@@ -296,13 +296,16 @@ async def seed(env: str, yes: bool) -> None:
 
     async with async_session() as session:
 
-        # Guard: abort if already seeded
-        existing = await session.execute(
+        # Check what's already present
+        pixie_result = await session.execute(
             select(Account).where(Account.email == "pixieofhugs@gmail.com")
         )
-        if existing.scalar_one_or_none():
-            print("Database already seeded (pixie account exists). Nothing to do.")
-            print("To re-seed, drop the database and run: alembic upgrade head && python seed.py")
+        pixie_acc = pixie_result.scalar_one_or_none()
+
+        task_count = (await session.execute(select(func.count()).select_from(Task))).scalar()
+
+        if pixie_acc and task_count > 0:
+            print("Database already fully seeded (pixie account + tasks exist). Nothing to do.")
             await engine.dispose()
             return
 
@@ -310,179 +313,94 @@ async def seed(env: str, yes: bool) -> None:
         print("  (Factions seeded by Alembic migrations — skipping)")
 
         # ------------------------------------------------------------------
-        # 1. Pixie account + character
+        # 1. Pixie account + character (skip if already exists)
         # ------------------------------------------------------------------
-        print("  >Pixie account")
-        pixie_acc = Account(email="pixieofhugs@gmail.com")
-        session.add(pixie_acc)
-        await session.flush()
-
-        session.add(OAuthProvider(
-            account_id=pixie_acc.id,
-            provider="google",
-            provider_user_id="google_pixie",
-            access_token="seed_token",
-        ))
-
-        pixie_char = Character(
-            account_id=pixie_acc.id,
-            username="pixie",
-            display_name="Pixie",
-            bio="",
-            faction_slug="ua",
-        )
-        session.add(pixie_char)
-        await session.flush()
-
-        # ------------------------------------------------------------------
-        # 3. Era
-        # ------------------------------------------------------------------
-        print("  >Era 1")
-        era_row = Era(
-            name=ERA_1.name,
-            config_key=ERA_1.config_key,
-            started_by=pixie_acc.id,
-        )
-        session.add(era_row)
-        await session.flush()
-
-        # ------------------------------------------------------------------
-        # 4. Admin role + grant
-        # ------------------------------------------------------------------
-        print("  >Admin role -> pixie")
-        admin_role = Role(name="admin", description="Full administrative access")
-        session.add(admin_role)
-        await session.flush()
-
-        session.add(AccountRole(
-            account_id=pixie_acc.id,
-            role_id=admin_role.id,
-            granted_by=pixie_acc.id,
-        ))
-
-        # ------------------------------------------------------------------
-        # 5. CharacterStats (pixie starts at zero)
-        # ------------------------------------------------------------------
-        session.add(CharacterStats(
-            character_id=pixie_char.id,
-            era_id=era_row.id,
-            score=0,
-            all_time_score=0,
-            level=0,
-            votes_available=ERA_1.vote_budget_base,
-        ))
-        await session.flush()
-
-        # ------------------------------------------------------------------
-        # 6. Tasks
-        # ------------------------------------------------------------------
-        print(f"  >Tasks ({len(TASKS_DEF)})")
-        for title, desc, faction_slug, level_req, pts in TASKS_DEF:
-            session.add(Task(
-                title=title,
-                description=desc,
-                point_value=pts,
-                level_required=level_req,
-                status=TaskStatus.active,
-                created_by=pixie_char.id,
-                primary_faction_slug=faction_slug,
-                is_task_vision_eligible=False,
+        if pixie_acc:
+            print("  >Pixie account already exists — skipping account/era/admin setup")
+            pixie_char_result = await session.execute(
+                select(Character).where(Character.account_id == pixie_acc.id).limit(1)
             )
-            session.add(task)
+            pixie_char = pixie_char_result.scalar_one()
+        else:
+            print("  >Pixie account")
+            pixie_acc = Account(email="pixieofhugs@gmail.com")
+            session.add(pixie_acc)
             await session.flush()
-            task_map[title] = task
 
-        # ------------------------------------------------------------------
-        # 4. Submissions
-        # ------------------------------------------------------------------
-        print("  >Submissions")
-        submissions: list[Submission] = []
+            session.add(OAuthProvider(
+                account_id=pixie_acc.id,
+                provider="google",
+                provider_user_id="google_pixie",
+                access_token="seed_token",
+            ))
 
-        for task_title, char_username, sub_title, body in SUBMISSIONS_DEF:
-            task = task_map[task_title]
-            char = char_map[char_username]
-
-            # Mark the character as having submitted this task
-            ct = CharacterTask(
-                character_id=char.id,
-                task_id=task.id,
-                status=CharacterTaskStatus.submitted,
+            pixie_char = Character(
+                account_id=pixie_acc.id,
+                username="pixie",
+                display_name="Pixie",
+                bio="",
+                faction_slug="ua",
             )
-            session.add(ct)
-
-            sub = Submission(
-                task_id=task.id,
-                character_id=char.id,
-                title=sub_title,
-                body_text=body,
-            )
-            session.add(sub)
+            session.add(pixie_char)
             await session.flush()
-            submissions.append(sub)
 
-        # ------------------------------------------------------------------
-        # 5. Votes
-        # ------------------------------------------------------------------
-        print("  >Votes")
-        for sub_idx, voter_username, stars in VOTES_DEF:
-            sub = submissions[sub_idx]
-            voter = char_map[voter_username]
-
-            # Safety check: voter must not be the submission author
-            sub_author = next(
-                c for c in char_map.values() if c.id == sub.character_id
+            # ------------------------------------------------------------------
+            # Era
+            # ------------------------------------------------------------------
+            print("  >Era 1")
+            era_row = Era(
+                name=ERA_1.name,
+                config_key=ERA_1.config_key,
+                started_by=pixie_acc.id,
             )
-            if sub_author.account_id == voter.account_id:
-                print(f"    [SKIP] Self-vote guard: {voter_username} on sub {sub_idx}")
-                continue
+            session.add(era_row)
+            await session.flush()
 
-            vote = Vote(
-                submission_id=sub.id,
-                voter_character_id=voter.id,
-                voter_account_id=voter.account_id,
-                stars=stars,
-            )
-            session.add(vote)
+            # ------------------------------------------------------------------
+            # Admin role + grant
+            # ------------------------------------------------------------------
+            print("  >Admin role -> pixie")
+            admin_role = Role(name="admin", description="Full administrative access")
+            session.add(admin_role)
+            await session.flush()
 
-        await session.flush()
+            session.add(AccountRole(
+                account_id=pixie_acc.id,
+                role_id=admin_role.id,
+                granted_by=pixie_acc.id,
+            ))
 
-        # ------------------------------------------------------------------
-        # 6. Calculate and apply correct scores + levels
-        # ------------------------------------------------------------------
-        print("  >Calculating scores")
-
-        # Accumulate submission scores per character
-        char_scores: dict[str, float] = {username: 0.0 for username in char_map}
-
-        for sub_idx, (task_title, char_username, sub_title, _) in enumerate(SUBMISSIONS_DEF):
-            task = task_map[task_title]
-            # Gather votes for this submission
-            sub_votes = [(vi, vu, vs) for vi, vu, vs in VOTES_DEF if vi == sub_idx]
-            if sub_votes:
-                avg_stars = sum(vs for _, _, vs in sub_votes) / len(sub_votes)
-                sub_score = avg_stars * task.point_value
-                char_scores[char_username] += sub_score
-
-        # Apply to CharacterStats
-        for username, score in char_scores.items():
-            score_int = round(score)
-            level = compute_level(score_int)
-            vote_budget = compute_vote_budget(score_int)
-            char = char_map[username]
-
-            stats = CharacterStats(
-                character_id=char.id,
+            # ------------------------------------------------------------------
+            # CharacterStats (pixie starts at zero)
+            # ------------------------------------------------------------------
+            session.add(CharacterStats(
+                character_id=pixie_char.id,
                 era_id=era_row.id,
-                score=score_int,
-                all_time_score=score_int,
-                level=level,
-                votes_available=vote_budget,
-            )
-            session.add(stats)
+                score=0,
+                all_time_score=0,
+                level=0,
+                votes_available=ERA_1.vote_budget_base,
+            ))
+            await session.flush()
 
-            expected = EXPECTED_SCORES.get(username, "?")
-            match = "OK" if score_int == expected else f"MISMATCH (expected {expected})"
-            print(f"    {username:15s}  score={score_int:4d}  level={level}  budget={vote_budget}  {match}")
+        # ------------------------------------------------------------------
+        # Tasks (only if missing)
+        # ------------------------------------------------------------------
+        if task_count == 0:
+            print(f"  >Tasks ({len(TASKS_DEF)})")
+            for title, desc, faction_slug, level_req, pts in TASKS_DEF:
+                session.add(Task(
+                    title=title,
+                    description=desc,
+                    point_value=pts,
+                    level_required=level_req,
+                    status=TaskStatus.active,
+                    created_by=pixie_char.id,
+                    primary_faction_slug=faction_slug,
+                    is_task_vision_eligible=False,
+                ))
+        else:
+            print(f"  >Tasks already exist ({task_count}) — skipping")
 
         await session.commit()
         print("\nSeed complete!\n")
