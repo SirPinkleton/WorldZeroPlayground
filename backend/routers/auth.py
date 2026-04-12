@@ -8,6 +8,7 @@ from config import settings
 from db import get_db
 from models.account import Account
 from models.character import Character, CharacterStatus
+from models.roles import AccountRole, Role
 from routers.characters import _build_character_out, _load_stats
 from schemas.auth import CurrentUser
 from schemas.character import CharacterOut
@@ -91,13 +92,26 @@ async def auth_me(
             stats = None
         char_out = _build_character_out(character, stats)
 
-    return CurrentUser(account_id=account.id, character=char_out)
+    admin_result = await session.execute(
+        select(AccountRole)
+        .join(Role, AccountRole.role_id == Role.id)
+        .where(AccountRole.account_id == account.id, Role.name == "admin")
+    )
+    is_admin = admin_result.scalar_one_or_none() is not None
+
+    return CurrentUser(account_id=account.id, character=char_out, is_admin=is_admin)
 
 
 @router.post("/logout")
 async def auth_logout(response: Response):
     """Clear the JWT cookie."""
-    response.delete_cookie("access_token")
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+        domain=settings.COOKIE_DOMAIN,
+    )
     return {"message": "Logged out"}
 
 
