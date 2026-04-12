@@ -6,11 +6,12 @@ import { extractError } from '../utils/errors'
 const STATUS_FILTERS = ['All', 'active', 'pending', 'retired']
 const FACTION_FILTERS = [
   { slug: 'ua', label: 'UA' },
+  { slug: 'ua_masters', label: 'UA Masters' },
   { slug: 'journeymen', label: 'Journeymen' },
   { slug: 'gestalt', label: 'Gestalt' },
-  { slug: 'geo', label: 'Analog' },
+  { slug: 'analog', label: 'Analog' },
   { slug: 'snide', label: 'S.N.I.D.E.' },
-  { slug: 'cm', label: 'Creative Masters' },
+  { slug: 'singularity', label: 'Singularity' },
 ]
 const LEVEL_FILTERS = [0, 1, 2, 3, 4, 5]
 
