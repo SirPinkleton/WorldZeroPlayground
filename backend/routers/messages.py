@@ -30,7 +30,7 @@ async def get_inbox(
         .order_by(Message.created_at.desc())
     )
     messages = result.scalars().all()
-    return [MessageOut.model_validate(m) for m in messages]
+    return [MessageOut.model_validate(message) for message in messages]
 
 
 @router.post("", response_model=MessageOut, status_code=201)

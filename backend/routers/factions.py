@@ -17,7 +17,7 @@ async def list_factions(session: AsyncSession = Depends(get_db)):
     result = await session.execute(
         select(Faction).where(Faction.is_hidden == False).order_by(Faction.slug)
     )
-    return [FactionOut.model_validate(f) for f in result.scalars().all()]
+    return [FactionOut.model_validate(faction) for faction in result.scalars().all()]
 
 
 @router.put("/{slug}", response_model=FactionOut)

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -14,7 +14,7 @@ from models.account import Account, AccountStatus, OAuthProvider
 _ALGORITHM = "HS256"
 _TOKEN_EXPIRE_DAYS = 1
 
-_bearer = HTTPBearer(auto_error=False)
+_BEARER = HTTPBearer(auto_error=False)
 
 
 def create_jwt(account_id: int) -> str:
@@ -25,7 +25,7 @@ def create_jwt(account_id: int) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=_ALGORITHM)
 
 
-def decode_jwt(token: str) -> dict:
+def decode_jwt(token: str) -> dict[str, Any]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[_ALGORITHM])
         if payload.get("sub") is None:
@@ -36,7 +36,7 @@ def decode_jwt(token: str) -> dict:
 
 
 async def get_current_account(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_BEARER),
     access_token: Optional[str] = Cookie(default=None),
     session: AsyncSession = Depends(get_db),
 ) -> Account:

@@ -23,6 +23,7 @@ from schemas.relationship import RelationshipOut
 from schemas.submission import MediaItemOut, SubmissionOut
 from services.auth import get_current_account
 from services.character import (
+    CharacterCreationResult,
     create_character,
     soft_delete_character,
     update_character,
@@ -128,8 +129,8 @@ async def create_character_route(
     account: Account = Depends(get_current_account),
     session: AsyncSession = Depends(get_db),
 ):
-    character, stats = await create_character(account.id, data, session)
-    return _build_character_out(character, stats)
+    result: CharacterCreationResult = await create_character(account.id, data, session)
+    return _build_character_out(result.character, result.stats)
 
 
 @router.put("/{character_id}", response_model=CharacterOut)
@@ -188,7 +189,7 @@ async def get_character_submissions(
             .where(MediaItem.submission_id == sub.id)
             .order_by(MediaItem.display_order)
         )
-        media = [MediaItemOut.model_validate(m) for m in media_result.scalars().all()]
+        media = [MediaItemOut.model_validate(media_item) for media_item in media_result.scalars().all()]
         out.append(
             SubmissionOut(
                 id=sub.id,
@@ -277,4 +278,4 @@ async def get_character_relationships(
         )
     )
     relationships = result.scalars().all()
-    return [RelationshipOut.model_validate(r) for r in relationships]
+    return [RelationshipOut.model_validate(relationship) for relationship in relationships]
