@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { getSubmission, flagSubmission, type SubmissionOut } from '../api/submissions'
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
+import { formatTimestamp } from '../utils/dates'
 import StarRating from '../components/StarRating'
 import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
@@ -94,7 +95,7 @@ export default function SubmissionDetail() {
 
       {/* Meta */}
       <div className="flex items-center gap-4 font-body text-xs text-muted mt-2">
-        <span>Submitted {new Date(submission.created_at).toLocaleDateString()}</span>
+        <span>Submitted {formatTimestamp(submission.created_at)}</span>
         {submission.is_flagged && (
           <span className="border border-red-400 text-red-600 px-2 py-0.5">flagged</span>
         )}

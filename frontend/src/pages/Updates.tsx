@@ -3,6 +3,7 @@ import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import { getMessages, type MessageOut } from '../api/messages'
 import SubmissionCard from '../components/SubmissionCard'
 import { useAuth } from '../auth/AuthContext'
+import { formatTimestamp } from '../utils/dates'
 import { extractError } from '../utils/errors'
 
 export default function Updates() {
@@ -47,7 +48,7 @@ export default function Updates() {
                 <div className="flex-1">
                   <p className="font-body text-sm">{m.body}</p>
                   <p className="font-body text-xs text-muted mt-1">
-                    from #{m.from_character_id} · {new Date(m.created_at).toLocaleDateString()}
+                    from #{m.from_character_id} · {formatTimestamp(m.created_at)}
                     {!m.read_at && <span className="ml-2 text-ua font-bold">new</span>}
                   </p>
                 </div>

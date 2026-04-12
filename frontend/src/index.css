@@ -58,4 +58,18 @@
   .page-heading {
     @apply font-display text-4xl font-bold border-b-2 border-border pb-2 mb-6;
   }
+
+  /* Markdown preview pane */
+  .markdown-preview h1 { @apply font-display text-2xl font-bold mt-4 mb-2; }
+  .markdown-preview h2 { @apply font-display text-xl font-bold mt-3 mb-1.5; }
+  .markdown-preview h3 { @apply font-display text-lg font-bold mt-2 mb-1; }
+  .markdown-preview p  { @apply mb-3 leading-relaxed; }
+  .markdown-preview strong { @apply font-bold; }
+  .markdown-preview em { @apply italic; }
+  .markdown-preview ul { @apply list-disc pl-5 mb-3 space-y-1; }
+  .markdown-preview ol { @apply list-decimal pl-5 mb-3 space-y-1; }
+  .markdown-preview code { @apply bg-paper px-1 border border-border text-xs; }
+  .markdown-preview pre { @apply bg-paper border-2 border-border p-3 mb-3 overflow-x-auto text-xs; }
+  .markdown-preview blockquote { @apply border-l-4 border-border pl-3 italic text-muted mb-3; }
+  .markdown-preview a { @apply underline text-muted hover:text-ink; }
 }

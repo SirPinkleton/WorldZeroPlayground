@@ -17,6 +17,7 @@ export interface CharacterOut {
 export interface CurrentUser {
   account_id: number
   character: CharacterOut | null
+  is_admin: boolean
 }
 
 export async function getMe(): Promise<CurrentUser> {

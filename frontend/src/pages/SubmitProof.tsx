@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { createSubmission, uploadMedia } from '../api/submissions'
 
 export default function SubmitProof() {
@@ -33,10 +34,11 @@ export default function SubmitProof() {
   }
 
   return (
-    <div className="page max-w-2xl">
+    <div className="page max-w-6xl">
       <h1 className="page-heading">Submit Proof</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {/* Title */}
         <div className="flex flex-col gap-1">
           <label className="font-body text-sm font-bold">Title *</label>
           <input
@@ -48,17 +50,34 @@ export default function SubmitProof() {
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-bold">Body</label>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={8}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none resize-y"
-            placeholder="Describe what you did..."
-          />
+        {/* Split pane: editor + preview */}
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Left: textarea */}
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="font-body text-sm font-bold">Body</label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={16}
+              className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none resize-none h-full min-h-64"
+              placeholder="Describe what you did... (supports **markdown**)"
+            />
+          </div>
+
+          {/* Right: preview */}
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="font-body text-sm font-bold text-muted">Preview</label>
+            <div className="border-2 border-border px-4 py-3 bg-card shadow-sketch-sm min-h-64 overflow-auto font-body text-sm markdown-preview">
+              {body.trim() ? (
+                <ReactMarkdown>{body}</ReactMarkdown>
+              ) : (
+                <p className="text-muted italic">Preview will appear here...</p>
+              )}
+            </div>
+          </div>
         </div>
 
+        {/* Media */}
         <div className="flex flex-col gap-1">
           <label className="font-body text-sm font-bold">Media</label>
           <input

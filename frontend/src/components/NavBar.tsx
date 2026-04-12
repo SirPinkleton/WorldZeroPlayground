@@ -42,7 +42,7 @@ export default function NavBar() {
               </NavLink>
             </li>
           ))}
-          {user && (
+          {user?.is_admin && (
             <li>
               <NavLink
                 to="/admin"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getTask, signupTask, type TaskOut } from '../api/tasks'
 import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import SubmissionCard from '../components/SubmissionCard'
@@ -8,6 +8,7 @@ import { extractError } from '../utils/errors'
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [task, setTask] = useState<TaskOut | null>(null)
   const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
@@ -31,7 +32,7 @@ export default function TaskDetail() {
     setSignupSuccess(false)
     try {
       await signupTask(task.id)
-      setSignupSuccess(true)
+      navigate(`/tasks/${task.id}/submit`)
     } catch (err) {
       setSignupError(extractError(err, 'Could not sign up for this task.'))
     }

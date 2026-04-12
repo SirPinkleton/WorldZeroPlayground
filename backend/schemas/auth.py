@@ -13,3 +13,4 @@ class TokenResponse(BaseModel):
 class CurrentUser(BaseModel):
     account_id: int
     character: Optional[CharacterOut] = None
+    is_admin: bool = False
