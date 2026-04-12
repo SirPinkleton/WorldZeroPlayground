@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 from dependencies import require_admin
 from models.account import Account
-from models.faction import Faction
+from models.faction import Faction, FactionStatus
 from schemas.faction import FactionOut, FactionUpdate
 
 router = APIRouter()
@@ -15,7 +15,7 @@ router = APIRouter()
 async def list_factions(session: AsyncSession = Depends(get_db)):
     """Return all non-hidden factions."""
     result = await session.execute(
-        select(Faction).where(Faction.is_hidden == False).order_by(Faction.slug)
+        select(Faction).where(Faction.status == FactionStatus.visible).order_by(Faction.slug)
     )
     return [FactionOut.model_validate(faction) for faction in result.scalars().all()]
 
