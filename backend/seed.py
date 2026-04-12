@@ -619,7 +619,7 @@ async def seed(env: str = "dev"):
         print("  >Calculating scores")
 
         # Accumulate submission scores per character
-        char_scores: dict[str, float] = {u: 0.0 for u in char_map}
+        char_scores: dict[str, float] = {username: 0.0 for username in char_map}
 
         for sub_idx, (task_title, char_username, sub_title, _) in enumerate(SUBMISSIONS_DEF):
             task = task_map[task_title]

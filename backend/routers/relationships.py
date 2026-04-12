@@ -1,4 +1,4 @@
-from typing import Literal
+import enum
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -14,8 +14,14 @@ from schemas.relationship import RelationshipCreate, RelationshipOut
 router = APIRouter()
 
 
+class RelationshipAction(str, enum.Enum):
+    ACCEPT = "accept"
+    DECLINE = "decline"
+    BLOCK = "block"
+
+
 class RelationshipUpdate(BaseModel):
-    action: Literal["accept", "decline", "block"]
+    action: RelationshipAction
 
 
 @router.post("", response_model=RelationshipOut, status_code=201)
@@ -61,16 +67,16 @@ async def update_relationship(
         raise HTTPException(status_code=404, detail="Relationship not found.")
 
     # Only the recipient can accept/decline; either party can block
-    if data.action in ("accept", "decline") and rel.to_character_id != character.id:
+    if data.action in (RelationshipAction.ACCEPT, RelationshipAction.DECLINE) and rel.to_character_id != character.id:
         raise HTTPException(status_code=403, detail="Only the recipient can accept or decline.")
-    if data.action == "block" and character.id not in (rel.from_character_id, rel.to_character_id):
+    if data.action == RelationshipAction.BLOCK and character.id not in (rel.from_character_id, rel.to_character_id):
         raise HTTPException(status_code=403, detail="Not a party to this relationship.")
 
-    if data.action == "accept":
+    if data.action == RelationshipAction.ACCEPT:
         rel.status = RelationshipStatus.accepted
-    elif data.action == "decline":
+    elif data.action == RelationshipAction.DECLINE:
         rel.status = RelationshipStatus.blocked
-    elif data.action == "block":
+    elif data.action == RelationshipAction.BLOCK:
         rel.status = RelationshipStatus.blocked
 
     await session.commit()

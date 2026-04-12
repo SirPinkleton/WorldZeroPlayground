@@ -21,9 +21,9 @@ def test_level_thresholds_start_at_zero():
 
 def test_level_thresholds_strictly_increasing():
     thresholds = ERA_1.level_thresholds
-    for i in range(1, len(thresholds)):
-        assert thresholds[i] > thresholds[i - 1], (
-            f"Threshold at index {i} ({thresholds[i]}) must be > index {i-1} ({thresholds[i-1]})"
+    for index in range(1, len(thresholds)):
+        assert thresholds[index] > thresholds[index - 1], (
+            f"Threshold at index {index} ({thresholds[index]}) must be > index {index - 1} ({thresholds[index - 1]})"
         )
 
 
@@ -62,7 +62,7 @@ def test_albescent_faction_not_selectable():
 
 
 def test_selectable_factions_exist():
-    selectable = [f for f in ERA_1.factions.values() if f.is_selectable]
+    selectable = [faction for faction in ERA_1.factions.values() if faction.is_selectable]
     assert len(selectable) >= 1
 
 

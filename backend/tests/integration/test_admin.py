@@ -52,7 +52,7 @@ async def test_admin_list_pending_tasks(
 
     resp = await client.get("/admin/tasks/pending", headers=auth_headers)
     assert resp.status_code == 200
-    ids = [t["id"] for t in resp.json()]
+    ids = [task_json["id"] for task_json in resp.json()]
     assert task.id in ids
 
 

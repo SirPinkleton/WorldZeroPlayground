@@ -12,7 +12,7 @@ async def test_list_tasks_public(client: AsyncClient, active_task: Task):
     resp = await client.get("/tasks")
     assert resp.status_code == 200
     data = resp.json()
-    ids = [t["id"] for t in data]
+    ids = [task_json["id"] for task_json in data]
     assert active_task.id in ids
 
 

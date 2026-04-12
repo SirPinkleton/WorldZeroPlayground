@@ -21,6 +21,7 @@ import asyncio
 import csv
 import sys
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -55,13 +56,13 @@ FIELD_OVERRIDES: dict[str, dict] = {
 # Helpers
 # ---------------------------------------------------------------------------
 
-def parse_csv(csv_path: Path) -> list[dict]:
+def parse_csv(csv_path: Path) -> list[dict[str, Any]]:
     """Read CSV and return a list of raw row dicts."""
     with csv_path.open(newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 
-def apply_corrections(rows: list[dict]) -> tuple[list[dict], list[str]]:
+def apply_corrections(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
     """
     Normalise rows, apply faction corrections and field overrides.
     Returns (cleaned_rows, warnings).
@@ -142,8 +143,8 @@ async def run(csv_path: Path, dry_run: bool, env: str) -> None:
 
     if warnings:
         print("── Corrections & warnings ──────────────────────────────")
-        for w in warnings:
-            print(w)
+        for warning in warnings:
+            print(warning)
         print()
 
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
@@ -156,9 +157,9 @@ async def run(csv_path: Path, dry_run: bool, env: str) -> None:
         valid_slugs: set[str] = {row[0] for row in result.all()}
 
         bad_slugs = {
-            t["primary_faction_slug"]
-            for t in tasks_data
-            if t["primary_faction_slug"] and t["primary_faction_slug"] not in valid_slugs
+            task_data["primary_faction_slug"]
+            for task_data in tasks_data
+            if task_data["primary_faction_slug"] and task_data["primary_faction_slug"] not in valid_slugs
         }
         if bad_slugs:
             print(f"ERROR: Unknown faction slug(s) after corrections: {bad_slugs}")
@@ -202,20 +203,20 @@ async def run(csv_path: Path, dry_run: bool, env: str) -> None:
         print("─" * 75)
 
         inserted = 0
-        for i, t in enumerate(tasks_data, 1):
-            faction_display = t["primary_faction_slug"] or "(none)"
+        for row_number, task_data in enumerate(tasks_data, 1):
+            faction_display = task_data["primary_faction_slug"] or "(none)"
             print(
-                f"{i:<4} {t['title'][:44]:<45} {faction_display:<14} "
-                f"{t['level_required']:>3} {t['point_value']:>5}"
+                f"{row_number:<4} {task_data['title'][:44]:<45} {faction_display:<14} "
+                f"{task_data['level_required']:>3} {task_data['point_value']:>5}"
             )
 
             if not dry_run:
                 task = Task(
-                    title=t["title"],
-                    description=t["description"],
-                    point_value=t["point_value"],
-                    level_required=t["level_required"],
-                    primary_faction_slug=t["primary_faction_slug"],
+                    title=task_data["title"],
+                    description=task_data["description"],
+                    point_value=task_data["point_value"],
+                    level_required=task_data["level_required"],
+                    primary_faction_slug=task_data["primary_faction_slug"],
                     created_by=admin_character.id,
                     status=TaskStatus.active,
                     is_task_vision_eligible=False,

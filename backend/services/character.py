@@ -1,3 +1,5 @@
+import dataclasses
+
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +10,12 @@ from models.character_stats import CharacterStats
 from schemas.character import CharacterCreate, CharacterUpdate
 from services.era import get_current_era_row, get_or_create_stats
 from services.scoring import compute_level, compute_vote_budget
+
+
+@dataclasses.dataclass(frozen=True)
+class CharacterCreationResult:
+    character: Character
+    stats: CharacterStats
 
 
 async def get_character_by_id(character_id: int, session: AsyncSession) -> Character | None:
@@ -25,7 +33,7 @@ async def create_character(
     data: CharacterCreate,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
-) -> tuple[Character, CharacterStats]:
+) -> CharacterCreationResult:
     era_row = await get_current_era_row(session)
 
     # Count existing active characters for this account
@@ -81,7 +89,7 @@ async def create_character(
     await session.commit()
     await session.refresh(character)
     await session.refresh(stats)
-    return character, stats
+    return CharacterCreationResult(character=character, stats=stats)
 
 
 async def update_character(

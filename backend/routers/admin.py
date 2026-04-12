@@ -29,18 +29,18 @@ async def list_pending_tasks(
     tasks = result.scalars().all()
     return [
         TaskOut(
-            id=t.id,
-            title=t.title,
-            description=t.description,
-            point_value=t.point_value,
-            level_required=t.level_required,
-            status=t.status.value,
-            created_by=t.created_by,
-            primary_faction_slug=t.primary_faction_slug,
-            is_task_vision_eligible=t.is_task_vision_eligible,
-            created_at=t.created_at,
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            point_value=task.point_value,
+            level_required=task.level_required,
+            status=task.status.value,
+            created_by=task.created_by,
+            primary_faction_slug=task.primary_faction_slug,
+            is_task_vision_eligible=task.is_task_vision_eligible,
+            created_at=task.created_at,
         )
-        for t in tasks
+        for task in tasks
     ]
 
 

@@ -35,7 +35,7 @@ async def _build_submission_out(sub: Submission, session: AsyncSession) -> Submi
         .where(MediaItem.submission_id == sub.id)
         .order_by(MediaItem.display_order)
     )
-    media = [MediaItemOut.model_validate(m) for m in media_result.scalars().all()]
+    media = [MediaItemOut.model_validate(media_item) for media_item in media_result.scalars().all()]
     return SubmissionOut(
         id=sub.id,
         task_id=sub.task_id,

@@ -122,10 +122,10 @@ async def faction_ua(db_session: AsyncSession) -> Faction:
         Faction(slug="ua", name="UA", description="Default starting faction", status=FactionStatus.visible),
         Faction(slug="na", name="None", description="Sentinel for no faction affiliation", status=FactionStatus.hidden),
     ]
-    for f in factions_to_seed:
-        result = await db_session.execute(select(Faction).where(Faction.slug == f.slug))
+    for faction in factions_to_seed:
+        result = await db_session.execute(select(Faction).where(Faction.slug == faction.slug))
         if result.scalar_one_or_none() is None:
-            db_session.add(f)
+            db_session.add(faction)
     await db_session.commit()
 
     result = await db_session.execute(select(Faction).where(Faction.slug == "ua"))

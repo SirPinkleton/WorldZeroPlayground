@@ -16,8 +16,10 @@ from services.era import get_current_era_row
 
 router = APIRouter()
 
-_oauth = OAuth()
-_oauth.register(
+_ENV_PRODUCTION = "production"
+
+_OAUTH = OAuth()
+_OAUTH.register(
     name="google",
     client_id=settings.GOOGLE_CLIENT_ID,
     client_secret=settings.GOOGLE_CLIENT_SECRET,
@@ -31,7 +33,7 @@ _COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 @router.get("/google")
 async def auth_google(request: Request):
     """Redirect the browser to Google's OAuth consent screen."""
-    return await _oauth.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)
+    return await _OAUTH.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)
 
 
 @router.get("/google/callback")
@@ -40,8 +42,8 @@ async def auth_google_callback(
     session: AsyncSession = Depends(get_db),
 ):
     """Exchange the OAuth code for a token, create/get the Account, set JWT cookie."""
-    token = await _oauth.google.authorize_access_token(request)
-    user_info = token.get("userinfo") or await _oauth.google.userinfo(token=token)
+    token = await _OAUTH.google.authorize_access_token(request)
+    user_info = token.get("userinfo") or await _OAUTH.google.userinfo(token=token)
 
     account = await create_or_get_account(
         provider="google",
@@ -58,7 +60,7 @@ async def auth_google_callback(
         value=jwt_token,
         httponly=True,
         samesite="lax",
-        secure=settings.ENVIRONMENT == "production",
+        secure=settings.ENVIRONMENT == _ENV_PRODUCTION,
         max_age=_COOKIE_MAX_AGE,
         domain=settings.COOKIE_DOMAIN,
     )
@@ -107,7 +109,7 @@ async def dev_login(
     session: AsyncSession = Depends(get_db),
 ):
     """Dev-only: create/get a test account and set a JWT cookie. Disabled in production."""
-    if settings.ENVIRONMENT == "production":
+    if settings.ENVIRONMENT == _ENV_PRODUCTION:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Not found.")
 

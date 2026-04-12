@@ -31,6 +31,11 @@ complete real-world tasks, post proof ("praxis"), and earn points through commun
 - SQLAlchemy models in models/, business logic in services/
 - Never put business logic in route handlers
 - Services accept EraConfig parameter; never import CURRENT_ERA inside a service function body
+- Prefer frozen dataclasses over tuples or plain dicts as data containers; only use mutable dataclasses when mutation is truly needed
+- Use ALL_CAPS for every module-level constant or singleton (e.g. `_BEARER`, `CURRENT_ERA`)
+- Use full human-readable names — no abbreviations (`index` not `idx`, `task` not `t`, `media_item` not `m`, etc.)
+- Type-annotate every function: all parameters and the return type
+- Never compare against bare string literals for domain values; define a module-level constant or use an Enum instead
 
 ## Key business rules (all driven by CURRENT_ERA / EraConfig)
 - Max task signups: era.max_task_signups (default 20)
