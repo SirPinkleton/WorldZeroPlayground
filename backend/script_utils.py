@@ -25,7 +25,15 @@ def get_settings(env: str) -> Settings:
     if not env_file:
         raise ValueError(f"Unknown environment '{env}'. Choose: {list(ENV_FILES)}")
     # pydantic-settings v2 accepts _env_file to override model_config at runtime
-    return Settings(_env_file=env_file)
+    settings = Settings(_env_file=env_file)
+    # Render outputs postgresql:// or postgres:// — normalize to asyncpg driver
+    url = settings.DATABASE_URL
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    settings.DATABASE_URL = url
+    return settings
 
 
 def add_env_argument(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:

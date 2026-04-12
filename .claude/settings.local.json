@@ -24,7 +24,16 @@
       "Bash(curl -s http://localhost:8000/health)",
       "Bash(curl -s http://localhost:8000/openapi.json)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ssh-keygen -t ed25519 -C claude-render-worldzero -f __TRACKED_VAR__/.ssh/worldzero_render -N '')",
+      "WebFetch(domain:render.com)",
+      "Bash(ssh -i ~/.ssh/worldzero_render -o StrictHostKeyChecking=no -o ConnectTimeout=15 srv-d79u2bnkijhs7393s7pg@ssh.oregon.render.com \"echo connected && pwd && ls\")",
+      "Bash(ssh -i ~/.ssh/worldzero_render srv-d79u2bnkijhs7393s7pg@ssh.oregon.render.com \"ls /app && echo '---' && cd /app && python seed.py --yes\")",
+      "Bash(ssh -i ~/.ssh/worldzero_render -o StrictHostKeyChecking=no -o UpdateHostKeys=no srv-d79u2bnkijhs7393s7pg@ssh.oregon.render.com \"cd /app && python seed.py --yes\")",
+      "Bash(ssh -i ~/.ssh/worldzero_render -o StrictHostKeyChecking=no -o UpdateHostKeys=no srv-d79u2bnkijhs7393s7pg@ssh.oregon.render.com \"cd /app && python -c \\\\\"from script_utils import get_settings; s = get_settings\\('dev'\\); print\\(s.DATABASE_URL[:30]\\)\\\\\"\")",
+      "Bash(ssh -i ~/.ssh/worldzero_render -o StrictHostKeyChecking=no -o UpdateHostKeys=no srv-d79u2bnkijhs7393s7pg@ssh.oregon.render.com \"cd /app && python -u seed.py --yes 2>&1; echo EXIT:$?\")",
+      "Bash(Set-Location \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\")",
+      "Bash(Remove-Item commit_msg.txt)"
     ]
   }
 }
