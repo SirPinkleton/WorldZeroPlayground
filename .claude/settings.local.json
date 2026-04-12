@@ -59,7 +59,8 @@
       "Bash(dir /b \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\")",
       "Bash(cmd /c \"dir /b C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\\\\backend\")",
       "Bash(findstr /i env)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(alembic upgrade:*)"
     ]
   }
 }
