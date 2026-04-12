@@ -12,7 +12,7 @@ from db import get_db
 from models.account import Account, AccountStatus, OAuthProvider
 
 _ALGORITHM = "HS256"
-_TOKEN_EXPIRE_DAYS = 1
+_TOKEN_EXPIRE_DAYS = 7
 
 _BEARER = HTTPBearer(auto_error=False)
 

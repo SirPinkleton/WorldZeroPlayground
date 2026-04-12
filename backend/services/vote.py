@@ -19,9 +19,6 @@ async def cast_or_update_vote(
     if not 1 <= stars <= 5:
         raise HTTPException(status_code=422, detail="Stars must be between 1 and 5.")
 
-    if voter.account_id == submission.character_id:
-        raise HTTPException(status_code=403, detail="Cannot vote on your own submission.")
-
     result = await session.execute(
         select(Vote).where(
             Vote.submission_id == submission.id,
