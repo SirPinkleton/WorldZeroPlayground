@@ -58,12 +58,69 @@ Replace current chip-based filters with three distinct visual types. See style g
 - [ ] **Active tasks panel** — Fetch user's signed-up tasks, show with faction color left-border, task name, meta (faction · level · date), badge pill (Solo/Collab/Duel). Progress bar: `X / 20 slots` with indigo fill.
 - [ ] **Recent activity panel** — Fetch 3 most recent events. Player names in faction color + bold. Timestamps in tertiary color. Separated by 1px dashed border.
 
-## Phase 6: Per-Page Polish
+## Phase 6: Per-Page Polish (secondary pages)
 
-- [ ] Apply PageTitle to remaining secondary pages (About, Contact, Disclaimer, Attributions, Donate, Admin, EditCharacter, EditSubmission, SubmitProof, TaskDetail, SubmissionDetail, CharacterProfile, Updates, Groups)
-- [ ] Update SubmissionCard component to match new card aesthetic
-- [ ] Update CharacterProfile page layout
-- [ ] Update Leaderboard entry cards
+- [ ] Apply PageTitle to remaining secondary pages (About, Contact, Disclaimer, Attributions, Donate, Admin, EditCharacter, EditSubmission, Groups)
 - [ ] Update Factions page cards to use faction-specific styling
 - [ ] Remove remaining `hover:-translate` sketch effects from all components
 - [ ] Audit all hardcoded hex values in components and replace with CSS custom properties
+
+## Phase 7: Praxis Submission Page (§12)
+
+- [ ] **Breadcrumb** — `Tasks › [faction dot] [Task Name] › Praxis`
+- [ ] **Byline block** — Author's faction card aesthetic as framing (collage, notebook, newsprint, etc.). Avatar orb + name + faction meta + vote score.
+- [ ] **Praxis title** — Lora italic 30px + full-width rainbow underline bar (8 segments, NOT per-letter)
+- [ ] **Task context strip** — Faction-color left border, frosted bg, task name + points + level pill
+- [ ] **Media gallery** — Main image 16:9, thumbnail strip, active thumb faction-color border, "+N more" overflow
+- [ ] **Body text** — Lora 15px, line-height 1.75, drop cap first letter in faction color 58px, italic emphasis in faction color
+- [ ] **Collaboration strip** — Overlapping avatar orbs, badge pill (Collab/Duel)
+
+## Phase 8: Voting System (§13)
+
+- [ ] **Vote stamps** — Replace star rating with 5 rectangular stamp buttons (1–5) with word labels (a start / solid / good / excellent / legendary). Value-specific border colors.
+- [ ] **Voter tile grid** — Show every voter as a tile: 48×48 avatar, points badge, name. Flex-wrap layout. "+N more" overflow.
+- [ ] **Vote results header** — Total points earned, voter count
+- [ ] **Flag block** — First-class UI element below voter grid. Circular flag icon + explanation + confirmation modal.
+
+## Phase 9: Player Profile Page (§14)
+
+- [ ] **Faction-framed profile header** — Player's faction card aesthetic as container (same principle as praxis byline). Avatar orb 80px + level badge + action buttons (Friend/Foe/DM or Edit Profile).
+- [ ] **Level track** — Full-width horizontal track of 9 levels (0–8). Completed/current/locked node states. Faction-color connectors. Progress bar to next level.
+- [ ] **Praxis grid** — 3-column grid of praxis cards with thumbnails, voter mini-tiles, "+N more" overflow card
+- [ ] **Friends/Foes panels** — Two-column row. Relation items with avatar orb + score delta. Mutual vs pending states.
+
+## Phase 10: Task Detail Page (§15)
+
+- [ ] **Task hero block** — Faction card archetype expanded to full width (journal page, collage, newspaper, etc.)
+- [ ] **Sign-up block** — Mode selector (Solo/Collab/Duel) as stamp buttons. Conditional fields for collab/duel invites. Faction-color sign-up button with inner dashed border.
+- [ ] **Meta tasks section** — Frosted card, faction-color dots, bonus amounts. Locked tasks at opacity 0.45.
+- [ ] **Praxis gallery** — Two-column grid of completed submissions. Sort toggles (Top rated / Recent).
+- [ ] **"Who else is on this task" sidebar panel** — Signed-up players with relationship badges.
+
+## Phase 11: Leaderboard / Players Page (§16)
+
+- [ ] **Podium** — Top 3 players in faction-framed cards. Platform blocks with rank-specific heights/colors.
+- [ ] **Your rank strip** — Highlighted row between podium and table. Rank delta indicator.
+- [ ] **Score toggle** — Era/All-time stamp buttons + faction pennant filter
+- [ ] **Main table** — Frosted card, faction-color left edge accents, Lora serif ranks, avatar orbs, level pills. Your row highlighted. Gap indicator for contextual jump.
+- [ ] **Faction standings sidebar panel** — Horizontal bars per faction proportional to total score.
+
+## Phase 12: Updates Feed Page (§17)
+
+- [ ] **Feed filters** — Stamp-style pills: All, Friends, Foes, Your stuff, Global, Requests (with badge count)
+- [ ] **Feed item types** — Base frosted card with 4px left-edge accent + type label pill. Player action, praxis completion, vote notification, collab invite, duel challenge.
+- [ ] **Foe taunts** — Special treatment: aged paper notes with tape strip, torn bottom edge, Special Elite font, auto-generated messages. Red/gold tints.
+- [ ] **Era announcements** — Full-width dark card with gold accent. Pinned on day posted.
+- [ ] **Pending requests sidebar panel** — Avatar orbs + Accept/Decline buttons
+- [ ] **Date separators** — Flanking horizontal rules with day labels
+
+## Phase 13: Submit Proof Form (§18)
+
+- [ ] **No sidebar layout** — Single centered column, max-width ~720px
+- [ ] **Task context header** — Faction-framed block with task name, faction, points, collaborator orbs
+- [ ] **Proof title input** — Lora italic 24px, bottom border focus state, rainbow underline bars on input
+- [ ] **Rich text editor** — Minimal toolbar (Bold/Italic/Underline, H1/Quote, Bullet/Link, Insert Image/Video). Lora 14px body. No character/word limit.
+- [ ] **Media upload** — 3-column grid, "Main" badge on first upload, drag-drop zone, file type badges
+- [ ] **Meta tasks section** — Checkboxes with faction-color checked state + bonus amounts
+- [ ] **Submit row** — "Publish proof" faction-color stamp button + "Save draft" outline button
+- [ ] **Contextual panels** — "What makes a good proof post" tips + "Other proofs for this task" peek

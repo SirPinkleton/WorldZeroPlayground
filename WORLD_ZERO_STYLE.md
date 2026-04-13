@@ -641,3 +641,671 @@ frontend/src/
 | Journeymen  | Luggage tag        | Hanging string, eyelet, hazard stripe    | Courier Prime  |
 | Singularity | Terminal printout  | Dark always, green text, sprocket holes  | Share Tech Mono|
 | UA Masters  | Gazette article    | Corner-snipped edges, proper masthead    | Special Elite  |
+
+---
+
+## 12. Praxis Submission Page
+
+### 12.1 Page Layout
+
+Same shell as all logged-in pages (nav + watercolor bg + main/sidebar grid). The sidebar is identical to the tasks page — character card, active tasks, recent activity, propose button — with one addition: an "Other praxis for this task" panel sits between active tasks and recent activity, showing up to 3 other submissions for the same task with player avatar orbs and their score.
+
+Breadcrumb above the title: `Tasks › [faction dot] [Task Name] › Praxis` — task name links back to task detail, faction dot is a 7px circle in faction color.
+
+### 12.2 Byline Block
+
+The byline block uses the **author's faction card aesthetic** as its visual framing. This is load-bearing — the submission is signed with the author's visual identity before you read their name.
+
+- Gestalt author → collage scrap background with tape strip
+- Analog author → notebook paper texture
+- SNIDE author → aged newsprint with masthead strip
+- etc. — mirror the card archetypes from Section 6
+
+Contents: avatar orb (faction gradient, 42px), display name (Lora italic, faction color), faction + level + era meta (9px uppercase), collaboration tags if applicable. Right side: average vote score (large, Lora), vote count (9px muted).
+
+### 12.3 Praxis Title
+
+Lora italic, 30px. Followed immediately by a full-width rainbow underline bar — NOT per-letter (user-generated titles are unpredictable length). The bar is a flex row of equal-width segments in the cycling color order: `#fbbf24 → #be185d → #4f46e5 → #0e7490 → #16a34a → #f97316` repeating. 8 segments total, 4px height.
+
+### 12.4 Task Context Strip
+
+A slim horizontal bar below the title linking the submission back to its task:
+- Left border: 4px solid in faction color
+- Border-radius: 0 8px 8px 0 (sharp left, rounded right)
+- Background: `rgba(255,255,255,0.6)` with blur
+- Contents: "Completing task" label (8px muted) + task name (12px bold) + points + level pill
+
+### 12.5 Media Gallery
+
+- Main image/video: full width, 16:9 aspect ratio, rounded 8px
+- Image counter badge: bottom-right, `rgba(0,0,0,0.5)` pill
+- Filename label: bottom-left, monospace 8px, muted
+- Thumbnail strip below: flex row of equal-width thumbs, 4:3 aspect ratio, 5px rounded
+- Active thumb: 2px solid faction-color border
+- Overflow thumb: shows "+N more" in muted style
+- Video thumbs: distinguish with a play icon overlay
+
+### 12.6 Body Text
+
+- Font: Lora (not Courier Prime — this is prose, not UI)
+- Size: 15px, line-height: 1.75
+- Color: `#2a1e10` (slightly warmer than pure black)
+- **Drop cap on first letter:** float left, 58px, faction color, Lora bold
+- Paragraphs separated by 0.9rem
+- Italic emphasis (`<em>`) renders in faction color
+
+### 12.7 Collaboration Strip
+
+Shown only when the praxis has collaborators or is a duel result.
+
+- Background: `rgba(255,255,255,0.6)` with blur, rounded 10px
+- Left: "Completed with" label + overlapping avatar orbs (each 26px, -8px margin-left for overlap) + player names
+- Right: badge pill — "Collab · Both earn pts" or "Duel · Winner takes pts"
+
+---
+
+## 13. Voting System (Praxis Page)
+
+### 13.1 Vote Input — Stamp Buttons
+
+Replaces star rating. Five rectangular stamp-style buttons numbered 1–5 with a word label below each. NO star iconography anywhere.
+
+**Labels:**
+| Value | Word |
+|-------|------|
+| 1 | a start |
+| 2 | solid |
+| 3 | good |
+| 4 | excellent |
+| 5 | legendary |
+
+**Button appearance:**
+- 44×44px square
+- Border: 2.5px solid in value color (see below)
+- Font: Courier Prime, 18px, 900 weight
+- Background: `rgba(255,255,255,0.8)`
+- Inner dashed border inset on selected state
+- Word label: 7px uppercase, max-width 44px
+
+**Value colors (border + selected background):**
+| Value | Color |
+|-------|-------|
+| 1 | `#9b8e7d` (muted — intentionally low energy) |
+| 2 | `#0e7490` (teal) |
+| 3 | `#4f46e5` (indigo) |
+| 4 | `#be185d` (rose) |
+| 5 | `#14532d` (deep green — reserved for legendary) |
+
+**Selected state:** background becomes the value color, text white, inner dashed border `rgba(255,255,255,0.25)`.
+
+**Below the stamps:**
+- "Submit vote" button: rectangular stamp style (matches status filters), `background: #1a1209`
+- Inline text: "Voting X pts · costs X of your votes" — makes the vote economy visible at decision time
+- Player's remaining vote count shown in the sublabel above stamps
+
+**Vote economy reminder:** players have 100 + 2× their total score in votes. This depletes as they vote. Surface it here without making it anxious — matter of fact.
+
+### 13.2 Vote Results — Voter Tile Grid
+
+Replaces star average display. Shows every voter as a tile with their avatar and their vote value.
+
+**Tile structure (per voter):**
+- Avatar: 48×48px, border-radius 4px (slightly square — distinguishes from orbs elsewhere), faction gradient background
+- Points badge: 18px circle, top-right corner, faction color background, white text, 1.5px white border
+- Name: 8px, muted, max-width 52px, truncated with ellipsis
+
+**Grid:** `flex-wrap: wrap; gap: 0.5rem` — not a strict grid, tiles flow naturally.
+
+**Overflow:** if more than ~12 voters, show a "+N more" tile in the same size with dashed border and muted text. Clicking expands (or links to a full voter list page).
+
+**Header row above grid:**
+- Left: "Points earned from votes" (9px label) + total in Lora italic 26px + "points from votes" suffix
+- Right: voter count (9px muted uppercase)
+
+### 13.3 Flag Block
+
+Flagging is a first-class UI element, not a footer link. Placed below the voter grid.
+
+**Structure:**
+- Background: `rgba(255,255,255,0.6)`, border `1.5px solid rgba(0,0,0,0.08)`, rounded 10px
+- Left: circular icon (32px, red-tinted border, ⚑ character at 50% red opacity)
+- Middle: "Flag this praxis" title (10px bold, muted) + explanation text (8px): "If this content is inappropriate, harmful, or violates the rules, flag it for admin review. Flagged praxis loses its points until reviewed."
+- Right: "⚑ Flag" button — outline style, red-tinted border and text at low opacity, intensifies on hover
+
+**Confirmation:** clicking Flag opens a confirmation modal (not inline) before submitting. The modal should restate the consequence: the author loses base task points AND vote points until an admin reviews. This prevents frivolous flagging.
+
+**Flag button colors:**
+- Default: `color: rgba(220,38,38,0.6); border-color: rgba(220,38,38,0.25)`
+- Hover: `color: #dc2626; border-color: rgba(220,38,38,0.5); background: rgba(220,38,38,0.05)`
+
+---
+
+---
+
+## 14. Player Profile Page
+
+### 14.1 Page Layout
+
+Same shell as all logged-in pages. Sidebar is identical to all other pages. Main column has four sections stacked vertically: profile header, level track, praxis grid, friends/foes row.
+
+### 14.2 Profile Header — Faction-Framed
+
+The profile header uses the **subject player's faction card aesthetic** as its visual container. This is the same principle as the praxis byline block — the faction identity follows the player everywhere they appear.
+
+- Gestalt player → collage scrap layers with tape strip
+- Analog player → notebook paper with margin rule, torn bottom edge
+- S.N.I.D.E. player → manila folder with dossier header
+- Journeymen player → large luggage tag framing
+- Singularity player → terminal black with green text and corner brackets
+- UA Masters player → aged newsprint with masthead
+- UA player → oversized sticky note
+
+Implementation: the profile header is a wrapper component that accepts `faction` as a prop and renders the appropriate background treatment behind a consistent content layout.
+
+**Header content (always):**
+- Avatar orb: 80px circle, faction gradient, 3px white border, 3px faction-color outer ring
+- Level badge: pill below avatar, `background: faction-color; color: white; 8px uppercase`
+- Action buttons (other player's profile only): Friend, Foe, DM — stacked below level badge, full width of avatar column
+  - Friend: `background: faction-color; color: white`
+  - Foe: outline style, `border: 1.5px solid #dc2626; color: #dc2626`
+  - DM: outline style, `border: 1.5px solid faction-color; color: faction-color`
+- Own profile: "Edit Profile" button replaces action buttons
+- Display name: Lora italic, 26px, faction color
+- Username: `@handle · joined Era X`, 10px muted
+- Faction banner: diagonal pennant clip-path (same as filter tabs), faction color
+- Member since: 8px muted
+- Bio: Special Elite 11px, 1.6 line-height, left border 3px in faction color at 30% opacity
+- Stat strip: Era score, All-time score, Praxis count, Votes remaining, Friends count, Foes count — each in a small rounded card `rgba(255,255,255,0.6)`
+
+### 14.3 Level Track
+
+Full-width horizontal track showing all 9 levels (0–8).
+
+**Node states:**
+- Completed: `background: faction-color; border-color: faction-color; color: white`
+- Current: `background: light-faction-tint; border: 3px solid faction-color; color: faction-color; box-shadow: 0 0 0 3px rgba(faction, 0.2)` — shows current point total inside
+- Locked: `background: rgba(255,255,255,0.5); border-color: rgba(0,0,0,0.12); color: #c8c0b0` — shows point threshold inside
+
+**Connectors:** 3px height, faction-color for completed segments, `rgba(0,0,0,0.1)` for locked.
+
+**Below track:** progress bar toward next level. `flex` row: "Lvl N → N+1" label, bar track, "X / Y pts" in faction color bold.
+
+**Top right of section:** "Next unlock at Level N: [unlock description]" in 9px italic faction color.
+
+**Section background:** `rgba(255,255,255,0.65)` frosted card, rounded 12px.
+
+### 14.4 Praxis Grid
+
+3-column grid of praxis cards. Each card:
+- Thumbnail: 4:3 aspect ratio, placeholder or actual image, dark gradient bg
+- Points badge: bottom-right of thumbnail, `rgba(0,0,0,0.55)` pill, white text, 7px
+- Card body: task name (9px bold), task it belongs to (8px muted), average vote score (7px faction color bold)
+- Voter mini-tiles: row of 14×14px square avatars (faction gradient), "+N" overflow tile
+
+Last card in grid is a "+N more praxis" overflow card — dashed border, centered count, links to full praxis list.
+
+Header: "Praxis — N total" left, "View all →" right in `#4f46e5` with dashed underline.
+
+### 14.5 Friends / Foes
+
+Two-column row below the praxis grid.
+
+Each column: label ("Friends · N" or "Foes · N"), list of relation items, "See all →" link or explanatory note.
+
+**Relation item:**
+- 24px avatar orb (faction gradient)
+- Display name (10px) + faction · level (7px muted)
+- Score delta right-aligned: "+N pts ahead" in `#14532d` (green) or "−N pts behind" in `#dc2626` (red)
+
+**Foes panel note:** "Mutual foes see each other's score delta after every completed task." — 8px italic muted. This surfaces the mechanic without requiring a tooltip.
+
+**Score delta** only shows if the relationship is mutual (both have added each other). One-sided friend/foe requests show "pending" instead.
+
+### 14.6 Own Profile vs. Other Profile
+
+| Element | Own profile | Other player's profile |
+|---------|-------------|----------------------|
+| Action buttons | "Edit Profile" | Friend / Foe / DM |
+| Bio | Editable inline (click to edit) | Read-only |
+| Display name | Editable inline | Read-only |
+| Active tasks sidebar | Your tasks | Your tasks (unchanged — sidebar is always yours) |
+| Level track | Shows your unlocks | Shows their unlocks |
+| Praxis grid | Your praxis | Their praxis |
+
+---
+
+---
+
+## 15. Task Detail Page
+
+### 15.1 Page Layout
+
+Same shell as all logged-in pages. Two-column grid: main content left, 256px sidebar right.
+
+Sidebar panels (top to bottom): character card, "who else is on this task" panel, active tasks panel, recent activity, propose button.
+
+### 15.2 Breadcrumb
+
+`Tasks › [Task Name]` — "Tasks" links back to task list. Task name is plain text (current page).
+
+### 15.3 Task Hero Block — Faction Expanded Card
+
+The task description block IS the faction card archetype expanded to full width. The same visual logic that governs a small task card governs the full task hero — just larger.
+
+- Analog task → full journal page with spiral binding holes (left edge), red margin rule, horizontal lines, torn bottom edge
+- Gestalt task → large collage with multiple paper layers and tape
+- S.N.I.D.E. task → full newspaper clipping with masthead, column rule, torn edges
+- Journeymen task → oversized luggage tag
+- Singularity task → full terminal window, dark bg, green text, corner brackets
+- UA task → large sticky note
+- UA Masters task → full gazette article
+
+**Contents (always present regardless of faction):**
+- Faction tab (diagonal pennant) + status pill ("Active") + level pill
+- Task title: faction-appropriate font, ~28px
+- Stats strip: Base pts · Completed count. **No "in progress" count. No average vote score.**
+- Task description: faction-appropriate font, 13px, 1.7 line-height
+- Task description is hypertext — can embed images and video inline
+
+### 15.4 Sign-Up Block
+
+The most important action on the page. Gets the most visual weight.
+
+**Step 1 — Mode selector:** Three stamp-style buttons side by side (same rectangular stamp aesthetic as status filters):
+
+| Option | Icon | Description |
+|--------|------|-------------|
+| Solo | ◎ | Just you. All points are yours. |
+| Collaboration | ⬡ | Invite others. Everyone earns full points. |
+| Duel | ⚔ | Challenge one player. Winner takes the points. |
+
+Selected state: `background: #1a1209; color: #F7F4EE` with inner dashed border. Unselected: `background: rgba(255,255,255,0.7); border: 2.5px solid #1a1209`.
+
+**Step 2 — Conditional fields:**
+- Solo: no additional fields
+- Collaboration: inline player invite field appears below selector. Input + "+ Add" button. Shows invited players as dismissible pills. If invited player's task list is full, show inline error.
+- Duel: same as collab but limited to one player. Label changes to "Challenge".
+
+**Step 3 — Sign up button:**
+- Full width, faction color background (not generic black — this is the faction's action)
+- Font: Courier Prime, 13px, bold, uppercase, tracking 0.15em
+- Inner dashed border (same stamp pattern)
+- Subtitle text inside button: "· earn up to N pts + votes" in lighter weight
+
+**Below button:** two lines of context — slot count remaining ("You have N of 20 task slots open") and level eligibility ("Level N required ✓" or "Level N required — you are level N ✗").
+
+**Already signed up state:** button replaced by a confirmation badge: `background: rgba(faction, 0.1); border: 1.5px solid rgba(faction, 0.25)` with checkmark and "You're on this task" text. Collab/duel partners shown as small orbs.
+
+### 15.5 Meta Tasks
+
+Shown below the sign-up block. Always visible even if not yet in the backend — treat as display-only until implemented.
+
+**Section container:** frosted card, `rgba(255,255,255,0.65)`, rounded 10px.
+
+**Each meta task item:**
+- Faction color dot (8px circle) — meta tasks belong to specific factions
+- Name (10px bold)
+- Description (8px muted, flex: 2)
+- Bonus: "+N%" or "+N flat" in faction color, bold
+
+**Locked meta tasks** (level too low): `opacity: 0.45` on the entire row + locked level pill appended.
+
+**Implementation note:** meta tasks are modifiers applied at praxis submission time, not at sign-up. The UI here is informational — it shows what bonuses are available for this task before you commit. The submission form will have a separate step for attaching applicable meta tasks.
+
+### 15.6 Praxis Gallery
+
+Grid of completed praxis submissions for this task. Two-column layout (not three — more room for excerpts, which are important for inspiring sign-ups).
+
+**Sort options:** "Top rated" (default) · "Recent" — displayed as small stamp-style toggles top-right.
+
+**Each praxis card:**
+- Thumbnail: 16:9 or 4:3 depending on content, dark gradient bg with emoji placeholder, points badge top-right, media type label bottom-left
+- Author row: 18px orb + display name + average vote score right-aligned
+- Title: Lora italic, 11px
+- Excerpt: 9px muted, ~2 lines, encourages click-through
+- Footer: voter mini-tiles (14px square, faction gradient) + "N pts earned" right
+
+**Below grid:** "View all N praxis →" centered link in `#4f46e5`.
+
+### 15.7 "Who Else Is On This Task" Sidebar Panel
+
+Replaces the "other praxis for this task" panel from the praxis detail page. Shows players currently signed up.
+
+- Header: "N players in progress" (N = total signed up count)
+- List: up to 4 players shown — friends and foes prioritized over strangers
+- Each item: 22px avatar orb + display name + relationship badge ("Friend" in green, "Foe" in red, "—" for neutral)
+- "+ N more →" overflow link
+
+This panel creates social pressure and collaboration opportunities simultaneously. A foe on the same task is competitive motivation. A friend is a potential collab invite.
+
+---
+
+---
+
+## 16. Leaderboard / Players Page
+
+### 16.1 Naming
+
+This page is called **"Players"** everywhere — nav link, page title, breadcrumbs. Never "Leaderboard" in the UI.
+
+### 16.2 Page Title
+
+"Player" with per-letter underline bars in cycling faction colors. Eyebrow: "Era III · [Era Name]".
+
+### 16.3 Podium — Top 3
+
+The top 3 players get a podium treatment above the main table. Three columns arranged: 2nd | 1st | 3rd, with 1st place visually largest.
+
+**Each podium slot:**
+- Card using the player's faction card archetype (tape strip, collage layers, etc.) — same visual logic as task cards and profile headers
+- Faction diagonal pennant tab inside card
+- Avatar orb with faction gradient + faction-color outer ring
+- Rank badge: circle top-right, faction-color for 1st/2nd/3rd specific colors: `#f59e0b` (gold), `#c49a3a` (silver), `#888` (bronze)
+- Display name in Lora italic, faction color
+- Era score: large, bold, Lora, faction color
+- "era pts" label beneath, 7px muted
+- Praxis count: 8px muted
+
+**Platform blocks** below each card (no border-top):
+- Heights: 1st = 52px, 2nd = 36px, 3rd = 24px
+- Background: very light tint of rank color
+- Large faded rank numeral as background texture
+
+**1st place** is additionally larger: card width 160px vs 140px for 2nd/3rd, avatar 64px vs 52px, score font 28px vs 22px, border 3px vs 2px, border-color `#fbbf24`.
+
+### 16.4 Your Rank Strip
+
+Shown between podium and the main table. Always present regardless of your actual rank — pulls your row out and displays it in a highlighted strip so you immediately know where you stand.
+
+- Background: `rgba(79,70,229,0.08)` (your faction color ideally, but indigo as default)
+- Border: `2px solid rgba(79,70,229,0.25)`
+- Left: rank number (large, Lora, faction color) + your avatar orb + name + faction/level
+- Right: score value + "era pts" label + rank delta ("↑ N places this week")
+
+### 16.5 Score Toggle + Faction Filter
+
+Two controls in a flex row:
+
+**Score toggle** (left): Era III | All-time — rectangular stamp buttons, same as status filters. Switches the score column and re-sorts the table.
+
+**Faction filter** (right): diagonal pennant tabs, same as task page. "All" is active by default. Filters table to show only that faction's players.
+
+### 16.6 Main Table
+
+Contained in a frosted card (`rgba(255,255,255,0.65)`, rounded 12px, backdrop blur).
+
+**Columns:** `#` · Player · Faction · Level · Praxis · Score
+
+**Header row:** 8px uppercase, muted, `letter-spacing: 0.15em`. Separated from body by `2px solid #1a1209`.
+
+**Each row:**
+- Left edge accent: 3px vertical bar in the player's faction color (absolute positioned, `top: 20%; bottom: 20%`)
+- Rank: Lora serif, 13px bold. Ranks 4+ are muted color; your rank is faction color
+- Player cell: 32px orb + display name (Lora italic 12px) + "Joined Era X · N days" (7px muted)
+- Faction: 8px faction color dot + faction name (8px uppercase muted)
+- Level: dark pill (`background: #1a1209`)
+- Praxis: centered, 11px bold
+- Score: right-aligned. Era score 15px bold. Below it: all-time score in 8px muted (or rank delta for your row)
+- Row separator: `1px dashed rgba(0,0,0,0.07)`
+- Hover: `background: rgba(255,255,255,0.55)`
+- Your row: `background: rgba(faction,0.06)`, all text in faction color, "You · Level N" as subtitle
+
+**Gap indicator:** When your row is surfaced out of natural order, a separator row spans all columns showing `· · · N players · · ·` with flanking horizontal rules. This communicates the contextual jump without confusion.
+
+**Pagination:** "Load more players →" link at bottom of card, centered, indigo with dashed underline.
+
+### 16.7 Sidebar — Faction Standings Panel
+
+Unique to the Players page. Replaces the "other praxis" or "who's on this task" panel.
+
+Shows collective score per faction for the current era — each faction as a row with:
+- Faction color pip (10px circle)
+- Faction name (9px bold uppercase)
+- Horizontal bar (proportional to highest faction score = 100% width)
+- Total faction score (9px bold right-aligned)
+
+Bar colors match faction colors. This panel gives the leaderboard a second axis: individual competition AND faction competition. Useful for players deciding which faction to join at Level 3.
+
+Standard active tasks panel and recent activity panel below it. Propose button at bottom.
+
+---
+
+---
+
+## 17. Updates Feed Page
+
+### 17.1 Page Layout
+
+Same shell as all logged-in pages. Two-column grid: feed stream left, 256px sidebar right.
+
+Sidebar panels (top to bottom): character card, pending requests panel (unique to this page), active tasks panel, recent global activity panel, propose button.
+
+### 17.2 Feed Filters
+
+Stamp-style rectangular pills (same aesthetic as status filters) in a horizontal row above the feed.
+
+| Filter | Description |
+|--------|-------------|
+| All | Everything, reverse chronological |
+| Friends | Activity from players you've friended |
+| Foes | Foe taunts only |
+| Your stuff | Votes/comments on your praxis, collab invites, duel challenges |
+| Global | Site-wide events, new tasks, era announcements |
+| Requests | Pending friend/foe requests |
+
+The **Requests pill** gets a colored badge count (red background, white text) when there are pending requests — the only pill with a colored count, because requests genuinely need action.
+
+### 17.3 Feed Item Types
+
+All items share a base card: `rgba(255,255,255,0.68)` frosted, `border-radius: 10px`, `backdrop-filter: blur(3px)`. Each type has a **4px left-edge accent bar** and a **type label pill** top-right.
+
+| Type | Left bar color | Label color | Notes |
+|------|---------------|-------------|-------|
+| Friend activity | `#14532d` green | `#14532d` | Warm |
+| Global | `#4f46e5` indigo | `#4f46e5` | System/admin |
+| Your stuff | `#be185d` rose | `#be185d` | Ego feed |
+| Duel challenge | `rgba(220,38,38,0.2)` border tint | `#dc2626` with ⚔ | Card bg: `rgba(255,248,248,0.7)` |
+| Foe taunt | No base card — see below | — | Special treatment |
+| Era announcement | No left bar — see below | — | Special treatment |
+
+**Date separators** between temporal groups: flex row with flanking `1px rgba(0,0,0,0.08)` lines and "Today" / "Yesterday" / date label in 8px muted uppercase.
+
+### 17.4 Feed Item Content Patterns
+
+**Player action items** (completed task, signed up, voted):
+- Player orb (28px) + bold player name in faction color + action text + time
+- Preview strip below: faction dot + task/praxis name + metadata + "→" arrow
+- Clicking preview strip navigates to the task or praxis
+
+**Praxis completion items** (friend completed, global completion):
+- Same header
+- Praxis card below: thumbnail (52×40px) + italic Lora title + task name + voter mini-tiles + pts earned so far
+
+**Vote notification** (someone voted on your praxis):
+- Header as above
+- Vote row: stamp-style number badge + "on [praxis title]" + "+N pts" right-aligned
+
+**Collab invite** (actionable):
+- Header
+- Task preview strip
+- Accept / Decline buttons inline below. Show remaining task slots as inline hint text.
+
+**Duel challenge** (actionable):
+- Same pattern as collab invite
+- Red "Accept duel" button, neutral "Decline" button
+- Preview strip has ⚔ instead of →, red tint
+
+### 17.5 Foe Taunt — Special Treatment
+
+Foe taunts do NOT use the base card. They are rendered as **physical notes** — aged paper, tape at top, torn bottom edge.
+
+**"Watch your back"** (foe passed you in score):
+- Paper: `background: #fef9ee; border: 1.5px solid #c49a3a`
+- Tape strip: `rgba(250,230,130,0.7)` centered at top, `width: 48px; height: 13px`
+- Torn bottom edge: `::after` pseudo-element with jagged clip-path in page background color
+- Font: Special Elite throughout
+- Header: small foe orb + "From your foe · [Name]" in `#8a6a20` + timestamp in `#c49a3a`
+- Message: italic, 12px — auto-generated: `"You might want to watch your back, [player]. Things just got interesting."`
+- Footer: task completed left + score delta right in `#dc2626` ("Foe now leads by N pts")
+
+**"Catch up"** (you're still ahead):
+- Paper: `background: #fff8f8; border: 1.5px solid #dc2626`
+- Same structure but red-tinted
+- Message: `"Still trailing. I'll catch up eventually, [player]. Eventually."`
+- Footer: score delta in `#14532d` ("You lead by N pts")
+
+The taunt messages are game-generated strings. Admins should be able to define a pool of taunt templates per faction — S.N.I.D.E. taunts should feel different from Journeymen taunts.
+
+### 17.6 Era Announcement — Special Treatment
+
+Full-width dark card. Only item type with `background: #1a1209`.
+
+- 4px left bar in `#fbbf24`
+- Gold circular icon (36px, `background: #fbbf24`) with ◎ symbol
+- "ERA ANNOUNCEMENT · ADMIN" label in `#fbbf24`, 8px uppercase
+- Title: Lora italic, 18px, `#F7F4EE`
+- Body: 10px, `rgba(255,255,255,0.65)`, 1.55 line-height
+- Action buttons below: primary (`background: #fbbf24; color: #1a1209`) + secondary (outline, muted)
+
+Era announcements are always pinned to the top of the feed on the day they're posted, regardless of other activity.
+
+### 17.7 Pending Requests Sidebar Panel
+
+Unique to the Updates page. Sits between the character card and the active tasks panel.
+
+Each request item:
+- 24px player orb
+- Display name + relationship type ("Friend request" in green, "Foe request" in red)
+- Accept button (`background: #14532d`) + Decline button (✕, outline)
+
+If no pending requests: panel is hidden entirely (don't show an empty state).
+
+### 17.8 Recent Global Activity Sidebar Panel
+
+On the Updates page, the "recent activity" sidebar panel shows **global** activity (not personal) — it's a compact running ticker of what's happening site-wide while you read your personal feed.
+
+Same format as on other pages: player name in faction color + action + timestamp. Up to 3 items.
+
+---
+
+---
+
+## 18. Submit Proof Form
+
+### 18.1 Layout — No Sidebar
+
+This is the **only logged-in page without the right-hand sidebar panels**. The user is writing. Give them the full width.
+
+Layout: single centered column, max-width ~720px, with generous padding. The watercolor background is still present. Nav is still present. No sidebar, no active tasks panel, no character card, no activity feed.
+
+The breadcrumb reads: `Tasks › [Task Name] › Submit Proof`
+
+### 18.2 Task Context Header
+
+The form opens with a faction-framed task context block — same collage/journal/dossier aesthetic as the faction card for the task's faction. This anchors the writer to what they're proving before they start.
+
+**Contents:**
+- "Proving completion of" eyebrow (8px uppercase muted)
+- Task name (Special Elite or faction-appropriate font, 18px, faction color)
+- Faction + base pts + level pills
+- If collaboration: right side shows collaborator orbs + names
+- If duel: right side shows opponent orb + "Duel — winner takes all"
+
+### 18.3 Form Sections
+
+Each section is a frosted card (`rgba(255,255,255,0.7)`, `border-radius: 12px`, `backdrop-filter: blur(3px)`). Sections stack vertically with `gap: 1.1rem`.
+
+**Section header pattern:** 9px uppercase label left + 8px italic hint text right (muted, non-uppercase).
+
+#### Section 1 — Proof Title
+
+- Input: Lora italic, 24px, transparent background, no border except bottom (2px, `rgba(0,0,0,0.12)`)
+- Focus state: bottom border transitions to faction color
+- Placeholder: "What did you do?" in `#c8c0b0` italic
+- Below input: full-width rainbow underline bars (same 8-segment system as page titles, `opacity: 0.6`, `height: 3px`) — appear as soon as text is present
+
+#### Section 2 — The Proof (Rich Text)
+
+- Minimal toolbar: Bold, Italic, Underline | H1, Quote | Bullet, Link | Insert Image, Insert Video
+- Toolbar buttons: 28×28px, `border: 1.5px solid rgba(0,0,0,0.12)`, `border-radius: 3px`
+- Active/pressed: `background: #1a1209; color: white`
+- Separator bars: `1px rgba(0,0,0,0.1)`, 28px height
+- Text area: Lora, 14px, `color: #2a1e10`, `line-height: 1.75`, `min-height: 180px`, no border, full width
+- Placeholder: italic, `#c8c0b0`
+- Word count: 8px muted, right-aligned, below textarea. Label: "N words · no limit"
+- **No character limit. No word limit.** The culture of long-form proof posts should be encouraged.
+
+#### Section 3 — Media
+
+Three media type tabs above the grid (Photos / Video / Audio) using stamp-style buttons — same rectangular stamp aesthetic, no border-radius.
+
+**Media grid:** 3 columns, `gap: 0.6rem`
+
+**Uploaded tile:**
+- 4:3 aspect ratio, `border-radius: 6px`, `border: 1.5px solid rgba(0,0,0,0.1)`
+- "Main" badge: top-left, `background: faction-color; color: white; 7px uppercase` — first uploaded image gets this by default
+- File type + size badge: bottom-left, `rgba(0,0,0,0.5)` pill, 7px, white
+- Hover overlay: `rgba(0,0,0,0.35)` with "Remove" and "Set main" action pills
+- Action pills: `background: rgba(255,255,255,0.9); color: #1a1209; 7px uppercase; border-radius: 3px`
+
+**Upload zone (always last):**
+- Same 4:3 grid cell
+- `border: 2px dashed rgba(0,0,0,0.15)`, `border-radius: 6px`
+- ⊕ icon + "Drop files here / or click to upload"
+- Hover: `border-color: faction-color; background: rgba(faction, 0.04)`
+
+Accepted formats note below grid: 8px muted. Max 50mb per file.
+
+Multiple upload zones are NOT shown — just one. As files are uploaded, they fill the grid left-to-right and the upload zone stays at the end.
+
+#### Section 4 — Meta Tasks
+
+Only shown if the player has applicable meta tasks available for this task.
+
+**Each meta task row:**
+- Checkbox (18px, `border-radius: 3px`) — checked state: `background: faction-color; color: white; ✓`
+- Meta task name (10px bold) + description (8px muted)
+- Bonus right-aligned: `+N%` or `+N pts` in faction color bold
+
+Below the list: if any meta tasks are checked, show a caveat: "You're claiming [Meta Task Name]. Your proof must demonstrate this — voters can dispute it." — 8px italic muted.
+
+#### Section 5 — Collaboration Note (conditional)
+
+Shown only for collab or duel submissions.
+
+- `background: rgba(faction, 0.07); border: 1px solid rgba(faction, 0.15); border-radius: 8px`
+- ⬡ icon + explanatory text
+- For collab: "Both of you will earn points from votes. [Partner] will be notified when you submit — they can add their own proof post for the same task, or endorse this one."
+- For duel: "Only the player with the higher vote total earns points. Voting on a duel also requires voters to indicate who they believe won."
+
+### 18.4 Submit Row
+
+Below all sections, full width:
+
+- **"Publish proof"** button (primary): faction color background, white text, Courier Prime 12px bold uppercase, rectangular stamp style with inner dashed border. NOT "Submit" — "Publish" implies pride of authorship.
+- **"Save draft"** button: outline style, `border: 2px solid rgba(0,0,0,0.15)`, muted text. Saves without publishing.
+- Submit note (right of buttons, 8px muted): "Once published, others can vote on your proof. You can edit it after publishing."
+
+### 18.5 Sidebar Replacement — Contextual Panels
+
+Since there is no right sidebar, two pieces of information that would normally live in a sidebar are instead placed as the **right column of the main content area** on wider screens, or as collapsed accordions on mobile:
+
+**"What makes a good proof post"** — always visible on desktop, collapsed on mobile.
+Content (bulleted list, 9px, `color: #4a3f30`):
+- Write in first person. We want to feel like we were there.
+- Specificity beats spectacle. A real moment with one pigeon beats a zoo photo.
+- Photos and video help, but they don't replace the writing.
+- Tell us what changed. Did something unexpected happen?
+- Voters reward weirdness, honesty, and genuine effort over polish.
+
+**"Other proofs for this task"** — peek at up to 3 existing praxis submissions.
+- Small thumbnail (36×28px) + Lora italic title + points earned
+- Note below: "Reading other proofs is allowed and encouraged — see what approaches others took."
+
+These panels are editorial, not functional. They should feel like a soft nudge from the community, not a rules box.
+
+### 18.6 Active Task Highlight
+
+In the active tasks panel (if shown anywhere on this page — on mobile it may appear collapsed in a bottom drawer), the task currently being submitted is highlighted with faction-color background tint and "Submitting now" as the meta text.
+
+---
