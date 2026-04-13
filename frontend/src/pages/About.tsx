@@ -1,7 +1,8 @@
+import PageTitle from '../components/ui/PageTitle'
 export default function About() {
   return (
     <div className="py-8 max-w-2xl">
-      <h1 className="page-heading">About World Zero</h1>
+      <PageTitle title="About World Zero" />
 
       <div className="card p-6 mb-6">
         <p className="font-body text-base leading-relaxed mb-4">

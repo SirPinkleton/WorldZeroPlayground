@@ -33,7 +33,7 @@ export default function Leaderboard() {
       ) : (
         <div className="flex flex-col gap-2">
           {characters.map((c, i) => (
-            <div key={c.id} className="card px-4 py-3 flex items-center gap-4 transition-all hover:-translate-x-0.5 hover:-translate-y-0.5">
+            <div key={c.id} className="card px-4 py-3 flex items-center gap-4 transition-all">
               <span className="font-display text-2xl font-bold text-muted w-8 shrink-0 text-right">
                 {i + 1}
               </span>

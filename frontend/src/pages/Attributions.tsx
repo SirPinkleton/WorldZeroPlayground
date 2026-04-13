@@ -1,3 +1,4 @@
+import PageTitle from '../components/ui/PageTitle'
 const attributions = [
   {
     name: 'SF0',
@@ -45,7 +46,7 @@ const attributions = [
 export default function Attributions() {
   return (
     <div className="py-8 max-w-2xl">
-      <h1 className="page-heading">Attributions</h1>
+      <PageTitle title="Attributions" />
       <p className="font-body text-muted mb-6">
         World Zero is built on the shoulders of great open source projects and creative
         predecessors. Thank you to all of the following.

@@ -1,7 +1,8 @@
+import PageTitle from '../components/ui/PageTitle'
 export default function Donate() {
   return (
     <div className="py-8 max-w-2xl text-center">
-      <h1 className="page-heading text-center">Support World Zero</h1>
+      <PageTitle title="Support World Zero" />
 
       <div className="card p-8 mb-6">
         <p className="font-body text-base leading-relaxed mb-6">

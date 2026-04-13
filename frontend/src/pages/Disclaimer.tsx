@@ -1,7 +1,8 @@
+import PageTitle from '../components/ui/PageTitle'
 export default function Disclaimer() {
   return (
     <div className="py-8 max-w-2xl">
-      <h1 className="page-heading">Disclaimer</h1>
+      <PageTitle title="Disclaimer" />
 
       <div className="card p-6 space-y-5 font-body text-base leading-relaxed">
         <p>

@@ -10,6 +10,7 @@ import {
 } from '../api/submissions'
 import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
+import PageTitle from '../components/ui/PageTitle'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -81,7 +82,7 @@ export default function EditSubmission() {
 
   return (
     <div className="py-8 max-w-6xl">
-      <h1 className="page-heading">Edit Praxis</h1>
+      <PageTitle title="Edit Praxis" />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* Title */}

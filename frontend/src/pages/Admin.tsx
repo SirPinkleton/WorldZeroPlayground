@@ -6,6 +6,7 @@ import type { FactionOut } from '../api/factions'
 import type { SubmissionOut } from '../api/submissions'
 import { formatTimestamp } from '../utils/dates'
 import { extractError } from '../utils/errors'
+import PageTitle from '../components/ui/PageTitle'
 
 export default function Admin() {
   const [pending, setPending] = useState<PendingTaskOut[]>([])
@@ -99,7 +100,7 @@ export default function Admin() {
 
   return (
     <div className="py-8">
-      <h1 className="page-heading">Admin</h1>
+      <PageTitle title="Admin" />
 
       {fetchError && (
         <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2 mb-4">
