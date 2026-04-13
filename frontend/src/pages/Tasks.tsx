@@ -3,6 +3,9 @@ import { listTasks, signupTask, type TaskOut } from '../api/tasks'
 import { getFactions, type FactionOut } from '../api/factions'
 import TaskCard from '../components/TaskCard'
 import PageTitle from '../components/ui/PageTitle'
+import FilterStamps from '../components/ui/FilterStamps'
+import FilterFactionTabs from '../components/ui/FilterFactionTabs'
+import FilterLevelNodes from '../components/ui/FilterLevelNodes'
 import { extractError } from '../utils/errors'
 import { useAuth } from '../auth/AuthContext'
 
@@ -22,7 +25,7 @@ export default function Tasks() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [signupMsg, setSignupMsg] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
 
-  // Fetch factions once for filter chips
+  // Fetch factions once for filter tabs
   useEffect(() => {
     getFactions().then(setFactions).catch(() => {})
   }, [])
@@ -46,7 +49,6 @@ export default function Tasks() {
     try {
       await signupTask(id)
       setSignupMsg({ id, msg: "You're signed up!", ok: true })
-      // Remove the task from the list since they just signed up
       setTasks((prev) => prev.filter((t) => t.id !== id))
     } catch (err) {
       setSignupMsg({ id, msg: extractError(err, 'Could not sign up — make sure you are logged in.'), ok: false })
@@ -62,44 +64,11 @@ export default function Tasks() {
     <div className="py-8">
       <PageTitle title="Tasks" eyebrow={`${tasks.length} shown`} />
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center mb-6">
-        <span className="font-body text-xs text-muted">status:</span>
-        {statusFilters.map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatus(s)}
-            className={`chip ${status === s ? 'chip-active' : ''}`}
-          >
-            {s}
-          </button>
-        ))}
-
-        <div className="w-px h-5 bg-border/30 mx-1" />
-
-        <span className="font-body text-xs text-muted">faction:</span>
-        {factions.map((f) => (
-          <button
-            key={f.slug}
-            onClick={() => setFaction(faction === f.slug ? '' : f.slug)}
-            className={`chip ${faction === f.slug ? 'chip-active' : ''}`}
-          >
-            {f.name}
-          </button>
-        ))}
-
-        <div className="w-px h-5 bg-border/30 mx-1" />
-
-        <span className="font-body text-xs text-muted">level:</span>
-        {LEVEL_FILTERS.map((l) => (
-          <button
-            key={l}
-            onClick={() => setLevel(level === l ? '' : l)}
-            className={`chip ${level === l ? 'chip-active' : ''}`}
-          >
-            {l}+
-          </button>
-        ))}
+      {/* Filters — three distinct visual types (Style Guide §5.3) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+        <FilterStamps options={statusFilters} value={status} onChange={setStatus} />
+        <FilterFactionTabs factions={factions} value={faction} onChange={setFaction} />
+        <FilterLevelNodes levels={LEVEL_FILTERS} value={level} onChange={setLevel} />
       </div>
 
       {signupMsg && (
@@ -118,7 +87,8 @@ export default function Tasks() {
       ) : tasks.length === 0 ? (
         <p className="font-body text-muted">No tasks match your filters.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        /* Flex-wrap container — NOT a grid. Varied card sizes and rotations are intentional (Style Guide §6). */
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-start' }}>
           {tasks.map((t) => (
             <TaskCard key={t.id} task={t} onSignup={handleSignup} />
           ))}
