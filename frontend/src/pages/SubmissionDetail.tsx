@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { getSubmission, flagSubmission, type SubmissionOut } from '../api/submissions'
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
@@ -81,9 +82,9 @@ export default function SubmissionDetail() {
         </div>
 
         {submission.body_text && (
-          <p className="font-body text-base text-ink mt-4 leading-relaxed whitespace-pre-wrap">
-            {submission.body_text}
-          </p>
+          <div className="font-body text-base text-ink mt-4 leading-relaxed prose prose-sm max-w-none">
+            <ReactMarkdown>{submission.body_text}</ReactMarkdown>
+          </div>
         )}
 
         {submission.media.length > 0 && (
