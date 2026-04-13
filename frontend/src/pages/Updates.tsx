@@ -7,6 +7,7 @@ import SubmissionCard from '../components/SubmissionCard'
 import { useAuth } from '../auth/AuthContext'
 import { formatTimestamp } from '../utils/dates'
 import { extractError } from '../utils/errors'
+import PageTitle from '../components/ui/PageTitle'
 
 export default function Updates() {
   const { user } = useAuth()
@@ -31,7 +32,7 @@ export default function Updates() {
 
   if (fetchError) return (
     <div className="py-8">
-      <h1 className="page-heading">Updates</h1>
+      <PageTitle title="Updates" />
       <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
         {fetchError}{' '}
         <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
@@ -41,7 +42,7 @@ export default function Updates() {
 
   return (
     <div className="py-8">
-      <h1 className="page-heading">Updates</h1>
+      <PageTitle title="Updates" />
 
       {messages.length > 0 && (
         <section className="mb-8">

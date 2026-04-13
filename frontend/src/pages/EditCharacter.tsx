@@ -4,6 +4,7 @@ import { getCharacter, updateCharacter, uploadCharacterAvatar, type CharacterOut
 import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
 import { mediaUrl } from '../utils/media'
+import PageTitle from '../components/ui/PageTitle'
 
 export default function EditCharacter() {
   const { id } = useParams<{ id: string }>()
@@ -66,7 +67,7 @@ export default function EditCharacter() {
 
   return (
     <div className="py-8 max-w-xl">
-      <h1 className="page-heading">Edit Character</h1>
+      <PageTitle title="Edit Character" />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* Avatar preview */}

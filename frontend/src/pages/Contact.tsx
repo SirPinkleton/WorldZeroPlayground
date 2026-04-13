@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import api from '../api/axios'
+import PageTitle from '../components/ui/PageTitle'
 
 type FormState = { name: string; email: string; message: string }
 
@@ -30,7 +31,7 @@ export default function Contact() {
   if (success) {
     return (
       <div className="py-8 max-w-2xl">
-        <h1 className="page-heading">Contact</h1>
+        <PageTitle title="Contact" />
         <div className="card p-6 text-center">
           <p className="font-display text-2xl font-bold mb-2">Message sent!</p>
           <p className="font-body text-muted">We'll get back to you when we can.</p>
@@ -41,7 +42,7 @@ export default function Contact() {
 
   return (
     <div className="py-8 max-w-2xl">
-      <h1 className="page-heading">Contact</h1>
+      <PageTitle title="Contact" />
       <p className="font-body text-muted mb-6">
         Have a question, bug report, or just want to say hi? Send us a message.
       </p>

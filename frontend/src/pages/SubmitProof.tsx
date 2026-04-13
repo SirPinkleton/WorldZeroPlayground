@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { createSubmission, uploadMedia } from '../api/submissions'
 import { getTask, type TaskOut } from '../api/tasks'
+import PageTitle from '../components/ui/PageTitle'
 
 export default function SubmitProof() {
   const { id } = useParams<{ id: string }>()
@@ -43,7 +44,7 @@ export default function SubmitProof() {
 
   return (
     <div className="py-8 max-w-6xl">
-      <h1 className="page-heading">Submit Proof</h1>
+      <PageTitle title="Submit Proof" />
 
       {task && (
         <div className="card p-4 mb-4">

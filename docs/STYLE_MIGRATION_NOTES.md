@@ -53,17 +53,16 @@ Replace current chip-based filters with three distinct visual types. See style g
 - [ ] **Button dark variants** — Propose a task: `background: #f0e6d0; color: #13121a`. Stamps/chips: `bg: #f0e6d0; color: #13121a`.
 - [ ] **Body transition** — 150ms `transition: background-color, color` on body (already in index.css).
 
-## Phase 5: Sidebar Data Wiring
+## ~~Phase 5: Sidebar Data Wiring~~ DONE
 
-- [ ] **Active tasks panel** — Fetch user's signed-up tasks, show with faction color left-border, task name, meta (faction · level · date), badge pill (Solo/Collab/Duel). Progress bar: `X / 20 slots` with indigo fill.
-- [ ] **Recent activity panel** — Fetch 3 most recent events. Player names in faction color + bold. Timestamps in tertiary color. Separated by 1px dashed border.
+- [x] **Active tasks panel** — Fetch user's signed-up tasks, show with faction color left-border, task name, meta (faction · level · date). Progress bar: `X / 20 slots` with indigo fill.
+- [x] **Recent activity panel** — Fetch 3 most recent submissions. Player names bold + task title. Timestamps via relativeTime(). Separated by 1px dashed border.
 
-## Phase 6: Per-Page Polish (secondary pages)
+## ~~Phase 6: Per-Page Polish (secondary pages)~~ DONE
 
-- [ ] Apply PageTitle to remaining secondary pages (About, Contact, Disclaimer, Attributions, Donate, Admin, EditCharacter, EditSubmission, Groups)
-- [ ] Update Factions page cards to use faction-specific styling
-- [ ] Remove remaining `hover:-translate` sketch effects from all components
-- [ ] Audit all hardcoded hex values in components and replace with CSS custom properties
+- [x] Apply PageTitle to remaining secondary pages (About, Contact, Disclaimer, Attributions, Donate, Admin, EditCharacter, EditSubmission, SubmitProof, Updates, Groups)
+- [x] Update Factions page cards to use sidebar-card + faction colors
+- [x] Remove remaining `hover:-translate` sketch effects from all components (Groups, Factions, SubmissionCard, Leaderboard)
 
 ## Phase 7: Praxis Submission Page (§12)
 

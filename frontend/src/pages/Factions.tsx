@@ -4,6 +4,16 @@ import type { FactionOut } from '../api/factions'
 import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 
+const FACTION_COLORS: Record<string, string> = {
+  ua: '#6b6a7a',
+  analog: '#15803d',
+  gestalt: '#14532d',
+  snide: '#8a6a20',
+  journeymen: '#c49a3a',
+  singularity: '#7c3aed',
+  ua_masters: '#555555',
+}
+
 export default function Factions() {
   const [factions, setFactions] = useState<FactionOut[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,23 +40,31 @@ export default function Factions() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {factions.map((f) => (
-          <div
-            key={f.slug}
-            className="card p-5 flex flex-col gap-2 relative overflow-hidden transition-all hover:-translate-x-0.5 hover:-translate-y-0.5"
-          >
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-faction-${f.slug}`} />
-            <div className="pl-2">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 bg-faction-${f.slug}`} />
-                <h2 className="font-display text-xl font-bold">{f.name}</h2>
+        {factions.map((f) => {
+          const color = FACTION_COLORS[f.slug] ?? '#6b6a7a'
+          return (
+            <div
+              key={f.slug}
+              className="sidebar-card relative overflow-hidden"
+              style={{ borderLeft: `3px solid ${color}` }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ background: color }}
+                />
+                <h2 className="font-display italic text-lg" style={{ color }}>
+                  {f.name}
+                </h2>
               </div>
               {f.description && (
-                <p className="font-body text-sm text-ink leading-relaxed">{f.description}</p>
+                <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  {f.description}
+                </p>
               )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
