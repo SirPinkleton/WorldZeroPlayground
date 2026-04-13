@@ -11,6 +11,15 @@ const links = [
   { to: '/updates', label: 'Updates' },
 ]
 
+/** Nav link style — Courier Prime 10px uppercase (Style Guide §5.1) */
+const NAV_LINK_BASE = {
+  fontFamily: "'Courier Prime', monospace",
+  fontSize: 10,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.12em',
+  paddingBottom: 2,
+}
+
 export default function NavBar() {
   const { user, refetch } = useAuth()
 
@@ -20,23 +29,49 @@ export default function NavBar() {
   }
 
   return (
-    <nav className="bg-card border-b-2 border-border shadow-[0_3px_0_#3d3734] sticky top-0 z-10">
+    <nav
+      className="sticky top-0"
+      style={{
+        zIndex: 10,
+        background: 'rgba(247, 244, 238, 0.88)',
+        backdropFilter: 'blur(6px)',
+        borderBottom: '1px solid var(--color-border)',
+      }}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
-        <NavLink to="/" className="font-display text-2xl font-bold shrink-0 leading-none">
-          World Zero
+        {/* Wordmark — Lora italic with rainbow gradient underline */}
+        <NavLink to="/" className="shrink-0 leading-none" style={{ textDecoration: 'none' }}>
+          <span
+            className="font-display italic"
+            style={{
+              fontSize: 19,
+              color: 'var(--color-text-primary)',
+              display: 'inline-block',
+              borderBottom: '2px solid transparent',
+              backgroundImage: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)), linear-gradient(90deg, #4f46e5, #be185d, #f97316, #16a34a)',
+              backgroundSize: '100% calc(100% - 2px), 100% 2px',
+              backgroundPosition: 'top, bottom',
+              backgroundRepeat: 'no-repeat',
+              paddingBottom: 2,
+            }}
+          >
+            World Zero
+          </span>
         </NavLink>
 
+        {/* Nav links */}
         <ul className="flex gap-5 flex-1 list-none">
           {links.map(({ to, label, end }) => (
             <li key={to}>
               <NavLink
                 to={to}
                 end={end}
-                className={({ isActive }) =>
-                  `font-body text-sm pb-0.5 border-b-2 transition-colors ${
-                    isActive ? 'border-ink' : 'border-transparent hover:border-ink'
-                  }`
-                }
+                className="transition-colors"
+                style={({ isActive }) => ({
+                  ...NAV_LINK_BASE,
+                  color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                  borderBottom: isActive ? '1.5px solid var(--color-text-primary)' : '1.5px solid transparent',
+                })}
               >
                 {label}
               </NavLink>
@@ -46,11 +81,12 @@ export default function NavBar() {
             <li>
               <NavLink
                 to="/admin"
-                className={({ isActive }) =>
-                  `font-body text-sm pb-0.5 border-b-2 transition-colors ${
-                    isActive ? 'border-ink' : 'border-transparent hover:border-ink'
-                  }`
-                }
+                className="transition-colors"
+                style={({ isActive }) => ({
+                  ...NAV_LINK_BASE,
+                  color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                  borderBottom: isActive ? '1.5px solid var(--color-text-primary)' : '1.5px solid transparent',
+                })}
               >
                 Admin
               </NavLink>
@@ -58,25 +94,36 @@ export default function NavBar() {
           )}
         </ul>
 
+        {/* User area */}
         <div className="flex items-center gap-3 shrink-0">
           {user ? (
             <>
               {user.character ? (
                 <NavLink
                   to={`/characters/${user.character.id}/edit`}
-                  className="font-body text-sm text-muted hover:text-ink transition-colors"
+                  className="font-body transition-colors"
+                  style={{
+                    fontSize: 10,
+                    color: 'var(--color-text-secondary)',
+                    letterSpacing: '0.08em',
+                  }}
                 >
                   {user.character.display_name}
                 </NavLink>
               ) : (
                 <NavLink
                   to="/characters/create"
-                  className="font-body text-sm text-muted hover:text-ink transition-colors"
+                  className="font-body transition-colors"
+                  style={{
+                    fontSize: 10,
+                    color: 'var(--color-text-secondary)',
+                    letterSpacing: '0.08em',
+                  }}
                 >
-                  create character →
+                  create character
                 </NavLink>
               )}
-              <button onClick={handleLogout} className="btn-outline text-xs py-1 px-3">
+              <button onClick={handleLogout} className="btn-outline" style={{ padding: '0.25rem 0.75rem' }}>
                 logout
               </button>
             </>

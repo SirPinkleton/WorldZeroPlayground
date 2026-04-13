@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import { loginWithGoogle, devLogin } from '../api/auth'
 import SubmissionCard from '../components/SubmissionCard'
+import PageTitle from '../components/ui/PageTitle'
 
 export default function Home() {
   const { user, refetch } = useAuth()
@@ -19,9 +20,9 @@ export default function Home() {
 
   if (!user) {
     return (
-      <div className="page max-w-2xl mx-auto text-center py-20">
+      <div className="max-w-2xl mx-auto text-center py-20">
         {loginRequired && (
-          <p className="font-body text-sm text-muted mb-6 border-2 border-border px-4 py-2 shadow-sketch-sm inline-block">
+          <p className="font-body text-sm text-muted mb-6 border-2 border-border px-4 py-2 inline-block">
             You need to log in to access that page.
           </p>
         )}
@@ -46,11 +47,8 @@ export default function Home() {
   }
 
   return (
-    <div className="page">
-      <div className="flex items-baseline gap-3 mb-6 border-b-2 border-border pb-2">
-        <h1 className="font-display text-4xl font-bold">Recent Praxis</h1>
-        <span className="font-body text-sm text-muted">{feed.length} submissions</span>
-      </div>
+    <div className="py-8">
+      <PageTitle title="Recent Praxis" eyebrow={`${feed.length} submissions`} />
       {feed.length === 0 ? (
         <p className="font-body text-muted">No submissions yet. Be the first!</p>
       ) : (

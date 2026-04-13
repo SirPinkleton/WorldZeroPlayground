@@ -1,6 +1,6 @@
 export default function About() {
   return (
-    <div className="page max-w-2xl">
+    <div className="py-8 max-w-2xl">
       <h1 className="page-heading">About World Zero</h1>
 
       <div className="card p-6 mb-6">

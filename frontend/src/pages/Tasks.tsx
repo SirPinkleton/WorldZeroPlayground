@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listTasks, signupTask, type TaskOut } from '../api/tasks'
 import { getFactions, type FactionOut } from '../api/factions'
 import TaskCard from '../components/TaskCard'
+import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 import { useAuth } from '../auth/AuthContext'
 
@@ -58,11 +59,8 @@ export default function Tasks() {
   if (characterLevel >= 3) statusFilters.push('pending')
 
   return (
-    <div className="page">
-      <div className="flex items-baseline gap-3 mb-5 border-b-2 border-border pb-2">
-        <h1 className="font-display text-4xl font-bold">Tasks</h1>
-        <span className="font-body text-sm text-muted">{tasks.length} shown</span>
-      </div>
+    <div className="py-8">
+      <PageTitle title="Tasks" eyebrow={`${tasks.length} shown`} />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center mb-6">

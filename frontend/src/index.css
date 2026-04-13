@@ -2,13 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Color System (Style Guide §2.1) ── */
+:root {
+  /* Background layers */
+  --color-bg-page:        #F7F4EE;
+  --color-bg-surface:     rgba(255, 255, 255, 0.72);
+  --color-bg-surface-alt: #F0EDE6;
+
+  /* Text */
+  --color-text-primary:   #1a1209;
+  --color-text-secondary: #6b6050;
+  --color-text-tertiary:  #9b8e7d;
+
+  /* Borders */
+  --color-border:         rgba(0, 0, 0, 0.07);
+  --color-border-strong:  rgba(0, 0, 0, 0.15);
+
+  /* Accent */
+  --color-accent-primary: #be185d;
+}
+
+[data-theme="dark"] {
+  --color-bg-page:        #13121a;
+  --color-bg-surface:     rgba(255, 255, 255, 0.04);
+  --color-bg-surface-alt: rgba(255, 255, 255, 0.06);
+
+  --color-text-primary:   #f0e6d0;
+  --color-text-secondary: #7a7060;
+  --color-text-tertiary:  #4a4860;
+
+  --color-border:         rgba(255, 255, 255, 0.07);
+  --color-border-strong:  rgba(255, 255, 255, 0.15);
+
+  --color-accent-primary: #be185d;
+}
+
+/* ── Type Scale (Style Guide §3) ── */
+:root {
+  --text-xs:   8px;
+  --text-sm:   9px;
+  --text-base: 10px;
+  --text-md:   11px;
+  --text-lg:   12px;
+  --text-xl:   14px;
+  --text-2xl:  18px;
+  --text-3xl:  28px;
+  --text-4xl:  34px;
+}
+
 @layer base {
   body {
     @apply bg-paper font-body text-ink;
-    background-image: theme('backgroundImage.graph-paper');
-    background-size: theme('backgroundSize.graph-paper');
-    background-color: theme('colors.paper');
+    background-color: var(--color-bg-page);
     min-height: 100vh;
+    transition: background-color 150ms, color 150ms;
   }
 
   h1, h2, h3, h4 {
@@ -17,36 +64,85 @@
 }
 
 @layer components {
-  /* Hard-offset sketch card */
+  /* Frosted surface card (Style Guide §5.4) */
+  .sidebar-card {
+    background: var(--color-bg-surface);
+    border-radius: 14px;
+    padding: 0.9rem;
+    border: 1px solid var(--color-border);
+    backdrop-filter: blur(4px);
+  }
+
+  /* General card */
   .card {
-    @apply bg-card border-2 border-border shadow-sketch;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
   }
 
-  /* Sketch button — dark fill */
+  /* Primary button (Style Guide §4.2 propose-a-task style) */
   .btn-primary {
-    @apply font-body bg-ink text-paper border-2 border-border shadow-sketch-sm
-           px-4 py-1.5 text-sm cursor-pointer
-           transition-all duration-100
-           hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch;
+    @apply font-body;
+    background: var(--color-text-primary);
+    color: var(--color-bg-page);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: opacity 150ms;
+  }
+  .btn-primary:hover {
+    opacity: 0.85;
   }
 
-  /* Sketch button — outline */
+  /* Outline button */
   .btn-outline {
-    @apply font-body bg-card text-ink border-2 border-border shadow-sketch-sm
-           px-4 py-1.5 text-sm cursor-pointer
-           transition-all duration-100
-           hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch;
+    @apply font-body;
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-strong);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: opacity 150ms;
+  }
+  .btn-outline:hover {
+    opacity: 0.85;
   }
 
-  /* Filter chip */
+  /* Filter chip (temporary — Phase 2 replaces with rubber stamps / pennants / nodes) */
   .chip {
-    @apply font-body text-xs border-2 border-border bg-card shadow-sketch-sm
-           px-2.5 py-0.5 cursor-pointer
-           transition-all duration-100
-           hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch;
+    @apply font-body;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-strong);
+    padding: 0.25rem 0.625rem;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+  .chip:hover {
+    background: var(--color-bg-surface-alt);
   }
   .chip-active {
-    @apply bg-ink text-paper;
+    background: var(--color-text-primary);
+    color: var(--color-bg-page);
+    border-color: var(--color-text-primary);
+  }
+
+  /* Eyebrow / label text (Style Guide §3) */
+  .eyebrow {
+    @apply font-body;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-text-tertiary);
   }
 
   /* Page wrapper */
@@ -54,9 +150,11 @@
     @apply max-w-5xl mx-auto px-4 sm:px-6 py-8;
   }
 
-  /* Section heading with underline */
+  /* Section heading (legacy — prefer PageTitle component) */
   .page-heading {
-    @apply font-display text-4xl font-bold border-b-2 border-border pb-2 mb-6;
+    @apply font-display text-4xl font-bold mb-6;
+    font-style: italic;
+    color: var(--color-text-primary);
   }
 
   /* Markdown preview pane */
@@ -68,8 +166,26 @@
   .markdown-preview em { @apply italic; }
   .markdown-preview ul { @apply list-disc pl-5 mb-3 space-y-1; }
   .markdown-preview ol { @apply list-decimal pl-5 mb-3 space-y-1; }
-  .markdown-preview code { @apply bg-paper px-1 border border-border text-xs; }
-  .markdown-preview pre { @apply bg-paper border-2 border-border p-3 mb-3 overflow-x-auto text-xs; }
-  .markdown-preview blockquote { @apply border-l-4 border-border pl-3 italic text-muted mb-3; }
-  .markdown-preview a { @apply underline text-muted hover:text-ink; }
+  .markdown-preview code {
+    background: var(--color-bg-surface-alt);
+    @apply px-1 text-xs;
+    border: 1px solid var(--color-border);
+  }
+  .markdown-preview pre {
+    background: var(--color-bg-surface-alt);
+    border: 1px solid var(--color-border);
+    @apply p-3 mb-3 overflow-x-auto text-xs;
+  }
+  .markdown-preview blockquote {
+    border-left: 4px solid var(--color-border-strong);
+    @apply pl-3 italic mb-3;
+    color: var(--color-text-secondary);
+  }
+  .markdown-preview a {
+    @apply underline;
+    color: var(--color-text-secondary);
+  }
+  .markdown-preview a:hover {
+    color: var(--color-text-primary);
+  }
 }

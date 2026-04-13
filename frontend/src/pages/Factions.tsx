@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getFactions } from '../api/factions'
 import type { FactionOut } from '../api/factions'
+import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 
 export default function Factions() {
@@ -15,11 +16,11 @@ export default function Factions() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
   return (
-    <div className="page">
-      <h1 className="page-heading">Factions</h1>
+    <div className="py-8">
+      <PageTitle title="Factions" />
       <p className="font-body text-sm text-muted mb-6">
         Factions are chosen at level 3. Until then, you start in UA.
       </p>
@@ -32,7 +33,7 @@ export default function Factions() {
         {factions.map((f) => (
           <div
             key={f.slug}
-            className="card p-5 flex flex-col gap-2 relative overflow-hidden transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch-lg"
+            className="card p-5 flex flex-col gap-2 relative overflow-hidden transition-all hover:-translate-x-0.5 hover:-translate-y-0.5"
           >
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-faction-${f.slug}`} />
             <div className="pl-2">

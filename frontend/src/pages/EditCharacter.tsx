@@ -60,12 +60,12 @@ export default function EditCharacter() {
     }
   }
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
-  if (!character) return <div className="page font-body text-muted">Character not found.</div>
-  if (!isOwner) return <div className="page font-body text-muted">You can only edit your own character.</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
+  if (!character) return <div className="py-8 font-body text-muted">Character not found.</div>
+  if (!isOwner) return <div className="py-8 font-body text-muted">You can only edit your own character.</div>
 
   return (
-    <div className="page max-w-xl">
+    <div className="py-8 max-w-xl">
       <h1 className="page-heading">Edit Character</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -75,10 +75,10 @@ export default function EditCharacter() {
             <img
               src={mediaUrl(character.avatar_url)}
               alt={character.username}
-              className="w-16 h-16 rounded-full border-2 border-border shadow-sketch-sm object-cover"
+              className="w-16 h-16 rounded-full border-2 border-border object-cover"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full border-2 border-border shadow-sketch-sm bg-paper flex items-center justify-center font-display text-2xl font-bold">
+            <div className="w-16 h-16 rounded-full border-2 border-border bg-paper flex items-center justify-center font-display text-2xl font-bold">
               {character.username[0]?.toUpperCase()}
             </div>
           )}
@@ -100,7 +100,7 @@ export default function EditCharacter() {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none"
+            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
             maxLength={50}
           />
         </div>
@@ -111,7 +111,7 @@ export default function EditCharacter() {
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={4}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none resize-none"
+            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none resize-none"
             maxLength={500}
             placeholder="Tell people about your character..."
           />
@@ -123,7 +123,7 @@ export default function EditCharacter() {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none"
+            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
             maxLength={100}
             placeholder="Where are you based?"
           />

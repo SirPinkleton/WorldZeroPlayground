@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listSubmissions } from '../api/submissions'
 import type { SubmissionOut } from '../api/submissions'
 import SubmissionCard from '../components/SubmissionCard'
+import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 
 export default function Submissions() {
@@ -17,8 +18,8 @@ export default function Submissions() {
   }, [])
 
   return (
-    <div className="page">
-      <h1 className="page-heading">Praxis</h1>
+    <div className="py-8">
+      <PageTitle title="Praxis" />
       <p className="font-body text-sm text-muted mb-6">
         Proof of action. All submissions from across World Zero.
       </p>

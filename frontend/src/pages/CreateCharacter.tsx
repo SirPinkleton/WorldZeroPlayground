@@ -83,9 +83,9 @@ export default function CreateCharacter() {
   }
 
   return (
-    <div className="page max-w-xl mx-auto py-10">
+    <div className="py-8 max-w-xl mx-auto py-10">
       {/* Flavor text */}
-      <div className="mb-8 border-2 border-border p-4 shadow-sketch bg-card font-body text-sm leading-relaxed">
+      <div className="mb-8 border-2 border-border p-4 bg-card font-body text-sm leading-relaxed">
         <p className="text-muted">
           The first task reads: <span className="line-through">"Take a picture of yourself."</span>
         </p>
@@ -106,14 +106,14 @@ export default function CreateCharacter() {
               <img
                 src={avatarPreview}
                 alt="Avatar preview"
-                className="w-16 h-16 object-cover border-2 border-border shadow-sketch-sm"
+                className="w-16 h-16 object-cover border-2 border-border"
               />
             )}
             {!avatarPreview && avatarUrl && (
               <img
                 src={avatarUrl}
                 alt="Avatar preview"
-                className="w-16 h-16 object-cover border-2 border-border shadow-sketch-sm"
+                className="w-16 h-16 object-cover border-2 border-border"
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             )}
@@ -132,7 +132,7 @@ export default function CreateCharacter() {
                   value={avatarUrl}
                   onChange={handleUrlChange}
                   placeholder="https://..."
-                  className="flex-1 border-2 border-border bg-card px-2 py-1 font-body text-xs shadow-sketch-sm focus:outline-none focus:border-ink"
+                  className="flex-1 border-2 border-border bg-card px-2 py-1 font-body text-xs focus:outline-none focus:border-ink"
                 />
               </div>
             </div>
@@ -153,7 +153,7 @@ export default function CreateCharacter() {
             minLength={3}
             maxLength={30}
             required
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink"
+            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
           />
           {fieldErrors.username && (
             <p className="font-body text-xs text-red-600">{fieldErrors.username}</p>
@@ -172,7 +172,7 @@ export default function CreateCharacter() {
             placeholder="The name others will see"
             maxLength={50}
             required
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink"
+            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
           />
           {fieldErrors.displayName && (
             <p className="font-body text-xs text-red-600">{fieldErrors.displayName}</p>
@@ -190,7 +190,7 @@ export default function CreateCharacter() {
             placeholder="Who is your character?"
             maxLength={500}
             rows={3}
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink resize-none"
+            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink resize-none"
           />
           <span className="font-body text-xs text-muted self-end">{bio.length}/500</span>
           {fieldErrors.bio && (
@@ -209,7 +209,7 @@ export default function CreateCharacter() {
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Where in the world?"
             maxLength={100}
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink"
+            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
           />
           {fieldErrors.location && (
             <p className="font-body text-xs text-red-600">{fieldErrors.location}</p>
