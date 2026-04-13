@@ -7,6 +7,8 @@ import MediaGallery from '../components/MediaGallery'
 import { formatTimestamp } from '../utils/dates'
 import VoteStamps from '../components/ui/VoteStamps'
 import { useAuth } from '../auth/AuthContext'
+import { useAdminMode } from '../auth/AdminModeContext'
+import { moderateSubmission } from '../api/admin'
 import { extractError } from '../utils/errors'
 
 /** Rainbow underline bar colors — 8 segments cycling (Style Guide §12.3) */
@@ -18,6 +20,7 @@ const ACCENT = '#be185d'
 export default function SubmissionDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { adminMode } = useAdminMode()
   const [submission, setSubmission] = useState<SubmissionOut | null>(null)
   const [votes, setVotes] = useState<VoteSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -28,6 +31,28 @@ export default function SubmissionDetail() {
   const [withdrawing, setWithdrawing] = useState(false)
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
+  const [adminFailNote, setAdminFailNote] = useState('')
+  const [showFailInput, setShowFailInput] = useState(false)
+  const [moderating, setModerating] = useState(false)
+  const [moderateError, setModerateError] = useState<string | null>(null)
+
+  const showAdminBar = user?.is_admin && adminMode && submission
+
+  const handleModerate = async (status: string, note?: string) => {
+    if (!submission) return
+    setModerating(true)
+    setModerateError(null)
+    try {
+      const updated = await moderateSubmission(submission.id, status, note)
+      setSubmission(updated)
+      setShowFailInput(false)
+      setAdminFailNote('')
+    } catch (err) {
+      setModerateError(extractError(err, 'Moderation failed.'))
+    } finally {
+      setModerating(false)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -125,6 +150,126 @@ export default function SubmissionDetail() {
           <span className="font-body" style={{ fontSize: 11, color: '#92400e', fontWeight: 700 }}>
             This praxis has been withdrawn. Points and votes are paused until resubmitted.
           </span>
+        </div>
+      )}
+
+      {/* Failed banner (visible to author) */}
+      {submission.moderation_status === 'failed' && submission.admin_note && (
+        <div
+          style={{
+            background: 'rgba(220,38,38,0.05)', border: '2px solid rgba(220,38,38,0.3)',
+            borderRadius: 8, padding: '8px 14px', marginBottom: 12,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 16 }}>&#10007;</span>
+          <div>
+            <span className="font-body" style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, display: 'block' }}>
+              This praxis was marked as failed.
+            </span>
+            <span className="font-body" style={{ fontSize: 11, color: '#92400e' }}>
+              {submission.admin_note}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Admin moderation bar */}
+      {showAdminBar && (
+        <div
+          className="sidebar-card mb-4"
+          style={{ padding: '10px 14px' }}
+        >
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="eyebrow" style={{ color: 'var(--color-text-tertiary)', fontSize: 8 }}>
+              ADMIN &middot; Status:
+            </span>
+            <span
+              className="eyebrow"
+              style={{
+                fontSize: 8, padding: '1px 6px',
+                border: '1px solid var(--color-border)',
+                color: submission.moderation_status === 'flagged' ? '#dc2626'
+                  : submission.moderation_status === 'hidden' ? 'var(--color-text-tertiary)'
+                  : submission.moderation_status === 'failed' ? '#d97706'
+                  : '#16a34a',
+              }}
+            >
+              {submission.moderation_status}
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              {submission.moderation_status === 'flagged' && (
+                <>
+                  <button
+                    onClick={() => void handleModerate('visible')}
+                    disabled={moderating}
+                    className="btn-primary text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9 }}
+                  >
+                    approve
+                  </button>
+                  <button
+                    onClick={() => void handleModerate('hidden')}
+                    disabled={moderating}
+                    className="btn-outline text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
+                  >
+                    hide
+                  </button>
+                  <button
+                    onClick={() => setShowFailInput(!showFailInput)}
+                    disabled={moderating}
+                    className="btn-outline text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                  >
+                    fail
+                  </button>
+                </>
+              )}
+              {submission.moderation_status === 'visible' && (
+                <button
+                  onClick={() => void handleModerate('hidden')}
+                  disabled={moderating}
+                  className="btn-outline text-xs"
+                  style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
+                >
+                  hide
+                </button>
+              )}
+              {(submission.moderation_status === 'hidden' || submission.moderation_status === 'failed') && (
+                <button
+                  onClick={() => void handleModerate('visible')}
+                  disabled={moderating}
+                  className="btn-primary text-xs"
+                  style={{ padding: '2px 10px', fontSize: 9 }}
+                >
+                  restore
+                </button>
+              )}
+            </div>
+          </div>
+          {showFailInput && (
+            <div className="mt-2 flex gap-2 items-end">
+              <textarea
+                className="border-2 border-border bg-card px-3 py-1 font-body text-sm focus:outline-none focus:border-ink flex-1 resize-none"
+                rows={2}
+                placeholder="Reason for failure (visible to player)..."
+                value={adminFailNote}
+                onChange={(e) => setAdminFailNote(e.target.value)}
+              />
+              <button
+                onClick={() => void handleModerate('failed', adminFailNote)}
+                disabled={moderating}
+                className="btn-primary text-xs"
+                style={{ background: '#d97706', borderColor: '#92400e', fontSize: 9 }}
+              >
+                confirm
+              </button>
+            </div>
+          )}
+          {moderateError && (
+            <p className="font-body text-xs mt-1" style={{ color: '#dc2626' }}>{moderateError}</p>
+          )}
         </div>
       )}
 
@@ -301,7 +446,7 @@ export default function SubmissionDetail() {
       {/* ── Meta ── */}
       <div className="flex items-center gap-4 eyebrow mb-4">
         <span>Submitted {formatTimestamp(submission.created_at)}</span>
-        {submission.is_flagged && (
+        {submission.moderation_status === 'flagged' && (
           <span style={{ border: '1px solid rgba(220,38,38,0.4)', color: '#dc2626', padding: '1px 6px', fontSize: 8 }}>
             flagged
           </span>
@@ -309,7 +454,7 @@ export default function SubmissionDetail() {
       </div>
 
       {/* ── Flag Block (§13.3) ── */}
-      {canFlag && !submission.is_flagged && (
+      {canFlag && !submission.moderation_status === 'flagged' && (
         <div
           className="sidebar-card flex items-center gap-3"
           style={{ padding: '10px 14px' }}

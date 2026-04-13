@@ -16,8 +16,9 @@ export interface SubmissionOut {
   task_point_value: number
   title: string
   body_text: string | null
-  is_flagged: boolean
+  moderation_status: string
   is_withdrawn: boolean
+  admin_note: string | null
   created_at: string
   updated_at: string
   media: MediaItemOut[]

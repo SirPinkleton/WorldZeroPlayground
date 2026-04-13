@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.flag import Flag
-from models.submission import CollaborationMode, Submission
+from models.submission import CollaborationMode, ModerationStatus, Submission
 from models.task import CharacterTask, CharacterTaskStatus, Task
 from models.vote import Vote
 from schemas.submission import SubmissionCreate
@@ -163,7 +163,7 @@ async def flag_submission(
     if flagged_by.id == submission.character_id:
         raise HTTPException(status_code=403, detail="Cannot flag your own submission.")
 
-    submission.is_flagged = True
+    submission.moderation_status = ModerationStatus.flagged
     submission.flagged_at = datetime.now(timezone.utc)
 
     flag = Flag(

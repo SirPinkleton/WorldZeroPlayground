@@ -12,7 +12,7 @@ from models.account import Account
 from models.character import Character, CharacterStatus
 from models.contact import ContactMessage
 from models.roles import AccountRole, Role
-from models.submission import Submission
+from models.submission import ModerationStatus, Submission
 from models.task import Task, TaskStatus
 from schemas.admin import (
     AccountDetail,
@@ -24,22 +24,28 @@ from schemas.admin import (
     CliTokenResponse,
     FactionCreate,
     FactionOut,
+    ModerationAction,
     OverviewStats,
     RoleAction,
     SuspendAction,
+    TaskStatusAction,
 )
 from schemas.task import TaskCreate, TaskOut
+from schemas.submission import SubmissionOut
 from services.admin_service import (
     admin_create_character,
+    archive_message,
     assign_or_revoke_role,
     create_faction,
     game_overview,
     get_account_detail,
     list_accounts,
     list_characters,
+    moderate_submission,
     reactivate_task,
     set_character_stats,
     suspend_account,
+    update_task_status,
 )
 from services.character_stats import recalculate_character_stats
 from services.auth import create_jwt
@@ -58,6 +64,7 @@ class ContactMessageOut(BaseModel):
     name: str
     email: str
     message: str
+    is_archived: bool = False
     created_at: datetime
 
 
@@ -76,26 +83,25 @@ async def admin_overview(
 
 @router.get("/messages", response_model=list[ContactMessageOut])
 async def admin_list_messages(
+    archived: bool = False,
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> list[ContactMessageOut]:
-    result = await session.execute(
-        select(ContactMessage).order_by(ContactMessage.created_at.desc())
-    )
+    query = select(ContactMessage).where(
+        ContactMessage.is_archived == archived
+    ).order_by(ContactMessage.created_at.desc())
+    result = await session.execute(query)
     return [ContactMessageOut.model_validate(m) for m in result.scalars().all()]
 
 
-@router.delete("/messages/{message_id}", status_code=204)
-async def admin_delete_message(
+@router.patch("/messages/{message_id}/archive", response_model=ContactMessageOut)
+async def admin_archive_message(
     message_id: int,
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> None:
-    message = await session.get(ContactMessage, message_id)
-    if message is None:
-        raise HTTPException(status_code=404, detail="Message not found.")
-    await session.delete(message)
-    await session.commit()
+) -> ContactMessageOut:
+    message = await archive_message(message_id, session)
+    return ContactMessageOut.model_validate(message)
 
 
 @router.get("/accounts", response_model=list[AccountSummary])
@@ -301,6 +307,58 @@ async def admin_cli_token(
 
 
 # ---------------------------------------------------------------------------
+# Moderation
+# ---------------------------------------------------------------------------
+
+
+@router.patch("/submissions/{submission_id}/moderate", response_model=SubmissionOut)
+async def admin_moderate_submission(
+    submission_id: int,
+    data: ModerationAction,
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    new_status = ModerationStatus(data.status)
+    submission = await moderate_submission(submission_id, new_status, data.admin_note, session)
+    # Build a minimal SubmissionOut — admin doesn't need full score computation
+    return SubmissionOut(
+        id=submission.id,
+        task_id=submission.task_id,
+        character_id=submission.character_id,
+        title=submission.title,
+        body_text=submission.body_text,
+        moderation_status=submission.moderation_status.value,
+        is_withdrawn=submission.is_withdrawn,
+        admin_note=submission.admin_note,
+        created_at=submission.created_at,
+        updated_at=submission.updated_at,
+    )
+
+
+@router.put("/tasks/{task_id}/status", response_model=TaskOut)
+async def admin_update_task_status(
+    task_id: int,
+    data: TaskStatusAction,
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    new_status = TaskStatus(data.status)
+    task = await update_task_status(task_id, new_status, session)
+    return TaskOut(
+        id=task.id,
+        title=task.title,
+        description=task.description,
+        point_value=task.point_value,
+        level_required=task.level_required,
+        status=task.status.value,
+        created_by=task.created_by,
+        primary_faction_slug=task.primary_faction_slug,
+        is_task_vision_eligible=task.is_task_vision_eligible,
+        created_at=task.created_at,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Existing endpoints (unchanged)
 # ---------------------------------------------------------------------------
 
@@ -404,7 +462,7 @@ async def delete_submission(
     sub = await session.get(Submission, submission_id)
     if sub is None:
         raise HTTPException(status_code=404, detail="Submission not found.")
-    sub.is_deleted = True
+    sub.moderation_status = ModerationStatus.hidden
     await session.commit()
 
 

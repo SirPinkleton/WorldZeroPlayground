@@ -59,6 +59,8 @@ class OverviewStats(BaseModel):
     active_tasks: int
     submissions: int
     votes: int
+    flagged_submissions: int = 0
+    suspended_accounts: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +124,15 @@ class CharacterStatsOut(BaseModel):
 # ---------------------------------------------------------------------------
 # Role & Account Management
 # ---------------------------------------------------------------------------
+
+
+class ModerationAction(BaseModel):
+    status: Literal["visible", "hidden", "failed"]
+    admin_note: str | None = Field(None, max_length=1000)
+
+
+class TaskStatusAction(BaseModel):
+    status: Literal["active", "retired"]
 
 
 class RoleAction(BaseModel):

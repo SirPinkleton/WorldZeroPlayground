@@ -13,7 +13,7 @@ from config import settings
 from db import get_db
 from dependencies import get_current_character
 from models.character import Character
-from models.submission import MediaItem, MediaType, Submission
+from models.submission import MediaItem, MediaType, ModerationStatus, Submission
 from models.task import CharacterTask, Task
 from schemas.submission import MediaItemOut, SubmissionCreate, SubmissionOut
 from services.submission import (
@@ -58,8 +58,9 @@ async def _build_submission_out(sub: Submission, session: AsyncSession) -> Submi
         task_point_value=task_point_value,
         title=sub.title,
         body_text=sub.body_text,
-        is_flagged=sub.is_flagged,
+        moderation_status=sub.moderation_status.value,
         is_withdrawn=sub.is_withdrawn,
+        admin_note=sub.admin_note,
         collaboration_mode=sub.collaboration_mode.value,
         partner_character_id=sub.partner_character_id,
         partner_display_name=partner_display_name,
@@ -75,11 +76,23 @@ async def list_submissions(
     sort: Optional[str] = "recent",
     task_id: Optional[int] = None,
     character_id: Optional[int] = None,
+    moderation_status: Optional[str] = None,
+    is_flagged: Optional[bool] = None,
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
 ):
-    query = select(Submission).where(Submission.is_deleted == False)
+    query = select(Submission).where(Submission.moderation_status != ModerationStatus.hidden)
+    if moderation_status:
+        try:
+            status_enum = ModerationStatus(moderation_status)
+        except ValueError:
+            pass
+        else:
+            query = select(Submission).where(Submission.moderation_status == status_enum)
+    elif is_flagged:
+        # Backward compat: ?is_flagged=true maps to moderation_status=flagged
+        query = select(Submission).where(Submission.moderation_status == ModerationStatus.flagged)
     if task_id:
         query = query.where(Submission.task_id == task_id)
     if character_id:
@@ -94,7 +107,7 @@ async def list_submissions(
 @router.get("/{submission_id}", response_model=SubmissionOut)
 async def get_submission(submission_id: int, session: AsyncSession = Depends(get_db)):
     sub = await session.get(Submission, submission_id)
-    if sub is None or sub.is_deleted:
+    if sub is None or sub.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Submission not found.")
     return await _build_submission_out(sub, session)
 
@@ -135,7 +148,7 @@ async def withdraw_submission_route(
     session: AsyncSession = Depends(get_db),
 ):
     sub = await session.get(Submission, submission_id)
-    if sub is None or sub.is_deleted:
+    if sub is None or sub.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Submission not found.")
     sub = await withdraw_submission(sub, character, session)
     return await _build_submission_out(sub, session)
@@ -148,7 +161,7 @@ async def resubmit_submission_route(
     session: AsyncSession = Depends(get_db),
 ):
     sub = await session.get(Submission, submission_id)
-    if sub is None or sub.is_deleted:
+    if sub is None or sub.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Submission not found.")
     sub = await resubmit_submission(sub, character, session)
     return await _build_submission_out(sub, session)
