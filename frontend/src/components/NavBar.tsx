@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useAdminMode } from '../auth/AdminModeContext'
 import { loginWithGoogle, logout } from '../api/auth'
 import { useTheme } from '../hooks/useTheme'
 
@@ -27,6 +28,7 @@ const NAV_BG_DARK = 'rgba(19, 18, 26, 0.92)'
 export default function NavBar() {
   const { user, refetch } = useAuth()
   const { theme, toggle } = useTheme()
+  const { adminMode, toggleAdminMode } = useAdminMode()
   const dark = theme === 'dark'
 
   const handleLogout = async () => {
@@ -100,6 +102,26 @@ export default function NavBar() {
             </li>
           )}
         </ul>
+
+        {/* Admin mode toggle */}
+        {user?.is_admin && (
+          <button
+            onClick={toggleAdminMode}
+            title={adminMode ? 'Admin mode ON — click to disable' : 'Enable admin mode'}
+            className="eyebrow"
+            style={{
+              background: 'none',
+              border: adminMode ? '1.5px solid var(--color-text-primary)' : '1.5px solid transparent',
+              cursor: 'pointer',
+              padding: '2px 6px',
+              color: adminMode ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)',
+              transition: 'color 150ms, border-color 150ms',
+              borderRadius: 2,
+            }}
+          >
+            {adminMode ? '\u26A1 mod' : '\u2694 mod'}
+          </button>
+        )}
 
         {/* Theme toggle */}
         <button

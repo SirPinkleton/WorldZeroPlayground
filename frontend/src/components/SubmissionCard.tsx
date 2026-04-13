@@ -1,13 +1,73 @@
 import { Link } from 'react-router-dom'
 import type { SubmissionOut } from '../api/submissions'
+import { useAuth } from '../auth/AuthContext'
+import { useAdminMode } from '../auth/AdminModeContext'
+import { moderateSubmission } from '../api/admin'
 
 interface Props {
   submission: SubmissionOut
+  onModerated?: () => void
 }
 
-export default function SubmissionCard({ submission }: Props) {
+export default function SubmissionCard({ submission, onModerated }: Props) {
+  const { user } = useAuth()
+  const { adminMode } = useAdminMode()
+  const showAdminControls = user?.is_admin && adminMode
+
+  const handleHide = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await moderateSubmission(submission.id, 'hidden')
+    onModerated?.()
+  }
+
   return (
-    <div className="card p-4 flex flex-col gap-2 transition-all duration-150">
+    <div className="card p-4 flex flex-col gap-2 transition-all duration-150 relative">
+      {/* Moderation status badges */}
+      {submission.moderation_status === 'flagged' && (
+        <span
+          className="eyebrow"
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            fontSize: 7, padding: '1px 5px',
+            border: '1px solid rgba(220,38,38,0.4)', color: '#dc2626',
+            background: 'rgba(220,38,38,0.05)',
+          }}
+        >
+          under review
+        </span>
+      )}
+      {submission.moderation_status === 'failed' && (
+        <span
+          className="eyebrow"
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            fontSize: 7, padding: '1px 5px',
+            border: '1px solid rgba(245,158,11,0.4)', color: '#d97706',
+            background: 'rgba(245,158,11,0.05)',
+          }}
+        >
+          failed
+        </span>
+      )}
+
+      {/* Admin hide button */}
+      {showAdminControls && submission.moderation_status === 'visible' && (
+        <button
+          onClick={(e) => void handleHide(e)}
+          className="eyebrow"
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            fontSize: 7, padding: '1px 5px',
+            border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626',
+            background: 'rgba(220,38,38,0.05)',
+            cursor: 'pointer',
+          }}
+        >
+          hide
+        </button>
+      )}
+
       <Link to={`/submissions/${submission.id}`}>
         <h3 className="font-display text-xl font-semibold leading-tight hover:underline">
           {submission.title}

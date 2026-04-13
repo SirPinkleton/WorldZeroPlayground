@@ -31,7 +31,7 @@ async def test_create_submission(
     assert data["task_id"] == active_task.id
     assert data["character_id"] == character.id
     assert data["title"] == "My Praxis"
-    assert data["is_flagged"] is False
+    assert data["moderation_status"] == "visible"
     assert data["media"] == []
 
 
@@ -129,4 +129,4 @@ async def test_flag_submission_level_gate(
         headers=auth_headers2,
     )
     assert resp_high.status_code == 200
-    assert resp_high.json()["is_flagged"] is True
+    assert resp_high.json()["moderation_status"] == "flagged"

@@ -24,8 +24,9 @@ class SubmissionOut(BaseModel):
     task_point_value: int = 0
     title: str
     body_text: Optional[str]
-    is_flagged: bool
+    moderation_status: str = "visible"
     is_withdrawn: bool = False
+    admin_note: Optional[str] = None
     collaboration_mode: str = "solo"
     partner_character_id: Optional[int] = None
     partner_display_name: Optional[str] = None

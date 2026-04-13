@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.submission import Submission
+from models.submission import ModerationStatus, Submission
 from models.task import Task
 from models.vote import Vote
 from services.era import get_current_era_row, get_or_create_stats
@@ -31,7 +31,7 @@ async def recalculate_character_stats(
     submissions_result = await session.execute(
         select(Submission).where(
             Submission.character_id == character_id,
-            Submission.is_deleted == False,
+            Submission.moderation_status != ModerationStatus.hidden,
             Submission.is_withdrawn == False,
         )
     )
