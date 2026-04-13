@@ -27,10 +27,10 @@ export default function Updates() {
       .finally(() => setLoading(false))
   }, [user])
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
   if (fetchError) return (
-    <div className="page">
+    <div className="py-8">
       <h1 className="page-heading">Updates</h1>
       <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
         {fetchError}{' '}
@@ -40,7 +40,7 @@ export default function Updates() {
   )
 
   return (
-    <div className="page">
+    <div className="py-8">
       <h1 className="page-heading">Updates</h1>
 
       {messages.length > 0 && (

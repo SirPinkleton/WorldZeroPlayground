@@ -7,7 +7,7 @@ interface Props {
 
 export default function SubmissionCard({ submission }: Props) {
   return (
-    <div className="card p-4 flex flex-col gap-2 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch-lg">
+    <div className="card p-4 flex flex-col gap-2 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5">
       <Link to={`/submissions/${submission.id}`}>
         <h3 className="font-display text-xl font-semibold leading-tight hover:underline">
           {submission.title}

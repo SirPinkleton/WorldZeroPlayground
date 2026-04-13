@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLeaderboard } from '../api/leaderboard'
 import type { CharacterOut } from '../api/auth'
+import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 
 export default function Leaderboard() {
@@ -17,8 +18,8 @@ export default function Leaderboard() {
   }, [])
 
   return (
-    <div className="page max-w-2xl">
-      <h1 className="page-heading">Leaderboard</h1>
+    <div className="py-8 max-w-2xl">
+      <PageTitle title="Leaderboard" />
 
       {loading ? (
         <p className="font-body text-muted">Loading...</p>
@@ -32,7 +33,7 @@ export default function Leaderboard() {
       ) : (
         <div className="flex flex-col gap-2">
           {characters.map((c, i) => (
-            <div key={c.id} className="card px-4 py-3 flex items-center gap-4 transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch-lg">
+            <div key={c.id} className="card px-4 py-3 flex items-center gap-4 transition-all hover:-translate-x-0.5 hover:-translate-y-0.5">
               <span className="font-display text-2xl font-bold text-muted w-8 shrink-0 text-right">
                 {i + 1}
               </span>

@@ -42,7 +42,7 @@ export default function SubmitProof() {
   }
 
   return (
-    <div className="page max-w-6xl">
+    <div className="py-8 max-w-6xl">
       <h1 className="page-heading">Submit Proof</h1>
 
       {task && (
@@ -67,7 +67,7 @@ export default function SubmitProof() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none"
+            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
             placeholder="Give your proof a title"
           />
         </div>
@@ -81,7 +81,7 @@ export default function SubmitProof() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={16}
-              className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none resize-none h-full min-h-64"
+              className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none resize-none h-full min-h-64"
               placeholder="Describe what you did... (supports **markdown**)"
             />
           </div>
@@ -89,7 +89,7 @@ export default function SubmitProof() {
           {/* Right: preview */}
           <div className="flex flex-col gap-1 flex-1">
             <label className="font-body text-sm font-bold text-muted">Preview</label>
-            <div className="border-2 border-border px-4 py-3 bg-card shadow-sketch-sm min-h-64 overflow-auto font-body text-sm markdown-preview">
+            <div className="border-2 border-border px-4 py-3 bg-card min-h-64 overflow-auto font-body text-sm markdown-preview">
               {body.trim() ? (
                 <ReactMarkdown>{body}</ReactMarkdown>
               ) : (

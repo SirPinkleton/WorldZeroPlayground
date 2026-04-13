@@ -2,6 +2,8 @@ import { useEffect, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import NavBar from './NavBar'
+import WatercolorBackground from './layout/WatercolorBackground'
+import Sidebar from './layout/Sidebar'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -15,10 +17,32 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [user, loading, pathname, navigate])
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      <WatercolorBackground />
+
       <NavBar />
-      <main className="flex-1">{children}</main>
-      <footer className="border-t-2 border-border mt-12 px-6 py-4 font-body text-xs text-muted flex gap-6 flex-wrap">
+
+      {/* Page body: main content + sidebar (Style Guide §4.1) */}
+      <div
+        className="flex-1 relative max-w-5xl mx-auto w-full px-4 sm:px-6 py-5"
+        style={{ zIndex: 5 }}
+      >
+        <div
+          className="gap-4 items-start"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: user ? '1fr 256px' : '1fr',
+          }}
+        >
+          <main className="min-w-0">{children}</main>
+          {user && <Sidebar />}
+        </div>
+      </div>
+
+      <footer
+        className="relative font-body text-xs flex gap-6 flex-wrap max-w-5xl mx-auto w-full px-4 sm:px-6 py-4 mt-8"
+        style={{ color: 'var(--color-text-tertiary)', zIndex: 5 }}
+      >
         <Link to="/about" className="hover:underline">About</Link>
         <Link to="/contact" className="hover:underline">Contact</Link>
         <Link to="/disclaimer" className="hover:underline">Disclaimer</Link>

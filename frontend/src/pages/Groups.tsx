@@ -53,13 +53,13 @@ const FACTIONS = [
 
 export default function Groups() {
   return (
-    <div className="page">
+    <div className="py-8">
       <h1 className="page-heading">Groups</h1>
       <p className="font-body text-sm text-muted mb-6">Factions are chosen at level 3. Until then, you start in the University of Aesthematics.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {FACTIONS.map((f) => (
-          <div key={f.slug} className="card p-5 flex flex-col gap-2 relative overflow-hidden transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch-lg">
+          <div key={f.slug} className="card p-5 flex flex-col gap-2 relative overflow-hidden transition-all hover:-translate-x-0.5 hover:-translate-y-0.5">
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${f.dotClass}`} />
             <div className="pl-2">
               <div className="flex items-center gap-2 mb-1">

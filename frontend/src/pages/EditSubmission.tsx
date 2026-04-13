@@ -77,10 +77,10 @@ export default function EditSubmission() {
     }
   }
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
   return (
-    <div className="page max-w-6xl">
+    <div className="py-8 max-w-6xl">
       <h1 className="page-heading">Edit Praxis</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -91,7 +91,7 @@ export default function EditSubmission() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none"
+            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
           />
         </div>
 
@@ -103,13 +103,13 @@ export default function EditSubmission() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={16}
-              className="border-2 border-border px-3 py-2 font-body text-sm bg-card shadow-sketch-sm focus:outline-none resize-none h-full min-h-64"
+              className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none resize-none h-full min-h-64"
               placeholder="Describe what you did... (supports **markdown**)"
             />
           </div>
           <div className="flex flex-col gap-1 flex-1">
             <label className="font-body text-sm font-bold text-muted">Preview</label>
-            <div className="border-2 border-border px-4 py-3 bg-card shadow-sketch-sm min-h-64 overflow-auto font-body text-sm markdown-preview">
+            <div className="border-2 border-border px-4 py-3 bg-card min-h-64 overflow-auto font-body text-sm markdown-preview">
               {body.trim() ? (
                 <ReactMarkdown>{body}</ReactMarkdown>
               ) : (
@@ -128,7 +128,7 @@ export default function EditSubmission() {
                 const src = `${BASE_URL}/media/${item.file_path}`
                 const filename = item.file_path.split('/').pop() ?? item.file_path
                 return (
-                  <div key={item.id} className="flex items-center gap-3 border-2 border-border p-2 bg-card shadow-sketch-sm">
+                  <div key={item.id} className="flex items-center gap-3 border-2 border-border p-2 bg-card">
                     {item.type === 'image' && (
                       <img src={src} alt="" className="h-16 w-16 object-cover border border-border shrink-0" />
                     )}

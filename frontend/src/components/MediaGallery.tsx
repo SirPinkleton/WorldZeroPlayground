@@ -21,7 +21,7 @@ export default function MediaGallery({ media }: Props) {
               key={item.id}
               src={src}
               alt=""
-              className="w-full border-2 border-border shadow-sketch-sm object-cover max-h-96"
+              className="w-full border-2 border-border object-cover max-h-96"
             />
           )
         }
@@ -31,7 +31,7 @@ export default function MediaGallery({ media }: Props) {
               key={item.id}
               src={src}
               controls
-              className="w-full border-2 border-border shadow-sketch-sm"
+              className="w-full border-2 border-border"
             />
           )
         }

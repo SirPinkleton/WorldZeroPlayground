@@ -1,6 +1,6 @@
 export default function Donate() {
   return (
-    <div className="page max-w-2xl text-center">
+    <div className="py-8 max-w-2xl text-center">
       <h1 className="page-heading text-center">Support World Zero</h1>
 
       <div className="card p-8 mb-6">

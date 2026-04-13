@@ -22,28 +22,28 @@ export default function CharacterProfile() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
   if (fetchError) return (
-    <div className="page">
+    <div className="py-8">
       <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
         {fetchError}{' '}
         <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
       </p>
     </div>
   )
-  if (!character) return <div className="page font-body text-muted">Character not found.</div>
+  if (!character) return <div className="py-8 font-body text-muted">Character not found.</div>
 
   return (
-    <div className="page">
+    <div className="py-8">
       <div className="card p-6 mb-6 flex gap-5 items-start">
         {character.avatar_url ? (
           <img
             src={mediaUrl(character.avatar_url)}
             alt={character.username}
-            className="w-20 h-20 rounded-full border-2 border-border shadow-sketch-sm object-cover shrink-0"
+            className="w-20 h-20 rounded-full border-2 border-border object-cover shrink-0"
           />
         ) : (
-          <div className="w-20 h-20 rounded-full border-2 border-border shadow-sketch-sm bg-paper flex items-center justify-center font-display text-3xl font-bold shrink-0">
+          <div className="w-20 h-20 rounded-full border-2 border-border bg-paper flex items-center justify-center font-display text-3xl font-bold shrink-0">
             {character.username[0]?.toUpperCase()}
           </div>
         )}

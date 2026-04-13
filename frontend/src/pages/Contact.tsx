@@ -29,7 +29,7 @@ export default function Contact() {
 
   if (success) {
     return (
-      <div className="page max-w-2xl">
+      <div className="py-8 max-w-2xl">
         <h1 className="page-heading">Contact</h1>
         <div className="card p-6 text-center">
           <p className="font-display text-2xl font-bold mb-2">Message sent!</p>
@@ -40,7 +40,7 @@ export default function Contact() {
   }
 
   return (
-    <div className="page max-w-2xl">
+    <div className="py-8 max-w-2xl">
       <h1 className="page-heading">Contact</h1>
       <p className="font-body text-muted mb-6">
         Have a question, bug report, or just want to say hi? Send us a message.
@@ -99,7 +99,7 @@ export default function Contact() {
         </div>
 
         {error && (
-          <p className="font-body text-sm border-2 border-border px-3 py-2 shadow-sketch-sm">
+          <p className="font-body text-sm border-2 border-border px-3 py-2">
             {error}
           </p>
         )}

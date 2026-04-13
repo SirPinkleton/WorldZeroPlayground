@@ -49,19 +49,19 @@ export default function TaskDetail() {
     }
   }
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
   if (fetchError) return (
-    <div className="page">
+    <div className="py-8">
       <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
         {fetchError}{' '}
         <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
       </p>
     </div>
   )
-  if (!task) return <div className="page font-body text-muted">Task not found.</div>
+  if (!task) return <div className="py-8 font-body text-muted">Task not found.</div>
 
   return (
-    <div className="page">
+    <div className="py-8">
       <Link to="/tasks" className="font-body text-xs text-muted hover:underline">← back to tasks</Link>
 
       <div className="card p-5 my-4">

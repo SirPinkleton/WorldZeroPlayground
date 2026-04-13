@@ -2,41 +2,45 @@ import type { Config } from 'tailwindcss'
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
-        display: ['Caveat', 'cursive'],
-        body: ['Kalam', 'cursive'],
+        display: ['Lora', 'serif'],
+        body: ['Courier Prime', 'monospace'],
+        'faction-analog': ['Special Elite', 'serif'],
+        'faction-singularity': ['Share Tech Mono', 'monospace'],
+        accent: ['Bebas Neue', 'sans-serif'],
       },
       colors: {
-        paper: '#faf9f6',
-        ink: '#1c1917',
-        muted: '#78716c',
-        border: '#3d3734',
-        card: '#fffef9',
-        // Faction palette
-        ua: { DEFAULT: '#6d28d9', accent: '#fbbf24' },
-        journeymen: { DEFAULT: '#1d4ed8', accent: '#d97706' },
-        gestalt: { DEFAULT: '#7c3aed', accent: '#c4b5fd' },
-        geo: { DEFAULT: '#92400e', accent: '#d97706' },
-        snide: { DEFAULT: '#166534', accent: '#4ade80' },
-        cm: { DEFAULT: '#b45309', accent: '#fde68a' },
+        paper: 'var(--color-bg-page)',
+        ink: 'var(--color-text-primary)',
+        muted: 'var(--color-text-secondary)',
+        tertiary: 'var(--color-text-tertiary)',
+        border: 'var(--color-border)',
+        'border-strong': 'var(--color-border-strong)',
+        surface: 'var(--color-bg-surface)',
+        'surface-alt': 'var(--color-bg-surface-alt)',
+        accent: 'var(--color-accent-primary)',
+        // Faction palette (light mode values — dark mode handled via CSS vars in Phase 2)
+        ua: { DEFAULT: '#6b6a7a', accent: '#a78bfa' },
+        analog: { DEFAULT: '#15803d', accent: '#15803d' },
+        gestalt: { DEFAULT: '#14532d', accent: '#4ade80' },
+        snide: { DEFAULT: '#8a6a20', accent: '#c49a3a' },
+        journeymen: { DEFAULT: '#c49a3a', accent: '#c49a3a' },
+        singularity: { DEFAULT: '#7c3aed', accent: '#4ade80' },
+        'ua-masters': { DEFAULT: '#555555', accent: '#c49a3a' },
       },
-      boxShadow: {
-        sketch: '3px 3px 0 #3d3734',
-        'sketch-sm': '2px 2px 0 #3d3734',
-        'sketch-lg': '5px 5px 0 #3d3734',
-      },
-      backgroundImage: {
-        'graph-paper': `
-          linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
-          linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px)
-        `,
-      },
-      backgroundSize: {
-        'graph-paper': '80px 80px, 80px 80px, 16px 16px, 16px 16px',
+      fontSize: {
+        'wz-xs': '8px',
+        'wz-sm': '9px',
+        'wz-base': '10px',
+        'wz-md': '11px',
+        'wz-lg': '12px',
+        'wz-xl': '14px',
+        'wz-2xl': '18px',
+        'wz-3xl': '28px',
+        'wz-4xl': '34px',
       },
     },
   },

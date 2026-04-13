@@ -21,7 +21,7 @@ export default function TaskCard({ task, onSignup }: Props) {
   const faction = FACTION_STYLES[task.primary_faction_slug ?? ''] ?? DEFAULT_STYLE
 
   return (
-    <div className="card relative overflow-hidden flex flex-col transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-sketch-lg">
+    <div className="card relative overflow-hidden flex flex-col transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5">
       {/* Faction color stripe */}
       <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${faction.stripe}`} />
 

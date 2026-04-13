@@ -93,10 +93,10 @@ export default function Admin() {
     }
   }
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
   return (
-    <div className="page">
+    <div className="py-8">
       <h1 className="page-heading">Admin</h1>
 
       {fetchError && (
@@ -154,13 +154,13 @@ export default function Admin() {
                 {edit ? (
                   <div className="flex flex-col gap-2">
                     <input
-                      className="border-2 border-border bg-card px-3 py-1 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink"
+                      className="border-2 border-border bg-card px-3 py-1 font-body text-sm focus:outline-none focus:border-ink"
                       value={edit.name}
                       onChange={(e) => setFactionEdits((prev) => ({ ...prev, [f.slug]: { ...edit, name: e.target.value } }))}
                       placeholder="Name"
                     />
                     <textarea
-                      className="border-2 border-border bg-card px-3 py-1 font-body text-sm shadow-sketch-sm focus:outline-none focus:border-ink resize-none"
+                      className="border-2 border-border bg-card px-3 py-1 font-body text-sm focus:outline-none focus:border-ink resize-none"
                       rows={3}
                       value={edit.description}
                       onChange={(e) => setFactionEdits((prev) => ({ ...prev, [f.slug]: { ...edit, description: e.target.value } }))}

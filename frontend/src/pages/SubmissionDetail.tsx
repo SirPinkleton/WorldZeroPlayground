@@ -43,21 +43,21 @@ export default function SubmissionDetail() {
     }
   }
 
-  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
   if (fetchError) return (
-    <div className="page">
+    <div className="py-8">
       <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
         {fetchError}{' '}
         <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
       </p>
     </div>
   )
-  if (!submission) return <div className="page font-body text-muted">Not found.</div>
+  if (!submission) return <div className="py-8 font-body text-muted">Not found.</div>
 
   const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== submission.character_id
 
   return (
-    <div className="page max-w-2xl">
+    <div className="py-8 max-w-2xl">
       <Link to={`/tasks/${submission.task_id}`} className="font-body text-xs text-muted hover:underline">
         ← {submission.task_title || 'back to task'}
       </Link>
