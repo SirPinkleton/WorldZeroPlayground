@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getPendingTasks, approveTask, retireTask, getFlaggedSubmissions, deleteSubmission, getMessages } from '../api/admin'
+import { getPendingTasks, approveTask, retireTask, getFlaggedSubmissions, deleteSubmission, deleteMessage, getMessages } from '../api/admin'
 import type { PendingTaskOut, ContactMessageOut } from '../api/admin'
 import { getFactions, updateFaction } from '../api/factions'
 import type { FactionOut } from '../api/factions'
@@ -17,6 +17,7 @@ export default function Admin() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
+  const [deleteMessageTarget, setDeleteMessageTarget] = useState<number | null>(null)
 
   // Faction inline edit state: slug → { name, description } | null (null = not editing)
   const [factionEdits, setFactionEdits] = useState<Record<string, { name: string; description: string } | null>>({})
@@ -62,6 +63,18 @@ export default function Admin() {
     } catch (err) {
       setDeleteTarget(null)
       setActionError(extractError(err, 'Could not delete this submission.'))
+    }
+  }
+
+  const handleDeleteMessage = async (id: number) => {
+    setActionError(null)
+    try {
+      await deleteMessage(id)
+      setDeleteMessageTarget(null)
+      refresh()
+    } catch (err) {
+      setDeleteMessageTarget(null)
+      setActionError(extractError(err, 'Could not delete this message.'))
     }
   }
 
@@ -247,6 +260,17 @@ export default function Admin() {
                     <p className="font-display text-lg font-bold">{m.name}</p>
                     <p className="font-body text-xs text-muted">{m.email} · {formatTimestamp(m.created_at)}</p>
                   </div>
+                  {deleteMessageTarget === m.id ? (
+                    <div className="flex items-center gap-2 font-body text-xs shrink-0">
+                      <span className="text-muted">Sure?</span>
+                      <button onClick={() => void handleDeleteMessage(m.id)} className="btn-primary text-xs bg-red-700 border-red-900">yes, delete</button>
+                      <button onClick={() => setDeleteMessageTarget(null)} className="btn-outline text-xs">cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setDeleteMessageTarget(m.id)} className="btn-primary text-xs bg-red-700 border-red-900 shrink-0">
+                      delete
+                    </button>
+                  )}
                 </div>
                 <p className="font-body text-sm text-ink mt-2 whitespace-pre-wrap">{m.message}</p>
               </div>

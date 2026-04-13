@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function VoteStamps({ submissionId, currentStars, averageStars, totalVotes }: Props) {
-  const { user } = useAuth()
+  const { user, refetch } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
   const [hovered, setHovered] = useState(0)
@@ -45,6 +45,8 @@ export default function VoteStamps({ submissionId, currentStars, averageStars, t
     try {
       await castVote(submissionId, stars)
       setSelected(stars)
+      // Refresh sidebar character stats (score/level may have changed)
+      void refetch()
     } catch (err) {
       setError(extractError(err, 'Could not save your vote. Please try again.'))
     } finally {

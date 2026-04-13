@@ -17,6 +17,7 @@ export interface SubmissionOut {
   title: string
   body_text: string | null
   is_flagged: boolean
+  is_withdrawn: boolean
   created_at: string
   updated_at: string
   media: MediaItemOut[]
@@ -63,4 +64,14 @@ export async function flagSubmission(submissionId: number, reason: string): Prom
 
 export async function deleteMedia(submissionId: number, mediaId: number): Promise<void> {
   await api.delete(`/submissions/${submissionId}/media/${mediaId}`)
+}
+
+export async function withdrawSubmission(submissionId: number): Promise<SubmissionOut> {
+  const { data } = await api.post<SubmissionOut>(`/submissions/${submissionId}/withdraw`)
+  return data
+}
+
+export async function resubmitSubmission(submissionId: number): Promise<SubmissionOut> {
+  const { data } = await api.post<SubmissionOut>(`/submissions/${submissionId}/resubmit`)
+  return data
 }

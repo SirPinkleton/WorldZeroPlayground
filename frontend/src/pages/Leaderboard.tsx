@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 import { factionColor, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
+import { mediaUrl } from '../utils/media'
 
 const RANK_COLORS = ['#f59e0b', '#c49a3a', '#888'] // gold, silver, bronze
 
@@ -109,14 +110,26 @@ export default function Leaderboard() {
                       </span>
 
                       {/* Avatar orb */}
-                      <div
-                        style={{
-                          width: avatarSize, height: avatarSize, borderRadius: '50%',
-                          background: `linear-gradient(135deg, ${color}, ${color}88)`,
-                          margin: '0 auto 6px',
-                          border: `2px solid ${color}`,
-                        }}
-                      />
+                      {player.avatar_url ? (
+                        <img
+                          src={mediaUrl(player.avatar_url)}
+                          alt={player.display_name}
+                          style={{
+                            width: avatarSize, height: avatarSize, borderRadius: '50%',
+                            objectFit: 'cover', margin: '0 auto 6px',
+                            border: `2px solid ${color}`,
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: avatarSize, height: avatarSize, borderRadius: '50%',
+                            background: `linear-gradient(135deg, ${color}, ${color}88)`,
+                            margin: '0 auto 6px',
+                            border: `2px solid ${color}`,
+                          }}
+                        />
+                      )}
 
                       {/* Name */}
                       <Link
@@ -172,12 +185,20 @@ export default function Leaderboard() {
               <span className="font-display italic" style={{ fontSize: 20, fontWeight: 700, color: '#4f46e5', minWidth: 32, textAlign: 'right' }}>
                 {myRank + 1}
               </span>
-              <div
-                style={{
-                  width: 28, height: 28, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${factionColor(user?.character?.faction_slug)}, ${factionColor(user?.character?.faction_slug)}88)`,
-                }}
-              />
+              {user?.character?.avatar_url ? (
+                <img
+                  src={mediaUrl(user.character.avatar_url)}
+                  alt={user.character.display_name}
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${factionColor(user?.character?.faction_slug)}, ${factionColor(user?.character?.faction_slug)}88)`,
+                  }}
+                />
+              )}
               <div className="flex-1">
                 <span className="font-display italic" style={{ fontSize: 12, color: '#4f46e5' }}>
                   {user?.character?.display_name}
@@ -221,6 +242,7 @@ export default function Leaderboard() {
           </div>
 
           {/* ── Main Table (§16.6) ── */}
+          {rest.length > 0 && (
           <div
             className="sidebar-card"
             style={{ padding: 0, overflow: 'hidden' }}
@@ -271,7 +293,11 @@ export default function Leaderboard() {
 
                   {/* Player */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}88)`, shrink: 0 }} />
+                    {c.avatar_url ? (
+                      <img src={mediaUrl(c.avatar_url)} alt={c.display_name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}88)`, flexShrink: 0 }} />
+                    )}
                     <div className="min-w-0">
                       <Link to={`/characters/${c.id}`} className="font-display italic block truncate" style={{ fontSize: 12, color: isMe ? color : 'var(--color-text-primary)', textDecoration: 'none' }}>
                         {c.display_name}
@@ -298,6 +324,7 @@ export default function Leaderboard() {
               )
             })}
           </div>
+          )}
         </>
       )}
     </div>

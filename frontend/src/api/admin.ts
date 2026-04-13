@@ -38,6 +38,10 @@ export async function deleteSubmission(id: number): Promise<void> {
   await api.delete(`/admin/submissions/${id}`)
 }
 
+export async function deleteMessage(id: number): Promise<void> {
+  await api.delete(`/admin/messages/${id}`)
+}
+
 export async function banCharacter(id: number): Promise<void> {
   await api.post(`/admin/characters/${id}/ban`)
 }

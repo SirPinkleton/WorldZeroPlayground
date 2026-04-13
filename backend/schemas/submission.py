@@ -25,6 +25,7 @@ class SubmissionOut(BaseModel):
     title: str
     body_text: Optional[str]
     is_flagged: bool
+    is_withdrawn: bool = False
     collaboration_mode: str = "solo"
     partner_character_id: Optional[int] = None
     partner_display_name: Optional[str] = None

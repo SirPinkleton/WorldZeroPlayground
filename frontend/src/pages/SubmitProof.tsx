@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import { createSubmission, uploadMedia } from '../api/submissions'
 import { getTask, type TaskOut } from '../api/tasks'
 import LevelPill from '../components/ui/LevelPill'
+import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 import { factionColor, factionName } from '../utils/factions'
 
@@ -12,6 +13,7 @@ const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '
 export default function SubmitProof() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { refetch } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
   const [task, setTask] = useState<TaskOut | null>(null)
@@ -36,6 +38,8 @@ export default function SubmitProof() {
       for (const file of files) {
         await uploadMedia(submission.id, file)
       }
+      // Refresh sidebar character stats (score/level changed)
+      void refetch()
       navigate(`/submissions/${submission.id}`)
     } catch {
       setError('Could not submit. Check you are signed up for this task.')

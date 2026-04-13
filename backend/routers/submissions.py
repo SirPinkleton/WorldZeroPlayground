@@ -21,6 +21,8 @@ from services.submission import (
     create_submission,
     edit_submission,
     flag_submission,
+    resubmit_submission,
+    withdraw_submission,
 )
 
 router = APIRouter()
@@ -57,6 +59,7 @@ async def _build_submission_out(sub: Submission, session: AsyncSession) -> Submi
         title=sub.title,
         body_text=sub.body_text,
         is_flagged=sub.is_flagged,
+        is_withdrawn=sub.is_withdrawn,
         collaboration_mode=sub.collaboration_mode.value,
         partner_character_id=sub.partner_character_id,
         partner_display_name=partner_display_name,
@@ -122,6 +125,32 @@ async def edit_submission_route(
     if sub.character_id != character.id:
         raise HTTPException(status_code=403, detail="Cannot edit another character's submission.")
     sub = await edit_submission(sub, data, session)
+    return await _build_submission_out(sub, session)
+
+
+@router.post("/{submission_id}/withdraw", response_model=SubmissionOut)
+async def withdraw_submission_route(
+    submission_id: int,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+):
+    sub = await session.get(Submission, submission_id)
+    if sub is None or sub.is_deleted:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    sub = await withdraw_submission(sub, character, session)
+    return await _build_submission_out(sub, session)
+
+
+@router.post("/{submission_id}/resubmit", response_model=SubmissionOut)
+async def resubmit_submission_route(
+    submission_id: int,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+):
+    sub = await session.get(Submission, submission_id)
+    if sub is None or sub.is_deleted:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    sub = await resubmit_submission(sub, character, session)
     return await _build_submission_out(sub, session)
 
 

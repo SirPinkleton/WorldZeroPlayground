@@ -85,6 +85,19 @@ async def admin_list_messages(
     return [ContactMessageOut.model_validate(m) for m in result.scalars().all()]
 
 
+@router.delete("/messages/{message_id}", status_code=204)
+async def admin_delete_message(
+    message_id: int,
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> None:
+    message = await session.get(ContactMessage, message_id)
+    if message is None:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    await session.delete(message)
+    await session.commit()
+
+
 @router.get("/accounts", response_model=list[AccountSummary])
 async def admin_list_accounts(
     email: str | None = None,
