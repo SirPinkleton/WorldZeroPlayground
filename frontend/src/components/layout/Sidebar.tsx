@@ -5,6 +5,7 @@ import { getMyTasks, type CharacterTaskOut } from '../../api/tasks'
 import { listSubmissions, type SubmissionOut } from '../../api/submissions'
 import { relativeTime } from '../../utils/dates'
 import { factionColor, factionName } from '../../utils/factions'
+import { mediaUrl } from '../../utils/media'
 
 const MAX_TASK_SLOTS = 20
 
@@ -34,14 +35,23 @@ export default function Sidebar() {
       {character ? (
         <div className="sidebar-card">
           <div className="flex items-center gap-3 mb-3">
-            <div
-              className="shrink-0 rounded-full"
-              style={{
-                width: 40,
-                height: 40,
-                background: `linear-gradient(135deg, ${factionColor(character.faction_slug)}, ${factionColor(character.faction_slug)}88)`,
-              }}
-            />
+            {character.avatar_url ? (
+              <img
+                src={mediaUrl(character.avatar_url)}
+                alt={character.display_name}
+                className="shrink-0 rounded-full"
+                style={{ width: 40, height: 40, objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                className="shrink-0 rounded-full"
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: `linear-gradient(135deg, ${factionColor(character.faction_slug)}, ${factionColor(character.faction_slug)}88)`,
+                }}
+              />
+            )}
             <div className="min-w-0">
               <Link
                 to={`/characters/${character.id}`}

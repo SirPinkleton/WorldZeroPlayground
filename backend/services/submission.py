@@ -62,6 +62,76 @@ async def create_submission(
     return submission
 
 
+async def withdraw_submission(
+    submission: Submission,
+    character: Character,
+    session: AsyncSession,
+) -> Submission:
+    """Withdraw a submitted praxis back to editing state.
+
+    Sets is_withdrawn=True, reverts CharacterTask status to in_progress,
+    and recalculates stats so points/votes no longer count.
+    """
+    if submission.character_id != character.id:
+        raise HTTPException(status_code=403, detail="Cannot withdraw another character's submission.")
+    if submission.is_withdrawn:
+        raise HTTPException(status_code=422, detail="Submission is already withdrawn.")
+
+    submission.is_withdrawn = True
+
+    character_task_result = await session.execute(
+        select(CharacterTask).where(
+            CharacterTask.character_id == character.id,
+            CharacterTask.task_id == submission.task_id,
+            CharacterTask.status == CharacterTaskStatus.submitted,
+        )
+    )
+    character_task = character_task_result.scalar_one_or_none()
+    if character_task is not None:
+        character_task.status = CharacterTaskStatus.in_progress
+
+    await session.commit()
+    await recalculate_character_stats(character.id, session)
+    await session.commit()
+    await session.refresh(submission)
+    return submission
+
+
+async def resubmit_submission(
+    submission: Submission,
+    character: Character,
+    session: AsyncSession,
+) -> Submission:
+    """Resubmit a previously withdrawn praxis.
+
+    Clears is_withdrawn, sets CharacterTask status back to submitted,
+    and recalculates stats so points/votes count again.
+    """
+    if submission.character_id != character.id:
+        raise HTTPException(status_code=403, detail="Cannot resubmit another character's submission.")
+    if not submission.is_withdrawn:
+        raise HTTPException(status_code=422, detail="Submission is not withdrawn.")
+
+    submission.is_withdrawn = False
+
+    character_task_result = await session.execute(
+        select(CharacterTask).where(
+            CharacterTask.character_id == character.id,
+            CharacterTask.task_id == submission.task_id,
+            CharacterTask.status == CharacterTaskStatus.in_progress,
+        )
+    )
+    character_task = character_task_result.scalar_one_or_none()
+    if character_task is not None:
+        character_task.status = CharacterTaskStatus.submitted
+
+    await session.commit()
+    await recalculate_character_stats(character.id, session)
+    await session.commit()
+    await session.refresh(submission)
+    return submission
+
+
 async def edit_submission(
     submission: Submission,
     data: SubmissionCreate,

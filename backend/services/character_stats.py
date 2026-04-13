@@ -29,7 +29,11 @@ async def recalculate_character_stats(
     character_faction_slug = author.faction_slug if author else "na"
 
     submissions_result = await session.execute(
-        select(Submission).where(Submission.character_id == character_id)
+        select(Submission).where(
+            Submission.character_id == character_id,
+            Submission.is_deleted == False,
+            Submission.is_withdrawn == False,
+        )
     )
     submissions = submissions_result.scalars().all()
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { getSubmission, flagSubmission, type SubmissionOut } from '../api/submissions'
+import { getSubmission, flagSubmission, withdrawSubmission, resubmitSubmission, type SubmissionOut } from '../api/submissions'
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
 import { formatTimestamp } from '../utils/dates'
@@ -25,6 +25,9 @@ export default function SubmissionDetail() {
   const [flagging, setFlagging] = useState(false)
   const [flagError, setFlagError] = useState<string | null>(null)
   const [showFlagConfirm, setShowFlagConfirm] = useState(false)
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
+  const [withdrawError, setWithdrawError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -47,6 +50,39 @@ export default function SubmissionDetail() {
       setFlagError(extractError(err, 'Could not flag this submission.'))
     } finally {
       setFlagging(false)
+    }
+  }
+
+  const { refetch } = useAuth()
+
+  const handleWithdraw = async () => {
+    if (!submission) return
+    setWithdrawing(true)
+    setWithdrawError(null)
+    try {
+      const updated = await withdrawSubmission(submission.id)
+      setSubmission(updated)
+      setShowWithdrawConfirm(false)
+      void refetch()
+    } catch (err) {
+      setWithdrawError(extractError(err, 'Could not withdraw this submission.'))
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
+  const handleResubmit = async () => {
+    if (!submission) return
+    setWithdrawing(true)
+    setWithdrawError(null)
+    try {
+      const updated = await resubmitSubmission(submission.id)
+      setSubmission(updated)
+      void refetch()
+    } catch (err) {
+      setWithdrawError(extractError(err, 'Could not resubmit.'))
+    } finally {
+      setWithdrawing(false)
     }
   }
 
@@ -75,6 +111,22 @@ export default function SubmissionDetail() {
         {' › '}
         <span style={{ color: 'var(--color-text-primary)' }}>Praxis</span>
       </nav>
+
+      {/* Withdrawn banner */}
+      {submission.is_withdrawn && (
+        <div
+          style={{
+            background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)',
+            borderRadius: 8, padding: '8px 14px', marginBottom: 12,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 16 }}>⏸</span>
+          <span className="font-body" style={{ fontSize: 11, color: '#92400e', fontWeight: 700 }}>
+            This praxis has been withdrawn. Points and votes are paused until resubmitted.
+          </span>
+        </div>
+      )}
 
       {/* ── Byline Block (§12.2) ── */}
       <div
@@ -126,15 +178,64 @@ export default function SubmissionDetail() {
         ))}
       </div>
 
-      {/* Edit link for author */}
+      {/* Author actions */}
       {user?.character?.id === submission.character_id && (
-        <Link
-          to={`/submissions/${submission.id}/edit`}
-          className="font-body eyebrow hover:underline mb-4 inline-block"
-          style={{ color: 'var(--color-text-tertiary)' }}
-        >
-          edit this praxis
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <Link
+            to={`/submissions/${submission.id}/edit`}
+            className="font-body eyebrow hover:underline"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
+            edit this praxis
+          </Link>
+          {submission.is_withdrawn ? (
+            <button
+              onClick={handleResubmit}
+              disabled={withdrawing}
+              style={{
+                background: '#14532d', color: 'white',
+                fontFamily: "'Courier Prime', monospace",
+                fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em',
+                padding: '4px 12px', border: 'none', cursor: 'pointer', borderRadius: 0,
+                opacity: withdrawing ? 0.5 : 1,
+              }}
+            >
+              {withdrawing ? '...' : 'Resubmit'}
+            </button>
+          ) : !showWithdrawConfirm ? (
+            <button
+              onClick={() => setShowWithdrawConfirm(true)}
+              className="font-body eyebrow"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}
+            >
+              unsubmit
+            </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="eyebrow" style={{ color: 'var(--color-text-tertiary)' }}>Sure? Points & votes will pause.</span>
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+                style={{
+                  background: 'rgba(220,38,38,0.1)', border: '1.5px solid #dc2626', color: '#dc2626',
+                  fontFamily: "'Courier Prime', monospace", fontSize: 9, textTransform: 'uppercase',
+                  padding: '3px 10px', cursor: 'pointer', borderRadius: 0,
+                }}
+              >
+                {withdrawing ? '...' : 'Yes, unsubmit'}
+              </button>
+              <button
+                onClick={() => setShowWithdrawConfirm(false)}
+                className="btn-outline" style={{ fontSize: 9, padding: '3px 10px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {withdrawError && (
+        <p className="font-body text-xs mb-3" style={{ color: '#dc2626' }}>{withdrawError}</p>
       )}
 
       {/* ── Task Context Strip (§12.4) ── */}

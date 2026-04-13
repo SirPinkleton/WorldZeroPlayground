@@ -34,6 +34,7 @@ export default function Updates() {
   const [inProgressTasks, setInProgressTasks] = useState<CharacterTaskOut[]>([])
   const [friends, setFriends] = useState<RelationshipListItem[]>([])
   const [foes, setFoes] = useState<RelationshipListItem[]>([])
+  const [friendSubmissions, setFriendSubmissions] = useState<SubmissionOut[]>([])
   const [filter, setFilter] = useState<FeedFilter>('All')
   const [loading, setLoading] = useState(true)
 
@@ -47,7 +48,19 @@ export default function Updates() {
       getMyTasks('in_progress')
         .then(setInProgressTasks).catch(() => {}),
       listRelationships({ type: 'friend' })
-        .then((fr) => setFriends(fr.filter((r) => r.status === 'active'))).catch(() => {}),
+        .then((fr) => {
+          const activeFriends = fr.filter((r) => r.status === 'active')
+          setFriends(activeFriends)
+          // Fetch recent submissions from friends
+          const friendFetches = activeFriends.slice(0, 10).map((rel) =>
+            listSubmissions({ character_id: rel.to_character_id }).catch(() => [] as SubmissionOut[])
+          )
+          return Promise.all(friendFetches).then((results) => {
+            setFriendSubmissions(results.flat().sort((a, b) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            ).slice(0, 20))
+          })
+        }).catch(() => {}),
       listRelationships({ type: 'foe' })
         .then((fo) => setFoes(fo.filter((r) => r.status === 'active'))).catch(() => {}),
     ]
@@ -141,6 +154,15 @@ export default function Updates() {
               )
             })}
           </div>
+          {/* Friends' recent praxis */}
+          {friendSubmissions.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <span className="eyebrow" style={{ marginBottom: 8, display: 'block' }}>Friends' recent praxis</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {friendSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
+              </div>
+            </div>
+          )}
         </section>
       )}
 

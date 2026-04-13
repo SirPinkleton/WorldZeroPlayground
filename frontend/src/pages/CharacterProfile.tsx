@@ -51,24 +51,53 @@ export default function CharacterProfile() {
       .catch(() => {})
   }, [id, user])
 
+  const [relationshipError, setRelationshipError] = useState<string | null>(null)
+
   const handleAddRelationship = async (type: 'friend' | 'foe') => {
     if (!character) return
     setRelationshipLoading(true)
+    setRelationshipError(null)
     try {
-      const rel = await createRelationship(character.id, type)
-      setRelationship(rel)
-    } catch { /* ignore — may already exist */ }
-    finally { setRelationshipLoading(false) }
+      await createRelationship(character.id, type)
+      // Re-fetch to get the properly typed RelationshipListItem with display data
+      const rels = await listRelationships()
+      const match = rels.find(
+        (r) => r.to_character_id === character.id && r.status !== 'blocked'
+      )
+      setRelationship(match ?? null)
+    } catch (err: unknown) {
+      // Handle 409 (already exists) gracefully — re-fetch existing relationship
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { status?: number } }
+        if (axiosErr.response?.status === 409) {
+          const rels = await listRelationships()
+          const match = rels.find(
+            (r) => r.to_character_id === character.id && r.status !== 'blocked'
+          )
+          setRelationship(match ?? null)
+        } else {
+          setRelationshipError('Could not add relationship.')
+        }
+      } else {
+        setRelationshipError('Could not add relationship.')
+      }
+    } finally {
+      setRelationshipLoading(false)
+    }
   }
 
   const handleRemoveRelationship = async () => {
     if (!relationship) return
     setRelationshipLoading(true)
+    setRelationshipError(null)
     try {
       await deleteRelationship(relationship.id)
       setRelationship(null)
-    } catch { /* ignore */ }
-    finally { setRelationshipLoading(false) }
+    } catch {
+      setRelationshipError('Could not remove relationship.')
+    } finally {
+      setRelationshipLoading(false)
+    }
   }
 
   if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
@@ -203,6 +232,9 @@ export default function CharacterProfile() {
                 )}
               </div>
             ) : null}
+            {relationshipError && (
+              <p className="font-body" style={{ fontSize: 8, color: '#dc2626', marginTop: 4, textAlign: 'center' }}>{relationshipError}</p>
+            )}
           </div>
 
           {/* Info */}
