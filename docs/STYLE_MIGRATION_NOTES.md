@@ -13,28 +13,35 @@ Reference: `WORLD_ZERO_STYLE.md` (root of repo)
 - Sidebar shell: character card, active tasks placeholder, propose-a-task button
 - Removed: graph-paper background, Caveat/Kalam fonts, sketch box-shadows
 
-## Phase 2: Faction Card Archetypes
+## What Phase 2 completed
+- 7 unique faction card components in `frontend/src/components/cards/`
+- TaskCard router selects card archetype by `primary_faction_slug`
+- LevelPill shared component
+- Flex-wrap container on Tasks page (not CSS grid)
+- 3 custom filter components: FilterStamps, FilterFactionTabs, FilterLevelNodes
+
+## ~~Phase 2: Faction Card Archetypes~~ DONE
 
 Each faction needs a completely different card component. See style guide Section 6 for full specs.
 
-- [ ] **TaskCardUA** — Sticky note: push pin, clipped corner, pastel yellow/pink, slight rotation. Width ~122–130px. Font: Courier Prime. (§6.1)
-- [ ] **TaskCardAnalog** — Field journal page: yellowed paper, red margin rule on left, horizontal ruled lines, torn bottom edge via clip-path. Width ~132–140px. Font: Special Elite. (§6.2)
-- [ ] **TaskCardGestalt** — Collage / layered scraps: three stacked paper scraps at different rotations + scotch tape strip across top. Width ~138px. Font: Courier Prime. (§6.3)
-- [ ] **TaskCardSNIDE** — Newspaper clipping: aged newsprint, torn top/bottom edges via ::before/::after, masthead banner, two-column body, cutout ransom letters for faction name. Width ~148px. Font: Special Elite for card, Courier Prime for cutout letters. (§6.4)
-- [ ] **TaskCardJourneymen** — Luggage tag: dashed string + eyelet hole, hazard stripe at top, bordered tag body. Width ~118px. Font: Courier Prime. (§6.5)
-- [ ] **TaskCardSingularity** — Terminal printout: always dark background, green terminal text, corner bracket decorations, sprocket hole rows, scanline overlay, blinking cursor. Width ~140px. Font: Share Tech Mono. (§6.6)
-- [ ] **TaskCardUAMasters** — Gazette article: deckled corner-snipped edges, proper masthead, headline + dateline, two-column layout. Width ~148px. Font: Special Elite. (§6.7)
-- [ ] **TaskCard router** — `TaskCard.tsx` should select the correct card component based on `task.primary_faction_slug`
-- [ ] **Flex-wrap container** — Replace CSS grid on Tasks page with `display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start`. Cards are NOT on a strict grid — varying heights and slight rotations are intentional.
-- [ ] **LevelPill component** — Dark pill shared by all cards: `background: #1a1209; color: white; font-size: 7px; padding: 1px 6px; border-radius: 6px; text-transform: uppercase`. Dark mode: `background: var(--faction-color); color: dark-bg`.
+- [x] **TaskCardUA** — Sticky note: push pin, clipped corner, pastel yellow/pink, slight rotation. Width ~122–130px. Font: Courier Prime. (§6.1)
+- [x] **TaskCardAnalog** — Field journal page: yellowed paper, red margin rule on left, horizontal ruled lines, torn bottom edge via clip-path. Width ~132–140px. Font: Special Elite. (§6.2)
+- [x] **TaskCardGestalt** — Collage / layered scraps: three stacked paper scraps at different rotations + scotch tape strip across top. Width ~138px. Font: Courier Prime. (§6.3)
+- [x] **TaskCardSNIDE** — Newspaper clipping: aged newsprint, torn top/bottom edges via ::before/::after, masthead banner, two-column body, cutout ransom letters for faction name. Width ~148px. Font: Special Elite for card, Courier Prime for cutout letters. (§6.4)
+- [x] **TaskCardJourneymen** — Luggage tag: dashed string + eyelet hole, hazard stripe at top, bordered tag body. Width ~118px. Font: Courier Prime. (§6.5)
+- [x] **TaskCardSingularity** — Terminal printout: always dark background, green terminal text, corner bracket decorations, sprocket hole rows, scanline overlay, blinking cursor. Width ~140px. Font: Share Tech Mono. (§6.6)
+- [x] **TaskCardUAMasters** — Gazette article: deckled corner-snipped edges, proper masthead, headline + dateline, two-column layout. Width ~148px. Font: Special Elite. (§6.7)
+- [x] **TaskCard router** — `TaskCard.tsx` should select the correct card component based on `task.primary_faction_slug`
+- [x] **Flex-wrap container** — Replace CSS grid on Tasks page with `display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start`. Cards are NOT on a strict grid — varying heights and slight rotations are intentional.
+- [x] **LevelPill component** — Dark pill shared by all cards: `background: #1a1209; color: white; font-size: 7px; padding: 1px 6px; border-radius: 6px; text-transform: uppercase`. Dark mode: `background: var(--faction-color); color: dark-bg`.
 
-## Phase 3: Custom Filter Controls
+## ~~Phase 3: Custom Filter Controls~~ DONE
 
 Replace current chip-based filters with three distinct visual types. See style guide Section 5.3.
 
-- [ ] **FilterStamps** (status filter) — Rectangular rubber stamps, no border-radius. 2px solid border, inner dashed border inset. Active: `bg: #1a1209; color: #F7F4EE`. Font: Courier Prime 10px bold uppercase. (§5.3)
-- [ ] **FilterFactionTabs** (faction filter) — Diagonal banner/pennant shape via `clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%)`. Background: faction color. Inactive: `opacity: 0.42; filter: saturate(0.3)`. White text with text-shadow. Font: Courier Prime 9px bold uppercase. (§5.3)
-- [ ] **FilterLevelNodes** (level filter) — Connected circles (30px diameter) with horizontal connector bars. Active: scale(1.15), dark fill. Represents minimum level filter. (§5.3)
+- [x] **FilterStamps** (status filter) — Rectangular rubber stamps, no border-radius. 2px solid border, inner dashed border inset. Active: `bg: #1a1209; color: #F7F4EE`. Font: Courier Prime 10px bold uppercase. (§5.3)
+- [x] **FilterFactionTabs** (faction filter) — Diagonal banner/pennant shape via `clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%)`. Background: faction color. Inactive: `opacity: 0.42; filter: saturate(0.3)`. White text with text-shadow. Font: Courier Prime 9px bold uppercase. (§5.3)
+- [x] **FilterLevelNodes** (level filter) — Connected circles (30px diameter) with horizontal connector bars. Active: scale(1.15), dark fill. Represents minimum level filter. (§5.3)
 
 ## Phase 4: Dark Mode
 
