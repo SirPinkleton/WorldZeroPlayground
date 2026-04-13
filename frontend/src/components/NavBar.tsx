@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { loginWithGoogle, logout } from '../api/auth'
+import { useTheme } from '../hooks/useTheme'
 
 const links = [
   { to: '/', label: 'Home', end: true },
@@ -20,8 +21,13 @@ const NAV_LINK_BASE = {
   paddingBottom: 2,
 }
 
+const NAV_BG_LIGHT = 'rgba(247, 244, 238, 0.88)'
+const NAV_BG_DARK = 'rgba(19, 18, 26, 0.92)'
+
 export default function NavBar() {
   const { user, refetch } = useAuth()
+  const { theme, toggle } = useTheme()
+  const dark = theme === 'dark'
 
   const handleLogout = async () => {
     await logout()
@@ -33,9 +39,10 @@ export default function NavBar() {
       className="sticky top-0"
       style={{
         zIndex: 10,
-        background: 'rgba(247, 244, 238, 0.88)',
-        backdropFilter: 'blur(6px)',
+        background: dark ? NAV_BG_DARK : NAV_BG_LIGHT,
+        backdropFilter: dark ? 'blur(8px)' : 'blur(6px)',
         borderBottom: '1px solid var(--color-border)',
+        transition: 'background 150ms',
       }}
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
@@ -93,6 +100,22 @@ export default function NavBar() {
             </li>
           )}
         </ul>
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          className="eyebrow"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '2px 6px',
+            color: 'var(--color-text-tertiary)',
+            transition: 'color 150ms',
+          }}
+        >
+          {dark ? 'light' : 'dark'}
+        </button>
 
         {/* User area */}
         <div className="flex items-center gap-3 shrink-0">
