@@ -457,6 +457,38 @@ async def retire_task(
     )
 
 
+class TaskVisionToggle(BaseModel):
+    is_task_vision_eligible: bool
+
+
+@router.patch("/tasks/{task_id}/task-vision", response_model=TaskOut)
+async def admin_toggle_task_vision(
+    task_id: int,
+    data: TaskVisionToggle,
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    """Admin-only: toggle whether Journeymen/Albescent can access a retired task."""
+    task = await session.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    task.is_task_vision_eligible = data.is_task_vision_eligible
+    await session.commit()
+    await session.refresh(task)
+    return TaskOut(
+        id=task.id,
+        title=task.title,
+        description=task.description,
+        point_value=task.point_value,
+        level_required=task.level_required,
+        status=task.status.value,
+        created_by=task.created_by,
+        primary_faction_slug=task.primary_faction_slug,
+        is_task_vision_eligible=task.is_task_vision_eligible,
+        created_at=task.created_at,
+    )
+
+
 @router.delete("/submissions/{submission_id}", status_code=204)
 async def delete_submission(
     submission_id: int,

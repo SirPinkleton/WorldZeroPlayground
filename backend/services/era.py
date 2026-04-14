@@ -6,6 +6,8 @@ from game_config import CURRENT_ERA, EraConfig
 from models.character_stats import CharacterStats
 from models.era import Era
 
+ERA_RESET_DEFAULT_FACTION: str = "na"
+
 
 async def get_current_era_row(session: AsyncSession) -> Era:
     """Return the Era DB row for CURRENT_ERA.
@@ -87,6 +89,11 @@ async def apply_era_reset(
         session.add(new_stats)
 
         if era.reset_faction:
-            character.faction_slug = "aged_out"
+            character.faction_slug = ERA_RESET_DEFAULT_FACTION
+
+    # Clear defection history so players can join any faction fresh
+    if era.reset_faction:
+        from services.faction_service import clear_defection_history_for_era
+        await clear_defection_history_for_era(new_era_row.id, session)
 
     await session.commit()

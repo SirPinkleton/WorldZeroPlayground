@@ -15,11 +15,14 @@ class FactionConfig:
     name: str
     description: str
     color: str                       # hex color for UI display (e.g. "#6b6a7a")
-    point_multiplier: float          # applied to all task earnings
-    duel_bonus_multiplier: float     # extra % on duel wins (0.0 if not applicable)
     is_selectable: bool              # can players choose this faction at level 3?
-    own_faction_multiplier: float    # some factions get a bonus on in-faction tasks
-    other_faction_multiplier: float  # and a penalty on out-of-faction tasks
+    can_always_rejoin: bool          # True for UA Masters and Albescent
+    own_task_modifier: float         # solo own-faction task multiplier
+    other_task_modifier: float       # solo other-faction task multiplier
+    collab_own_modifier: float       # collaborative own-faction task multiplier
+    collab_other_modifier: float     # collaborative other-faction task multiplier
+    duel_win_modifier: float         # duel win multiplier (applied to base points)
+    duel_loss_modifier: float        # duel loss multiplier (applied to base points)
 
 
 @dataclass(frozen=True)
@@ -59,110 +62,140 @@ ERA_1_FACTIONS = {
         name="UA",
         description="The default starting faction. Full points on all tasks. Must leave at level 3.",
         color="#6b6a7a",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=False,          # assigned automatically; not a choosable destination
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=1.0,
+        collab_own_modifier=1.0,
+        collab_other_modifier=1.0,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "ua_masters": FactionConfig(
         slug="ua_masters",
         name="UA Masters",
         description="Veterans who aged out of UA. Can sign up for any task at reduced points.",
         color="#555555",
-        point_multiplier=0.8,
-        duel_bonus_multiplier=0.0,
         is_selectable=True,
-        own_faction_multiplier=0.8,
-        other_faction_multiplier=0.8,
+        can_always_rejoin=True,       # can always be rejoined after defecting
+        own_task_modifier=0.8,
+        other_task_modifier=0.8,
+        collab_own_modifier=0.8,
+        collab_other_modifier=0.8,
+        duel_win_modifier=0.8,
+        duel_loss_modifier=0.8,
     ),
     "snide": FactionConfig(
         slug="snide",
         name="S.N.I.D.E.",
         description="Specialists in one-on-one competition. Bonus points for winning duels.",
         color="#8a6a20",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.1,    # +10% on duel wins
         is_selectable=True,
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=0.7,
+        collab_own_modifier=1.0,
+        collab_other_modifier=0.7,
+        duel_win_modifier=1.5,        # duel win: 150% of base
+        duel_loss_modifier=0.5,       # duel loss: 50% of base
     ),
     "gestalt": FactionConfig(
         slug="gestalt",
         name="Gestalt",
         description="Collective-minded. Excel at their own faction's tasks; reduced elsewhere.",
         color="#14532d",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=True,
-        own_faction_multiplier=1.1,   # +10% on own-faction tasks
-        other_faction_multiplier=0.7, # -30% on other-faction tasks
+        can_always_rejoin=False,
+        own_task_modifier=1.1,        # +10% on solo own-faction
+        other_task_modifier=0.7,      # -30% on solo other-faction
+        collab_own_modifier=1.1,      # +10% on collab own-faction
+        collab_other_modifier=0.9,    # -10% on collab other-faction (less penalty)
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "journeymen": FactionConfig(
         slug="journeymen",
         name="Journeymen",
         description="Explorers with access to select retired tasks (Task Vision ability).",
         color="#c49a3a",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=True,
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=0.7,
+        collab_own_modifier=1.0,
+        collab_other_modifier=0.7,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "analog": FactionConfig(
         slug="analog",
         name="Analog",
         description="Depth over breadth. Can repeat one task per level for points (Double Dipper).",
         color="#15803d",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=True,
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=0.7,
+        collab_own_modifier=1.0,
+        collab_other_modifier=0.7,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "singularity": FactionConfig(
         slug="singularity",
         name="Singularity",
         description="TBD",
         color="#7c3aed",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=True,
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=1.0,
+        collab_own_modifier=1.0,
+        collab_other_modifier=1.0,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "albescent": FactionConfig(
         slug="albescent",
         name="/Albescent",
         description="Full points and any meta tasks from any group. Unlock-only.",
         color="#6b6a7a",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=False,          # only available as additional character unlock
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=True,       # can always be rejoined after defecting
+        own_task_modifier=1.0,
+        other_task_modifier=1.0,
+        collab_own_modifier=1.0,
+        collab_other_modifier=1.0,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "aged_out": FactionConfig(
         slug="aged_out",
         name="AgedOutOfUA",
         description="Placeholder faction for characters who hit level 3 while offline.",
         color="#6b6a7a",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=False,
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=1.0,
+        collab_own_modifier=1.0,
+        collab_other_modifier=1.0,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
     "na": FactionConfig(
         slug="na",
         name="None",
         description="Sentinel value for tasks with no specific faction affiliation.",
         color="#a9a9a9",
-        point_multiplier=1.0,
-        duel_bonus_multiplier=0.0,
         is_selectable=False,
-        own_faction_multiplier=1.0,
-        other_faction_multiplier=1.0,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=1.0,
+        collab_own_modifier=1.0,
+        collab_other_modifier=1.0,
+        duel_win_modifier=1.0,
+        duel_loss_modifier=1.0,
     ),
 }
 

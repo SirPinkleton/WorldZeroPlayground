@@ -32,18 +32,37 @@ def test_faction_slugs_match_keys():
         assert faction.slug == slug, f"Faction key '{slug}' doesn't match slug '{faction.slug}'"
 
 
-def test_all_factions_have_valid_point_multipliers():
+def test_all_factions_have_valid_task_modifiers():
     for slug, faction in ERA_1.factions.items():
-        assert 0 < faction.point_multiplier <= 2.0, (
-            f"Faction '{slug}' has out-of-range point_multiplier: {faction.point_multiplier}"
+        assert 0 < faction.own_task_modifier <= 2.0, (
+            f"Faction '{slug}' has out-of-range own_task_modifier: {faction.own_task_modifier}"
+        )
+        assert 0 < faction.other_task_modifier <= 2.0, (
+            f"Faction '{slug}' has out-of-range other_task_modifier: {faction.other_task_modifier}"
+        )
+        assert 0 < faction.collab_own_modifier <= 2.0, (
+            f"Faction '{slug}' has out-of-range collab_own_modifier: {faction.collab_own_modifier}"
+        )
+        assert 0 < faction.collab_other_modifier <= 2.0, (
+            f"Faction '{slug}' has out-of-range collab_other_modifier: {faction.collab_other_modifier}"
         )
 
 
-def test_all_factions_have_valid_duel_bonus():
+def test_all_factions_have_valid_duel_modifiers():
     for slug, faction in ERA_1.factions.items():
-        assert 0.0 <= faction.duel_bonus_multiplier <= 1.0, (
-            f"Faction '{slug}' has out-of-range duel_bonus_multiplier: {faction.duel_bonus_multiplier}"
+        assert 0.0 <= faction.duel_win_modifier <= 2.0, (
+            f"Faction '{slug}' has out-of-range duel_win_modifier: {faction.duel_win_modifier}"
         )
+        assert 0.0 <= faction.duel_loss_modifier <= 2.0, (
+            f"Faction '{slug}' has out-of-range duel_loss_modifier: {faction.duel_loss_modifier}"
+        )
+
+
+def test_can_always_rejoin_factions():
+    assert ERA_1.factions["ua_masters"].can_always_rejoin is True
+    assert ERA_1.factions["albescent"].can_always_rejoin is True
+    assert ERA_1.factions["snide"].can_always_rejoin is False
+    assert ERA_1.factions["gestalt"].can_always_rejoin is False
 
 
 def test_ua_faction_exists_and_not_selectable():

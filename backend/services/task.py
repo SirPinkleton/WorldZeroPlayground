@@ -9,6 +9,9 @@ from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
 from schemas.task import TaskCreate
 from services.era import get_current_era_row, get_or_create_stats
 
+JOURNEYMEN_FACTION_SLUG: str = "journeymen"
+ALBESCENT_FACTION_SLUG: str = "albescent"
+
 
 async def signup_for_task(
     character: Character,
@@ -24,6 +27,18 @@ async def signup_for_task(
             status_code=403,
             detail=f"Task requires level {task.level_required}; your character is level {stats.level}.",
         )
+
+    # Retired tasks are only accessible to Journeymen/Albescent with Task Vision
+    if task.status == TaskStatus.retired:
+        has_task_vision = character.faction_slug in (
+            JOURNEYMEN_FACTION_SLUG,
+            ALBESCENT_FACTION_SLUG,
+        )
+        if not (task.is_task_vision_eligible and has_task_vision):
+            raise HTTPException(
+                status_code=403,
+                detail="This task is retired and not available to your faction.",
+            )
 
     result = await session.execute(
         select(func.count()).select_from(CharacterTask).where(

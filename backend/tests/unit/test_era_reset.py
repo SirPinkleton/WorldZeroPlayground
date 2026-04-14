@@ -23,7 +23,7 @@ def apply_era_reset(character: dict, new_era: EraConfig) -> dict:
     if new_era.reset_level:
         result["level"] = 0
     if new_era.reset_faction:
-        result["faction_slug"] = "aged_out"
+        result["faction_slug"] = "na"
     if new_era.reset_vote_budget:
         result["votes_available"] = new_era.vote_budget_base
     if new_era.reset_all_time_score:
@@ -78,7 +78,7 @@ def test_full_reset_zeroes_level(sample_character, full_reset_era):
 
 def test_full_reset_sets_faction_to_aged_out(sample_character, full_reset_era):
     result = apply_era_reset(sample_character, full_reset_era)
-    assert result["faction_slug"] == "aged_out"
+    assert result["faction_slug"] == "na"
 
 
 def test_full_reset_resets_vote_budget_to_base(sample_character, full_reset_era):
@@ -118,7 +118,7 @@ def test_era1_reset_clears_level(sample_character):
 def test_era1_reset_clears_faction(sample_character):
     assert ERA_1.reset_faction is True
     result = apply_era_reset(sample_character, ERA_1)
-    assert result["faction_slug"] == "aged_out"
+    assert result["faction_slug"] == "na"
 
 
 def test_era1_reset_resets_vote_budget(sample_character):

@@ -16,10 +16,13 @@ async def get_game_config() -> GameConfigOut:
             description=faction.description,
             color=faction.color,
             is_selectable=faction.is_selectable,
-            point_multiplier=faction.point_multiplier,
-            own_faction_multiplier=faction.own_faction_multiplier,
-            other_faction_multiplier=faction.other_faction_multiplier,
-            duel_bonus_multiplier=faction.duel_bonus_multiplier,
+            can_always_rejoin=faction.can_always_rejoin,
+            own_task_modifier=faction.own_task_modifier,
+            other_task_modifier=faction.other_task_modifier,
+            collab_own_modifier=faction.collab_own_modifier,
+            collab_other_modifier=faction.collab_other_modifier,
+            duel_win_modifier=faction.duel_win_modifier,
+            duel_loss_modifier=faction.duel_loss_modifier,
         )
         for faction in CURRENT_ERA.factions.values()
     ]
