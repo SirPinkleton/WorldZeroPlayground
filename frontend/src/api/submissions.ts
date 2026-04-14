@@ -76,3 +76,13 @@ export async function resubmitSubmission(submissionId: number): Promise<Submissi
   const { data } = await api.post<SubmissionOut>(`/submissions/${submissionId}/resubmit`)
   return data
 }
+
+export async function acceptInvite(submissionId: number): Promise<SubmissionOut> {
+  const { data } = await api.post<SubmissionOut>(`/submissions/${submissionId}/accept-invite`)
+  return data
+}
+
+export async function declineInvite(submissionId: number): Promise<SubmissionOut> {
+  const { data } = await api.post<SubmissionOut>(`/submissions/${submissionId}/decline-invite`)
+  return data
+}

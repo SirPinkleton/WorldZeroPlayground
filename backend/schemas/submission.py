@@ -30,6 +30,7 @@ class SubmissionOut(BaseModel):
     collaboration_mode: str = "solo"
     partner_character_id: Optional[int] = None
     partner_display_name: Optional[str] = None
+    invite_status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     media: list[MediaItemOut] = []

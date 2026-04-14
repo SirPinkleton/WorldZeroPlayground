@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.flag import Flag
-from models.submission import CollaborationMode, MediaItem, ModerationStatus, Submission
+from models.submission import CollaborationMode, InviteStatus, MediaItem, ModerationStatus, Submission
 from models.task import CharacterTask, CharacterTaskStatus, Task
 from models.vote import Vote
 from schemas.submission import MediaItemOut, SubmissionCreate, SubmissionOut
@@ -46,6 +46,8 @@ async def create_submission(
         if partner is None:
             raise HTTPException(status_code=404, detail="Partner character not found.")
 
+    invite_status = InviteStatus.pending if collab_mode != CollaborationMode.solo else None
+
     submission = Submission(
         task_id=task.id,
         character_id=character.id,
@@ -53,6 +55,7 @@ async def create_submission(
         body_text=data.body_text or "",
         collaboration_mode=collab_mode,
         partner_character_id=partner_id,
+        invite_status=invite_status,
     )
     session.add(submission)
     character_task.status = CharacterTaskStatus.submitted
@@ -179,6 +182,46 @@ async def flag_submission(
     return submission
 
 
+async def accept_invite(
+    submission_id: int,
+    character_id: int,
+    session: AsyncSession,
+) -> Submission:
+    """Partner accepts a collab/duel invite."""
+    submission = await session.get(Submission, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    if submission.partner_character_id != character_id:
+        raise HTTPException(status_code=403, detail="Only the invited partner can accept.")
+    if submission.invite_status != InviteStatus.pending:
+        raise HTTPException(status_code=422, detail="Invite is no longer pending.")
+
+    submission.invite_status = InviteStatus.accepted
+    await session.commit()
+    await session.refresh(submission)
+    return submission
+
+
+async def decline_invite(
+    submission_id: int,
+    character_id: int,
+    session: AsyncSession,
+) -> Submission:
+    """Partner declines a collab/duel invite."""
+    submission = await session.get(Submission, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    if submission.partner_character_id != character_id:
+        raise HTTPException(status_code=403, detail="Only the invited partner can decline.")
+    if submission.invite_status != InviteStatus.pending:
+        raise HTTPException(status_code=422, detail="Invite is no longer pending.")
+
+    submission.invite_status = InviteStatus.declined
+    await session.commit()
+    await session.refresh(submission)
+    return submission
+
+
 async def compute_submission_score_from_db(
     submission: Submission,
     session: AsyncSession,
@@ -227,6 +270,14 @@ async def build_submission_out(
         partner = await session.get(Character, submission.partner_character_id)
         partner_display_name = partner.display_name if partner else None
 
+    invite_status_value = None
+    if submission.invite_status is not None:
+        invite_status_value = (
+            submission.invite_status.value
+            if hasattr(submission.invite_status, "value")
+            else str(submission.invite_status)
+        )
+
     return SubmissionOut(
         id=submission.id,
         task_id=submission.task_id,
@@ -242,6 +293,7 @@ async def build_submission_out(
         collaboration_mode=submission.collaboration_mode.value,
         partner_character_id=submission.partner_character_id,
         partner_display_name=partner_display_name,
+        invite_status=invite_status_value,
         created_at=submission.created_at,
         updated_at=submission.updated_at,
         media=media,

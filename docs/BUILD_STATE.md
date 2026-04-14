@@ -66,7 +66,8 @@ This file is the source of truth for what has been built, what is in progress, a
 - `services/vote.py` — cast_or_update_vote (budget deduction, anti-self-vote, update-is-free logic) ✅ 2026-04-01
 - `services/era.py` — apply_era_reset (driven by EraConfig flags), get_current_era_row, get_or_create_stats ✅
 - `services/relationship_service.py` — create, block, list relationships with display_status computation ✅ 2026-04-13
-- `services/taunt_service.py` — generate_taunt, get_taunts_for_character ✅ 2026-04-13
+- `services/taunt_service.py` — generate_taunt, get_taunts_for_character (enriched with display fields) ✅ 2026-04-14
+- `services/activity_feed.py` — unified activity feed aggregation (8 activity types, cursor pagination, badge counts) ✅ 2026-04-14
 - `services/admin_service.py` — game_overview, list_accounts, get_account_detail, list_characters, moderate_submission, suspend_account, assign_or_revoke_role, create_faction, admin_create_character, set_character_stats, reactivate_task, update_task_status ✅ 2026-04-13
 - `services/character_stats.py` — recalculate_character_stats (era-aware scoring engine) ✅ 2026-04-13
 
@@ -87,6 +88,10 @@ This file is the source of truth for what has been built, what is in progress, a
 - `routers/contact.py` — POST /contact (public contact form) ✅ 2026-04-13
 - `routers/factions.py` — GET /factions, PUT /factions/{slug} ✅ 2026-04-13
 - `routers/leaderboard.py` — GET /leaderboard ✅
+- `routers/taunts.py` — GET /taunts (enriched taunt messages) ✅ 2026-04-14
+- `routers/activity_feed.py` — GET /activity-feed (unified feed with filters + pagination) ✅ 2026-04-14
+- `routers/characters.py` — added GET /characters/{id}/stats/votes-received ✅ 2026-04-14
+- `routers/submissions.py` — added POST /submissions/{id}/accept-invite, POST /submissions/{id}/decline-invite ✅ 2026-04-14
 - `backend/dependencies.py` — shared get_current_character + require_admin deps ✅
 
 ### Backend — App Entry Point ✅ 2026-04-02
@@ -133,7 +138,12 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
 - `frontend/src/App.tsx` — all routes wired ✅
 - `frontend/src/vite-env.d.ts` — Vite client types for `import.meta.env` ✅
 - `frontend/tailwind.config.ts` — custom palette, shadows, fonts (Caveat + Kalam) ✅
-- `npm run build` — zero TypeScript errors ✅
+- `npm run build` — zero TypeScript errors (excluding pre-existing Groups.tsx) ✅
+- `frontend/src/pages/Updates.tsx` — Complete rewrite: unified activity feed with 6 filter tabs, mixed card types, date dividers, cursor pagination ✅ 2026-04-14
+- `frontend/src/components/feed/` — 11 feed card components (FeedCardRouter, EraAnnouncement, VoteNotification, FoeTaunt, FriendActivity, CollabInvite, DuelChallenge, GlobalTask, FriendSignup, DateDivider, Badge) ✅ 2026-04-14
+- `frontend/src/components/layout/Sidebar.tsx` — Updated: pending requests panel, votes stat, global activity ticker ✅ 2026-04-14
+- `frontend/src/api/activityFeed.ts` — Activity feed API client ✅ 2026-04-14
+- `frontend/src/api/taunts.ts` — Taunts API client ✅ 2026-04-14
 - NavBar links verified (Tasks, Praxis /submissions, Players /leaderboard, Groups, Updates) ✅
 - Dev server running on port 5173 (`npm run dev`) ✅
 

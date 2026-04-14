@@ -69,12 +69,33 @@ async def get_taunts_for_character(
     character_id: int,
     session: AsyncSession,
     limit: int = 20,
-) -> list[TauntMessage]:
-    """Fetch recent taunts received by a character."""
+) -> list[dict]:
+    """Fetch recent taunts received by a character, enriched with sender display info."""
     result = await session.execute(
-        select(TauntMessage)
+        select(
+            TauntMessage,
+            Character.display_name.label("from_display_name"),
+            Character.faction_slug.label("from_faction_slug"),
+            Character.avatar_url.label("from_avatar_url"),
+        )
+        .join(Character, TauntMessage.from_character_id == Character.id)
         .where(TauntMessage.to_character_id == character_id)
         .order_by(TauntMessage.created_at.desc())
         .limit(limit)
     )
-    return list(result.scalars().all())
+    rows = result.all()
+    enriched: list[dict] = []
+    for taunt, display_name, faction_slug, avatar_url in rows:
+        data = {
+            "id": taunt.id,
+            "from_character_id": taunt.from_character_id,
+            "to_character_id": taunt.to_character_id,
+            "message": taunt.message,
+            "trigger_type": taunt.trigger_type.value,
+            "created_at": taunt.created_at,
+            "from_display_name": display_name,
+            "from_faction_slug": faction_slug,
+            "from_avatar_url": avatar_url,
+        }
+        enriched.append(data)
+    return enriched

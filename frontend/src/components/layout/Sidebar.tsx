@@ -3,28 +3,42 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { getMyTasks, type CharacterTaskOut } from '../../api/tasks'
 import { listSubmissions, type SubmissionOut } from '../../api/submissions'
+import { getActivityFeed, type ActivityFeedItem } from '../../api/activityFeed'
+import { getVotesReceived } from '../../api/characters'
 import { relativeTime } from '../../utils/dates'
 import { factionColor, factionName } from '../../utils/factions'
 import { mediaUrl } from '../../utils/media'
+import FeedBadge from '../feed/FeedBadge'
 
 const MAX_TASK_SLOTS = 20
 
 /**
  * Always-on right sidebar (Style Guide §4.2).
- * Character card + active tasks (live data) + recent activity (live data) + propose-a-task button.
+ * Character card + pending requests + active tasks + recent global activity + propose button.
  */
 export default function Sidebar() {
   const { user } = useAuth()
   const character = user?.character
 
   const [activeTasks, setActiveTasks] = useState<CharacterTaskOut[]>([])
-  const [recentActivity, setRecentActivity] = useState<SubmissionOut[]>([])
+  const [globalActivity, setGlobalActivity] = useState<SubmissionOut[]>([])
+  const [pendingRequests, setPendingRequests] = useState<ActivityFeedItem[]>([])
+  const [votesReceived, setVotesReceived] = useState<number>(0)
 
   useEffect(() => {
     if (!user) return
     getMyTasks('in_progress').then(setActiveTasks).catch(() => {})
-    listSubmissions().then((submissions) => setRecentActivity(submissions.slice(0, 3))).catch(() => {})
-  }, [user])
+    // Global activity: recent completions from anyone
+    listSubmissions({ limit: 5 } as any).then((submissions) => setGlobalActivity(submissions.slice(0, 5))).catch(() => {})
+    // Pending requests (collab invites + duel challenges)
+    getActivityFeed({ filter: 'requests', limit: 5 })
+      .then((response) => setPendingRequests(response.items))
+      .catch(() => {})
+    // Votes received count
+    if (character) {
+      getVotesReceived(character.id).then((data) => setVotesReceived(data.votes_received)).catch(() => {})
+    }
+  }, [user, character])
 
   const slotCount = activeTasks.length
   const slotPercent = Math.min((slotCount / MAX_TASK_SLOTS) * 100, 100)
@@ -34,6 +48,9 @@ export default function Sidebar() {
       {/* ── Character Card ── */}
       {character ? (
         <div className="sidebar-card">
+          <div className="eyebrow" style={{ fontSize: 8, marginBottom: 8, color: 'var(--color-text-tertiary)' }}>
+            Your Character
+          </div>
           <div className="flex items-center gap-3 mb-3">
             {character.avatar_url ? (
               <img
@@ -75,9 +92,9 @@ export default function Sidebar() {
 
           <div className="grid grid-cols-3 gap-1">
             {[
-              { label: 'Score', value: character.score },
-              { label: 'Level', value: character.level },
-              { label: 'Era', value: 1 },
+              { label: 'Score', value: character.score?.toLocaleString() ?? '0' },
+              { label: 'Votes', value: votesReceived.toLocaleString() },
+              { label: 'Current', value: `Era 3`, sublabel: true },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -100,6 +117,51 @@ export default function Sidebar() {
         </div>
       )}
 
+      {/* ── Pending Requests Panel ── */}
+      {pendingRequests.length > 0 && (
+        <div className="sidebar-card">
+          <p className="eyebrow mb-2">
+            Pending Requests · {pendingRequests.length}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {pendingRequests.map((item, index) => {
+              const actorColor = factionColor(item.actor_faction_slug)
+              const isCollab = item.type === 'collab_invite'
+              return (
+                <div
+                  key={`${item.type}-${index}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 0',
+                    borderTop: index > 0 ? '1px dashed var(--color-border)' : undefined,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${actorColor}, ${actorColor}88)`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span className="font-body" style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-primary)', display: 'block' }}>
+                      {item.actor_display_name}
+                    </span>
+                    <span className="eyebrow" style={{ color: 'var(--color-text-tertiary)' }}>
+                      {isCollab ? 'Collab Invite' : 'Duel Challenge'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Active Tasks Panel ── */}
       <div className="sidebar-card">
         <p className="eyebrow mb-2">Your active tasks</p>
@@ -119,18 +181,24 @@ export default function Sidebar() {
                   style={{
                     borderLeft: `3px solid ${taskFactionColor}`,
                     paddingLeft: 8,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  <Link
-                    to={`/tasks/${characterTask.task.id}`}
-                    className="font-body"
-                    style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-primary)', textDecoration: 'none', display: 'block', lineHeight: 1.3 }}
-                  >
-                    {characterTask.task.title}
-                  </Link>
-                  <span className="font-body" style={{ fontSize: 8, color: 'var(--color-text-tertiary)' }}>
-                    {taskFactionName} · lvl {characterTask.task.level_required} · {relativeTime(characterTask.signed_up_at)}
-                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <Link
+                      to={`/tasks/${characterTask.task.id}`}
+                      className="font-body"
+                      style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-primary)', textDecoration: 'none', display: 'block', lineHeight: 1.3 }}
+                    >
+                      {characterTask.task.title}
+                    </Link>
+                    <span className="font-body" style={{ fontSize: 8, color: 'var(--color-text-tertiary)' }}>
+                      {taskFactionName} · lvl {characterTask.task.level_required}
+                    </span>
+                  </div>
+                  <FeedBadge type="global" label="Solo" />
                 </div>
               )
             })}
@@ -163,17 +231,17 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── Recent Activity Panel ── */}
+      {/* ── Recent Global Activity Panel ── */}
       <div className="sidebar-card">
-        <p className="eyebrow mb-2">Recent activity</p>
+        <p className="eyebrow mb-2">Recent global activity</p>
 
-        {recentActivity.length === 0 ? (
+        {globalActivity.length === 0 ? (
           <p className="font-body text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
             No activity yet
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {recentActivity.map((submission, index) => (
+            {globalActivity.map((submission, index) => (
               <div
                 key={submission.id}
                 style={{
