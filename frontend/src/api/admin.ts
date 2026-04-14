@@ -64,7 +64,7 @@ export async function getMessages(archived = false): Promise<ContactMessageOut[]
 }
 
 export async function getFlaggedSubmissions(): Promise<SubmissionOut[]> {
-  const { data } = await api.get<SubmissionOut[]>('/submissions', { params: { moderation_status: 'flagged' } })
+  const { data } = await api.get<SubmissionOut[]>('/admin/submissions/flagged')
   return data
 }
 
