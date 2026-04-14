@@ -62,7 +62,7 @@ def upgrade() -> None:
     )
 
     # -- 3. Create taunt_message table --
-    op.execute("CREATE TYPE taunttriggertype AS ENUM ('score_overtake', 'level_up', 'submission_complete')")
+    op.execute("DO $$ BEGIN CREATE TYPE taunttriggertype AS ENUM ('score_overtake', 'level_up', 'submission_complete'); EXCEPTION WHEN duplicate_object THEN null; END $$")
     op.create_table(
         "taunt_message",
         sa.Column("id", sa.Integer(), primary_key=True),
