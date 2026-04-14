@@ -20,41 +20,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Enum names (for downgrade cleanup only)
 # ---------------------------------------------------------------------------
 
-def _enum_exists(name: str) -> bool:
-    conn = op.get_bind()
-    result = conn.execute(
-        sa.text("SELECT 1 FROM pg_type WHERE typname = :name"),
-        {"name": name},
-    )
-    return result.fetchone() is not None
-
-
-def _create_enum(name: str, values: list[str]) -> None:
-    if not _enum_exists(name):
-        value_list = ", ".join(f"'{v}'" for v in values)
-        op.execute(f"CREATE TYPE {name} AS ENUM ({value_list})")
-
-
-# ---------------------------------------------------------------------------
-# Section A: Enum types
-# ---------------------------------------------------------------------------
-
-ENUMS: list[tuple[str, list[str]]] = [
-    ("accountstatus",       ["active", "suspended", "deleted"]),
-    ("characterstatus",     ["active", "paused", "banned"]),
-    ("factionstatus",       ["visible", "hidden", "deprecated"]),
-    ("taskstatus",          ["pending", "active", "retired"]),
-    ("charactertaskstatus", ["in_progress", "submitted", "abandoned"]),
-    ("mediatype",           ["image", "video", "audio"]),
-    ("collaborationmode",   ["solo", "collab", "duel"]),
-    ("moderationstatus",    ["visible", "flagged", "hidden", "failed"]),
-    ("relationshiptype",    ["friend", "foe"]),
-    ("relationshipstatus",  ["active", "blocked"]),
-    ("taunttriggertype",    ["score_overtake", "level_up", "submission_complete"]),
-    ("bonustype",           ["flat", "percentage"]),
+ENUM_NAMES: list[str] = [
+    "accountstatus", "characterstatus", "factionstatus", "taskstatus",
+    "charactertaskstatus", "mediatype", "collaborationmode", "moderationstatus",
+    "relationshiptype", "relationshipstatus", "taunttriggertype", "bonustype",
 ]
 
 
@@ -82,11 +54,12 @@ FACTIONS = [
 # ===================================================================
 
 def upgrade() -> None:
-    # --- A: enums ---
-    for name, values in ENUMS:
-        _create_enum(name, values)
+    # Enum types are created automatically by sa.Enum() during op.create_table().
+    # Each enum is used by exactly one table, so no duplicate-creation risk.
+    # The env.py safety loop sets create_type=False on MODEL metadata enums
+    # to prevent the metadata from interfering; migration enums are separate.
 
-    # --- B: tables (FK-dependency order) ---
+    # --- Tables (FK-dependency order) ---
 
     # Tier 0 — no FK dependencies
     op.create_table(
@@ -94,7 +67,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(), primary_key=True),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False, server_default=""),
-        sa.Column("status", sa.Enum("visible", "hidden", "deprecated", name="factionstatus", create_type=False), nullable=False),
+        sa.Column("status", sa.Enum("visible", "hidden", "deprecated", name="factionstatus"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
@@ -114,7 +87,7 @@ def upgrade() -> None:
         "account",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("email", sa.String(), unique=True, nullable=False),
-        sa.Column("status", sa.Enum("active", "suspended", "deleted", name="accountstatus", create_type=False), nullable=False),
+        sa.Column("status", sa.Enum("active", "suspended", "deleted", name="accountstatus"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
@@ -171,7 +144,7 @@ def upgrade() -> None:
         sa.Column("avatar_url", sa.String(), nullable=False, server_default=""),
         sa.Column("location", sa.String(), nullable=False, server_default=""),
         sa.Column("faction_slug", sa.String(), sa.ForeignKey("faction.slug"), nullable=False, server_default="ua"),
-        sa.Column("status", sa.Enum("active", "paused", "banned", name="characterstatus", create_type=False), nullable=False),
+        sa.Column("status", sa.Enum("active", "paused", "banned", name="characterstatus"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
@@ -198,7 +171,7 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=False, server_default=""),
         sa.Column("point_value", sa.Integer(), nullable=False),
         sa.Column("level_required", sa.Integer(), nullable=False),
-        sa.Column("status", sa.Enum("pending", "active", "retired", name="taskstatus", create_type=False), nullable=False),
+        sa.Column("status", sa.Enum("pending", "active", "retired", name="taskstatus"), nullable=False),
         sa.Column("created_by", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column("primary_faction_slug", sa.String(), sa.ForeignKey("faction.slug"), nullable=False, server_default="na"),
         sa.Column("is_task_vision_eligible", sa.Boolean(), nullable=False),
@@ -212,7 +185,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("faction_slug", sa.String(), sa.ForeignKey("faction.slug"), nullable=False),
-        sa.Column("bonus_type", sa.Enum("flat", "percentage", name="bonustype", create_type=False), nullable=False),
+        sa.Column("bonus_type", sa.Enum("flat", "percentage", name="bonustype"), nullable=False),
         sa.Column("bonus_value", sa.Float(), nullable=False),
         sa.Column("level_required", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
@@ -224,8 +197,8 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("from_character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column("to_character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
-        sa.Column("type", sa.Enum("friend", "foe", name="relationshiptype", create_type=False), nullable=False),
-        sa.Column("status", sa.Enum("active", "blocked", name="relationshipstatus", create_type=False), nullable=False),
+        sa.Column("type", sa.Enum("friend", "foe", name="relationshiptype"), nullable=False),
+        sa.Column("status", sa.Enum("active", "blocked", name="relationshipstatus"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.UniqueConstraint("from_character_id", "to_character_id"),
@@ -247,7 +220,7 @@ def upgrade() -> None:
         sa.Column("from_character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column("to_character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
-        sa.Column("trigger_type", sa.Enum("score_overtake", "level_up", "submission_complete", name="taunttriggertype", create_type=False), nullable=False),
+        sa.Column("trigger_type", sa.Enum("score_overtake", "level_up", "submission_complete", name="taunttriggertype"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
 
@@ -265,7 +238,7 @@ def upgrade() -> None:
         sa.Column("character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column("task_id", sa.Integer(), sa.ForeignKey("task.id"), nullable=False),
         sa.Column("signed_up_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("status", sa.Enum("in_progress", "submitted", "abandoned", name="charactertaskstatus", create_type=False), nullable=False),
+        sa.Column("status", sa.Enum("in_progress", "submitted", "abandoned", name="charactertaskstatus"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
 
@@ -277,12 +250,12 @@ def upgrade() -> None:
         sa.Column("character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("body_text", sa.Text(), nullable=False, server_default=""),
-        sa.Column("moderation_status", sa.Enum("visible", "flagged", "hidden", "failed", name="moderationstatus", create_type=False), nullable=False, server_default="visible"),
+        sa.Column("moderation_status", sa.Enum("visible", "flagged", "hidden", "failed", name="moderationstatus"), nullable=False, server_default="visible"),
         sa.Column("is_withdrawn", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("admin_note", sa.Text(), nullable=True),
         sa.Column("flagged_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("collaboration_mode", sa.Enum("solo", "collab", "duel", name="collaborationmode", create_type=False), nullable=False, server_default="solo"),
+        sa.Column("collaboration_mode", sa.Enum("solo", "collab", "duel", name="collaborationmode"), nullable=False, server_default="solo"),
         sa.Column("partner_character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
@@ -292,7 +265,7 @@ def upgrade() -> None:
         "media_item",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("submission_id", sa.Integer(), sa.ForeignKey("submission.id"), nullable=False),
-        sa.Column("type", sa.Enum("image", "video", "audio", name="mediatype", create_type=False), nullable=False),
+        sa.Column("type", sa.Enum("image", "video", "audio", name="mediatype"), nullable=False),
         sa.Column("file_path", sa.String(), nullable=False),
         sa.Column("display_order", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
@@ -369,5 +342,5 @@ def downgrade() -> None:
     op.drop_table("faction")
 
     # Drop all enum types
-    for name, _ in reversed(ENUMS):
+    for name in reversed(ENUM_NAMES):
         op.execute(f"DROP TYPE IF EXISTS {name}")
