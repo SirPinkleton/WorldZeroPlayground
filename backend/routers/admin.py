@@ -311,6 +311,40 @@ async def admin_cli_token(
 # ---------------------------------------------------------------------------
 
 
+@router.get("/submissions/flagged", response_model=list[SubmissionOut])
+async def admin_list_flagged_submissions(
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    """Return submissions with moderation_status == flagged."""
+    result = await session.execute(
+        select(Submission)
+        .where(Submission.moderation_status == ModerationStatus.flagged)
+        .order_by(Submission.created_at.desc())
+    )
+    submissions = result.scalars().all()
+    out: list[SubmissionOut] = []
+    for sub in submissions:
+        character = await session.get(Character, sub.character_id)
+        character_display_name = character.display_name if character else ""
+        out.append(
+            SubmissionOut(
+                id=sub.id,
+                task_id=sub.task_id,
+                character_id=sub.character_id,
+                character_display_name=character_display_name,
+                title=sub.title,
+                body_text=sub.body_text,
+                moderation_status=sub.moderation_status.value,
+                is_withdrawn=sub.is_withdrawn,
+                admin_note=sub.admin_note,
+                created_at=sub.created_at,
+                updated_at=sub.updated_at,
+            )
+        )
+    return out
+
+
 @router.patch("/submissions/{submission_id}/moderate", response_model=SubmissionOut)
 async def admin_moderate_submission(
     submission_id: int,
