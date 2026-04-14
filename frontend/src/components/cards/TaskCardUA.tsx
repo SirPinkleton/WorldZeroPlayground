@@ -54,7 +54,7 @@ export default function TaskCardUA({ task, onSignup }: Props) {
       </div>
 
       <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, lineHeight: 1.3, marginBottom: 6 }}>
+        <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, lineHeight: 1.3, marginBottom: 6, overflowWrap: 'anywhere' }}>
           {task.title}
         </div>
       </Link>

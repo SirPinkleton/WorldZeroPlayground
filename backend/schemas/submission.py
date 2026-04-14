@@ -22,6 +22,7 @@ class SubmissionOut(BaseModel):
     character_display_name: str = ""
     task_title: str = ""
     task_point_value: int = 0
+    task_faction_slug: Optional[str] = None
     title: str
     body_text: Optional[str]
     moderation_status: str = "visible"

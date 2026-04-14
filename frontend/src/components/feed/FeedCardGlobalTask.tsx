@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { factionColor } from '../../utils/factions'
+import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 import FeedBadge from './FeedBadge'
 
@@ -17,7 +17,8 @@ export default function FeedCardGlobalTask({ item }: Props) {
       className="sidebar-card"
       style={{
         padding: '12px 16px',
-        borderLeft: '3px solid var(--color-border-strong)',
+        borderLeft: `4px solid ${factionCssVar(task_faction_slug, 'card-accent')}`,
+        background: factionCssVar(task_faction_slug, 'card-bg'),
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>

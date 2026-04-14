@@ -14,6 +14,7 @@ export interface SubmissionOut {
   character_display_name: string
   task_title: string
   task_point_value: number
+  task_faction_slug: string | null
   title: string
   body_text: string | null
   moderation_status: string

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { factionColor } from '../../utils/factions'
+import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 
 interface Props {
@@ -21,8 +21,8 @@ export default function FeedCardFoeTaunt({ item }: Props) {
     <div
       className="sidebar-card"
       style={{
-        background: 'linear-gradient(135deg, rgba(196,154,58,0.12), rgba(196,154,58,0.06))',
-        borderLeft: '4px solid #c49a3a',
+        background: factionCssVar(item.actor_faction_slug, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(item.actor_faction_slug, 'card-accent')}`,
         padding: '16px 20px',
         position: 'relative',
       }}

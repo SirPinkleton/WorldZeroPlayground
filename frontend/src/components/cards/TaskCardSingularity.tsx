@@ -87,7 +87,7 @@ export default function TaskCardSingularity({ task, onSignup }: Props) {
         </div>
 
         <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ fontSize: 'var(--text-sm)', marginBottom: 6, lineHeight: 1.3 }}>
+          <div style={{ fontSize: 'var(--text-sm)', marginBottom: 6, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
             {'> '}{task.title}
           </div>
         </Link>

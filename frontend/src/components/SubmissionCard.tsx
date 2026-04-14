@@ -3,6 +3,7 @@ import type { SubmissionOut } from '../api/submissions'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderateSubmission } from '../api/admin'
+import { factionCssVar } from '../utils/factions'
 
 interface Props {
   submission: SubmissionOut
@@ -22,7 +23,14 @@ export default function SubmissionCard({ submission, onModerated }: Props) {
   }
 
   return (
-    <div className="card p-4 flex flex-col gap-2 transition-all duration-150 relative">
+    <div
+      className="card p-4 flex flex-col gap-2 transition-all duration-150 relative"
+      style={{
+        background: factionCssVar(submission.task_faction_slug, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(submission.task_faction_slug, 'card-accent')}`,
+        color: factionCssVar(submission.task_faction_slug, 'card-text'),
+      }}
+    >
       {/* Moderation status badges */}
       {submission.moderation_status === 'flagged' && (
         <span

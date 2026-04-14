@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { factionColor, factionName } from '../../utils/factions'
+import { factionColor, factionName, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 import FeedBadge from './FeedBadge'
 
@@ -14,7 +14,7 @@ export default function FeedCardFriendDefection({ item }: Props) {
   const oldColor = factionColor(old_faction_slug)
 
   return (
-    <div className="sidebar-card" style={{ padding: '12px 16px' }}>
+    <div className="sidebar-card" style={{ padding: '12px 16px', background: factionCssVar(new_faction_slug, 'card-bg'), borderLeft: `4px solid ${factionCssVar(new_faction_slug, 'card-accent')}` }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <Link to={`/characters/${character_id}`}>
           <div
