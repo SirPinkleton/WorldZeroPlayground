@@ -264,6 +264,7 @@ async def build_submission_out(
     task = await session.get(Task, submission.task_id)
     task_title = task.title if task else ""
     task_point_value = task.point_value if task else 0
+    task_faction_slug = task.primary_faction_slug if task else None
 
     partner_display_name = None
     if submission.partner_character_id:
@@ -285,6 +286,7 @@ async def build_submission_out(
         character_display_name=character_display_name,
         task_title=task_title,
         task_point_value=task_point_value,
+        task_faction_slug=task_faction_slug,
         title=submission.title,
         body_text=submission.body_text,
         moderation_status=submission.moderation_status.value,

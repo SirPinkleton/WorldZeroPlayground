@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { factionColor, factionName } from '../../utils/factions'
+import { factionColor, factionName, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 import FeedBadge from './FeedBadge'
 
@@ -17,8 +17,8 @@ export default function FeedCardInvitationLetter({ item }: Props) {
       className="sidebar-card"
       style={{
         padding: '16px 20px',
-        borderLeft: `4px solid ${color}`,
-        background: `linear-gradient(135deg, ${color}10, transparent)`,
+        borderLeft: `4px solid ${factionCssVar(faction_slug, 'card-accent')}`,
+        background: factionCssVar(faction_slug, 'card-bg'),
         position: 'relative',
       }}
     >

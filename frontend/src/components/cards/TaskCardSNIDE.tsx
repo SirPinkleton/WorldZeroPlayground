@@ -59,7 +59,7 @@ export default function TaskCardSNIDE({ task, onSignup }: Props) {
       </div>
 
       <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div style={{ fontSize: 'var(--text-lg)', lineHeight: 1.2, marginBottom: 4 }}>{task.title}</div>
+        <div style={{ fontSize: 'var(--text-lg)', lineHeight: 1.2, marginBottom: 4, overflowWrap: 'anywhere' }}>{task.title}</div>
       </Link>
 
       <div style={{ marginBottom: 6 }}>

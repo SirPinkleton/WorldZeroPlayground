@@ -41,7 +41,7 @@ export default function TaskCardJourneymen({ task, onSignup }: Props) {
           </div>
 
           <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, lineHeight: 1.3, marginBottom: 5 }}>{task.title}</div>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, lineHeight: 1.3, marginBottom: 5, overflowWrap: 'anywhere' }}>{task.title}</div>
           </Link>
 
           {task.description && (

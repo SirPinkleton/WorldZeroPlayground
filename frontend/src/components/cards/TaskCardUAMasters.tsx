@@ -39,7 +39,7 @@ export default function TaskCardUAMasters({ task, onSignup }: Props) {
       </div>
 
       <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div style={{ fontSize: 13, lineHeight: 1.2, marginBottom: 3 }}>{task.title}</div>
+        <div style={{ fontSize: 13, lineHeight: 1.2, marginBottom: 3, overflowWrap: 'anywhere' }}>{task.title}</div>
       </Link>
 
       <div style={{ fontSize: 7, fontStyle: 'italic', color: factionCssVar('ua_masters', 'card-muted'), marginBottom: 6 }}>

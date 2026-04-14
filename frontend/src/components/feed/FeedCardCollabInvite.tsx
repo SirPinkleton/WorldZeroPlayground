@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
 import { acceptInvite, declineInvite } from '../../api/submissions'
-import { factionColor } from '../../utils/factions'
+import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 import FeedBadge from './FeedBadge'
 
@@ -42,7 +42,7 @@ export default function FeedCardCollabInvite({ item }: Props) {
   const isPending = status === 'pending' || status === null
 
   return (
-    <div className="sidebar-card" style={{ padding: '12px 16px' }}>
+    <div className="sidebar-card" style={{ padding: '12px 16px', background: factionCssVar(task_faction_slug, 'card-bg'), borderLeft: `4px solid ${factionCssVar(task_faction_slug, 'card-accent')}` }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <Link to={`/characters/${inviter_character_id}`}>
           <div
