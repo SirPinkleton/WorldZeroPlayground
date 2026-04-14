@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.sql import false as sa_false
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
@@ -28,13 +29,15 @@ async def get_leaderboard(
     except HTTPException:
         era_id = None
 
+    join_condition = CharacterStats.character_id == Character.id
+    if era_id is not None:
+        join_condition = join_condition & (CharacterStats.era_id == era_id)
+    else:
+        join_condition = join_condition & sa_false()
+
     query = (
         select(Character, CharacterStats)
-        .outerjoin(
-            CharacterStats,
-            (CharacterStats.character_id == Character.id)
-            & (CharacterStats.era_id == era_id if era_id else False),
-        )
+        .outerjoin(CharacterStats, join_condition)
         .where(Character.status == CharacterStatus.active)
     )
     if faction:

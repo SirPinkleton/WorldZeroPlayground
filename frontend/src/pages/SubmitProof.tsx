@@ -65,8 +65,18 @@ export default function SubmitProof() {
     }
   }
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)])
+    if (!e.target.files) return
+    const incoming = Array.from(e.target.files)
+    const tooLarge = incoming.filter((f) => f.size > MAX_FILE_SIZE)
+    if (tooLarge.length > 0) {
+      setError(`File${tooLarge.length > 1 ? 's' : ''} too large (50 MB limit): ${tooLarge.map((f) => f.name).join(', ')}`)
+    }
+    const valid = incoming.filter((f) => f.size <= MAX_FILE_SIZE)
+    if (valid.length > 0) setFiles((prev) => [...prev, ...valid])
+    e.target.value = ''
   }
 
   const removeFile = (index: number) => {
@@ -154,6 +164,7 @@ export default function SubmitProof() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What did you do?"
+            maxLength={200}
             style={{
               width: '100%',
               fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 24,
@@ -172,6 +183,7 @@ export default function SubmitProof() {
               {RAINBOW_COLORS.map((c, i) => <div key={i} style={{ flex: 1, background: c }} />)}
             </div>
           )}
+          <span className={`eyebrow self-end ${title.length >= 180 ? 'text-red-600' : ''}`} style={{ fontSize: 7, marginTop: 4 }}>{title.length}/200</span>
         </div>
 
         {/* ── Section 2: The Proof — Rich Text (§18.3) ── */}

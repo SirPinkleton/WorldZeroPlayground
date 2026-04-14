@@ -20,8 +20,16 @@ export default function CreateCharacter() {
   const [submitting, setSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const MAX_AVATAR_SIZE = 10 * 1024 * 1024 // 10 MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
+    if (f && f.size > MAX_AVATAR_SIZE) {
+      setFieldErrors((prev) => ({ ...prev, avatar: 'Avatar must be under 10 MB.' }))
+      e.target.value = ''
+      return
+    }
+    setFieldErrors((prev) => { const { avatar, ...rest } = prev; return rest })
     setAvatarFile(f)
     if (f) {
       setAvatarUrl('')
@@ -137,6 +145,9 @@ export default function CreateCharacter() {
               </div>
             </div>
           </div>
+          {fieldErrors.avatar && (
+            <p className="font-body text-xs text-red-600">{fieldErrors.avatar}</p>
+          )}
         </div>
 
         {/* Username */}
@@ -155,9 +166,12 @@ export default function CreateCharacter() {
             required
             className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
           />
-          {fieldErrors.username && (
-            <p className="font-body text-xs text-red-600">{fieldErrors.username}</p>
-          )}
+          <div className="flex justify-between">
+            {fieldErrors.username ? (
+              <p className="font-body text-xs text-red-600">{fieldErrors.username}</p>
+            ) : <span />}
+            <span className={`font-body text-xs ${username.length >= 27 ? 'text-red-600' : 'text-muted'}`}>{username.length}/30</span>
+          </div>
         </div>
 
         {/* Display Name */}
@@ -174,9 +188,12 @@ export default function CreateCharacter() {
             required
             className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
           />
-          {fieldErrors.displayName && (
-            <p className="font-body text-xs text-red-600">{fieldErrors.displayName}</p>
-          )}
+          <div className="flex justify-between">
+            {fieldErrors.displayName ? (
+              <p className="font-body text-xs text-red-600">{fieldErrors.displayName}</p>
+            ) : <span />}
+            <span className={`font-body text-xs ${displayName.length >= 45 ? 'text-red-600' : 'text-muted'}`}>{displayName.length}/50</span>
+          </div>
         </div>
 
         {/* Bio */}
@@ -192,10 +209,12 @@ export default function CreateCharacter() {
             rows={3}
             className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink resize-none"
           />
-          <span className="font-body text-xs text-muted self-end">{bio.length}/500</span>
-          {fieldErrors.bio && (
-            <p className="font-body text-xs text-red-600">{fieldErrors.bio}</p>
-          )}
+          <div className="flex justify-between">
+            {fieldErrors.bio ? (
+              <p className="font-body text-xs text-red-600">{fieldErrors.bio}</p>
+            ) : <span />}
+            <span className={`font-body text-xs ${bio.length >= 450 ? 'text-red-600' : 'text-muted'}`}>{bio.length}/500</span>
+          </div>
         </div>
 
         {/* Location */}
@@ -211,9 +230,12 @@ export default function CreateCharacter() {
             maxLength={100}
             className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
           />
-          {fieldErrors.location && (
-            <p className="font-body text-xs text-red-600">{fieldErrors.location}</p>
-          )}
+          <div className="flex justify-between">
+            {fieldErrors.location ? (
+              <p className="font-body text-xs text-red-600">{fieldErrors.location}</p>
+            ) : <span />}
+            <span className={`font-body text-xs ${location.length >= 90 ? 'text-red-600' : 'text-muted'}`}>{location.length}/100</span>
+          </div>
         </div>
 
         {error && (

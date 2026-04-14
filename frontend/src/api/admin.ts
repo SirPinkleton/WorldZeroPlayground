@@ -79,7 +79,7 @@ export async function getAccountDetail(id: number): Promise<AccountDetail> {
 }
 
 export async function getAllTasks(): Promise<TaskOut[]> {
-  const { data } = await api.get<TaskOut[]>('/tasks')
+  const { data } = await api.get<TaskOut[]>('/tasks', { params: { status: 'all' } })
   return data
 }
 

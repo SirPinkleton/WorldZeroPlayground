@@ -18,7 +18,21 @@ export default function EditCharacter() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [avatarError, setAvatarError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const MAX_AVATAR_SIZE = 10 * 1024 * 1024 // 10 MB
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null
+    if (f && f.size > MAX_AVATAR_SIZE) {
+      setAvatarError('Avatar must be under 10 MB.')
+      e.target.value = ''
+      return
+    }
+    setAvatarError('')
+    setAvatarFile(f)
+  }
 
   useEffect(() => {
     if (!id) return
@@ -89,9 +103,10 @@ export default function EditCharacter() {
               ref={fileRef}
               type="file"
               accept="image/*"
-              onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+              onChange={handleAvatarChange}
               className="font-body text-sm"
             />
+            {avatarError && <p className="font-body text-xs text-red-600 mt-1">{avatarError}</p>}
           </div>
         </div>
 
@@ -104,6 +119,7 @@ export default function EditCharacter() {
             className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
             maxLength={50}
           />
+          <span className={`font-body text-xs self-end ${displayName.length >= 45 ? 'text-red-600' : 'text-muted'}`}>{displayName.length}/50</span>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -116,6 +132,7 @@ export default function EditCharacter() {
             maxLength={500}
             placeholder="Tell people about your character..."
           />
+          <span className={`font-body text-xs self-end ${bio.length >= 450 ? 'text-red-600' : 'text-muted'}`}>{bio.length}/500</span>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -128,6 +145,7 @@ export default function EditCharacter() {
             maxLength={100}
             placeholder="Where are you based?"
           />
+          <span className={`font-body text-xs self-end ${location.length >= 90 ? 'text-red-600' : 'text-muted'}`}>{location.length}/100</span>
         </div>
 
         {error && <p className="font-body text-sm text-red-600">{error}</p>}
