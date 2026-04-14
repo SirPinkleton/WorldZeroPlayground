@@ -7,10 +7,13 @@ class FactionConfigOut(BaseModel):
     description: str
     color: str
     is_selectable: bool
-    point_multiplier: float
-    own_faction_multiplier: float
-    other_faction_multiplier: float
-    duel_bonus_multiplier: float
+    can_always_rejoin: bool
+    own_task_modifier: float
+    other_task_modifier: float
+    collab_own_modifier: float
+    collab_other_modifier: float
+    duel_win_modifier: float
+    duel_loss_modifier: float
 
 
 class GameConfigOut(BaseModel):

@@ -14,25 +14,53 @@ def compute_level(score: int, era: EraConfig = CURRENT_ERA) -> int:
     return 0
 
 
+COLLABORATION_MODE_SOLO = "solo"
+COLLABORATION_MODE_COLLAB = "collab"
+COLLABORATION_MODE_DUEL = "duel"
+UNAFFILIATED_FACTION_SLUG = "na"
+
+
 def compute_faction_multiplier(
     character_faction_slug: str,
     task_faction_slug: str,
     era: EraConfig,
+    collaboration_mode: str = COLLABORATION_MODE_SOLO,
+    is_duel_winner: bool = False,
 ) -> float:
     """Return the point multiplier for a character doing a given task.
 
-    Uses own_faction_multiplier when the task belongs to the character's faction,
-    other_faction_multiplier when it belongs to a different faction, and
-    point_multiplier for unaffiliated ("na") tasks.
+    Selects the appropriate modifier based on:
+    - Whether the task belongs to the character's own faction or another
+    - The collaboration mode (solo, collab, or duel)
+    - For duels, whether the character won or lost
+
+    Unaffiliated ("na") tasks are treated as own-faction (no penalty).
+    Votes are always added flat after the modifier is applied.
     """
     faction_config = era.factions.get(character_faction_slug)
     if faction_config is None:
         return 1.0
-    if task_faction_slug == "na" or not task_faction_slug:
-        return faction_config.point_multiplier
-    if task_faction_slug == character_faction_slug:
-        return faction_config.own_faction_multiplier
-    return faction_config.other_faction_multiplier
+
+    if collaboration_mode == COLLABORATION_MODE_DUEL:
+        if is_duel_winner:
+            return faction_config.duel_win_modifier
+        return faction_config.duel_loss_modifier
+
+    is_own_faction = (
+        task_faction_slug == character_faction_slug
+        or task_faction_slug == UNAFFILIATED_FACTION_SLUG
+        or not task_faction_slug
+    )
+
+    if collaboration_mode == COLLABORATION_MODE_COLLAB:
+        if is_own_faction:
+            return faction_config.collab_own_modifier
+        return faction_config.collab_other_modifier
+
+    # Solo (default)
+    if is_own_faction:
+        return faction_config.own_task_modifier
+    return faction_config.other_task_modifier
 
 
 def compute_submission_score(

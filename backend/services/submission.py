@@ -13,6 +13,7 @@ from models.vote import Vote
 from schemas.submission import MediaItemOut, SubmissionCreate, SubmissionOut
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
+from services.faction_service import check_and_deliver_invitations
 from services.scoring import compute_faction_multiplier, compute_submission_score
 
 
@@ -58,6 +59,7 @@ async def create_submission(
     await session.commit()
     await session.refresh(submission)
     await recalculate_character_stats(character.id, session)
+    await check_and_deliver_invitations(character, task, session)
     await session.commit()
     return submission
 
@@ -188,7 +190,12 @@ async def compute_submission_score_from_db(
     author = await session.get(Character, submission.character_id)
     character_faction_slug = author.faction_slug if author else "na"
     task_faction_slug = task.primary_faction_slug or "na"
-    faction_multiplier = compute_faction_multiplier(character_faction_slug, task_faction_slug, era)
+    faction_multiplier = compute_faction_multiplier(
+        character_faction_slug,
+        task_faction_slug,
+        era,
+        collaboration_mode=submission.collaboration_mode.value,
+    )
     sum_result = await session.execute(
         select(func.sum(Vote.stars)).where(Vote.submission_id == submission.id)
     )

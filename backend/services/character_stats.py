@@ -43,7 +43,12 @@ async def recalculate_character_stats(
         if task is None:
             continue
         task_faction_slug = task.primary_faction_slug or "na"
-        faction_multiplier = compute_faction_multiplier(character_faction_slug, task_faction_slug, era)
+        faction_multiplier = compute_faction_multiplier(
+            character_faction_slug,
+            task_faction_slug,
+            era,
+            collaboration_mode=submission.collaboration_mode.value,
+        )
         sum_result = await session.execute(
             select(func.sum(Vote.stars)).where(Vote.submission_id == submission.id)
         )

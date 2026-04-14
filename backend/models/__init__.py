@@ -14,6 +14,9 @@ from models.message import Message
 from models.meta_task import MetaTask, SubmissionMetaTask
 from models.contact import ContactMessage
 from models.taunt_message import TauntMessage
+from models.faction_defection_history import FactionDefectionHistory
+from models.invitation_letter import InvitationLetter
+from models.analog_double_dipper import AnalogDoubleDipper
 
 __all__ = [
     "Faction",
@@ -37,4 +40,7 @@ __all__ = [
     "SubmissionMetaTask",
     "ContactMessage",
     "TauntMessage",
+    "FactionDefectionHistory",
+    "InvitationLetter",
+    "AnalogDoubleDipper",
 ]
