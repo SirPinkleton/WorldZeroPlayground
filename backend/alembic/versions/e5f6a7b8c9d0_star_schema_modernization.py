@@ -82,7 +82,7 @@ def upgrade() -> None:
         ))
 
     if not _column_exists('faction', 'status'):
-        op.add_column('faction', sa.Column('status', sa.Enum('visible', 'hidden', 'deprecated', name='factionstatus'), nullable=True))
+        op.add_column('faction', sa.Column('status', sa.Enum('visible', 'hidden', 'deprecated', name='factionstatus', create_type=False), nullable=True))
         if _column_exists('faction', 'is_hidden'):
             conn.execute(sa.text(
                 "UPDATE faction SET status = CASE WHEN is_hidden = true THEN 'hidden'::factionstatus ELSE 'visible'::factionstatus END"
@@ -106,7 +106,7 @@ def upgrade() -> None:
     # 3. Account table: replace is_active with status enum + updated_at
     # ------------------------------------------------------------------
     if not _column_exists('account', 'status'):
-        op.add_column('account', sa.Column('status', sa.Enum('active', 'suspended', 'deleted', name='accountstatus'), nullable=True))
+        op.add_column('account', sa.Column('status', sa.Enum('active', 'suspended', 'deleted', name='accountstatus', create_type=False), nullable=True))
         if _column_exists('account', 'is_active'):
             conn.execute(sa.text(
                 "UPDATE account SET status = CASE WHEN is_active = true THEN 'active'::accountstatus ELSE 'suspended'::accountstatus END"
@@ -131,7 +131,7 @@ def upgrade() -> None:
     # 5. Character table: major restructure
     # ------------------------------------------------------------------
     if not _column_exists('character', 'status'):
-        op.add_column('character', sa.Column('status', sa.Enum('active', 'paused', 'banned', name='characterstatus'), nullable=True))
+        op.add_column('character', sa.Column('status', sa.Enum('active', 'paused', 'banned', name='characterstatus', create_type=False), nullable=True))
         if _column_exists('character', 'is_active'):
             conn.execute(sa.text(
                 "UPDATE character SET status = CASE WHEN is_active = true THEN 'active'::characterstatus ELSE 'banned'::characterstatus END"

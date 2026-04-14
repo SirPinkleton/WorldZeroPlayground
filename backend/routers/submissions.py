@@ -17,7 +17,7 @@ from models.submission import MediaItem, MediaType, ModerationStatus, Submission
 from models.task import CharacterTask, Task
 from schemas.submission import MediaItemOut, SubmissionCreate, SubmissionOut
 from services.submission import (
-    compute_submission_score_from_db,
+    build_submission_out,
     create_submission,
     edit_submission,
     flag_submission,
@@ -26,49 +26,6 @@ from services.submission import (
 )
 
 router = APIRouter()
-
-
-async def _build_submission_out(sub: Submission, session: AsyncSession) -> SubmissionOut:
-    score = await compute_submission_score_from_db(sub, session)
-    media_result = await session.execute(
-        select(MediaItem)
-        .where(MediaItem.submission_id == sub.id)
-        .order_by(MediaItem.display_order)
-    )
-    media = [MediaItemOut.model_validate(media_item) for media_item in media_result.scalars().all()]
-
-    character = await session.get(Character, sub.character_id)
-    character_display_name = character.display_name if character else ""
-
-    task = await session.get(Task, sub.task_id)
-    task_title = task.title if task else ""
-    task_point_value = task.point_value if task else 0
-
-    partner_display_name = None
-    if sub.partner_character_id:
-        partner = await session.get(Character, sub.partner_character_id)
-        partner_display_name = partner.display_name if partner else None
-
-    return SubmissionOut(
-        id=sub.id,
-        task_id=sub.task_id,
-        character_id=sub.character_id,
-        character_display_name=character_display_name,
-        task_title=task_title,
-        task_point_value=task_point_value,
-        title=sub.title,
-        body_text=sub.body_text,
-        moderation_status=sub.moderation_status.value,
-        is_withdrawn=sub.is_withdrawn,
-        admin_note=sub.admin_note,
-        collaboration_mode=sub.collaboration_mode.value,
-        partner_character_id=sub.partner_character_id,
-        partner_display_name=partner_display_name,
-        created_at=sub.created_at,
-        updated_at=sub.updated_at,
-        media=media,
-        score=score,
-    )
 
 
 @router.get("", response_model=list[SubmissionOut])
@@ -101,7 +58,7 @@ async def list_submissions(
     query = query.limit(limit).offset(offset)
     result = await session.execute(query)
     submissions = result.scalars().all()
-    return [await _build_submission_out(sub, session) for sub in submissions]
+    return [await build_submission_out(sub, session) for sub in submissions]
 
 
 @router.get("/{submission_id}", response_model=SubmissionOut)
@@ -109,7 +66,7 @@ async def get_submission(submission_id: int, session: AsyncSession = Depends(get
     sub = await session.get(Submission, submission_id)
     if sub is None or sub.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Submission not found.")
-    return await _build_submission_out(sub, session)
+    return await build_submission_out(sub, session)
 
 
 @router.post("", response_model=SubmissionOut, status_code=201)
@@ -122,7 +79,7 @@ async def create_submission_route(
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
     sub = await create_submission(character, task, data, session)
-    return await _build_submission_out(sub, session)
+    return await build_submission_out(sub, session)
 
 
 @router.put("/{submission_id}", response_model=SubmissionOut)
@@ -138,7 +95,7 @@ async def edit_submission_route(
     if sub.character_id != character.id:
         raise HTTPException(status_code=403, detail="Cannot edit another character's submission.")
     sub = await edit_submission(sub, data, session)
-    return await _build_submission_out(sub, session)
+    return await build_submission_out(sub, session)
 
 
 @router.post("/{submission_id}/withdraw", response_model=SubmissionOut)
@@ -151,7 +108,7 @@ async def withdraw_submission_route(
     if sub is None or sub.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Submission not found.")
     sub = await withdraw_submission(sub, character, session)
-    return await _build_submission_out(sub, session)
+    return await build_submission_out(sub, session)
 
 
 @router.post("/{submission_id}/resubmit", response_model=SubmissionOut)
@@ -164,7 +121,7 @@ async def resubmit_submission_route(
     if sub is None or sub.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Submission not found.")
     sub = await resubmit_submission(sub, character, session)
-    return await _build_submission_out(sub, session)
+    return await build_submission_out(sub, session)
 
 
 @router.post("/{submission_id}/media", response_model=MediaItemOut, status_code=201)
@@ -266,4 +223,4 @@ async def flag_submission_route(
     if sub is None:
         raise HTTPException(status_code=404, detail="Submission not found.")
     sub = await flag_submission(sub, character, reason, session)
-    return await _build_submission_out(sub, session)
+    return await build_submission_out(sub, session)

@@ -1,86 +1,201 @@
 # World Zero — API Endpoints
 
+> Last synced with code: 2026-04-13
+
 ## 9. API Endpoints
 
-### Auth
+All routes return JSON. Auth routes set/clear httpOnly JWT cookies.
+Snake_case field names throughout. ISO 8601 timestamps.
+
+---
+
+### Auth (`/auth`)
 ```
 GET  /auth/google              → redirect to Google OAuth
-GET  /auth/google/callback     → exchange code, create/login account, return JWT
-GET  /auth/me                  → return current account + active character
-POST /auth/logout
+GET  /auth/google/callback     → exchange code, create/login account, set JWT cookie
+GET  /auth/me                  → CurrentUser { account_id, character?, is_admin }
+POST /auth/logout              → clear JWT cookie
+POST /auth/dev-login           → dev-only test login (disabled in production)
 ```
 
-### Characters
+### Characters (`/characters`)
 ```
-GET    /characters             → list/search all characters (public)
-GET    /characters/{id}        → public character profile
-POST   /characters             → create character (level-gated beyond first)
-PUT    /characters/{id}        → edit own character
-DELETE /characters/{id}        → soft-delete own character
-GET    /characters/{id}/submissions
-GET    /characters/{id}/relationships
-```
-
-### Tasks
-```
-GET    /tasks                  → paginated list (filter: status, level, faction, points, date)
-GET    /tasks/{id}             → task detail + submissions
-POST   /tasks                  → propose task (level 3+) or create active task (admin)
-PUT    /tasks/{id}             → edit (admin for active; proposer for pending)
-POST   /tasks/{id}/signup      → sign up for task
-DELETE /tasks/{id}/signup      → drop task
+GET    /characters                       → list/search (query: search, faction, limit, offset)
+GET    /characters/{id}                  → CharacterOut (public profile)
+POST   /characters                       → CharacterCreate → CharacterOut (level-gated beyond first)
+PUT    /characters/{id}                  → CharacterUpdate → CharacterOut (owner only)
+DELETE /characters/{id}                  → soft-delete (owner only)
+GET    /characters/{id}/submissions      → list[SubmissionOut] (query: limit, offset)
+GET    /characters/{id}/relationships    → list[RelationshipOut]
+POST   /characters/{id}/avatar           → multipart file upload → CharacterOut
 ```
 
-### Submissions (Praxis)
+### Tasks (`/tasks`)
 ```
-GET    /submissions            → feed (paginated; recent | top-rated)
-GET    /submissions/{id}       → submission detail
-POST   /submissions            → create submission
-PUT    /submissions/{id}       → edit own submission
-POST   /submissions/{id}/media → upload media file(s)
-POST   /submissions/{id}/flag  → flag (level 4+)
-GET    /submissions/{id}/collaborators
-POST   /submissions/{id}/collaborators → add collaborator
-```
-
-### Votes
-```
-POST /submissions/{id}/vote    → cast or update vote
-GET  /submissions/{id}/votes   → vote summary
+GET    /tasks                  → list (query: status, level, faction, min_points, max_points, exclude_character_id, limit, offset)
+GET    /tasks/my-tasks         → list[CharacterTaskOut] (query: status) — auth required
+GET    /tasks/{id}             → TaskOut
+GET    /tasks/{id}/signups     → list[TaskSignupOut]
+POST   /tasks                  → TaskCreate → TaskOut (level 3+ or admin)
+PUT    /tasks/{id}             → TaskCreate → TaskOut (proposer or admin)
+POST   /tasks/{id}/signup      → CharacterTaskOut — auth required
+DELETE /tasks/{id}/signup      → drop task — auth required
 ```
 
-### Relationships
+### Submissions (`/submissions`)
 ```
-POST   /relationships          → send friend or foe request
-PUT    /relationships/{id}     → accept / decline
-DELETE /relationships/{id}     → remove
-```
-
-### Messages
-```
-GET  /messages                 → inbox
-POST /messages                 → send DM
-GET  /messages/{id}            → read message (marks read)
-```
-
-### Admin
-```
-GET    /admin/tasks/pending         → pending task queue
-PUT    /admin/tasks/{id}/approve    → approve → active
-PUT    /admin/tasks/{id}/retire     → retire active task
-DELETE /admin/submissions/{id}      → delete flagged submission
-POST   /admin/characters/{id}/ban   → ban/unban character
-POST   /admin/meta-tasks            → create meta task
-POST   /admin/eras                  → start Era reset (requires confirmation payload)
+GET    /submissions                        → list (query: sort, task_id, character_id, moderation_status, limit, offset)
+GET    /submissions/{id}                   → SubmissionOut
+POST   /submissions                        → SubmissionCreate → SubmissionOut — auth required
+PUT    /submissions/{id}                   → SubmissionCreate → SubmissionOut (owner only)
+POST   /submissions/{id}/withdraw          → SubmissionOut (owner only)
+POST   /submissions/{id}/resubmit          → SubmissionOut (owner only)
+POST   /submissions/{id}/media             → multipart file + display_order → MediaItemOut (owner only)
+DELETE /submissions/{id}/media/{media_id}  → delete media file (owner only)
+POST   /submissions/{id}/flag              → SubmissionOut (query: reason) — level 4+ required
 ```
 
-### Account (private)
+### Votes (no prefix — paths embed in `/submissions`)
 ```
-GET    /account                → current account info
-DELETE /account                → delete account + all characters
+POST /submissions/{id}/vote    → VoteIn { stars: 1-5 } → VoteOut — auth required
+GET  /submissions/{id}/votes   → VoteSummary { total_votes, average_stars, total_score }
+GET  /submissions/{id}/voters  → list[VoterDetail]
 ```
 
-### Leaderboard
+### Relationships (`/relationships`)
 ```
-GET /leaderboard               → top characters by score, paginated
+GET    /relationships          → list[RelationshipListItem] (query: type, status) — auth required
+POST   /relationships          → { to_character_id, type } → RelationshipOut — auth required
+PUT    /relationships/{id}     → block relationship → RelationshipOut
+DELETE /relationships/{id}     → remove relationship (declaring party only)
+```
+*Relationships are instant declarations (no pending state). Status: active | blocked.*
+
+### Messages (`/messages`)
+```
+GET  /messages       → list[MessageOut] — auth required
+POST /messages       → MessageCreate { to_character_id, body } → MessageOut
+GET  /messages/{id}  → MessageOut (marks as read if recipient)
+```
+
+### Leaderboard (`/leaderboard`)
+```
+GET /leaderboard     → list[CharacterOut] (query: faction, limit, offset) — sorted by score DESC
+```
+
+### Factions (`/factions`)
+```
+GET /factions        → list[FactionOut] (visible factions only)
+PUT /factions/{slug} → FactionUpdate → FactionOut — admin only
+```
+
+### Game Config (`/game-config`)
+```
+GET /game-config     → GameConfigOut (era config, faction colors, level thresholds — static from game_config.py)
+```
+
+### Meta Tasks (`/meta-tasks`)
+```
+GET /meta-tasks      → list[MetaTaskOut] (query: task_id — required, filters by task's faction or generic)
+```
+
+### Contact (`/contact`)
+```
+POST /contact        → ContactMessageIn { name, email, message } → ContactMessageOut
+```
+
+### Health (`/health`)
+```
+GET /health          → { "status": "ok" }
+```
+
+---
+
+### Admin (`/admin`) — requires admin role
+
+#### Dashboard
+```
+GET /admin/overview                   → OverviewStats { accounts, characters, active_tasks, submissions, votes, flagged_submissions, suspended_accounts }
+```
+
+#### Accounts & Characters
+```
+GET    /admin/accounts                → list[AccountSummary] (query: email filter)
+GET    /admin/accounts/{id}           → AccountDetail (with characters list)
+POST   /admin/accounts/{id}/suspend   → SuspendAction { suspended: bool }
+POST   /admin/accounts/{id}/role      → RoleAction { role, action: grant|revoke }
+GET    /admin/characters              → list[CharacterSummary] (query: faction, status)
+POST   /admin/characters              → AdminCharacterCreate → new character for any account
+POST   /admin/characters/{id}/ban     → BanAction { banned: bool }
+PATCH  /admin/characters/{id}/stats   → CharacterStatsPatch → CharacterStatsOut
+POST   /admin/characters/backfill-stats → recalculate all character stats → { recalculated: int }
+```
+
+#### Tasks
+```
+GET  /admin/tasks/pending          → list[PendingTaskOut] (with created_by_name)
+PUT  /admin/tasks/{id}/approve     → TaskOut (pending → active)
+PUT  /admin/tasks/{id}/retire      → TaskOut (active → retired)
+PUT  /admin/tasks/{id}/status      → TaskStatusAction → TaskOut
+POST /admin/tasks                  → TaskCreate → TaskOut (admin can create active tasks directly)
+POST /admin/tasks/{id}/reactivate  → TaskOut (retired → active)
+```
+
+#### Submissions & Moderation
+```
+GET    /admin/submissions/flagged        → list[SubmissionOut] (full data with media, score, task info)
+PATCH  /admin/submissions/{id}/moderate  → ModerationAction { status, admin_note } → SubmissionOut
+DELETE /admin/submissions/{id}           → hard delete submission
+```
+
+#### Contact Messages
+```
+GET   /admin/messages               → list[ContactMessageOut] (query: archived)
+PATCH /admin/messages/{id}/archive  → ContactMessageOut
+```
+
+#### Factions
+```
+POST /admin/factions               → FactionCreate → FactionOut
+```
+
+#### CLI Token
+```
+POST /admin/cli-token              → CliTokenResponse (header: X-Admin-Cli-Secret)
+```
+
+---
+
+## Key Response Schemas
+
+### CharacterOut
+```
+id, username, display_name, bio, avatar_url, location,
+level, score, all_time_score,  ← from CharacterStats join
+faction_slug, status, created_at
+```
+
+### SubmissionOut
+```
+id, task_id, character_id, character_display_name, task_title, task_point_value,
+title, body_text, moderation_status, is_withdrawn, admin_note,
+collaboration_mode, partner_character_id, partner_display_name,
+created_at, updated_at, media: list[MediaItemOut], score
+```
+
+### TaskOut
+```
+id, title, description, point_value, level_required, status,
+created_by, primary_faction_slug, is_task_vision_eligible, created_at
+```
+
+### VoteSummary
+```
+submission_id, total_votes, average_stars, total_score
+```
+
+### RelationshipListItem (GET /relationships response)
+```
+id, from_character_id, to_character_id, type, status, created_at,
+to_display_name, to_avatar_url, to_faction_slug, reverse_type, display_status
 ```

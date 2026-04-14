@@ -32,6 +32,7 @@ from schemas.admin import (
 )
 from schemas.task import TaskCreate, TaskOut
 from schemas.submission import SubmissionOut
+from services.submission import build_submission_out
 from services.admin_service import (
     admin_create_character,
     archive_message,
@@ -323,26 +324,7 @@ async def admin_list_flagged_submissions(
         .order_by(Submission.created_at.desc())
     )
     submissions = result.scalars().all()
-    out: list[SubmissionOut] = []
-    for sub in submissions:
-        character = await session.get(Character, sub.character_id)
-        character_display_name = character.display_name if character else ""
-        out.append(
-            SubmissionOut(
-                id=sub.id,
-                task_id=sub.task_id,
-                character_id=sub.character_id,
-                character_display_name=character_display_name,
-                title=sub.title,
-                body_text=sub.body_text,
-                moderation_status=sub.moderation_status.value,
-                is_withdrawn=sub.is_withdrawn,
-                admin_note=sub.admin_note,
-                created_at=sub.created_at,
-                updated_at=sub.updated_at,
-            )
-        )
-    return out
+    return [await build_submission_out(sub, session) for sub in submissions]
 
 
 @router.patch("/submissions/{submission_id}/moderate", response_model=SubmissionOut)
@@ -354,19 +336,7 @@ async def admin_moderate_submission(
 ):
     new_status = ModerationStatus(data.status)
     submission = await moderate_submission(submission_id, new_status, data.admin_note, session)
-    # Build a minimal SubmissionOut — admin doesn't need full score computation
-    return SubmissionOut(
-        id=submission.id,
-        task_id=submission.task_id,
-        character_id=submission.character_id,
-        title=submission.title,
-        body_text=submission.body_text,
-        moderation_status=submission.moderation_status.value,
-        is_withdrawn=submission.is_withdrawn,
-        admin_note=submission.admin_note,
-        created_at=submission.created_at,
-        updated_at=submission.updated_at,
-    )
+    return await build_submission_out(submission, session)
 
 
 @router.put("/tasks/{task_id}/status", response_model=TaskOut)
