@@ -1,298 +1,195 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
-import { getMessages, type MessageOut } from '../api/messages'
-import { getMyTasks, type CharacterTaskOut } from '../api/tasks'
-import { listRelationships, type RelationshipListItem } from '../api/relationships'
-import SubmissionCard from '../components/SubmissionCard'
+import { useEffect, useState, useCallback } from 'react'
+import { getActivityFeed, type ActivityFeedItem, type FeedCounts } from '../api/activityFeed'
 import PageTitle from '../components/ui/PageTitle'
-import { useAuth } from '../auth/AuthContext'
+import FeedCardRouter from '../components/feed/FeedCardRouter'
+import FeedDateDivider, { getDateLabel } from '../components/feed/FeedDateDivider'
 import { useTheme } from '../hooks/useTheme'
-import { factionColor } from '../utils/factions'
-import { relativeTime } from '../utils/dates'
-// Individual fetches fail silently — no global error state needed
 
-type FeedFilter = 'All' | 'Friends' | 'Foes' | 'Your stuff' | 'Global'
+type FeedFilter = 'All' | 'Friends' | 'Foes' | 'Your Stuff' | 'Global' | 'Requests'
 
-const FILTER_OPTIONS: FeedFilter[] = ['All', 'Friends', 'Foes', 'Your stuff', 'Global']
+const ROW_1_FILTERS: FeedFilter[] = ['All', 'Friends', 'Foes', 'Your Stuff']
+const ROW_2_FILTERS: FeedFilter[] = ['Global', 'Requests']
 
-/** Feed item accent colors by type (§17.3) */
-const TYPE_COLORS: Record<string, string> = {
-  message: '#be185d',
-  task: '#4f46e5',
-  praxis: '#14532d',
-  friend: '#14532d',
-  foe: '#dc2626',
+/** Map UI filter name to API filter param. */
+const FILTER_API_MAP: Record<FeedFilter, string> = {
+  'All': 'all',
+  'Friends': 'friends',
+  'Foes': 'foes',
+  'Your Stuff': 'your_stuff',
+  'Global': 'global',
+  'Requests': 'requests',
+}
+
+/** Map filter name to the key in FeedCounts. */
+function getCount(filter: FeedFilter, counts: FeedCounts): number {
+  switch (filter) {
+    case 'All': return counts.all
+    case 'Friends': return counts.friends
+    case 'Foes': return counts.foes
+    case 'Your Stuff': return counts.your_stuff
+    case 'Global': return counts.global_count
+    case 'Requests': return counts.requests
+  }
 }
 
 export default function Updates() {
-  const { user } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
-  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
-  const [messages, setMessages] = useState<MessageOut[]>([])
-  const [inProgressTasks, setInProgressTasks] = useState<CharacterTaskOut[]>([])
-  const [friends, setFriends] = useState<RelationshipListItem[]>([])
-  const [foes, setFoes] = useState<RelationshipListItem[]>([])
-  const [friendSubmissions, setFriendSubmissions] = useState<SubmissionOut[]>([])
+
+  const [items, setItems] = useState<ActivityFeedItem[]>([])
+  const [counts, setCounts] = useState<FeedCounts>({ all: 0, friends: 0, foes: 0, your_stuff: 0, global_count: 0, requests: 0 })
   const [filter, setFilter] = useState<FeedFilter>('All')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
 
+  const fetchFeed = useCallback(async (feedFilter: FeedFilter, cursor?: string) => {
+    const response = await getActivityFeed({
+      filter: FILTER_API_MAP[feedFilter],
+      before: cursor,
+      limit: 20,
+    })
+    return response
+  }, [])
+
+  // Initial load + filter changes
   useEffect(() => {
-    // Fetch each data source independently so one failure doesn't break the page
-    const fetches = [
-      listSubmissions(user?.character ? { character_id: user.character.id } : {})
-        .then(setSubmissions).catch(() => {}),
-      getMessages()
-        .then(setMessages).catch(() => {}),
-      getMyTasks('in_progress')
-        .then(setInProgressTasks).catch(() => {}),
-      listRelationships({ type: 'friend' })
-        .then((fr) => {
-          const activeFriends = fr.filter((r) => r.status === 'active')
-          setFriends(activeFriends)
-          // Fetch recent submissions from friends
-          const friendFetches = activeFriends.slice(0, 10).map((rel) =>
-            listSubmissions({ character_id: rel.to_character_id }).catch(() => [] as SubmissionOut[])
-          )
-          return Promise.all(friendFetches).then((results) => {
-            setFriendSubmissions(results.flat().sort((a, b) =>
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            ).slice(0, 20))
-          })
-        }).catch(() => {}),
-      listRelationships({ type: 'foe' })
-        .then((fo) => setFoes(fo.filter((r) => r.status === 'active'))).catch(() => {}),
-    ]
-    Promise.all(fetches).finally(() => setLoading(false))
-  }, [user])
+    let cancelled = false
+    setLoading(true)
+    fetchFeed(filter).then((response) => {
+      if (cancelled) return
+      setItems(response.items)
+      setCounts(response.counts)
+      setNextCursor(response.next_cursor)
+      setLoading(false)
+    }).catch(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [filter, fetchFeed])
 
-  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const response = await fetchFeed(filter, nextCursor)
+      setItems((prev) => [...prev, ...response.items])
+      setNextCursor(response.next_cursor)
+    } catch { /* swallow */ }
+    setLoadingMore(false)
+  }
 
-  const showMessages = filter === 'All' || filter === 'Your stuff'
-  const showTasks = filter === 'All' || filter === 'Your stuff'
-  const showPraxis = filter === 'All' || filter === 'Your stuff'
-  const showFriends = filter === 'All' || filter === 'Friends'
-  const showFoes = filter === 'All' || filter === 'Foes'
-  const showGlobal = filter === 'Global'
+  /** Insert date dividers between items when the date changes. */
+  const renderFeedWithDividers = () => {
+    const elements: React.ReactNode[] = []
+    let lastDateLabel = ''
+
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index]
+      const dateLabel = getDateLabel(item.timestamp)
+
+      if (dateLabel !== lastDateLabel) {
+        elements.push(<FeedDateDivider key={`divider-${dateLabel}-${index}`} label={dateLabel} />)
+        lastDateLabel = dateLabel
+      }
+
+      elements.push(<FeedCardRouter key={`${item.type}-${item.timestamp}-${index}`} item={item} />)
+    }
+
+    return elements
+  }
+
+  const renderFilterButton = (option: FeedFilter) => {
+    const active = filter === option
+    const count = getCount(option, counts)
+    const isRequests = option === 'Requests'
+    const hasRedBadge = isRequests && count > 0
+
+    return (
+      <button
+        key={option}
+        onClick={() => setFilter(option)}
+        style={{
+          position: 'relative',
+          border: `2px solid ${active ? (dark ? '#f0e6d0' : '#1a1209') : (dark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')}`,
+          borderRadius: 0,
+          background: active ? (dark ? '#f0e6d0' : '#1a1209') : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)'),
+          color: active ? (dark ? '#13121a' : '#F7F4EE') : 'var(--color-text-primary)',
+          fontFamily: "'Courier Prime', monospace",
+          fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.1em', padding: '5px 10px',
+          cursor: 'pointer', transition: 'all 120ms',
+          display: 'flex', alignItems: 'center', gap: 5,
+        }}
+      >
+        {active && <span style={{ position: 'absolute', inset: 2, border: '1px dashed rgba(255,255,255,0.2)', pointerEvents: 'none' }} />}
+        {option}
+        {count > 0 && (
+          <span style={{
+            background: hasRedBadge ? '#dc2626' : (active ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)'),
+            color: hasRedBadge ? 'white' : 'inherit',
+            fontSize: 8, padding: '0 5px', borderRadius: 8, minWidth: 16, textAlign: 'center',
+          }}>
+            {count}
+          </span>
+        )}
+      </button>
+    )
+  }
 
   return (
     <div className="py-8">
-      <PageTitle title="Updates" eyebrow="Era I" />
+      <PageTitle title="Updates" eyebrow="Activity Feed" />
 
-      {/* ── Feed Filters (§17.2) — full set with badge count ── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20, alignItems: 'center' }}>
-        <span className="eyebrow">show</span>
-        {FILTER_OPTIONS.map((option) => {
-          const active = filter === option
-          const count = option === 'All' ? null
-            : option === 'Friends' ? friends.length || null
-            : option === 'Foes' ? foes.length || null
-            : null
-          const hasRedBadge = false
-
-          return (
-            <button
-              key={option}
-              onClick={() => setFilter(option)}
-              style={{
-                position: 'relative',
-                border: `2px solid ${active ? (dark ? '#f0e6d0' : '#1a1209') : (dark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')}`,
-                borderRadius: 0,
-                background: active ? (dark ? '#f0e6d0' : '#1a1209') : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)'),
-                color: active ? (dark ? '#13121a' : '#F7F4EE') : 'var(--color-text-primary)',
-                fontFamily: "'Courier Prime', monospace",
-                fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', padding: '5px 10px',
-                cursor: 'pointer', transition: 'all 120ms',
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}
-            >
-              {active && <span style={{ position: 'absolute', inset: 2, border: '1px dashed rgba(255,255,255,0.2)', pointerEvents: 'none' }} />}
-              {option}
-              {count !== null && (
-                <span style={{
-                  background: hasRedBadge ? '#dc2626' : (active ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)'),
-                  color: hasRedBadge ? 'white' : 'inherit',
-                  fontSize: 8, padding: '0 5px', borderRadius: 8, minWidth: 16, textAlign: 'center',
-                }}>
-                  {count}
-                </span>
-              )}
-            </button>
-          )
-        })}
+      {/* ── Filter Tabs ── */}
+      <div style={{ marginBottom: 20 }}>
+        {/* Row 1 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6, alignItems: 'center' }}>
+          <span className="eyebrow">show</span>
+          {ROW_1_FILTERS.map(renderFilterButton)}
+        </div>
+        {/* Row 2 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', paddingLeft: 36 }}>
+          {ROW_2_FILTERS.map(renderFilterButton)}
+        </div>
       </div>
 
-      {/* ── Friends Activity ── */}
-      {showFriends && friends.length > 0 && (
-        <section className="mb-6">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-            <span className="eyebrow">Friends · {friends.length}</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {friends.map((rel) => {
-              const color = factionColor(rel.to_faction_slug)
-              return (
-                <div
-                  key={rel.id}
-                  className="sidebar-card"
-                  style={{ borderLeft: `4px solid ${TYPE_COLORS.friend}`, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}
-                >
-                  <Link to={`/characters/${rel.to_character_id}`}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}88)`, flexShrink: 0 }} />
-                  </Link>
-                  <Link to={`/characters/${rel.to_character_id}`} className="font-body" style={{ fontSize: 11, fontWeight: 700, color, textDecoration: 'none' }}>
-                    {rel.to_display_name}
-                  </Link>
-                  <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em', color: TYPE_COLORS.friend, fontFamily: "'Courier Prime', monospace", fontWeight: 700 }}>
-                    {rel.display_status}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-          {/* Friends' recent praxis */}
-          {friendSubmissions.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <span className="eyebrow" style={{ marginBottom: 8, display: 'block' }}>Friends' recent praxis</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {friendSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── Foes ── */}
-      {showFoes && foes.length > 0 && (
-        <section className="mb-6">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-            <span className="eyebrow">Foes · {foes.length}</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {foes.map((rel) => {
-              const color = factionColor(rel.to_faction_slug)
-              return (
-                <div
-                  key={rel.id}
-                  className="sidebar-card"
-                  style={{ borderLeft: `4px solid ${TYPE_COLORS.foe}`, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}
-                >
-                  <Link to={`/characters/${rel.to_character_id}`}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}88)`, flexShrink: 0 }} />
-                  </Link>
-                  <Link to={`/characters/${rel.to_character_id}`} className="font-body" style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', textDecoration: 'none' }}>
-                    {rel.to_display_name}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── Messages Section ── */}
-      {showMessages && messages.length > 0 && (
-        <section className="mb-6">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-            <span className="eyebrow">Messages</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className="sidebar-card"
-                style={{ borderLeft: `4px solid ${TYPE_COLORS.message}`, padding: '10px 14px', position: 'relative' }}
-              >
-                <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em', color: TYPE_COLORS.message, fontFamily: "'Courier Prime', monospace", fontWeight: 700 }}>
-                  {!m.read_at && '● '}message
-                </span>
-                <p className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)', marginBottom: 4, paddingRight: 60 }}>{m.body}</p>
-                <span className="eyebrow">from #{m.from_character_id} · {relativeTime(m.created_at)}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Tasks in Progress Section ── */}
-      {showTasks && (
-        <section className="mb-6">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-            <span className="eyebrow">Tasks in progress</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-          </div>
-          {inProgressTasks.length === 0 ? (
-            <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
-              No tasks in progress. <Link to="/tasks" className="underline" style={{ color: 'var(--color-text-secondary)' }}>Browse tasks</Link>
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {inProgressTasks.map((ct) => {
-                const color = factionColor(ct.task.primary_faction_slug)
-                return (
-                  <div key={ct.id} className="sidebar-card" style={{ borderLeft: `4px solid ${color}`, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <Link to={`/tasks/${ct.task.id}`} className="font-body block truncate" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)', textDecoration: 'none' }}>{ct.task.title}</Link>
-                      <span className="eyebrow">{ct.task.point_value} pts · {relativeTime(ct.signed_up_at)}</span>
-                    </div>
-                    <Link to={`/tasks/${ct.task.id}/submit`} style={{ background: color, color: 'white', fontFamily: "'Courier Prime', monospace", fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '5px 12px', textDecoration: 'none', whiteSpace: 'nowrap', position: 'relative' }}>
-                      <span style={{ position: 'absolute', inset: 2, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-                      Submit proof
-                    </Link>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── Your Praxis Section ── */}
-      {showPraxis && (
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-            <span className="eyebrow">Your praxis</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-          </div>
-          {submissions.length === 0 ? (
-            <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>No praxis yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {submissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Global placeholder */}
-      {showGlobal && (
+      {/* ── Feed ── */}
+      {loading ? (
+        <div className="py-8 font-body text-muted">Loading...</div>
+      ) : items.length === 0 ? (
         <div className="sidebar-card" style={{ padding: 20, textAlign: 'center' }}>
-          <p className="eyebrow mb-2">Global activity feed</p>
           <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
-            Coming soon — site-wide events, new tasks, and era announcements.
+            No updates yet. Activity from friends, foes, and the community will appear here.
           </p>
         </div>
-      )}
-
-      {/* Friends empty state */}
-      {filter === 'Friends' && friends.length === 0 && (
-        <div className="sidebar-card" style={{ padding: 20, textAlign: 'center' }}>
-          <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>No friends yet. Visit a player's profile to add them.</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {renderFeedWithDividers()}
         </div>
       )}
-      {filter === 'Foes' && foes.length === 0 && (
-        <div className="sidebar-card" style={{ padding: 20, textAlign: 'center' }}>
-          <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>No foes yet.</p>
+
+      {/* ── Load More ── */}
+      {nextCursor && !loading && (
+        <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            style={{
+              fontFamily: "'Courier Prime', monospace",
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              background: 'transparent',
+              color: '#c49a3a',
+              border: 'none',
+              cursor: loadingMore ? 'not-allowed' : 'pointer',
+              padding: '8px 16px',
+            }}
+          >
+            {loadingMore ? 'Loading...' : 'Load Older Updates \u2192'}
+          </button>
         </div>
       )}
     </div>

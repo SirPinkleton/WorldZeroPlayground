@@ -9,7 +9,7 @@ from PIL import Image
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 logger = logging.getLogger(__name__)
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
@@ -21,6 +21,7 @@ from models.character_stats import CharacterStats
 from models.relationship import Relationship
 from models.submission import MediaItem, Submission
 from models.task import Task
+from models.vote import Vote
 from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
 from schemas.relationship import RelationshipOut
 from schemas.submission import MediaItemOut, SubmissionOut
@@ -289,3 +290,19 @@ async def get_character_relationships(
     )
     relationships = result.scalars().all()
     return [RelationshipOut.model_validate(relationship) for relationship in relationships]
+
+
+@router.get("/{character_id}/stats/votes-received")
+async def get_votes_received_count(
+    character_id: int,
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, int]:
+    """Return the total number of votes received on all of a character's submissions."""
+    result = await session.execute(
+        select(func.count())
+        .select_from(Vote)
+        .join(Submission, Vote.submission_id == Submission.id)
+        .where(Submission.character_id == character_id)
+    )
+    count = result.scalar_one()
+    return {"character_id": character_id, "votes_received": count}

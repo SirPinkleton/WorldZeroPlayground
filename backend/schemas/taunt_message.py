@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -12,3 +13,7 @@ class TauntMessageOut(BaseModel):
     message: str
     trigger_type: str
     created_at: datetime
+    # Enriched display fields (joined from Character)
+    from_display_name: str = ""
+    from_faction_slug: str = ""
+    from_avatar_url: Optional[str] = None

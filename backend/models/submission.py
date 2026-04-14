@@ -20,6 +20,12 @@ class CollaborationMode(enum.Enum):
     duel = "duel"
 
 
+class InviteStatus(enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    declined = "declined"
+
+
 class ModerationStatus(enum.Enum):
     visible = "visible"
     flagged = "flagged"
@@ -52,6 +58,9 @@ class Submission(Base):
     )
     partner_character_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("character.id"), nullable=True
+    )
+    invite_status: Mapped[Optional[str]] = mapped_column(
+        Enum(InviteStatus, create_type=False), nullable=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()

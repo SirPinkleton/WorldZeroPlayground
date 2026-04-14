@@ -17,8 +17,10 @@ from models.submission import MediaItem, MediaType, ModerationStatus, Submission
 from models.task import CharacterTask, Task
 from schemas.submission import MediaItemOut, SubmissionCreate, SubmissionOut
 from services.submission import (
+    accept_invite,
     build_submission_out,
     create_submission,
+    decline_invite,
     edit_submission,
     flag_submission,
     resubmit_submission,
@@ -210,6 +212,26 @@ async def delete_media(
     await session.delete(media_item)
     await session.commit()
     return Response(status_code=204)
+
+
+@router.post("/{submission_id}/accept-invite", response_model=SubmissionOut)
+async def accept_invite_route(
+    submission_id: int,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+):
+    sub = await accept_invite(submission_id, character.id, session)
+    return await build_submission_out(sub, session)
+
+
+@router.post("/{submission_id}/decline-invite", response_model=SubmissionOut)
+async def decline_invite_route(
+    submission_id: int,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+):
+    sub = await decline_invite(submission_id, character.id, session)
+    return await build_submission_out(sub, session)
 
 
 @router.post("/{submission_id}/flag", response_model=SubmissionOut)
