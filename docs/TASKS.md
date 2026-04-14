@@ -5,7 +5,7 @@
 > Claude Code agents read it at the start of every session and work through tasks in order.
 >
 > **Always read CLAUDE.md and docs/BUILD_STATE.md before starting.**
-> **Always read docs/SPEC.md before implementing any feature.**
+> **Read the relevant file in `docs/spec/` before implementing any feature** (see the routing table in `CLAUDE.md`).
 > **Mark tasks DONE (with date) when complete. Do not delete them.**
 
 ---
@@ -324,6 +324,31 @@ Create `.github/workflows/test.yml`:
 - Secrets: hidden routes or interactions unlocked by specific player levels (level 5 and 8 already have UX secrets in the game spec)
 - Full design system (tokens, component library) built before this phase begins
 - Sunyata and Terminal faction UI (currently hidden factions) revealed when those factions go live
+
+---
+
+## 🎨 SESSION — Frontend Style Polish
+
+> Migrated from `STYLE_MIGRATION_NOTES.md` (deleted 2026-04-14). The original style migration is
+> structurally complete (CSS variables, faction archetypes, dark mode, custom fonts all shipped).
+> These are the remaining polish items.
+>
+> **Read before starting:** `WORLD_ZERO_STYLE.md`, `frontend/src/index.css`, `frontend/src/utils/factions.ts`.
+
+### High priority
+
+- **Migrate remaining inline styles to Tailwind / CSS classes.** Components outside `cards/` still use extensive `style={{}}` objects. Priority order: `NavBar`, `Sidebar`, `FilterStamps`, `FilterFactionTabs`, `FilterLevelNodes`.
+- **Add responsive breakpoints.** No media queries currently exist — mobile and tablet views are unhandled. Add Tailwind responsive classes for the layout grid, sidebar collapse, and card wrapping.
+- **Audit non-card components for hardcoded hex.** `NavBar`, `Sidebar`, feed items, profile, leaderboard may still have hardcoded colors that should reference CSS variables.
+
+### Medium priority
+
+- **Switch frontend to consume faction colors from API.** Backend already returns colors via `GET /game-config`. `frontend/src/utils/factions.ts` still has hardcoded config — replace with API response.
+- **Consolidate dark mode in non-card components.** Audit `NavBar`, `FilterStamps`, `FilterLevelNodes`, and page components for any remaining `dark ? x : y` ternaries — those should be CSS variable cascades instead.
+
+### Low priority
+
+- **Full inline-style → Tailwind migration.** Convert all remaining `style={{}}` to Tailwind utilities where practical. Large effort, low urgency.
 
 ---
 

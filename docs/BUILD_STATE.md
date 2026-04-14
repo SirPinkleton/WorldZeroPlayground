@@ -33,8 +33,7 @@ This file is the source of truth for what has been built, what is in progress, a
 - `backend/requirements.txt`
 - `backend/Dockerfile`
 - `docker-compose.yml`
-- `docs/SPEC.md` — Full v3 spec (canonical reference for all features)
-- `docs/WorldZero_Spec_v3.md` — Same file (original name, kept for reference)
+- `docs/spec/` — Canonical spec, split into 7 focused files (architecture, data-models, game-rules, api, frontend, testing, deployment). Routed to from `CLAUDE.md`.
 - `CLAUDE.md` — Agent instructions
 - `worldzero-mvp/` — Simpler working MVP (SQLite, sync SQLAlchemy). Use as reference only — do NOT port code directly. Architecture is intentionally different.
 
