@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { getMyTasks, type CharacterTaskOut } from '../../api/tasks'
-import { listSubmissions, type SubmissionOut } from '../../api/submissions'
 import { getActivityFeed, type ActivityFeedItem } from '../../api/activityFeed'
 import { getVotesReceived } from '../../api/characters'
 import { relativeTime } from '../../utils/dates'
@@ -21,15 +20,17 @@ export default function Sidebar() {
   const character = user?.character
 
   const [activeTasks, setActiveTasks] = useState<CharacterTaskOut[]>([])
-  const [globalActivity, setGlobalActivity] = useState<SubmissionOut[]>([])
+  const [globalActivity, setGlobalActivity] = useState<ActivityFeedItem[]>([])
   const [pendingRequests, setPendingRequests] = useState<ActivityFeedItem[]>([])
   const [votesReceived, setVotesReceived] = useState<number>(0)
 
   useEffect(() => {
     if (!user) return
     getMyTasks('in_progress').then(setActiveTasks).catch(() => {})
-    // Global activity: recent completions from anyone
-    listSubmissions({ limit: 5 } as any).then((submissions) => setGlobalActivity(submissions.slice(0, 5))).catch(() => {})
+    // Global activity from the unified feed API
+    getActivityFeed({ filter: 'global', limit: 5 })
+      .then((response) => setGlobalActivity(response.items))
+      .catch(() => {})
     // Pending requests (collab invites + duel challenges)
     getActivityFeed({ filter: 'requests', limit: 5 })
       .then((response) => setPendingRequests(response.items))
@@ -241,38 +242,50 @@ export default function Sidebar() {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {globalActivity.map((submission, index) => (
-              <div
-                key={submission.id}
-                style={{
-                  padding: '5px 0',
-                  borderTop: index > 0 ? '1px dashed var(--color-border)' : undefined,
-                }}
-              >
-                <div className="font-body" style={{ fontSize: 9, lineHeight: 1.4 }}>
-                  <Link
-                    to={`/characters/${submission.character_id}`}
-                    style={{
-                      fontWeight: 700,
-                      color: 'var(--color-text-primary)',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    {submission.character_display_name}
-                  </Link>
-                  {' completed '}
-                  <Link
-                    to={`/submissions/${submission.id}`}
-                    style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}
-                  >
-                    {submission.task_title}
-                  </Link>
+            {globalActivity.map((item, index) => {
+              const isTask = item.type === 'global_task'
+              const isEra = item.type === 'era_announcement'
+              return (
+                <div
+                  key={`${item.type}-${index}`}
+                  style={{
+                    padding: '5px 0',
+                    borderTop: index > 0 ? '1px dashed var(--color-border)' : undefined,
+                  }}
+                >
+                  <div className="font-body" style={{ fontSize: 9, lineHeight: 1.4 }}>
+                    {isEra ? (
+                      <span style={{ fontWeight: 700, color: '#c49a3a' }}>
+                        {item.payload.era_name} has begun
+                      </span>
+                    ) : isTask ? (
+                      <>
+                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>New task: </span>
+                        <Link
+                          to={`/tasks/${item.payload.task_id}`}
+                          style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}
+                        >
+                          {item.payload.task_title}
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                          {item.actor_display_name}
+                        </span>
+                        {' completed '}
+                        <span style={{ color: 'var(--color-text-secondary)' }}>
+                          {item.payload.task_title || item.payload.submission_title || 'a task'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <span className="font-body" style={{ fontSize: 7, color: 'var(--color-text-tertiary)' }}>
+                    {relativeTime(item.timestamp)}
+                  </span>
                 </div>
-                <span className="font-body" style={{ fontSize: 7, color: 'var(--color-text-tertiary)' }}>
-                  {relativeTime(submission.created_at)}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

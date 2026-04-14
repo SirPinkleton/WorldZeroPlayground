@@ -63,3 +63,17 @@ export async function getMyTasks(status?: string): Promise<CharacterTaskOut[]> {
   const { data } = await api.get<CharacterTaskOut[]>('/tasks/my-tasks', { params: status ? { status } : undefined })
   return data
 }
+
+export interface TaskSignupOut {
+  character_id: number
+  display_name: string
+  avatar_url: string
+  faction_slug: string
+  status: string
+  signed_up_at: string
+}
+
+export async function getTaskSignups(taskId: number): Promise<TaskSignupOut[]> {
+  const { data } = await api.get<TaskSignupOut[]>(`/tasks/${taskId}/signups`)
+  return data
+}

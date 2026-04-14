@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { createSubmission, uploadMedia } from '../api/submissions'
 import { getTask, type TaskOut } from '../api/tasks'
@@ -10,9 +10,15 @@ import { factionColor, factionName } from '../utils/factions'
 
 const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
 
+interface LocationState {
+  mode?: string
+  partners?: { id: number; name: string }[]
+}
+
 export default function SubmitProof() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { refetch } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
@@ -24,6 +30,11 @@ export default function SubmitProof() {
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Read collaboration mode from location state (passed by TaskDetail)
+  const locationState = location.state as LocationState | null
+  const collabMode = locationState?.mode ?? 'solo'
+  const partners = locationState?.partners ?? []
+
   useEffect(() => {
     if (id) getTask(parseInt(id, 10)).then(setTask).catch(() => {})
   }, [id])
@@ -34,7 +45,13 @@ export default function SubmitProof() {
     setSaving(true)
     setError('')
     try {
-      const submission = await createSubmission({ task_id: parseInt(id, 10), title, body_text: body || undefined })
+      const submission = await createSubmission({
+        task_id: parseInt(id, 10),
+        title,
+        body_text: body || undefined,
+        collaboration_mode: collabMode !== 'solo' ? collabMode : undefined,
+        partner_character_id: partners.length > 0 ? partners[0].id : undefined,
+      })
       for (const file of files) {
         await uploadMedia(submission.id, file)
       }
@@ -104,6 +121,20 @@ export default function SubmitProof() {
             </span>
             <span className="eyebrow">{task.point_value} pts</span>
             <LevelPill level={task.level_required} />
+            {collabMode !== 'solo' && (
+              <span
+                style={{
+                  fontFamily: "'Courier Prime', monospace",
+                  fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
+                  padding: '2px 8px', borderRadius: 3,
+                  background: collabMode === 'duel' ? '#dc2626' : '#15803d',
+                  color: '#fff',
+                }}
+              >
+                {collabMode === 'duel' ? 'Duel' : 'Collab'}
+                {partners.length > 0 && ` with ${partners[0].name}`}
+              </span>
+            )}
           </div>
         </div>
       )}
