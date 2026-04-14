@@ -36,7 +36,7 @@ class Submission(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     body_text: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     moderation_status: Mapped[ModerationStatus] = mapped_column(
-        Enum(ModerationStatus), nullable=False, server_default="visible"
+        Enum(ModerationStatus, create_type=False), nullable=False, server_default="visible"
     )
     is_withdrawn: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     admin_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -48,7 +48,7 @@ class Submission(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     collaboration_mode: Mapped[CollaborationMode] = mapped_column(
-        Enum(CollaborationMode), nullable=False, server_default="solo"
+        Enum(CollaborationMode, create_type=False), nullable=False, server_default="solo"
     )
     partner_character_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("character.id"), nullable=True
@@ -65,7 +65,7 @@ class MediaItem(Base):
     submission_id: Mapped[int] = mapped_column(
         ForeignKey("submission.id"), nullable=False
     )
-    type: Mapped[MediaType] = mapped_column(Enum(MediaType), nullable=False)
+    type: Mapped[MediaType] = mapped_column(Enum(MediaType, create_type=False), nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

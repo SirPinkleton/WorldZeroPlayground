@@ -11,12 +11,14 @@ This file is the source of truth for what has been built, what is in progress, a
 
 ### Foundation
 - `backend/models/` — All SQLAlchemy models defined and reviewed
-  - `account.py` — Account (private login identity)
-  - `character.py` — Character (public game persona), with level, score, faction, votes_available
+  - `account.py` — Account (private login identity) with AccountStatus enum (active/suspended/deleted)
+  - `character.py` — Character (public game persona) with CharacterStatus enum; stats moved to CharacterStats
+  - `character_stats.py` — CharacterStats (per-era volatile stats: score, level, votes_available, all_time_score) ✅ star schema split
   - `era.py` — Era DB record (stores config_key, not rules)
-  - `faction.py` — Faction (FK reference table; rules live in game_config.py)
+  - `faction.py` — Faction with FactionStatus enum (visible/hidden/deprecated; rules live in game_config.py)
   - `task.py` — Task, TaskFaction (join), CharacterTask (signup tracking)
-  - `submission.py` — Submission (praxis) + MediaItem + CollaborationMode (solo/collab/duel)
+  - `submission.py` — Submission (praxis) + MediaItem + CollaborationMode + ModerationStatus (visible/flagged/hidden/failed)
+  - `contact.py` — ContactMessage (public contact form submissions) ✅
   - `vote.py` — Vote with voter_account_id for anti-self-vote
   - `relationship.py` — friend/foe relationships (instant declarations, active/blocked status) ✅ redesigned 2026-04-13
   - `message.py` — direct messages between characters

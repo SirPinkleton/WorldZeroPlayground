@@ -28,7 +28,7 @@ class Task(Base):
     point_value: Mapped[int] = mapped_column(Integer, nullable=False)
     level_required: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus), default=TaskStatus.pending, nullable=False
+        Enum(TaskStatus, create_type=False), default=TaskStatus.pending, nullable=False
     )
     created_by: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
     # "na" is the sentinel for generic cross-faction tasks
@@ -68,7 +68,7 @@ class CharacterTask(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     status: Mapped[CharacterTaskStatus] = mapped_column(
-        Enum(CharacterTaskStatus),
+        Enum(CharacterTaskStatus, create_type=False),
         default=CharacterTaskStatus.in_progress,
         nullable=False,
     )
