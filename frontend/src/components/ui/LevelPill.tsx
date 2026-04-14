@@ -1,13 +1,21 @@
+import { factionCssVar } from '../../utils/factions'
+
 /**
- * Dark pill showing level requirement, shared by all faction cards (Style Guide §6).
- * In dark mode, accepts factionColor to use as background instead of default dark ink.
+ * Dark pill showing level requirement, shared by all faction cards.
+ * Uses CSS variables for theming — dark mode handled automatically by the cascade.
+ *
+ * Pass factionSlug to get faction-colored pill in dark mode.
+ * Falls back to ink/white if no faction specified.
  */
-export default function LevelPill({ level, factionColor }: { level: number; factionColor?: string }) {
+export default function LevelPill({ level, factionSlug }: { level: number; factionSlug?: string }) {
+  const bg = factionSlug ? factionCssVar(factionSlug, 'card-accent') : 'var(--color-text-primary)'
+  const fg = factionSlug ? factionCssVar(factionSlug, 'card-bg') : 'var(--color-bg-page)'
+
   return (
     <span
       style={{
-        background: factionColor ?? '#1a1209',
-        color: factionColor ? 'var(--color-bg-page)' : 'white',
+        background: bg,
+        color: fg,
         fontSize: 7,
         padding: '1px 6px',
         borderRadius: 6,

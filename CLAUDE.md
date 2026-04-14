@@ -72,19 +72,19 @@ complete real-world tasks, post proof ("praxis"), and earn points through commun
 - Put business logic in route handlers
 
 ## Frontend conventions
-- `WORLD_ZERO_STYLE.md` is the single source of truth for all visual decisions — read it before any UI work
-- All colors must use CSS custom properties defined in `:root` / `[data-theme="dark"]` — never hardcode hex values in components
-- Base UI font is `Courier Prime`; display/titles use `Lora` italic; factions have specific fonts (see style guide Section 3)
-- Each faction has a unique card archetype (sticky note, field journal, collage, etc.) — do not unify card designs
-- Task cards use `flex-wrap`, not CSS grid — varied heights and slight rotations are intentional
-- Filter controls have specific visual treatments (rubber stamps, diagonal pennants, connected nodes) — do not use standard `<select>` or checkbox elements
-- Dark mode uses `data-theme="dark"` on the root element with per-component dark variants — do not auto-invert colors
-- See style guide Section 10 ("What NOT To Do") for a full list of anti-patterns
-- See `docs/STYLE_MIGRATION_NOTES.md` for Phase 2+ remaining work
+- `WORLD_ZERO_STYLE.md` describes design *intent and constraints* — read it before any UI work
+- `index.css` is the source of truth for all color values (CSS custom properties). Never hardcode hex in components.
+- `factions.ts` is the JS-side source of truth for faction config. Use `factionCssVar()` for styles, `factionColor()` only when JS needs a raw value.
+- Dark mode works via CSS variable cascade (`[data-theme="dark"]` in index.css) — do NOT use `dark ? '#hex' : '#hex'` ternaries
+- Each faction has a unique card archetype — do not unify card designs
+- Use shared CSS classes (`.card-footer`, `.card-meta`, `.card-description`) for repeated card patterns
+- If a user can't use a control, hide it entirely — don't show disabled buttons
+- Faction-associated elements reuse the card archetype styling — change it once, it updates everywhere
 
 ## Key documents (read before starting any session)
-- `WORLD_ZERO_STYLE.md` — Visual style guide. Source of truth for colors, typography, layout, card archetypes, and dark mode. Read before any frontend/UI work.
-- `docs/STYLE_MIGRATION_NOTES.md` — Remaining style migration tasks (Phase 2+). Read before doing UI work.
+- `WORLD_ZERO_STYLE.md` — Design system reference. Describes intent, UX principles, and faction archetypes. Read before any frontend/UI work.
+- `index.css` — CSS variables: all colors, faction card themes, type scale, shared tokens. Source of truth for values.
+- `factions.ts` — Faction config (JS side). Synced with index.css. Use `factionCssVar()` for styles.
 - `docs/BUILD_STATE.md` — What has been built vs. what's missing. Read to understand current state.
 - `docs/TASKS.md` — Structured task queue. Read to find what to work on in this session.
 

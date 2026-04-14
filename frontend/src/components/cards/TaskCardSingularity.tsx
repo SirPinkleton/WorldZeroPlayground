@@ -2,9 +2,12 @@ import { Link } from 'react-router-dom'
 import type { TaskOut } from '../../api/tasks'
 
 /**
- * Singularity — Terminal Printout (Style Guide §6.6).
+ * Singularity — Terminal Printout.
  * Always dark background, green terminal text, corner brackets, sprocket holes,
  * scanline overlay, blinking cursor. Same in light and dark mode.
+ *
+ * This card uses CSS variables for its colors even though it's always dark,
+ * because the Singularity CSS vars are identical in both themes.
  */
 
 interface Props {
@@ -23,7 +26,7 @@ function SprocketHoles() {
             width: 6,
             height: 4,
             background: 'rgba(10,26,14)',
-            border: '1px solid #1a3a22',
+            border: '1px solid var(--faction-singularity-card-accent, var(--faction-singularity-border-hard))',
             borderRadius: 1,
           }}
         />
@@ -36,12 +39,14 @@ export default function TaskCardSingularity({ task, onSignup }: Props) {
   return (
     <div
       style={{
-        width: 140,
-        background: '#050f08',
-        border: '1px solid #1a3a22',
+        minWidth: 128,
+        maxWidth: 156,
+        flex: '0 1 140px',
+        background: 'var(--faction-singularity-card-bg)',
+        border: '1px solid var(--faction-singularity-border-hard)',
         position: 'relative',
         fontFamily: "'Share Tech Mono', monospace",
-        color: '#4ade80',
+        color: 'var(--faction-singularity-card-text)',
         overflow: 'hidden',
       }}
     >
@@ -57,29 +62,23 @@ export default function TaskCardSingularity({ task, onSignup }: Props) {
       />
 
       {/* Corner brackets */}
-      {/* Top-left */}
-      <div style={{ position: 'absolute', top: 3, left: 3, width: 10, height: 10, borderTop: '1px solid #4ade80', borderLeft: '1px solid #4ade80' }} />
-      {/* Top-right */}
-      <div style={{ position: 'absolute', top: 3, right: 3, width: 10, height: 10, borderTop: '1px solid #4ade80', borderRight: '1px solid #4ade80' }} />
-      {/* Bottom-left */}
-      <div style={{ position: 'absolute', bottom: 3, left: 3, width: 10, height: 10, borderBottom: '1px solid #4ade80', borderLeft: '1px solid #4ade80' }} />
-      {/* Bottom-right */}
-      <div style={{ position: 'absolute', bottom: 3, right: 3, width: 10, height: 10, borderBottom: '1px solid #4ade80', borderRight: '1px solid #4ade80' }} />
+      <div style={{ position: 'absolute', top: 3, left: 3, width: 10, height: 10, borderTop: '1px solid var(--faction-singularity-card-text)', borderLeft: '1px solid var(--faction-singularity-card-text)' }} />
+      <div style={{ position: 'absolute', top: 3, right: 3, width: 10, height: 10, borderTop: '1px solid var(--faction-singularity-card-text)', borderRight: '1px solid var(--faction-singularity-card-text)' }} />
+      <div style={{ position: 'absolute', bottom: 3, left: 3, width: 10, height: 10, borderBottom: '1px solid var(--faction-singularity-card-text)', borderLeft: '1px solid var(--faction-singularity-card-text)' }} />
+      <div style={{ position: 'absolute', bottom: 3, right: 3, width: 10, height: 10, borderBottom: '1px solid var(--faction-singularity-card-text)', borderRight: '1px solid var(--faction-singularity-card-text)' }} />
 
-      {/* Sprocket holes top */}
       <SprocketHoles />
 
       <div style={{ padding: '4px 12px 8px', position: 'relative', zIndex: 2 }}>
         {/* Header */}
-        <div style={{ fontSize: 7, color: '#1f6b34', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
+        <div style={{ fontSize: 7, color: 'var(--faction-singularity-card-muted)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
           singularity protocol
-          {/* Blinking cursor */}
           <span
             style={{
               display: 'inline-block',
               width: 5,
               height: 9,
-              background: '#4ade80',
+              background: 'var(--faction-singularity-card-text)',
               marginLeft: 3,
               verticalAlign: 'middle',
               animation: 'blink 1s step-end infinite',
@@ -87,34 +86,30 @@ export default function TaskCardSingularity({ task, onSignup }: Props) {
           />
         </div>
 
-        {/* Task name with > prefix */}
         <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ fontSize: 9, marginBottom: 6, lineHeight: 1.3 }}>
+          <div style={{ fontSize: 'var(--text-sm)', marginBottom: 6, lineHeight: 1.3 }}>
             {'> '}{task.title}
           </div>
         </Link>
 
-        {/* Data lines */}
-        <div style={{ fontSize: 8, color: '#1f6b34', lineHeight: 1.6, marginBottom: 6 }}>
-          <div>PTS: <span style={{ color: '#4ade80', fontSize: 11, fontWeight: 700 }}>{task.point_value}</span></div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--faction-singularity-card-muted)', lineHeight: 1.6, marginBottom: 6 }}>
+          <div>PTS: <span style={{ color: 'var(--faction-singularity-card-text)', fontSize: 'var(--text-md)', fontWeight: 700 }}>{task.point_value}</span></div>
           <div>LVL: {task.level_required}+</div>
         </div>
 
-        {/* Description */}
         {task.description && (
-          <div style={{ fontSize: 7, color: '#1f6b34', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          <div style={{ fontSize: 7, color: 'var(--faction-singularity-card-muted)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {task.description}
           </div>
         )}
 
-        {/* Sign up */}
         {onSignup && (
           <button
             onClick={() => onSignup(task.id)}
             style={{
               background: 'transparent',
-              color: '#4ade80',
-              border: '1px solid #4ade80',
+              color: 'var(--faction-singularity-card-text)',
+              border: '1px solid var(--faction-singularity-card-text)',
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: 7,
               textTransform: 'uppercase',
@@ -128,18 +123,15 @@ export default function TaskCardSingularity({ task, onSignup }: Props) {
           </button>
         )}
 
-        {/* Level pill — outline style for Singularity */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #1a3a22', paddingTop: 5 }}>
-          <span style={{ border: '1px solid #4ade80', color: '#4ade80', fontSize: 7, padding: '1px 6px', borderRadius: 6, textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--faction-singularity-border-hard)', paddingTop: 5 }}>
+          <span style={{ border: '1px solid var(--faction-singularity-card-text)', color: 'var(--faction-singularity-card-text)', fontSize: 7, padding: '1px 6px', borderRadius: 6, textTransform: 'uppercase' }}>
             lvl {task.level_required}+
           </span>
         </div>
       </div>
 
-      {/* Sprocket holes bottom */}
       <SprocketHoles />
 
-      {/* Blink keyframe */}
       <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
     </div>
   )
