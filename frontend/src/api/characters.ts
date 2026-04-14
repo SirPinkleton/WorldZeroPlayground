@@ -18,8 +18,8 @@ export interface CharacterUpdate {
   location?: string
 }
 
-export async function listCharacters(): Promise<CharacterOut[]> {
-  const { data } = await api.get<CharacterOut[]>('/characters')
+export async function listCharacters(params?: { search?: string; faction?: string; limit?: number }): Promise<CharacterOut[]> {
+  const { data } = await api.get<CharacterOut[]>('/characters', { params })
   return data
 }
 
