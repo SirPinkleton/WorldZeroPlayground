@@ -22,79 +22,127 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _enum_exists(name: str) -> bool:
+    conn = op.get_bind()
+    result = conn.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = :name"), {"name": name})
+    return result.fetchone() is not None
+
+
+def _column_exists(table: str, column: str) -> bool:
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = :table AND column_name = :column"
+        ),
+        {"table": table, "column": column},
+    )
+    return result.fetchone() is not None
+
+
+def _table_exists(name: str) -> bool:
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text("SELECT 1 FROM information_schema.tables WHERE table_name = :name"),
+        {"name": name},
+    )
+    return result.fetchone() is not None
+
+
 def upgrade() -> None:
     conn = op.get_bind()
 
     # ------------------------------------------------------------------
-    # 1. Create enum types
+    # 1. Create enum types (idempotent)
     # ------------------------------------------------------------------
-    op.execute("CREATE TYPE accountstatus AS ENUM ('active', 'suspended', 'deleted')")
-    op.execute("CREATE TYPE characterstatus AS ENUM ('active', 'paused', 'banned')")
-    op.execute("CREATE TYPE factionstatus AS ENUM ('visible', 'hidden', 'deprecated')")
+    if not _enum_exists("accountstatus"):
+        op.execute("CREATE TYPE accountstatus AS ENUM ('active', 'suspended', 'deleted')")
+    if not _enum_exists("characterstatus"):
+        op.execute("CREATE TYPE characterstatus AS ENUM ('active', 'paused', 'banned')")
+    if not _enum_exists("factionstatus"):
+        op.execute("CREATE TYPE factionstatus AS ENUM ('visible', 'hidden', 'deprecated')")
 
     # ------------------------------------------------------------------
     # 2. Faction table: replace is_hidden with status enum + timestamps
     #    + make description non-nullable + seed 'na' sentinel
     # ------------------------------------------------------------------
 
-    # Seed 'na' faction before FK changes
-    conn.execute(sa.text(
-        "INSERT INTO faction (slug, name, description, is_hidden) "
-        "VALUES ('na', 'None', 'Sentinel for tasks with no specific faction affiliation', true) "
-        "ON CONFLICT (slug) DO NOTHING"
-    ))
+    # Seed 'na' faction before FK changes (ON CONFLICT = idempotent)
+    if _column_exists('faction', 'is_hidden'):
+        conn.execute(sa.text(
+            "INSERT INTO faction (slug, name, description, is_hidden) "
+            "VALUES ('na', 'None', 'Sentinel for tasks with no specific faction affiliation', true) "
+            "ON CONFLICT (slug) DO NOTHING"
+        ))
+    else:
+        conn.execute(sa.text(
+            "INSERT INTO faction (slug, name, description) "
+            "VALUES ('na', 'None', 'Sentinel for tasks with no specific faction affiliation') "
+            "ON CONFLICT (slug) DO NOTHING"
+        ))
 
-    # Add status column (nullable first, then set values, then set NOT NULL)
-    op.add_column('faction', sa.Column('status', sa.Enum('visible', 'hidden', 'deprecated', name='factionstatus'), nullable=True))
-    conn.execute(sa.text(
-        "UPDATE faction SET status = CASE WHEN is_hidden = true THEN 'hidden'::factionstatus ELSE 'visible'::factionstatus END"
-    ))
-    op.alter_column('faction', 'status', nullable=False)
+    if not _column_exists('faction', 'status'):
+        op.add_column('faction', sa.Column('status', sa.Enum('visible', 'hidden', 'deprecated', name='factionstatus'), nullable=True))
+        if _column_exists('faction', 'is_hidden'):
+            conn.execute(sa.text(
+                "UPDATE faction SET status = CASE WHEN is_hidden = true THEN 'hidden'::factionstatus ELSE 'visible'::factionstatus END"
+            ))
+        else:
+            conn.execute(sa.text("UPDATE faction SET status = 'visible'::factionstatus WHERE status IS NULL"))
+        op.alter_column('faction', 'status', nullable=False)
 
-    op.drop_column('faction', 'is_hidden')
+    if _column_exists('faction', 'is_hidden'):
+        op.drop_column('faction', 'is_hidden')
 
-    # Make description non-nullable
     conn.execute(sa.text("UPDATE faction SET description = '' WHERE description IS NULL"))
     op.alter_column('faction', 'description', nullable=False, server_default='')
 
-    # Add timestamps
-    op.add_column('faction', sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
-    op.add_column('faction', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('faction', 'created_at'):
+        op.add_column('faction', sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('faction', 'updated_at'):
+        op.add_column('faction', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 3. Account table: replace is_active with status enum + updated_at
     # ------------------------------------------------------------------
-    op.add_column('account', sa.Column('status', sa.Enum('active', 'suspended', 'deleted', name='accountstatus'), nullable=True))
-    conn.execute(sa.text(
-        "UPDATE account SET status = CASE WHEN is_active = true THEN 'active'::accountstatus ELSE 'suspended'::accountstatus END"
-    ))
-    op.alter_column('account', 'status', nullable=False)
-    op.drop_column('account', 'is_active')
-    op.add_column('account', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('account', 'status'):
+        op.add_column('account', sa.Column('status', sa.Enum('active', 'suspended', 'deleted', name='accountstatus'), nullable=True))
+        if _column_exists('account', 'is_active'):
+            conn.execute(sa.text(
+                "UPDATE account SET status = CASE WHEN is_active = true THEN 'active'::accountstatus ELSE 'suspended'::accountstatus END"
+            ))
+        else:
+            conn.execute(sa.text("UPDATE account SET status = 'active'::accountstatus WHERE status IS NULL"))
+        op.alter_column('account', 'status', nullable=False)
+
+    if _column_exists('account', 'is_active'):
+        op.drop_column('account', 'is_active')
+
+    if not _column_exists('account', 'updated_at'):
+        op.add_column('account', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 4. OAuthProvider table: add updated_at
     # ------------------------------------------------------------------
-    op.add_column('oauth_provider', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('oauth_provider', 'updated_at'):
+        op.add_column('oauth_provider', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 5. Character table: major restructure
-    #    - Replace is_active with status enum
-    #    - Remove stats columns (moved to character_stats)
-    #    - Make string columns non-nullable
-    #    - Make faction_slug non-nullable (default 'ua')
-    #    - Add updated_at
     # ------------------------------------------------------------------
+    if not _column_exists('character', 'status'):
+        op.add_column('character', sa.Column('status', sa.Enum('active', 'paused', 'banned', name='characterstatus'), nullable=True))
+        if _column_exists('character', 'is_active'):
+            conn.execute(sa.text(
+                "UPDATE character SET status = CASE WHEN is_active = true THEN 'active'::characterstatus ELSE 'banned'::characterstatus END"
+            ))
+        else:
+            conn.execute(sa.text("UPDATE character SET status = 'active'::characterstatus WHERE status IS NULL"))
+        op.alter_column('character', 'status', nullable=False)
 
-    # Add status column
-    op.add_column('character', sa.Column('status', sa.Enum('active', 'paused', 'banned', name='characterstatus'), nullable=True))
-    conn.execute(sa.text(
-        "UPDATE character SET status = CASE WHEN is_active = true THEN 'active'::characterstatus ELSE 'banned'::characterstatus END"
-    ))
-    op.alter_column('character', 'status', nullable=False)
-    op.drop_column('character', 'is_active')
+    if _column_exists('character', 'is_active'):
+        op.drop_column('character', 'is_active')
 
-    # Make string columns non-nullable
     conn.execute(sa.text("UPDATE character SET bio = '' WHERE bio IS NULL"))
     op.alter_column('character', 'bio', nullable=False, server_default='')
 
@@ -104,49 +152,51 @@ def upgrade() -> None:
     conn.execute(sa.text("UPDATE character SET location = '' WHERE location IS NULL"))
     op.alter_column('character', 'location', nullable=False, server_default='')
 
-    # Make faction_slug non-nullable (default 'ua' for any NULLs)
     conn.execute(sa.text("UPDATE character SET faction_slug = 'ua' WHERE faction_slug IS NULL"))
     op.alter_column('character', 'faction_slug', nullable=False, server_default='ua')
 
-    # Add updated_at
-    op.add_column('character', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('character', 'updated_at'):
+        op.add_column('character', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # Drop stats columns — migrated to character_stats below
-    op.drop_column('character', 'score')
-    op.drop_column('character', 'all_time_score')
-    op.drop_column('character', 'level')
-    op.drop_column('character', 'votes_available')
+    for col in ('score', 'all_time_score', 'level', 'votes_available'):
+        if _column_exists('character', col):
+            op.drop_column('character', col)
 
     # ------------------------------------------------------------------
     # 6. Create character_stats table
     # ------------------------------------------------------------------
-    op.create_table(
-        'character_stats',
-        sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('character_id', sa.Integer(), sa.ForeignKey('character.id'), nullable=False),
-        sa.Column('era_id', sa.Integer(), sa.ForeignKey('era.id'), nullable=False),
-        sa.Column('score', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('all_time_score', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('level', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('votes_available', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.UniqueConstraint('character_id', 'era_id', name='uq_character_stats_character_era'),
-    )
+    if not _table_exists('character_stats'):
+        op.create_table(
+            'character_stats',
+            sa.Column('id', sa.Integer(), primary_key=True),
+            sa.Column('character_id', sa.Integer(), sa.ForeignKey('character.id'), nullable=False),
+            sa.Column('era_id', sa.Integer(), sa.ForeignKey('era.id'), nullable=False),
+            sa.Column('score', sa.Integer(), nullable=False, server_default='0'),
+            sa.Column('all_time_score', sa.Integer(), nullable=False, server_default='0'),
+            sa.Column('level', sa.Integer(), nullable=False, server_default='0'),
+            sa.Column('votes_available', sa.Integer(), nullable=False, server_default='0'),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+            sa.UniqueConstraint('character_id', 'era_id', name='uq_character_stats_character_era'),
+        )
 
     # ------------------------------------------------------------------
     # 7. Role table: make description non-nullable + add timestamps
     # ------------------------------------------------------------------
     conn.execute(sa.text("UPDATE role SET description = '' WHERE description IS NULL"))
     op.alter_column('role', 'description', nullable=False, server_default='')
-    op.add_column('role', sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
-    op.add_column('role', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('role', 'created_at'):
+        op.add_column('role', sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('role', 'updated_at'):
+        op.add_column('role', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 8. Era table: make notes non-nullable + add updated_at
     # ------------------------------------------------------------------
     conn.execute(sa.text("UPDATE era SET notes = '' WHERE notes IS NULL"))
     op.alter_column('era', 'notes', nullable=False, server_default='')
-    op.add_column('era', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('era', 'updated_at'):
+        op.add_column('era', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 9. Task table: make description/primary_faction_slug non-nullable + updated_at
@@ -157,12 +207,14 @@ def upgrade() -> None:
     conn.execute(sa.text("UPDATE task SET primary_faction_slug = 'na' WHERE primary_faction_slug IS NULL"))
     op.alter_column('task', 'primary_faction_slug', nullable=False, server_default='na')
 
-    op.add_column('task', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('task', 'updated_at'):
+        op.add_column('task', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 10. CharacterTask table: add updated_at
     # ------------------------------------------------------------------
-    op.add_column('character_task', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('character_task', 'updated_at'):
+        op.add_column('character_task', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 11. Submission table: make body_text non-nullable
@@ -179,12 +231,14 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     # 13. Relationship table: add updated_at
     # ------------------------------------------------------------------
-    op.add_column('relationship', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('relationship', 'updated_at'):
+        op.add_column('relationship', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
     # ------------------------------------------------------------------
     # 14. MetaTask table: add updated_at
     # ------------------------------------------------------------------
-    op.add_column('meta_task', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    if not _column_exists('meta_task', 'updated_at'):
+        op.add_column('meta_task', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
 
 
 def downgrade() -> None:
