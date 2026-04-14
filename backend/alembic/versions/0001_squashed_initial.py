@@ -306,7 +306,7 @@ def upgrade() -> None:
         conn.execute(
             sa.text(
                 "INSERT INTO faction (slug, name, description, status) "
-                "VALUES (:slug, :name, :description, :status::factionstatus) "
+                "VALUES (:slug, :name, :description, :status) "
                 "ON CONFLICT (slug) DO NOTHING"
             ),
             {"slug": slug, "name": name, "description": description, "status": status},
