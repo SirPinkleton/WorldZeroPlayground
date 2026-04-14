@@ -1,9 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getTask, getMyTasks, signupTask, dropTask, getTaskSignups, type TaskOut, type TaskSignupOut } from '../api/tasks'
 import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import { listRelationships } from '../api/relationships'
-import { listCharacters, type CharacterOut } from '../api/characters'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import SubmissionCard from '../components/SubmissionCard'
 import LevelPill from '../components/ui/LevelPill'
@@ -18,14 +17,6 @@ import { useGameConfig } from '../hooks/useGameConfig'
 
 const DEFAULT_MAX_TASK_SLOTS = 20
 const VISIBLE_SIGNUPS = 4
-
-type CollabMode = 'solo' | 'collab' | 'duel'
-
-interface InvitedPartner {
-  id: number
-  name: string
-  faction_slug: string | null
-}
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>()
@@ -48,13 +39,6 @@ export default function TaskDetail() {
   // Friend/foe lookup sets
   const [friends, setFriends] = useState<Set<number>>(new Set())
   const [foes, setFoes] = useState<Set<number>>(new Set())
-
-  // Collab/duel state
-  const [selectedMode, setSelectedMode] = useState<CollabMode>('solo')
-  const [invitedPartners, setInvitedPartners] = useState<InvitedPartner[]>([])
-  const [inviteQuery, setInviteQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<CharacterOut[]>([])
-  const [showSearch, setShowSearch] = useState(false)
 
   // Game config
   const gameConfig = useGameConfig()
@@ -124,12 +108,7 @@ export default function TaskDetail() {
     setSignupError(null)
     try {
       await signupTask(task.id)
-      navigate(`/tasks/${task.id}/submit`, {
-        state: {
-          mode: selectedMode,
-          partners: invitedPartners,
-        },
-      })
+      navigate(`/tasks/${task.id}/submit`)
     } catch (err) {
       setSignupError(extractError(err, 'Could not sign up for this task.'))
     }
@@ -144,34 +123,6 @@ export default function TaskDetail() {
     } catch (err) {
       setSignupError(extractError(err, 'Could not drop this task.'))
     }
-  }
-
-  // Partner search
-  const handleInviteSearch = useCallback(async (query: string) => {
-    setInviteQuery(query)
-    if (query.length < 2) { setSearchResults([]); setShowSearch(false); return }
-    try {
-      const results = await listCharacters({ search: query, limit: 8 })
-      const filtered = results.filter((c) =>
-        c.id !== user?.character?.id && !invitedPartners.some((p) => p.id === c.id)
-      )
-      setSearchResults(filtered)
-      setShowSearch(filtered.length > 0)
-    } catch {
-      setSearchResults([])
-    }
-  }, [user, invitedPartners])
-
-  const addPartner = (character: CharacterOut) => {
-    if (selectedMode === 'duel' && invitedPartners.length >= 1) return
-    setInvitedPartners((prev) => [...prev, { id: character.id, name: character.display_name, faction_slug: character.faction_slug }])
-    setInviteQuery('')
-    setShowSearch(false)
-    setSearchResults([])
-  }
-
-  const removePartner = (characterId: number) => {
-    setInvitedPartners((prev) => prev.filter((p) => p.id !== characterId))
   }
 
   if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
@@ -202,11 +153,7 @@ export default function TaskDetail() {
     : null
   const isOwnFaction = factionConfig && (taskFaction === myFaction || taskFaction === 'na' || !taskFaction)
   const factionMultiplier = factionConfig
-    ? (selectedMode === 'duel'
-        ? factionConfig.duel_win_modifier
-        : selectedMode === 'collab'
-          ? (isOwnFaction ? factionConfig.collab_own_modifier : factionConfig.collab_other_modifier)
-          : (isOwnFaction ? factionConfig.own_task_modifier : factionConfig.other_task_modifier))
+    ? (isOwnFaction ? factionConfig.own_task_modifier : factionConfig.other_task_modifier)
     : 1.0
   const modifiedPoints = Math.round(task.point_value * factionMultiplier)
 
@@ -305,209 +252,35 @@ export default function TaskDetail() {
             )}
           </div>
 
-          {/* ── Mode Selector + Signup Block ── */}
-          {user && !mySubmission && (
+          {/* ── Signup Block ── */}
+          {canSignUp && (
             <div className="sidebar-card mb-5" style={{ padding: '16px 20px' }}>
-              <p className="eyebrow mb-3">How do you want to do this?</p>
+              <button
+                onClick={handleSignup}
+                style={{
+                  width: '100%',
+                  background: color, color: 'white',
+                  fontFamily: "'Courier Prime', monospace",
+                  fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.15em', padding: '10px 20px',
+                  border: 'none', cursor: 'pointer', position: 'relative',
+                }}
+              >
+                <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+                Sign up · earn up to {modifiedPoints} pts
+              </button>
 
-              {/* Mode cards */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                {([
-                  { mode: 'solo' as CollabMode, icon: '◎', label: 'Solo', desc: 'Just you. All points are yours.' },
-                  { mode: 'collab' as CollabMode, icon: '⬡', label: 'Collaboration', desc: 'Invite others. Everyone earns full points.' },
-                  { mode: 'duel' as CollabMode, icon: '⚔', label: 'Duel', desc: 'Challenge one player. Winner takes the points.' },
-                ]).map(({ mode, icon, label, desc }) => {
-                  const active = selectedMode === mode
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => { setSelectedMode(mode); if (mode === 'solo') setInvitedPartners([]) }}
-                      style={{
-                        flex: 1,
-                        position: 'relative',
-                        border: `2.5px solid ${active ? (dark ? '#f0e6d0' : '#1a1209') : 'var(--color-border)'}`,
-                        borderRadius: 0,
-                        background: active ? (dark ? '#f0e6d0' : '#1a1209') : 'var(--color-bg-surface-alt)',
-                        color: active ? (dark ? '#13121a' : '#F7F4EE') : 'var(--color-text-primary)',
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                        letterSpacing: '0.08em', padding: '10px 8px',
-                        cursor: 'pointer', textAlign: 'center',
-                      }}
-                    >
-                      {active && <span style={{ position: 'absolute', inset: 2, border: '1px dashed rgba(255,255,255,0.2)', pointerEvents: 'none' }} />}
-                      <span style={{ display: 'block', fontSize: 18, marginBottom: 4 }}>{icon}</span>
-                      <span style={{ display: 'block', marginBottom: 2 }}>{label}</span>
-                      <span style={{ display: 'block', fontSize: 7, fontWeight: 400, opacity: 0.7, textTransform: 'none', letterSpacing: '0.02em' }}>{desc}</span>
-                    </button>
-                  )
-                })}
+              <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
+                <span>You have {slotsOpen} of {maxTaskSlots} task slots open</span>
+                <span>Level {task.level_required} required {meetsLevel ? '✓' : ''}</span>
               </div>
 
-              {/* Invite input (shown for collab/duel) */}
-              {selectedMode !== 'solo' && (
-                <div style={{ marginBottom: 14 }}>
-                  <span className="eyebrow" style={{ display: 'block', marginBottom: 6 }}>Invite</span>
-                  <div style={{ display: 'flex', gap: 6, position: 'relative' }}>
-                    <input
-                      type="text"
-                      value={inviteQuery}
-                      onChange={(e) => handleInviteSearch(e.target.value)}
-                      placeholder="player name or @handle"
-                      style={{
-                        flex: 1,
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 12, padding: '8px 12px',
-                        background: dark ? '#1a1209' : '#F7F4EE',
-                        color: 'var(--color-text-primary)',
-                        border: '2px solid var(--color-border)',
-                        outline: 'none',
-                      }}
-                      onFocus={() => { if (searchResults.length > 0) setShowSearch(true) }}
-                      onBlur={() => setTimeout(() => setShowSearch(false), 200)}
-                    />
-                    <button
-                      type="button"
-                      disabled={!inviteQuery.trim()}
-                      onClick={() => {
-                        if (searchResults.length > 0) {
-                          addPartner(searchResults[0])
-                        } else {
-                          handleInviteSearch(inviteQuery)
-                        }
-                      }}
-                      style={{
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                        padding: '8px 14px',
-                        background: 'var(--color-bg-surface-alt)',
-                        border: '2px solid var(--color-border)',
-                        color: 'var(--color-text-primary)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      + Add
-                    </button>
-
-                    {/* Search dropdown */}
-                    {showSearch && (
-                      <div
-                        style={{
-                          position: 'absolute', top: '100%', left: 0, right: 60, zIndex: 10,
-                          background: 'var(--color-bg-surface)',
-                          border: '1px solid var(--color-border)',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                          maxHeight: 200, overflowY: 'auto',
-                        }}
-                      >
-                        {searchResults.map((character) => (
-                          <button
-                            key={character.id}
-                            onMouseDown={() => addPartner(character)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8,
-                              width: '100%', padding: '8px 12px',
-                              background: 'transparent', border: 'none',
-                              cursor: 'pointer', textAlign: 'left',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 20, height: 20, borderRadius: '50%',
-                                background: `linear-gradient(135deg, ${factionColor(character.faction_slug)}, ${factionColor(character.faction_slug)}88)`,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span className="font-body" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                              {character.display_name}
-                            </span>
-                            <span className="eyebrow" style={{ marginLeft: 'auto' }}>
-                              {factionName(character.faction_slug)}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Invited chips */}
-                  {invitedPartners.length > 0 && (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span className="eyebrow">Invited:</span>
-                      {invitedPartners.map((partner) => (
-                        <span
-                          key={partner.id}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            background: 'var(--color-bg-surface-alt)',
-                            border: '1px solid var(--color-border)',
-                            padding: '2px 8px',
-                            fontFamily: "'Courier Prime', monospace",
-                            fontSize: 9,
-                          }}
-                        >
-                          <span style={{ width: 6, height: 6, background: factionColor(partner.faction_slug), display: 'inline-block' }} />
-                          {partner.name}
-                          <button
-                            onClick={() => removePartner(partner.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', fontSize: 10, padding: 0 }}
-                          >
-                            &times;
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Sign up button (only when not yet signed up) */}
-              {!isInProgress && (
-                <>
-                  {canSignUp ? (
-                    <button
-                      onClick={handleSignup}
-                      style={{
-                        width: '100%',
-                        background: color, color: 'white',
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
-                        letterSpacing: '0.15em', padding: '10px 20px',
-                        border: 'none', cursor: 'pointer', position: 'relative',
-                      }}
-                    >
-                      <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-                      Sign up · earn up to {modifiedPoints} pts
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      style={{
-                        width: '100%',
-                        background: 'var(--color-bg-surface-alt)',
-                        color: 'var(--color-text-tertiary)',
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 11, textTransform: 'uppercase',
-                        letterSpacing: '0.1em', padding: '10px 20px',
-                        border: 'none', cursor: 'not-allowed',
-                      }}
-                    >
-                      {!meetsLevel ? `Level ${task.level_required} required` : 'Sign up'}
-                    </button>
-                  )}
-
-                  <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
-                    <span>You have {slotsOpen} of {maxTaskSlots} task slots open</span>
-                    <span>Level {task.level_required} required {meetsLevel ? '✓' : ''}</span>
-                  </div>
-
-                  {signupError && (
-                    <p className="font-body" style={{ fontSize: 9, color: '#dc2626', marginTop: 6 }}>{signupError}</p>
-                  )}
-                </>
+              {signupError && (
+                <p className="font-body" style={{ fontSize: 9, color: '#dc2626', marginTop: 6 }}>{signupError}</p>
               )}
             </div>
           )}
+
 
           {/* Already signed up / submitted states */}
           {user && mySubmission && (
@@ -544,7 +317,6 @@ export default function TaskDetail() {
               </div>
               <Link
                 to={`/tasks/${task.id}/submit`}
-                state={{ mode: selectedMode, partners: invitedPartners }}
                 style={{
                   background: color, color: 'white',
                   fontFamily: "'Courier Prime', monospace",

@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { createSubmission, uploadMedia } from '../api/submissions'
-import { getTask, type TaskOut } from '../api/tasks'
+import { getTask, dropTask, type TaskOut } from '../api/tasks'
+import { listCharacters, type CharacterOut } from '../api/characters'
 import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
@@ -10,16 +11,24 @@ import { factionColor, factionName } from '../utils/factions'
 
 const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
 
+type CollabMode = 'solo' | 'collab' | 'duel'
+
+interface InvitedPartner {
+  id: number
+  name: string
+  faction_slug: string | null
+}
+
 interface LocationState {
   mode?: string
-  partners?: { id: number; name: string }[]
+  partners?: InvitedPartner[]
 }
 
 export default function SubmitProof() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { refetch } = useAuth()
+  const { user, refetch } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
   const [task, setTask] = useState<TaskOut | null>(null)
@@ -30,10 +39,17 @@ export default function SubmitProof() {
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Read collaboration mode from location state (passed by TaskDetail)
+  // Collab/duel state — initialize from location state if navigated from TaskDetail
   const locationState = location.state as LocationState | null
-  const collabMode = locationState?.mode ?? 'solo'
-  const partners = locationState?.partners ?? []
+  const [selectedMode, setSelectedMode] = useState<CollabMode>(
+    (locationState?.mode as CollabMode) ?? 'solo'
+  )
+  const [invitedPartners, setInvitedPartners] = useState<InvitedPartner[]>(
+    locationState?.partners ?? []
+  )
+  const [inviteQuery, setInviteQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<CharacterOut[]>([])
+  const [showSearch, setShowSearch] = useState(false)
 
   useEffect(() => {
     if (id) getTask(parseInt(id, 10)).then(setTask).catch(() => {})
@@ -49,13 +65,12 @@ export default function SubmitProof() {
         task_id: parseInt(id, 10),
         title,
         body_text: body || undefined,
-        collaboration_mode: collabMode !== 'solo' ? collabMode : undefined,
-        partner_character_id: partners.length > 0 ? partners[0].id : undefined,
+        collaboration_mode: selectedMode !== 'solo' ? selectedMode : undefined,
+        partner_character_id: invitedPartners.length > 0 ? invitedPartners[0].id : undefined,
       })
       for (const file of files) {
         await uploadMedia(submission.id, file)
       }
-      // Refresh sidebar character stats (score/level changed)
       void refetch()
       navigate(`/submissions/${submission.id}`)
     } catch {
@@ -81,6 +96,44 @@ export default function SubmitProof() {
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // Partner search
+  const handleInviteSearch = useCallback(async (query: string) => {
+    setInviteQuery(query)
+    if (query.length < 2) { setSearchResults([]); setShowSearch(false); return }
+    try {
+      const results = await listCharacters({ search: query, limit: 8 })
+      const filtered = results.filter((c) =>
+        c.id !== user?.character?.id && !invitedPartners.some((p) => p.id === c.id)
+      )
+      setSearchResults(filtered)
+      setShowSearch(filtered.length > 0)
+    } catch {
+      setSearchResults([])
+    }
+  }, [user, invitedPartners])
+
+  const addPartner = (character: CharacterOut) => {
+    if (selectedMode === 'duel' && invitedPartners.length >= 1) return
+    setInvitedPartners((prev) => [...prev, { id: character.id, name: character.display_name, faction_slug: character.faction_slug }])
+    setInviteQuery('')
+    setShowSearch(false)
+    setSearchResults([])
+  }
+
+  const removePartner = (characterId: number) => {
+    setInvitedPartners((prev) => prev.filter((p) => p.id !== characterId))
+  }
+
+  const handleDrop = async () => {
+    if (!task || !window.confirm('Drop this task? You can sign up again later.')) return
+    try {
+      await dropTask(task.id)
+      navigate(`/tasks/${task.id}`)
+    } catch {
+      setError('Could not drop this task.')
+    }
   }
 
   const color = factionColor(task?.primary_faction_slug)
@@ -131,23 +184,182 @@ export default function SubmitProof() {
             </span>
             <span className="eyebrow">{task.point_value} pts</span>
             <LevelPill level={task.level_required} />
-            {collabMode !== 'solo' && (
+            {selectedMode !== 'solo' && (
               <span
                 style={{
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                   padding: '2px 8px', borderRadius: 3,
-                  background: collabMode === 'duel' ? '#dc2626' : '#15803d',
+                  background: selectedMode === 'duel' ? '#dc2626' : '#15803d',
                   color: '#fff',
                 }}
               >
-                {collabMode === 'duel' ? 'Duel' : 'Collab'}
-                {partners.length > 0 && ` with ${partners[0].name}`}
+                {selectedMode === 'duel' ? 'Duel' : 'Collab'}
+                {invitedPartners.length > 0 && ` with ${invitedPartners[0].name}`}
               </span>
             )}
           </div>
         </div>
       )}
+
+      {/* ── Mode Selector + Invite ── */}
+      <div className="sidebar-card mb-5" style={{ padding: '16px 18px', borderRadius: 12 }}>
+        <p className="eyebrow mb-3">How do you want to do this?</p>
+
+        {/* Mode cards */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {([
+            { mode: 'solo' as CollabMode, icon: '◎', label: 'Solo', desc: 'Just you. All points are yours.' },
+            { mode: 'collab' as CollabMode, icon: '⬡', label: 'Collaboration', desc: 'Invite others. Everyone earns full points.' },
+            { mode: 'duel' as CollabMode, icon: '⚔', label: 'Duel', desc: 'Challenge one player. Winner takes the points.' },
+          ]).map(({ mode, icon, label, desc }) => {
+            const active = selectedMode === mode
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setSelectedMode(mode); if (mode === 'solo') setInvitedPartners([]) }}
+                style={{
+                  flex: 1,
+                  position: 'relative',
+                  border: `2.5px solid ${active ? (dark ? '#f0e6d0' : '#1a1209') : 'var(--color-border)'}`,
+                  borderRadius: 0,
+                  background: active ? (dark ? '#f0e6d0' : '#1a1209') : 'var(--color-bg-surface-alt)',
+                  color: active ? (dark ? '#13121a' : '#F7F4EE') : 'var(--color-text-primary)',
+                  fontFamily: "'Courier Prime', monospace",
+                  fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', padding: '10px 8px',
+                  cursor: 'pointer', textAlign: 'center',
+                }}
+              >
+                {active && <span style={{ position: 'absolute', inset: 2, border: '1px dashed rgba(255,255,255,0.2)', pointerEvents: 'none' }} />}
+                <span style={{ display: 'block', fontSize: 18, marginBottom: 4 }}>{icon}</span>
+                <span style={{ display: 'block', marginBottom: 2 }}>{label}</span>
+                <span style={{ display: 'block', fontSize: 7, fontWeight: 400, opacity: 0.7, textTransform: 'none', letterSpacing: '0.02em' }}>{desc}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Invite input (shown for collab/duel) */}
+        {selectedMode !== 'solo' && (
+          <div>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 6 }}>Invite</span>
+            <div style={{ display: 'flex', gap: 6, position: 'relative' }}>
+              <input
+                type="text"
+                value={inviteQuery}
+                onChange={(e) => handleInviteSearch(e.target.value)}
+                placeholder="player name or @handle"
+                style={{
+                  flex: 1,
+                  fontFamily: "'Courier Prime', monospace",
+                  fontSize: 12, padding: '8px 12px',
+                  background: dark ? '#1a1209' : '#F7F4EE',
+                  color: 'var(--color-text-primary)',
+                  border: '2px solid var(--color-border)',
+                  outline: 'none',
+                }}
+                onFocus={() => { if (searchResults.length > 0) setShowSearch(true) }}
+                onBlur={() => setTimeout(() => setShowSearch(false), 200)}
+              />
+              <button
+                type="button"
+                disabled={!inviteQuery.trim()}
+                onClick={() => {
+                  if (searchResults.length > 0) {
+                    addPartner(searchResults[0])
+                  } else {
+                    handleInviteSearch(inviteQuery)
+                  }
+                }}
+                style={{
+                  fontFamily: "'Courier Prime', monospace",
+                  fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                  padding: '8px 14px',
+                  background: 'var(--color-bg-surface-alt)',
+                  border: '2px solid var(--color-border)',
+                  color: 'var(--color-text-primary)',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add
+              </button>
+
+              {/* Search dropdown */}
+              {showSearch && (
+                <div
+                  style={{
+                    position: 'absolute', top: '100%', left: 0, right: 60, zIndex: 10,
+                    background: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    maxHeight: 200, overflowY: 'auto',
+                  }}
+                >
+                  {searchResults.map((character) => (
+                    <button
+                      key={character.id}
+                      type="button"
+                      onMouseDown={() => addPartner(character)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        width: '100%', padding: '8px 12px',
+                        background: 'transparent', border: 'none',
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 20, height: 20, borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${factionColor(character.faction_slug)}, ${factionColor(character.faction_slug)}88)`,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span className="font-body" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                        {character.display_name}
+                      </span>
+                      <span className="eyebrow" style={{ marginLeft: 'auto' }}>
+                        {factionName(character.faction_slug)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Invited chips */}
+            {invitedPartners.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span className="eyebrow">Invited:</span>
+                {invitedPartners.map((partner) => (
+                  <span
+                    key={partner.id}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'var(--color-bg-surface-alt)',
+                      border: '1px solid var(--color-border)',
+                      padding: '2px 8px',
+                      fontFamily: "'Courier Prime', monospace",
+                      fontSize: 9,
+                    }}
+                  >
+                    <span style={{ width: 6, height: 6, background: factionColor(partner.faction_slug), display: 'inline-block' }} />
+                    {partner.name}
+                    <button
+                      type="button"
+                      onClick={() => removePartner(partner.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', fontSize: 10, padding: 0 }}
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
         {/* ── Section 1: Proof Title (§18.3) ── */}
@@ -334,11 +546,11 @@ export default function SubmitProof() {
           </button>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={handleDrop}
             className="btn-outline"
             style={{ fontSize: 10, padding: '8px 16px' }}
           >
-            Cancel
+            Drop task
           </button>
           <span className="font-body" style={{ fontSize: 8, color: 'var(--color-text-tertiary)', marginLeft: 'auto' }}>
             Once published, others can vote on your proof. You can edit it after publishing.

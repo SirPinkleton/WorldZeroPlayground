@@ -184,7 +184,7 @@ export default function Sidebar() {
                 >
                   <div style={{ minWidth: 0 }}>
                     <Link
-                      to={`/tasks/${characterTask.task.id}`}
+                      to={`/tasks/${characterTask.task.id}/submit`}
                       className="font-body"
                       style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-primary)', textDecoration: 'none', display: 'block', lineHeight: 1.3 }}
                     >
