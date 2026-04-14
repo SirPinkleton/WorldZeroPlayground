@@ -25,7 +25,7 @@ class TauntMessage(Base):
     )
     message: Mapped[str] = mapped_column(Text, nullable=False)
     trigger_type: Mapped[TauntTriggerType] = mapped_column(
-        Enum(TauntTriggerType), nullable=False
+        Enum(TauntTriggerType, create_type=False), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

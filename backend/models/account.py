@@ -19,7 +19,7 @@ class Account(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     status: Mapped[AccountStatus] = mapped_column(
-        Enum(AccountStatus), nullable=False, default=AccountStatus.active
+        Enum(AccountStatus, create_type=False), nullable=False, default=AccountStatus.active
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

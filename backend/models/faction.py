@@ -20,7 +20,7 @@ class Faction(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False, server_default="")
     status: Mapped[FactionStatus] = mapped_column(
-        Enum(FactionStatus), nullable=False, default=FactionStatus.visible
+        Enum(FactionStatus, create_type=False), nullable=False, default=FactionStatus.visible
     )
     # No multiplier columns: faction rules live in game_config.py, not the DB.
     # This table exists for FK references and UI display only.

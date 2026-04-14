@@ -29,10 +29,10 @@ class Relationship(Base):
         ForeignKey("character.id"), nullable=False
     )
     type: Mapped[RelationshipType] = mapped_column(
-        Enum(RelationshipType), nullable=False
+        Enum(RelationshipType, create_type=False), nullable=False
     )
     status: Mapped[RelationshipStatus] = mapped_column(
-        Enum(RelationshipStatus), nullable=False
+        Enum(RelationshipStatus, create_type=False), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

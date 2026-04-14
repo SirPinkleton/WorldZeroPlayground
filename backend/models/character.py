@@ -28,7 +28,7 @@ class Character(Base):
         ForeignKey("faction.slug"), nullable=False, server_default="ua"
     )
     status: Mapped[CharacterStatus] = mapped_column(
-        Enum(CharacterStatus), nullable=False, default=CharacterStatus.active
+        Enum(CharacterStatus, create_type=False), nullable=False, default=CharacterStatus.active
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

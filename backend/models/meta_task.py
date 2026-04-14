@@ -19,7 +19,7 @@ class MetaTask(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     faction_slug: Mapped[str] = mapped_column(ForeignKey("faction.slug"), nullable=False)
-    bonus_type: Mapped[BonusType] = mapped_column(Enum(BonusType), nullable=False)
+    bonus_type: Mapped[BonusType] = mapped_column(Enum(BonusType, create_type=False), nullable=False)
     bonus_value: Mapped[float] = mapped_column(Float, nullable=False)
     level_required: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
