@@ -29,6 +29,8 @@ export interface SubmissionCreate {
   task_id: number
   title: string
   body_text?: string
+  collaboration_mode?: string
+  partner_character_id?: number
 }
 
 export async function listSubmissions(params?: { task_id?: number; character_id?: number }): Promise<SubmissionOut[]> {
