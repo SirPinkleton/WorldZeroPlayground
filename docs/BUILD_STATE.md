@@ -62,11 +62,13 @@ This file is the source of truth for what has been built, what is in progress, a
 - `services/auth.py` — create_jwt, decode_jwt, get_current_account, create_or_get_account ✅ 2026-04-01
 - `services/character.py` — create_character (level gate), update_character, soft_delete_character, check_faction_graduation ✅ 2026-04-01
 - `services/task.py` — signup_for_task (cap + level gate), drop_task, propose_task ✅ 2026-04-01
-- `services/submission.py` — create_submission, edit_submission, flag_submission, compute_submission_score_from_db ✅ 2026-04-01
+- `services/submission.py` — create_submission, edit_submission, flag_submission, withdraw/resubmit, compute_submission_score_from_db, build_submission_out (shared helper) ✅ 2026-04-13
 - `services/vote.py` — cast_or_update_vote (budget deduction, anti-self-vote, update-is-free logic) ✅ 2026-04-01
-- `services/era.py` — apply_era_reset (driven by EraConfig flags) — reset logic unit-tested via test_era_reset.py; DB service deferred to Session 2
+- `services/era.py` — apply_era_reset (driven by EraConfig flags), get_current_era_row, get_or_create_stats ✅
 - `services/relationship_service.py` — create, block, list relationships with display_status computation ✅ 2026-04-13
 - `services/taunt_service.py` — generate_taunt, get_taunts_for_character ✅ 2026-04-13
+- `services/admin_service.py` — game_overview, list_accounts, get_account_detail, list_characters, moderate_submission, suspend_account, assign_or_revoke_role, create_faction, admin_create_character, set_character_stats, reactivate_task, update_task_status ✅ 2026-04-13
+- `services/character_stats.py` — recalculate_character_stats (era-aware scoring engine) ✅ 2026-04-13
 
 ### Backend — Layer 4: Routers ✅ 2026-04-02
 `backend/routers/` created. All 40 routes registered and importing cleanly.
@@ -81,7 +83,9 @@ This file is the source of truth for what has been built, what is in progress, a
 - `routers/game_config.py` — GET /game-config (era config, faction colors, level thresholds) ✅ 2026-04-13
 - `routers/meta_tasks.py` — GET /meta-tasks?task_id=X (applicable meta tasks per task) ✅ 2026-04-13
 - `routers/messages.py` — GET /messages, POST /messages, GET /messages/{id} ✅
-- `routers/admin.py` — task approval/retire, submission delete, character ban, admin task create ✅
+- `routers/admin.py` — full admin panel: overview stats, accounts/characters management, task approval/retire/reactivate, submission moderation (flagged list + moderate action), contact messages, CLI token, faction creation ✅ 2026-04-13
+- `routers/contact.py` — POST /contact (public contact form) ✅ 2026-04-13
+- `routers/factions.py` — GET /factions, PUT /factions/{slug} ✅ 2026-04-13
 - `routers/leaderboard.py` — GET /leaderboard ✅
 - `backend/dependencies.py` — shared get_current_character + require_admin deps ✅
 
@@ -89,8 +93,18 @@ This file is the source of truth for what has been built, what is in progress, a
 - `backend/main.py` — FastAPI app, CORS config, SessionMiddleware, router registration, static file mount for media ✅
 - Added `itsdangerous` and `python-multipart` to requirements.txt (required by SessionMiddleware and file upload) ✅
 
-### Backend — Database Migrations ✅ 2026-04-02
-- `backend/alembic/versions/a1b2c3d4e5f6_initial_schema.py` — Initial migration (all 17 tables + enums). Applied and verified drift-free via `alembic check`. ✅
+### Backend — Database Migrations ✅ 2026-04-13
+- `a1b2c3d4e5f6` — Initial schema (17 tables + 6 enums) ✅
+- `b2c3d4e5f6a7` — Add contact_messages table ✅
+- `c3d4e5f6a7b8` — Seed factions ✅
+- `d4e5f6a7b8c9` — Add is_hidden to faction ✅
+- `e5f6a7b8c9d0` — Star schema modernization (CharacterStats, status enums, non-nullable columns) ✅ idempotent
+- `f6a7b8c9d0e1` — Submission soft delete (is_deleted) ✅
+- `g7h8i9j0k1l2` — Backend gaps (relationship status redesign, collaboration_mode, taunt_message) ✅ idempotent
+- `h8i9j0k1l2m3` — Submission withdraw (is_withdrawn) ✅
+- `i9j0k1l2m3n4` — Admin moderation (ModerationStatus enum replaces is_flagged/is_deleted, admin_note, contact is_archived) ✅ checkfirst
+
+All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_table` calls. Enum types created via explicit `op.execute("CREATE TYPE ...")` with idempotency guards.
 
 ### Backend — Tests ✅ (unit + integration scaffold) 2026-04-02
 `backend/tests/` created.

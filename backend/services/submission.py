@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.flag import Flag
-from models.submission import CollaborationMode, ModerationStatus, Submission
+from models.submission import CollaborationMode, MediaItem, ModerationStatus, Submission
 from models.task import CharacterTask, CharacterTaskStatus, Task
 from models.vote import Vote
-from schemas.submission import SubmissionCreate
+from schemas.submission import MediaItemOut, SubmissionCreate, SubmissionOut
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
 from services.scoring import compute_faction_multiplier, compute_submission_score
@@ -194,3 +194,49 @@ async def compute_submission_score_from_db(
     )
     total_stars = int(sum_result.scalar_one_or_none() or 0)
     return compute_submission_score(task.point_value, faction_multiplier, total_stars)
+
+
+async def build_submission_out(
+    submission: Submission, session: AsyncSession
+) -> SubmissionOut:
+    """Build a complete SubmissionOut with all joined fields (task, character, media, score)."""
+    score = await compute_submission_score_from_db(submission, session)
+    media_result = await session.execute(
+        select(MediaItem)
+        .where(MediaItem.submission_id == submission.id)
+        .order_by(MediaItem.display_order)
+    )
+    media = [MediaItemOut.model_validate(item) for item in media_result.scalars().all()]
+
+    character = await session.get(Character, submission.character_id)
+    character_display_name = character.display_name if character else ""
+
+    task = await session.get(Task, submission.task_id)
+    task_title = task.title if task else ""
+    task_point_value = task.point_value if task else 0
+
+    partner_display_name = None
+    if submission.partner_character_id:
+        partner = await session.get(Character, submission.partner_character_id)
+        partner_display_name = partner.display_name if partner else None
+
+    return SubmissionOut(
+        id=submission.id,
+        task_id=submission.task_id,
+        character_id=submission.character_id,
+        character_display_name=character_display_name,
+        task_title=task_title,
+        task_point_value=task_point_value,
+        title=submission.title,
+        body_text=submission.body_text,
+        moderation_status=submission.moderation_status.value,
+        is_withdrawn=submission.is_withdrawn,
+        admin_note=submission.admin_note,
+        collaboration_mode=submission.collaboration_mode.value,
+        partner_character_id=submission.partner_character_id,
+        partner_display_name=partner_display_name,
+        created_at=submission.created_at,
+        updated_at=submission.updated_at,
+        media=media,
+        score=score,
+    )
