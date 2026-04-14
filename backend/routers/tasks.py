@@ -55,13 +55,14 @@ async def list_tasks(
     hidden_slugs = [row[0] for row in hidden_result.all()]
 
     query = select(Task)
-    if status:
+    if status and status != "all":
         try:
             query = query.where(Task.status == TaskStatus[status])
         except KeyError:
             raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
-    else:
+    elif not status:
         query = query.where(Task.status == TaskStatus.active)
+    # status == "all" -> no status filter, return tasks of every status
     if level is not None:
         query = query.where(Task.level_required >= level)
     if faction:

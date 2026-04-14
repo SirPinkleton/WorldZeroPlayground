@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { getMyTasks, type CharacterTaskOut } from '../../api/tasks'
 import { listSubmissions, type SubmissionOut } from '../../api/submissions'
-import { getActivityFeed, type ActivityFeedItem } from '../../api/activityFeed'
-import { getVotesReceived } from '../../api/characters'
 import { relativeTime } from '../../utils/dates'
 import { factionColor, factionName } from '../../utils/factions'
 import { mediaUrl } from '../../utils/media'
 import FeedBadge from '../feed/FeedBadge'
+import { useMyActiveTasks } from '../../hooks/useMyActiveTasks'
+import { useMyCharacterStats } from '../../hooks/useMyCharacterStats'
+import { usePendingRequests } from '../../hooks/usePendingRequests'
 
 const MAX_TASK_SLOTS = 20
 
@@ -20,25 +20,15 @@ export default function Sidebar() {
   const { user } = useAuth()
   const character = user?.character
 
-  const [activeTasks, setActiveTasks] = useState<CharacterTaskOut[]>([])
+  const { activeTasks } = useMyActiveTasks()
+  const { votesReceived } = useMyCharacterStats(character?.id)
+  const { pendingRequests } = usePendingRequests()
   const [globalActivity, setGlobalActivity] = useState<SubmissionOut[]>([])
-  const [pendingRequests, setPendingRequests] = useState<ActivityFeedItem[]>([])
-  const [votesReceived, setVotesReceived] = useState<number>(0)
 
   useEffect(() => {
     if (!user) return
-    getMyTasks('in_progress').then(setActiveTasks).catch(() => {})
-    // Global activity: recent completions from anyone
     listSubmissions({ limit: 5 } as any).then((submissions) => setGlobalActivity(submissions.slice(0, 5))).catch(() => {})
-    // Pending requests (collab invites + duel challenges)
-    getActivityFeed({ filter: 'requests', limit: 5 })
-      .then((response) => setPendingRequests(response.items))
-      .catch(() => {})
-    // Votes received count
-    if (character) {
-      getVotesReceived(character.id).then((data) => setVotesReceived(data.votes_received)).catch(() => {})
-    }
-  }, [user, character])
+  }, [user])
 
   const slotCount = activeTasks.length
   const slotPercent = Math.min((slotCount / MAX_TASK_SLOTS) * 100, 100)

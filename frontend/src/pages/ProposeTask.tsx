@@ -181,6 +181,7 @@ export default function ProposeTask() {
                   onFocus={(e) => { e.currentTarget.style.borderBottomColor = color }}
                   onBlur={(e) => { if (!title) e.currentTarget.style.borderBottomColor = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)' }}
                 />
+                <span className={`eyebrow self-end ${title.length >= 180 ? 'text-red-600' : ''}`} style={{ fontSize: 7, marginTop: 4 }}>{title.length}/200</span>
               </div>
 
               {/* Description (§20.4) */}
@@ -201,6 +202,7 @@ export default function ProposeTask() {
                     resize: 'vertical', minHeight: 120,
                   }}
                 />
+                <span className={`eyebrow self-end ${description.length >= 4500 ? 'text-red-600' : ''}`} style={{ fontSize: 7, marginTop: 4 }}>{description.length}/5000</span>
               </div>
 
               {/* Suggested Difficulty (§20.4) */}

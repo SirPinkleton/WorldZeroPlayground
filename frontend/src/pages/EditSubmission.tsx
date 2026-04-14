@@ -27,7 +27,27 @@ export default function EditSubmission() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fileError, setFileError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return
+    const incoming = Array.from(e.target.files)
+    const tooLarge = incoming.filter((f) => f.size > MAX_FILE_SIZE)
+    if (tooLarge.length > 0) {
+      setFileError(`File${tooLarge.length > 1 ? 's' : ''} too large (50 MB limit): ${tooLarge.map((f) => f.name).join(', ')}`)
+      // Build a DataTransfer with only valid files
+      const dt = new DataTransfer()
+      incoming.filter((f) => f.size <= MAX_FILE_SIZE).forEach((f) => dt.items.add(f))
+      e.target.files = dt.files
+      setNewFiles(dt.files.length > 0 ? dt.files : null)
+    } else {
+      setFileError('')
+      setNewFiles(e.target.files)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -92,8 +112,10 @@ export default function EditSubmission() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            maxLength={200}
             className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
           />
+          <span className={`font-body text-xs self-end ${title.length >= 180 ? 'text-red-600' : 'text-muted'}`}>{title.length}/200</span>
         </div>
 
         {/* Split pane: editor + preview */}
@@ -164,9 +186,10 @@ export default function EditSubmission() {
             type="file"
             multiple
             accept="image/*,video/*,audio/*"
-            onChange={(e) => setNewFiles(e.target.files)}
+            onChange={handleFileChange}
             className="font-body text-sm"
           />
+          {fileError && <p className="font-body text-xs text-red-600 mt-1">{fileError}</p>}
         </div>
 
         {error && <p className="font-body text-sm text-red-600">{error}</p>}

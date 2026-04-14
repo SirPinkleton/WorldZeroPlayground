@@ -11,6 +11,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
 
   useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+
+  useEffect(() => {
     if (!loading && user && !user.character && pathname !== '/characters/create') {
       navigate('/characters/create')
     }
