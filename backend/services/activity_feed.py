@@ -32,6 +32,7 @@ FEED_ITEM_TYPE_DUEL_CHALLENGE = "duel_challenge"
 FEED_ITEM_TYPE_FRIEND_SIGNUP = "friend_signup"
 FEED_ITEM_TYPE_INVITATION_LETTER = "invitation_letter"
 FEED_ITEM_TYPE_FRIEND_DEFECTION = "friend_defection"
+FEED_ITEM_TYPE_FOE_COMPLETION = "foe_completion"
 
 # Which sub-queries each filter includes
 FILTER_QUERIES: dict[str, set[str]] = {
@@ -46,13 +47,14 @@ FILTER_QUERIES: dict[str, set[str]] = {
         FEED_ITEM_TYPE_FRIEND_SIGNUP,
         FEED_ITEM_TYPE_INVITATION_LETTER,
         FEED_ITEM_TYPE_FRIEND_DEFECTION,
+        FEED_ITEM_TYPE_FOE_COMPLETION,
     },
     "friends": {
         FEED_ITEM_TYPE_FRIEND_COMPLETION,
         FEED_ITEM_TYPE_FRIEND_SIGNUP,
         FEED_ITEM_TYPE_FRIEND_DEFECTION,
     },
-    "foes": {FEED_ITEM_TYPE_FOE_TAUNT},
+    "foes": {FEED_ITEM_TYPE_FOE_TAUNT, FEED_ITEM_TYPE_FOE_COMPLETION},
     "your_stuff": {
         FEED_ITEM_TYPE_VOTE_ON_MINE,
         FEED_ITEM_TYPE_COLLAB_INVITE,
@@ -75,6 +77,21 @@ async def _get_friend_ids(
         select(Relationship.to_character_id).where(
             Relationship.from_character_id == character_id,
             Relationship.type == RelationshipType.friend,
+            Relationship.status == RelationshipStatus.active,
+        )
+    )
+    return list(result.scalars().all())
+
+
+async def _get_foe_ids(
+    character_id: int,
+    session: AsyncSession,
+) -> list[int]:
+    """Get IDs of characters the current character has declared as foes."""
+    result = await session.execute(
+        select(Relationship.to_character_id).where(
+            Relationship.from_character_id == character_id,
+            Relationship.type == RelationshipType.foe,
             Relationship.status == RelationshipStatus.active,
         )
     )
@@ -233,6 +250,60 @@ async def _fetch_foe_taunts(
                 "message": taunt.message,
                 "trigger_type": taunt.trigger_type.value,
                 "from_character_id": taunt.from_character_id,
+            },
+        ))
+    return items
+
+
+async def _fetch_foe_completions(
+    foe_ids: list[int],
+    session: AsyncSession,
+    before: Optional[datetime],
+) -> list[ActivityFeedItem]:
+    """Recent submissions (completions) from foes."""
+    if not foe_ids:
+        return []
+
+    query = (
+        select(
+            Submission.id,
+            Submission.title,
+            Submission.created_at,
+            Submission.character_id,
+            Task.title.label("task_title"),
+            Task.point_value.label("task_point_value"),
+            Task.primary_faction_slug.label("task_faction_slug"),
+            Character.display_name.label("author_display_name"),
+            Character.faction_slug.label("author_faction_slug"),
+            Character.avatar_url.label("author_avatar_url"),
+        )
+        .join(Task, Submission.task_id == Task.id)
+        .join(Character, Submission.character_id == Character.id)
+        .where(
+            Submission.character_id.in_(foe_ids),
+            Submission.is_withdrawn == False,  # noqa: E712
+        )
+    )
+    if before is not None:
+        query = query.where(Submission.created_at < before)
+    query = query.order_by(Submission.created_at.desc()).limit(SUB_QUERY_LIMIT)
+
+    result = await session.execute(query)
+    items: list[ActivityFeedItem] = []
+    for row in result.all():
+        items.append(ActivityFeedItem(
+            type=FEED_ITEM_TYPE_FOE_COMPLETION,
+            timestamp=row.created_at,
+            actor_display_name=row.author_display_name,
+            actor_faction_slug=row.author_faction_slug,
+            actor_avatar_url=row.author_avatar_url,
+            payload={
+                "submission_id": row.id,
+                "submission_title": row.title,
+                "task_title": row.task_title,
+                "task_point_value": row.task_point_value,
+                "task_faction_slug": row.task_faction_slug,
+                "character_id": row.character_id,
             },
         ))
     return items
@@ -713,7 +784,19 @@ async def _compute_counts(
     friend_signups_count = await count_friend_signups()
     friend_defections_count = await count_friend_defections()
     friends_count = friend_completions_count + friend_signups_count + friend_defections_count
-    foes_count = await count_foe_taunts()
+    foe_ids_for_count = await _get_foe_ids(character_id, session)
+    foe_completions_count = 0
+    if foe_ids_for_count:
+        foe_completions_result = await session.execute(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.character_id.in_(foe_ids_for_count),
+                Submission.is_withdrawn == False,  # noqa: E712
+            )
+        )
+        foe_completions_count = foe_completions_result.scalar_one()
+    foes_count = await count_foe_taunts() + foe_completions_count
     your_stuff_count = await count_your_stuff()
     global_count = await count_global()
     requests_count = await count_requests()
@@ -752,16 +835,20 @@ async def get_activity_feed(
 
     # Pre-fetch relationship and task context needed by multiple sub-queries
     friend_ids: list[int] = []
+    foe_ids: list[int] = []
     my_task_ids: list[int] = []
 
     needs_friends = bool(allowed_types & {
         FEED_ITEM_TYPE_FRIEND_COMPLETION, FEED_ITEM_TYPE_FRIEND_SIGNUP,
         FEED_ITEM_TYPE_FRIEND_DEFECTION,
     })
+    needs_foes = FEED_ITEM_TYPE_FOE_COMPLETION in allowed_types
     needs_my_tasks = FEED_ITEM_TYPE_FRIEND_SIGNUP in allowed_types
 
     if needs_friends:
         friend_ids = await _get_friend_ids(character_id, session)
+    if needs_foes:
+        foe_ids = await _get_foe_ids(character_id, session)
     if needs_my_tasks:
         my_task_ids = await _get_my_task_ids(character_id, session)
 
@@ -776,6 +863,9 @@ async def get_activity_feed(
 
     if FEED_ITEM_TYPE_FOE_TAUNT in allowed_types:
         fetch_tasks.append(_fetch_foe_taunts(character_id, session, before_cursor))
+
+    if FEED_ITEM_TYPE_FOE_COMPLETION in allowed_types:
+        fetch_tasks.append(_fetch_foe_completions(foe_ids, session, before_cursor))
 
     if FEED_ITEM_TYPE_GLOBAL_TASK in allowed_types:
         fetch_tasks.append(_fetch_global_tasks(session, before_cursor))

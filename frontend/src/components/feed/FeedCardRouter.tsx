@@ -9,11 +9,13 @@ import FeedCardGlobalTask from './FeedCardGlobalTask'
 import FeedCardFriendSignup from './FeedCardFriendSignup'
 import FeedCardInvitationLetter from './FeedCardInvitationLetter'
 import FeedCardFriendDefection from './FeedCardFriendDefection'
+import FeedCardFoeCompletion from './FeedCardFoeCompletion'
 
 const CARD_MAP: Record<string, React.ComponentType<{ item: ActivityFeedItem }>> = {
   era_announcement: FeedCardEraAnnouncement,
   vote_on_mine: FeedCardVoteNotification,
   foe_taunt: FeedCardFoeTaunt,
+  foe_completion: FeedCardFoeCompletion,
   friend_completion: FeedCardFriendActivity,
   collab_invite: FeedCardCollabInvite,
   duel_challenge: FeedCardDuelChallenge,

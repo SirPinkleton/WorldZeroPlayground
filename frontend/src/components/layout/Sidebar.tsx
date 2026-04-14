@@ -9,8 +9,9 @@ import FeedBadge from '../feed/FeedBadge'
 import { useMyActiveTasks } from '../../hooks/useMyActiveTasks'
 import { useMyCharacterStats } from '../../hooks/useMyCharacterStats'
 import { usePendingRequests } from '../../hooks/usePendingRequests'
+import { useGameConfig } from '../../hooks/useGameConfig'
 
-const MAX_TASK_SLOTS = 20
+const DEFAULT_MAX_TASK_SLOTS = 20
 
 /**
  * Always-on right sidebar (Style Guide §4.2).
@@ -23,6 +24,7 @@ export default function Sidebar() {
   const { activeTasks } = useMyActiveTasks()
   const { votesReceived } = useMyCharacterStats(character?.id)
   const { pendingRequests } = usePendingRequests()
+  const gameConfig = useGameConfig()
   const [globalActivity, setGlobalActivity] = useState<ActivityFeedItem[]>([])
 
   useEffect(() => {
@@ -33,8 +35,9 @@ export default function Sidebar() {
       .catch(() => {})
   }, [user])
 
+  const maxTaskSlots = gameConfig?.max_task_signups ?? DEFAULT_MAX_TASK_SLOTS
   const slotCount = activeTasks.length
-  const slotPercent = Math.min((slotCount / MAX_TASK_SLOTS) * 100, 100)
+  const slotPercent = Math.min((slotCount / maxTaskSlots) * 100, 100)
 
   return (
     <aside className="flex flex-col gap-3" style={{ width: 256 }}>
@@ -219,7 +222,7 @@ export default function Sidebar() {
             />
           </div>
           <p className="font-body" style={{ fontSize: 8, color: 'var(--color-text-tertiary)', marginTop: 3 }}>
-            {slotCount} / {MAX_TASK_SLOTS} slots
+            {slotCount} / {maxTaskSlots} slots
           </p>
         </div>
       </div>
