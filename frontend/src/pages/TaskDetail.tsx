@@ -14,8 +14,9 @@ import { useTheme } from '../hooks/useTheme'
 import { factionColor, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 import { mediaUrl } from '../utils/media'
+import { useGameConfig } from '../hooks/useGameConfig'
 
-const MAX_TASK_SLOTS = 20
+const DEFAULT_MAX_TASK_SLOTS = 20
 const VISIBLE_SIGNUPS = 4
 
 type CollabMode = 'solo' | 'collab' | 'duel'
@@ -54,6 +55,10 @@ export default function TaskDetail() {
   const [inviteQuery, setInviteQuery] = useState('')
   const [searchResults, setSearchResults] = useState<CharacterOut[]>([])
   const [showSearch, setShowSearch] = useState(false)
+
+  // Game config
+  const gameConfig = useGameConfig()
+  const maxTaskSlots = gameConfig?.max_task_signups ?? DEFAULT_MAX_TASK_SLOTS
 
   // Submission sort
   const [submissionSort, setSubmissionSort] = useState<'score' | 'recent'>('score')
@@ -184,10 +189,26 @@ export default function TaskDetail() {
   const fname = factionName(task.primary_faction_slug)
   const canSignUp = user && !mySubmission && !isInProgress && (user.character?.level ?? 0) >= task.level_required
   const meetsLevel = (user?.character?.level ?? 0) >= task.level_required
-  const slotsOpen = MAX_TASK_SLOTS - taskSlotCount
+  const slotsOpen = maxTaskSlots - taskSlotCount
   const avgVote = submissions.length > 0
     ? (submissions.reduce((sum, s) => sum + (s.score ?? 0), 0) / submissions.length).toFixed(1)
     : '—'
+
+  // Compute faction modifier for the current user
+  const myFaction = user?.character?.faction_slug
+  const taskFaction = task.primary_faction_slug
+  const factionConfig = myFaction && gameConfig
+    ? gameConfig.factions.find((f) => f.slug === myFaction)
+    : null
+  const isOwnFaction = factionConfig && (taskFaction === myFaction || taskFaction === 'na' || !taskFaction)
+  const factionMultiplier = factionConfig
+    ? (selectedMode === 'duel'
+        ? factionConfig.duel_win_modifier
+        : selectedMode === 'collab'
+          ? (isOwnFaction ? factionConfig.collab_own_modifier : factionConfig.collab_other_modifier)
+          : (isOwnFaction ? factionConfig.own_task_modifier : factionConfig.other_task_modifier))
+    : 1.0
+  const modifiedPoints = Math.round(task.point_value * factionMultiplier)
 
   const sortedSubmissions = [...submissions].sort((a, b) => {
     if (submissionSort === 'score') return (b.score ?? 0) - (a.score ?? 0)
@@ -252,9 +273,10 @@ export default function TaskDetail() {
             </h1>
 
             {/* Stats row */}
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${user && factionMultiplier !== 1.0 ? 5 : 4}, 1fr)`, gap: 8, marginBottom: 16 }}>
               {[
                 { label: 'Base Pts', value: task.point_value },
+                ...(user && factionMultiplier !== 1.0 ? [{ label: `Your Pts (×${factionMultiplier})`, value: modifiedPoints }] : []),
                 { label: 'Completed', value: submissions.length },
                 { label: 'In Progress', value: signups.length },
                 { label: 'Avg Vote', value: avgVote },
@@ -284,7 +306,7 @@ export default function TaskDetail() {
           </div>
 
           {/* ── Mode Selector + Signup Block ── */}
-          {user && !mySubmission && !isInProgress && (
+          {user && !mySubmission && (
             <div className="sidebar-card mb-5" style={{ padding: '16px 20px' }}>
               <p className="eyebrow mb-3">How do you want to do this?</p>
 
@@ -347,6 +369,13 @@ export default function TaskDetail() {
                     <button
                       type="button"
                       disabled={!inviteQuery.trim()}
+                      onClick={() => {
+                        if (searchResults.length > 0) {
+                          addPartner(searchResults[0])
+                        } else {
+                          handleInviteSearch(inviteQuery)
+                        }
+                      }}
                       style={{
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
@@ -432,46 +461,50 @@ export default function TaskDetail() {
                 </div>
               )}
 
-              {/* Sign up button */}
-              {canSignUp ? (
-                <button
-                  onClick={handleSignup}
-                  style={{
-                    width: '100%',
-                    background: color, color: 'white',
-                    fontFamily: "'Courier Prime', monospace",
-                    fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.15em', padding: '10px 20px',
-                    border: 'none', cursor: 'pointer', position: 'relative',
-                  }}
-                >
-                  <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-                  Sign up · earn up to {task.point_value} pts
-                </button>
-              ) : (
-                <button
-                  disabled
-                  style={{
-                    width: '100%',
-                    background: 'var(--color-bg-surface-alt)',
-                    color: 'var(--color-text-tertiary)',
-                    fontFamily: "'Courier Prime', monospace",
-                    fontSize: 11, textTransform: 'uppercase',
-                    letterSpacing: '0.1em', padding: '10px 20px',
-                    border: 'none', cursor: 'not-allowed',
-                  }}
-                >
-                  {!meetsLevel ? `Level ${task.level_required} required` : 'Sign up'}
-                </button>
-              )}
+              {/* Sign up button (only when not yet signed up) */}
+              {!isInProgress && (
+                <>
+                  {canSignUp ? (
+                    <button
+                      onClick={handleSignup}
+                      style={{
+                        width: '100%',
+                        background: color, color: 'white',
+                        fontFamily: "'Courier Prime', monospace",
+                        fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
+                        letterSpacing: '0.15em', padding: '10px 20px',
+                        border: 'none', cursor: 'pointer', position: 'relative',
+                      }}
+                    >
+                      <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+                      Sign up · earn up to {modifiedPoints} pts
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      style={{
+                        width: '100%',
+                        background: 'var(--color-bg-surface-alt)',
+                        color: 'var(--color-text-tertiary)',
+                        fontFamily: "'Courier Prime', monospace",
+                        fontSize: 11, textTransform: 'uppercase',
+                        letterSpacing: '0.1em', padding: '10px 20px',
+                        border: 'none', cursor: 'not-allowed',
+                      }}
+                    >
+                      {!meetsLevel ? `Level ${task.level_required} required` : 'Sign up'}
+                    </button>
+                  )}
 
-              <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
-                <span>You have {slotsOpen} of {MAX_TASK_SLOTS} task slots open</span>
-                <span>Level {task.level_required} required {meetsLevel ? '✓' : ''}</span>
-              </div>
+                  <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>You have {slotsOpen} of {maxTaskSlots} task slots open</span>
+                    <span>Level {task.level_required} required {meetsLevel ? '✓' : ''}</span>
+                  </div>
 
-              {signupError && (
-                <p className="font-body" style={{ fontSize: 9, color: '#dc2626', marginTop: 6 }}>{signupError}</p>
+                  {signupError && (
+                    <p className="font-body" style={{ fontSize: 9, color: '#dc2626', marginTop: 6 }}>{signupError}</p>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -511,6 +544,7 @@ export default function TaskDetail() {
               </div>
               <Link
                 to={`/tasks/${task.id}/submit`}
+                state={{ mode: selectedMode, partners: invitedPartners }}
                 style={{
                   background: color, color: 'white',
                   fontFamily: "'Courier Prime', monospace",
