@@ -470,8 +470,8 @@ async def test_admin_overview(
     resp = await client.get("/admin/overview", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert "total_accounts" in data
-    assert "total_characters" in data
+    assert "accounts" in data
+    assert "characters" in data
 
 
 @pytest.mark.asyncio
