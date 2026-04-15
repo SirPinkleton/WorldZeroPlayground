@@ -22,6 +22,13 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
     onModerated?.()
   }
 
+  const handleFail = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await moderatePraxis(praxis.id, 'failed')
+    onModerated?.()
+  }
+
   return (
     <div
       className="card p-4 flex flex-col gap-2 transition-all duration-150 relative"
@@ -59,21 +66,39 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
         </span>
       )}
 
-      {/* Admin hide button */}
+      {/* Admin action buttons */}
       {showAdminControls && praxis.moderation_status === 'visible' && (
-        <button
-          onClick={(e) => void handleHide(e)}
-          className="eyebrow"
+        <div
           style={{
             position: 'absolute', top: 8, right: 8,
-            fontSize: 7, padding: '1px 5px',
-            border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626',
-            background: 'rgba(220,38,38,0.05)',
-            cursor: 'pointer',
+            display: 'flex', gap: 4,
           }}
         >
-          hide
-        </button>
+          <button
+            onClick={(e) => void handleHide(e)}
+            className="eyebrow"
+            style={{
+              fontSize: 7, padding: '1px 5px',
+              border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626',
+              background: 'rgba(220,38,38,0.05)',
+              cursor: 'pointer',
+            }}
+          >
+            hide
+          </button>
+          <button
+            onClick={(e) => void handleFail(e)}
+            className="eyebrow"
+            style={{
+              fontSize: 7, padding: '1px 5px',
+              border: '1px solid rgba(245,158,11,0.3)', color: '#d97706',
+              background: 'rgba(245,158,11,0.05)',
+              cursor: 'pointer',
+            }}
+          >
+            fail
+          </button>
+        </div>
       )}
 
       <Link to={`/praxes/${praxis.id}`}>

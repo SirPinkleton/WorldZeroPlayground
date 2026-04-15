@@ -228,24 +228,44 @@ export default function PraxisDetail() {
                 </>
               )}
               {praxis.moderation_status === 'visible' && (
-                <button
-                  onClick={() => void handleModerate('hidden')}
-                  disabled={moderating}
-                  className="btn-outline text-xs"
-                  style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
-                >
-                  hide
-                </button>
+                <>
+                  <button
+                    onClick={() => void handleModerate('hidden')}
+                    disabled={moderating}
+                    className="btn-outline text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
+                  >
+                    hide
+                  </button>
+                  <button
+                    onClick={() => setShowFailInput(!showFailInput)}
+                    disabled={moderating}
+                    className="btn-outline text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                  >
+                    fail
+                  </button>
+                </>
               )}
               {(praxis.moderation_status === 'hidden' || praxis.moderation_status === 'failed') && (
-                <button
-                  onClick={() => void handleModerate('visible')}
-                  disabled={moderating}
-                  className="btn-primary text-xs"
-                  style={{ padding: '2px 10px', fontSize: 9 }}
-                >
-                  restore
-                </button>
+                <>
+                  <button
+                    onClick={() => void handleModerate('visible')}
+                    disabled={moderating}
+                    className="btn-primary text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9 }}
+                  >
+                    restore
+                  </button>
+                  <button
+                    onClick={() => setShowFailInput(!showFailInput)}
+                    disabled={moderating}
+                    className="btn-outline text-xs"
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                  >
+                    fail
+                  </button>
+                </>
               )}
             </div>
           </div>
