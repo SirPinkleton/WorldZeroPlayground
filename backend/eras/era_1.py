@@ -385,6 +385,11 @@ ERA_1_TASKS = (
         description="Have a meal, and try to identify each ingredient. Then, make that meal yourself, and then try again to identify each ingredient again",
         faction_slug="analog", level_required=2, point_value=10,
     ),
+    TaskDef(
+        title="FLIP THE SYSTEM",
+        description="TBD",
+        faction_slug="snide", level_required=0, point_value=500,
+    ),
 )
 
 

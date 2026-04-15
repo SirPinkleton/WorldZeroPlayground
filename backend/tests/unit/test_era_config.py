@@ -116,7 +116,7 @@ def test_era1_has_tasks():
 
 
 def test_era1_task_count():
-    assert len(ERA_1.tasks) == 45
+    assert len(ERA_1.tasks) == 46
 
 
 def test_era1_task_faction_slugs_valid():
