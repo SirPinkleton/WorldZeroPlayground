@@ -201,6 +201,7 @@ async def build_praxis_out(
     media = [MediaItemOut.model_validate(item) for item in praxis.media_items]
 
     character_display_name = praxis.character.display_name if praxis.character else ""
+    character_avatar_url = (praxis.character.avatar_url or None) if praxis.character else None
     task_title = praxis.task.title if praxis.task else ""
     task_point_value = praxis.task.point_value if praxis.task else 0
     task_faction_slug = praxis.task.primary_faction_slug if praxis.task else None
@@ -210,6 +211,7 @@ async def build_praxis_out(
         task_id=praxis.task_id,
         character_id=praxis.character_id,
         character_display_name=character_display_name,
+        character_avatar_url=character_avatar_url,
         task_title=task_title,
         task_point_value=task_point_value,
         task_faction_slug=task_faction_slug,

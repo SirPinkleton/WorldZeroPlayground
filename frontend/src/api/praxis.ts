@@ -12,6 +12,7 @@ export interface PraxisOut {
   task_id: number
   character_id: number
   character_display_name: string
+  character_avatar_url: string | null
   task_title: string
   task_point_value: number
   task_faction_slug: string | null

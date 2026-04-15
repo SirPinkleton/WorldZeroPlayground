@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderatePraxis } from '../api/admin'
 import { extractError } from '../utils/errors'
+import { mediaUrl } from '../utils/media'
 
 /** Rainbow underline bar colors — 8 segments cycling (Style Guide §12.3) */
 const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
@@ -279,14 +280,23 @@ export default function PraxisDetail() {
         style={{ padding: '10px 14px' }}
       >
         <Link to={`/characters/${praxis.character_id}`}>
-          <div
-            className="rounded-full shrink-0"
-            style={{
-              width: 42,
-              height: 42,
-              background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}88)`,
-            }}
-          />
+          {praxis.character_avatar_url ? (
+            <img
+              src={mediaUrl(praxis.character_avatar_url)}
+              alt={praxis.character_display_name}
+              className="rounded-full shrink-0 object-cover border-2 border-border"
+              style={{ width: 42, height: 42 }}
+            />
+          ) : (
+            <div
+              className="rounded-full shrink-0"
+              style={{
+                width: 42,
+                height: 42,
+                background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}88)`,
+              }}
+            />
+          )}
         </Link>
         <div className="flex-1 min-w-0">
           <Link
