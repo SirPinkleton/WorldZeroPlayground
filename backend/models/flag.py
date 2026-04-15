@@ -10,7 +10,7 @@ class Flag(Base):
     __tablename__ = "flag"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    submission_id: Mapped[int] = mapped_column(ForeignKey("submission.id"), nullable=False)
+    praxis_id: Mapped[int] = mapped_column(ForeignKey("praxis.id"), nullable=False)
     flagged_by: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     created_at: Mapped[datetime] = mapped_column(

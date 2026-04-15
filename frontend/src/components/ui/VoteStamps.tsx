@@ -24,13 +24,13 @@ const STAMPS: StampConfig[] = [
 ]
 
 interface Props {
-  submissionId: number
+  praxisId: number
   currentStars?: number
   averageStars?: number
   totalVotes?: number
 }
 
-export default function VoteStamps({ submissionId, currentStars, averageStars, totalVotes }: Props) {
+export default function VoteStamps({ praxisId, currentStars, averageStars, totalVotes }: Props) {
   const { user, refetch } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
@@ -43,7 +43,7 @@ export default function VoteStamps({ submissionId, currentStars, averageStars, t
     setSaving(true)
     setError('')
     try {
-      await castVote(submissionId, stars)
+      await castVote(praxisId, stars)
       setSelected(stars)
       // Refresh sidebar character stats (score/level may have changed)
       void refetch()

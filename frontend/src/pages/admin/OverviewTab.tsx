@@ -20,9 +20,9 @@ export default function OverviewTab() {
     { label: 'Accounts', value: stats.accounts },
     { label: 'Characters', value: stats.characters },
     { label: 'Active Tasks', value: stats.active_tasks },
-    { label: 'Submissions', value: stats.submissions },
+    { label: 'Praxis', value: stats.praxis },
     { label: 'Votes', value: stats.votes },
-    { label: 'Flagged', value: stats.flagged_submissions, highlight: stats.flagged_submissions > 0 },
+    { label: 'Flagged', value: stats.flagged_praxis, highlight: stats.flagged_praxis > 0 },
     { label: 'Suspended', value: stats.suspended_accounts, highlight: stats.suspended_accounts > 0 },
   ]
 

@@ -1,6 +1,6 @@
 import api from './axios'
 import type { TaskOut } from './tasks'
-import type { SubmissionOut } from './submissions'
+import type { PraxisOut } from './praxis'
 
 export interface PendingTaskOut extends TaskOut {
   created_by_name: string
@@ -19,9 +19,9 @@ export interface OverviewStats {
   accounts: number
   characters: number
   active_tasks: number
-  submissions: number
+  praxis: number
   votes: number
-  flagged_submissions: number
+  flagged_praxis: number
   suspended_accounts: number
 }
 
@@ -63,8 +63,8 @@ export async function getMessages(archived = false): Promise<ContactMessageOut[]
   return data
 }
 
-export async function getFlaggedSubmissions(): Promise<SubmissionOut[]> {
-  const { data } = await api.get<SubmissionOut[]>('/admin/submissions/flagged')
+export async function getFlaggedPraxes(): Promise<PraxisOut[]> {
+  const { data } = await api.get<PraxisOut[]>('/admin/praxes/flagged')
   return data
 }
 
@@ -102,12 +102,12 @@ export async function updateTaskStatus(id: number, status: string): Promise<Task
   return data
 }
 
-export async function moderateSubmission(
+export async function moderatePraxis(
   id: number,
   status: string,
   adminNote?: string,
-): Promise<SubmissionOut> {
-  const { data } = await api.patch<SubmissionOut>(`/admin/submissions/${id}/moderate`, {
+): Promise<PraxisOut> {
+  const { data } = await api.patch<PraxisOut>(`/admin/praxes/${id}/moderate`, {
     status,
     admin_note: adminNote || null,
   })

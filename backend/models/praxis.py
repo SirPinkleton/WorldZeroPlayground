@@ -33,8 +33,8 @@ class ModerationStatus(enum.Enum):
     failed = "failed"
 
 
-class Submission(Base):
-    __tablename__ = "submission"
+class Praxis(Base):
+    __tablename__ = "praxis"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     task_id: Mapped[int] = mapped_column(ForeignKey("task.id"), nullable=False)
@@ -71,8 +71,8 @@ class MediaItem(Base):
     __tablename__ = "media_item"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    submission_id: Mapped[int] = mapped_column(
-        ForeignKey("submission.id"), nullable=False
+    praxis_id: Mapped[int] = mapped_column(
+        ForeignKey("praxis.id"), nullable=False
     )
     type: Mapped[MediaType] = mapped_column(Enum(MediaType, create_type=False), nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)

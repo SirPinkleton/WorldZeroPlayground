@@ -19,12 +19,12 @@ from models.account import Account
 from models.character import Character, CharacterStatus
 from models.character_stats import CharacterStats
 from models.relationship import Relationship
-from models.submission import MediaItem, Submission
+from models.praxis import MediaItem, Praxis
 from models.task import Task
 from models.vote import Vote
 from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
 from schemas.relationship import RelationshipOut
-from schemas.submission import MediaItemOut, SubmissionOut
+from schemas.praxis import MediaItemOut, PraxisOut
 from services.auth import get_current_account
 from services.character import (
     CharacterCreationResult,
@@ -33,7 +33,7 @@ from services.character import (
     update_character,
 )
 from services.era import get_current_era_row
-from services.submission import compute_submission_score_from_db
+from services.praxis import compute_praxis_score_from_db
 
 router = APIRouter()
 
@@ -168,41 +168,41 @@ async def delete_character_route(
     await soft_delete_character(character_id, session)
 
 
-@router.get("/{character_id}/submissions", response_model=list[SubmissionOut])
-async def get_character_submissions(
+@router.get("/{character_id}/praxes", response_model=list[PraxisOut])
+async def get_character_praxes(
     character_id: int,
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
 ):
     result = await session.execute(
-        select(Submission)
-        .where(Submission.character_id == character_id)
-        .order_by(Submission.created_at.desc())
+        select(Praxis)
+        .where(Praxis.character_id == character_id)
+        .order_by(Praxis.created_at.desc())
         .limit(limit)
         .offset(offset)
     )
-    submissions = result.scalars().all()
+    praxis_list = result.scalars().all()
     out = []
-    for sub in submissions:
-        score = await compute_submission_score_from_db(sub, session)
+    for praxis in praxis_list:
+        score = await compute_praxis_score_from_db(praxis, session)
         media_result = await session.execute(
             select(MediaItem)
-            .where(MediaItem.submission_id == sub.id)
+            .where(MediaItem.praxis_id == praxis.id)
             .order_by(MediaItem.display_order)
         )
         media = [MediaItemOut.model_validate(media_item) for media_item in media_result.scalars().all()]
         out.append(
-            SubmissionOut(
-                id=sub.id,
-                task_id=sub.task_id,
-                character_id=sub.character_id,
-                title=sub.title,
-                body_text=sub.body_text,
-                moderation_status=sub.moderation_status.value,
-                admin_note=sub.admin_note,
-                created_at=sub.created_at,
-                updated_at=sub.updated_at,
+            PraxisOut(
+                id=praxis.id,
+                task_id=praxis.task_id,
+                character_id=praxis.character_id,
+                title=praxis.title,
+                body_text=praxis.body_text,
+                moderation_status=praxis.moderation_status.value,
+                admin_note=praxis.admin_note,
+                created_at=praxis.created_at,
+                updated_at=praxis.updated_at,
                 media=media,
                 score=score,
             )
@@ -297,12 +297,12 @@ async def get_votes_received_count(
     character_id: int,
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, int]:
-    """Return the total number of votes received on all of a character's submissions."""
+    """Return the total number of votes received on all of a character's praxes."""
     result = await session.execute(
         select(func.count())
         .select_from(Vote)
-        .join(Submission, Vote.submission_id == Submission.id)
-        .where(Submission.character_id == character_id)
+        .join(Praxis, Vote.praxis_id == Praxis.id)
+        .where(Praxis.character_id == character_id)
     )
     count = result.scalar_one()
     return {"character_id": character_id, "votes_received": count}

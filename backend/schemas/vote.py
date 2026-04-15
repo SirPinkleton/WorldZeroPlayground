@@ -11,7 +11,7 @@ class VoteOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    submission_id: int
+    praxis_id: int
     voter_character_id: int
     stars: int
     created_at: datetime
@@ -19,7 +19,7 @@ class VoteOut(BaseModel):
 
 
 class VoteSummary(BaseModel):
-    submission_id: int
+    praxis_id: int
     total_votes: int
     average_stars: float
     total_score: float

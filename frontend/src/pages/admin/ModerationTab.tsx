@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getFlaggedSubmissions, getMessages, moderateSubmission, archiveMessage } from '../../api/admin'
+import { getFlaggedPraxes, getMessages, moderatePraxis, archiveMessage } from '../../api/admin'
 import type { ContactMessageOut } from '../../api/admin'
-import type { SubmissionOut } from '../../api/submissions'
+import type { PraxisOut } from '../../api/praxis'
 import { formatTimestamp } from '../../utils/dates'
 import { extractError } from '../../utils/errors'
 
 export default function ModerationTab() {
-  const [flagged, setFlagged] = useState<SubmissionOut[]>([])
+  const [flagged, setFlagged] = useState<PraxisOut[]>([])
   const [messages, setMessages] = useState<ContactMessageOut[]>([])
   const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -19,7 +19,7 @@ export default function ModerationTab() {
 
   const refresh = () => {
     setError(null)
-    Promise.all([getFlaggedSubmissions(), getMessages(showArchived)])
+    Promise.all([getFlaggedPraxes(), getMessages(showArchived)])
       .then(([f, m]) => { setFlagged(f); setMessages(m) })
       .catch((err) => setError(extractError(err, "Couldn't load moderation data.")))
       .finally(() => setLoading(false))
@@ -30,7 +30,7 @@ export default function ModerationTab() {
   const handleModerate = async (id: number, status: string, adminNote?: string) => {
     setActionError(null)
     try {
-      await moderateSubmission(id, status, adminNote)
+      await moderatePraxis(id, status, adminNote)
       setFailNoteTarget(null)
       setFailNote('')
       refresh()

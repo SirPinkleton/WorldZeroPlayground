@@ -10,7 +10,7 @@ from models.base import Base
 class TauntTriggerType(enum.Enum):
     score_overtake = "score_overtake"
     level_up = "level_up"
-    submission_complete = "submission_complete"
+    praxis_complete = "praxis_complete"
 
 
 class TauntMessage(Base):

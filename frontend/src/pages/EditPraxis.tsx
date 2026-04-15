@@ -2,19 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getSubmission,
-  editSubmission,
+  getPraxis,
+  editPraxis,
   uploadMedia,
   deleteMedia,
   type MediaItemOut,
-} from '../api/submissions'
+} from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
 import PageTitle from '../components/ui/PageTitle'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-export default function EditSubmission() {
+export default function EditPraxis() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -51,18 +51,18 @@ export default function EditSubmission() {
 
   useEffect(() => {
     if (!id) return
-    getSubmission(parseInt(id, 10))
-      .then((submission) => {
-        if (user?.character?.id !== submission.character_id) {
-          navigate(`/submissions/${id}`, { replace: true })
+    getPraxis(parseInt(id, 10))
+      .then((praxis) => {
+        if (user?.character?.id !== praxis.character_id) {
+          navigate(`/praxes/${id}`, { replace: true })
           return
         }
-        setTaskId(submission.task_id)
-        setTitle(submission.title)
-        setBody(submission.body_text ?? '')
-        setMedia(submission.media)
+        setTaskId(praxis.task_id)
+        setTitle(praxis.title)
+        setBody(praxis.body_text ?? '')
+        setMedia(praxis.media)
       })
-      .catch(() => setError("Couldn't load this submission."))
+      .catch(() => setError("Couldn't load this praxis."))
       .finally(() => setLoading(false))
   }, [id, user])
 
@@ -82,15 +82,15 @@ export default function EditSubmission() {
     setSaving(true)
     setError('')
     try {
-      const submissionId = parseInt(id, 10)
-      await editSubmission(submissionId, { task_id: taskId!, title, body_text: body || undefined })
+      const praxisId = parseInt(id, 10)
+      await editPraxis(praxisId, { task_id: taskId!, title, body_text: body || undefined })
       if (newFiles) {
         for (const file of Array.from(newFiles)) {
-          const uploaded = await uploadMedia(submissionId, file)
+          const uploaded = await uploadMedia(praxisId, file)
           setMedia((previous) => [...previous, uploaded])
         }
       }
-      navigate(`/submissions/${id}`)
+      navigate(`/praxes/${id}`)
     } catch (err) {
       setError(extractError(err, 'Could not save changes.'))
     } finally {
@@ -198,7 +198,7 @@ export default function EditSubmission() {
           <button type="submit" disabled={saving} className="btn-primary">
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
-          <button type="button" onClick={() => navigate(`/submissions/${id}`)} className="btn-outline">
+          <button type="button" onClick={() => navigate(`/praxes/${id}`)} className="btn-outline">
             Cancel
           </button>
         </div>

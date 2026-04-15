@@ -7,7 +7,7 @@ import { useTheme } from '../hooks/useTheme'
 const links = [
   { to: '/', label: 'Home', end: true },
   { to: '/tasks', label: 'Tasks' },
-  { to: '/submissions', label: 'Praxis' },
+  { to: '/praxes', label: 'Praxis' },
   { to: '/leaderboard', label: 'Players' },
   { to: '/factions', label: 'Factions' },
   { to: '/updates', label: 'Updates' },

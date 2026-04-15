@@ -137,7 +137,7 @@ ERA_N_TASKS = (
 # Trigger types:
 #   "score_overtake"       -- when one foe passes another on the leaderboard
 #   "level_up"             -- when a foe levels up
-#   "submission_complete"  -- when a foe completes a task
+#   "praxis_complete"  -- when a foe completes a task
 
 ERA_N_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
     "default": {
@@ -147,7 +147,7 @@ ERA_N_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
         "level_up": [
             # TODO: Add default level up taunts
         ],
-        "submission_complete": [
+        "praxis_complete": [
             # TODO: Add default submission complete taunts
         ],
     },
@@ -160,7 +160,7 @@ ERA_N_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
     #     "level_up": [
     #         "{from_name} leveled up. {to_name} didn't.",
     #     ],
-    #     "submission_complete": [
+    #     "praxis_complete": [
     #         "{from_name} submitted proof. {to_name} is still planning.",
     #     ],
     # },

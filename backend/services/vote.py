@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.submission import Submission
+from models.praxis import Praxis
 from models.vote import Vote
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
@@ -12,7 +12,7 @@ from services.era import get_current_era_row, get_or_create_stats
 
 async def cast_or_update_vote(
     voter: Character,
-    submission: Submission,
+    praxis: Praxis,
     stars: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
@@ -22,7 +22,7 @@ async def cast_or_update_vote(
 
     result = await session.execute(
         select(Vote).where(
-            Vote.submission_id == submission.id,
+            Vote.praxis_id == praxis.id,
             Vote.voter_character_id == voter.id,
         )
     )
@@ -32,7 +32,7 @@ async def cast_or_update_vote(
         # Update is free — no budget deduction
         existing.stars = stars
         await session.commit()
-        await recalculate_character_stats(submission.character_id, session, era)
+        await recalculate_character_stats(praxis.character_id, session, era)
         await session.commit()
         await session.refresh(existing)
         return existing
@@ -45,7 +45,7 @@ async def cast_or_update_vote(
         raise HTTPException(status_code=403, detail="No votes remaining in your budget.")
 
     vote = Vote(
-        submission_id=submission.id,
+        praxis_id=praxis.id,
         voter_character_id=voter.id,
         voter_account_id=voter.account_id,
         stars=stars,
@@ -53,7 +53,7 @@ async def cast_or_update_vote(
     stats.votes_available -= 1
     session.add(vote)
     await session.flush()  # persist vote before recalculating so avg includes it
-    await recalculate_character_stats(submission.character_id, session, era)
+    await recalculate_character_stats(praxis.character_id, session, era)
     await session.commit()
     await session.refresh(vote)
     return vote

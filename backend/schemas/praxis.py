@@ -13,7 +13,7 @@ class MediaItemOut(BaseModel):
     display_order: int
 
 
-class SubmissionOut(BaseModel):
+class PraxisOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -38,7 +38,7 @@ class SubmissionOut(BaseModel):
     score: Optional[float] = None
 
 
-class SubmissionCreate(BaseModel):
+class PraxisCreate(BaseModel):
     task_id: int
     title: str = Field(..., max_length=200)
     body_text: Optional[str] = Field(None, max_length=10000)

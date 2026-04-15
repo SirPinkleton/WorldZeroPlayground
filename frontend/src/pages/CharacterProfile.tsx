@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCharacter, type CharacterOut } from '../api/characters'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
+import { listPraxes, type PraxisOut } from '../api/praxis'
 import { listRelationships, createRelationship, deleteRelationship, type RelationshipListItem } from '../api/relationships'
-import SubmissionCard from '../components/SubmissionCard'
+import PraxisCard from '../components/PraxisCard'
 import PageTitle from '../components/ui/PageTitle'
 import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
@@ -21,7 +21,7 @@ export default function CharacterProfile() {
   const { theme } = useTheme()
   const dark = theme === 'dark'
   const [character, setCharacter] = useState<CharacterOut | null>(null)
-  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
+  const [submissions, setSubmissions] = useState<PraxisOut[]>([])
   const [relationship, setRelationship] = useState<RelationshipListItem | null>(null)
   const [relationshipLoading, setRelationshipLoading] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -30,7 +30,7 @@ export default function CharacterProfile() {
   useEffect(() => {
     if (!id) return
     const cid = parseInt(id, 10)
-    Promise.all([getCharacter(cid), listSubmissions({ character_id: cid })])
+    Promise.all([getCharacter(cid), listPraxes({ character_id: cid })])
       .then(([c, s]) => { setCharacter(c); setSubmissions(s) })
       .catch((err) => setFetchError(extractError(err, "Couldn't load this character.")))
       .finally(() => setLoading(false))
@@ -368,7 +368,7 @@ export default function CharacterProfile() {
           <p className="font-body text-muted">No submissions yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {submissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
+            {submissions.map((s) => <PraxisCard key={s.id} praxis={s} />)}
           </div>
         )}
       </div>

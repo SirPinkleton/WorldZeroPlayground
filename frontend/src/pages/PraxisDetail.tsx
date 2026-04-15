@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { getSubmission, flagSubmission, withdrawSubmission, resubmitSubmission, type SubmissionOut } from '../api/submissions'
+import { getPraxis, flagPraxis, withdrawPraxis, resubmitPraxis, type PraxisOut } from '../api/praxis'
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
 import { formatTimestamp } from '../utils/dates'
 import VoteStamps from '../components/ui/VoteStamps'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
-import { moderateSubmission } from '../api/admin'
+import { moderatePraxis } from '../api/admin'
 import { extractError } from '../utils/errors'
 
 /** Rainbow underline bar colors — 8 segments cycling (Style Guide §12.3) */
@@ -17,11 +17,11 @@ const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '
 /** Default accent color when faction is unknown */
 const ACCENT = '#be185d'
 
-export default function SubmissionDetail() {
+export default function PraxisDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { adminMode } = useAdminMode()
-  const [submission, setSubmission] = useState<SubmissionOut | null>(null)
+  const [praxis, setPraxis] = useState<PraxisOut | null>(null)
   const [votes, setVotes] = useState<VoteSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -36,15 +36,15 @@ export default function SubmissionDetail() {
   const [moderating, setModerating] = useState(false)
   const [moderateError, setModerateError] = useState<string | null>(null)
 
-  const showAdminBar = user?.is_admin && adminMode && submission
+  const showAdminBar = user?.is_admin && adminMode && praxis
 
   const handleModerate = async (status: string, note?: string) => {
-    if (!submission) return
+    if (!praxis) return
     setModerating(true)
     setModerateError(null)
     try {
-      const updated = await moderateSubmission(submission.id, status, note)
-      setSubmission(updated)
+      const updated = await moderatePraxis(praxis.id, status, note)
+      setPraxis(updated)
       setShowFailInput(false)
       setAdminFailNote('')
     } catch (err) {
@@ -56,23 +56,23 @@ export default function SubmissionDetail() {
 
   useEffect(() => {
     if (!id) return
-    const sid = parseInt(id, 10)
-    Promise.all([getSubmission(sid), getVotes(sid)])
-      .then(([s, v]) => { setSubmission(s); setVotes(v) })
-      .catch((err) => setFetchError(extractError(err, "Couldn't load this submission.")))
+    const pid = parseInt(id, 10)
+    Promise.all([getPraxis(pid), getVotes(pid)])
+      .then(([p, v]) => { setPraxis(p); setVotes(v) })
+      .catch((err) => setFetchError(extractError(err, "Couldn't load this praxis.")))
       .finally(() => setLoading(false))
   }, [id])
 
   const handleFlag = async () => {
-    if (!submission) return
+    if (!praxis) return
     setFlagging(true)
     setFlagError(null)
     try {
-      const updated = await flagSubmission(submission.id, 'Flagged by community member')
-      setSubmission(updated)
+      const updated = await flagPraxis(praxis.id, 'Flagged by community member')
+      setPraxis(updated)
       setShowFlagConfirm(false)
     } catch (err) {
-      setFlagError(extractError(err, 'Could not flag this submission.'))
+      setFlagError(extractError(err, 'Could not flag this praxis.'))
     } finally {
       setFlagging(false)
     }
@@ -81,28 +81,28 @@ export default function SubmissionDetail() {
   const { refetch } = useAuth()
 
   const handleWithdraw = async () => {
-    if (!submission) return
+    if (!praxis) return
     setWithdrawing(true)
     setWithdrawError(null)
     try {
-      const updated = await withdrawSubmission(submission.id)
-      setSubmission(updated)
+      const updated = await withdrawPraxis(praxis.id)
+      setPraxis(updated)
       setShowWithdrawConfirm(false)
       void refetch()
     } catch (err) {
-      setWithdrawError(extractError(err, 'Could not withdraw this submission.'))
+      setWithdrawError(extractError(err, 'Could not withdraw this praxis.'))
     } finally {
       setWithdrawing(false)
     }
   }
 
   const handleResubmit = async () => {
-    if (!submission) return
+    if (!praxis) return
     setWithdrawing(true)
     setWithdrawError(null)
     try {
-      const updated = await resubmitSubmission(submission.id)
-      setSubmission(updated)
+      const updated = await resubmitPraxis(praxis.id)
+      setPraxis(updated)
       void refetch()
     } catch (err) {
       setWithdrawError(extractError(err, 'Could not resubmit.'))
@@ -120,9 +120,9 @@ export default function SubmissionDetail() {
       </p>
     </div>
   )
-  if (!submission) return <div className="py-8 font-body text-muted">Not found.</div>
+  if (!praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
-  const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== submission.character_id
+  const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== praxis.character_id
 
   return (
     <div className="py-8 max-w-2xl">
@@ -130,15 +130,15 @@ export default function SubmissionDetail() {
       <nav className="font-body mb-4" style={{ fontSize: 9, letterSpacing: '0.1em', color: 'var(--color-text-tertiary)' }}>
         <Link to="/tasks" style={{ color: 'inherit', textDecoration: 'none' }}>Tasks</Link>
         {' › '}
-        <Link to={`/tasks/${submission.task_id}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
-          {submission.task_title}
+        <Link to={`/tasks/${praxis.task_id}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
+          {praxis.task_title}
         </Link>
         {' › '}
         <span style={{ color: 'var(--color-text-primary)' }}>Praxis</span>
       </nav>
 
       {/* Withdrawn banner */}
-      {submission.is_withdrawn && (
+      {praxis.is_withdrawn && (
         <div
           style={{
             background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)',
@@ -154,7 +154,7 @@ export default function SubmissionDetail() {
       )}
 
       {/* Failed banner (visible to author) */}
-      {submission.moderation_status === 'failed' && submission.admin_note && (
+      {praxis.moderation_status === 'failed' && praxis.admin_note && (
         <div
           style={{
             background: 'rgba(220,38,38,0.05)', border: '2px solid rgba(220,38,38,0.3)',
@@ -168,7 +168,7 @@ export default function SubmissionDetail() {
               This praxis was marked as failed.
             </span>
             <span className="font-body" style={{ fontSize: 11, color: '#92400e' }}>
-              {submission.admin_note}
+              {praxis.admin_note}
             </span>
           </div>
         </div>
@@ -189,16 +189,16 @@ export default function SubmissionDetail() {
               style={{
                 fontSize: 8, padding: '1px 6px',
                 border: '1px solid var(--color-border)',
-                color: submission.moderation_status === 'flagged' ? '#dc2626'
-                  : submission.moderation_status === 'hidden' ? 'var(--color-text-tertiary)'
-                  : submission.moderation_status === 'failed' ? '#d97706'
+                color: praxis.moderation_status === 'flagged' ? '#dc2626'
+                  : praxis.moderation_status === 'hidden' ? 'var(--color-text-tertiary)'
+                  : praxis.moderation_status === 'failed' ? '#d97706'
                   : '#16a34a',
               }}
             >
-              {submission.moderation_status}
+              {praxis.moderation_status}
             </span>
             <div className="flex items-center gap-2 ml-auto">
-              {submission.moderation_status === 'flagged' && (
+              {praxis.moderation_status === 'flagged' && (
                 <>
                   <button
                     onClick={() => void handleModerate('visible')}
@@ -226,7 +226,7 @@ export default function SubmissionDetail() {
                   </button>
                 </>
               )}
-              {submission.moderation_status === 'visible' && (
+              {praxis.moderation_status === 'visible' && (
                 <button
                   onClick={() => void handleModerate('hidden')}
                   disabled={moderating}
@@ -236,7 +236,7 @@ export default function SubmissionDetail() {
                   hide
                 </button>
               )}
-              {(submission.moderation_status === 'hidden' || submission.moderation_status === 'failed') && (
+              {(praxis.moderation_status === 'hidden' || praxis.moderation_status === 'failed') && (
                 <button
                   onClick={() => void handleModerate('visible')}
                   disabled={moderating}
@@ -278,7 +278,7 @@ export default function SubmissionDetail() {
         className="sidebar-card flex items-center gap-3 mb-4"
         style={{ padding: '10px 14px' }}
       >
-        <Link to={`/characters/${submission.character_id}`}>
+        <Link to={`/characters/${praxis.character_id}`}>
           <div
             className="rounded-full shrink-0"
             style={{
@@ -290,13 +290,13 @@ export default function SubmissionDetail() {
         </Link>
         <div className="flex-1 min-w-0">
           <Link
-            to={`/characters/${submission.character_id}`}
+            to={`/characters/${praxis.character_id}`}
             className="font-display italic block truncate"
             style={{ fontSize: 14, color: ACCENT, textDecoration: 'none' }}
           >
-            {submission.character_display_name || `#${submission.character_id}`}
+            {praxis.character_display_name || `#${praxis.character_id}`}
           </Link>
-          <span className="eyebrow">{formatTimestamp(submission.created_at)}</span>
+          <span className="eyebrow">{formatTimestamp(praxis.created_at)}</span>
         </div>
         {/* Vote score */}
         {votes && votes.total_votes > 0 && (
@@ -314,7 +314,7 @@ export default function SubmissionDetail() {
         className="font-display italic font-medium"
         style={{ fontSize: 30, color: 'var(--color-text-primary)', lineHeight: 1.2, marginBottom: 4 }}
       >
-        {submission.title}
+        {praxis.title}
       </h1>
       {/* Rainbow underline bar — 8 equal segments */}
       <div style={{ display: 'flex', height: 4, marginBottom: 16 }}>
@@ -324,16 +324,16 @@ export default function SubmissionDetail() {
       </div>
 
       {/* Author actions */}
-      {user?.character?.id === submission.character_id && (
+      {user?.character?.id === praxis.character_id && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <Link
-            to={`/submissions/${submission.id}/edit`}
+            to={`/praxes/${praxis.id}/edit`}
             className="font-body eyebrow hover:underline"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             edit this praxis
           </Link>
-          {submission.is_withdrawn ? (
+          {praxis.is_withdrawn ? (
             <button
               onClick={handleResubmit}
               disabled={withdrawing}
@@ -397,31 +397,31 @@ export default function SubmissionDetail() {
       >
         <span className="eyebrow" style={{ fontSize: 8 }}>Completing task</span>
         <Link
-          to={`/tasks/${submission.task_id}`}
+          to={`/tasks/${praxis.task_id}`}
           className="font-body"
           style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-primary)', textDecoration: 'none' }}
         >
-          {submission.task_title}
+          {praxis.task_title}
         </Link>
         <span className="font-body" style={{ fontSize: 9, color: 'var(--color-text-tertiary)', marginLeft: 'auto' }}>
-          {submission.task_point_value} pts
+          {praxis.task_point_value} pts
         </span>
       </div>
 
       {/* ── Media Gallery (§12.5) ── */}
-      {submission.media.length > 0 && (
+      {praxis.media.length > 0 && (
         <div className="mb-5">
-          <MediaGallery media={submission.media} />
+          <MediaGallery media={praxis.media} />
         </div>
       )}
 
       {/* ── Body Text (§12.6) — uses ReactMarkdown for rich content ── */}
-      {submission.body_text && (
+      {praxis.body_text && (
         <div
           className="font-display mb-6 markdown-preview"
           style={{ fontSize: 15, lineHeight: 1.75, color: '#2a1e10' }}
         >
-          <ReactMarkdown>{submission.body_text}</ReactMarkdown>
+          <ReactMarkdown>{praxis.body_text}</ReactMarkdown>
         </div>
       )}
 
@@ -437,7 +437,7 @@ export default function SubmissionDetail() {
           )}
         </div>
         <VoteStamps
-          submissionId={submission.id}
+          praxisId={praxis.id}
           averageStars={votes?.average_stars}
           totalVotes={votes?.total_votes}
         />
@@ -445,8 +445,8 @@ export default function SubmissionDetail() {
 
       {/* ── Meta ── */}
       <div className="flex items-center gap-4 eyebrow mb-4">
-        <span>Submitted {formatTimestamp(submission.created_at)}</span>
-        {submission.moderation_status === 'flagged' && (
+        <span>Submitted {formatTimestamp(praxis.created_at)}</span>
+        {praxis.moderation_status === 'flagged' && (
           <span style={{ border: '1px solid rgba(220,38,38,0.4)', color: '#dc2626', padding: '1px 6px', fontSize: 8 }}>
             flagged
           </span>
@@ -454,7 +454,7 @@ export default function SubmissionDetail() {
       </div>
 
       {/* ── Flag Block (§13.3) ── */}
-      {canFlag && !submission.moderation_status === 'flagged' && (
+      {canFlag && !praxis.moderation_status === 'flagged' && (
         <div
           className="sidebar-card flex items-center gap-3"
           style={{ padding: '10px 14px' }}

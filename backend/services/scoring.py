@@ -63,12 +63,12 @@ def compute_faction_multiplier(
     return faction_config.other_task_modifier
 
 
-def compute_submission_score(
+def compute_praxis_score(
     task_point_value: int,
     faction_multiplier: float,
     total_stars: int,
 ) -> float:
-    """Score for a single submission.
+    """Score for a single praxis.
 
     Base points are awarded immediately on submission (point_value × multiplier).
     Each star from community votes adds directly to the score.

@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom'
-import type { SubmissionOut } from '../api/submissions'
+import type { PraxisOut } from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
-import { moderateSubmission } from '../api/admin'
+import { moderatePraxis } from '../api/admin'
 import { factionCssVar } from '../utils/factions'
 
 interface Props {
-  submission: SubmissionOut
+  praxis: PraxisOut
   onModerated?: () => void
 }
 
-export default function SubmissionCard({ submission, onModerated }: Props) {
+export default function PraxisCard({ praxis, onModerated }: Props) {
   const { user } = useAuth()
   const { adminMode } = useAdminMode()
   const showAdminControls = user?.is_admin && adminMode
@@ -18,7 +18,7 @@ export default function SubmissionCard({ submission, onModerated }: Props) {
   const handleHide = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    await moderateSubmission(submission.id, 'hidden')
+    await moderatePraxis(praxis.id, 'hidden')
     onModerated?.()
   }
 
@@ -26,13 +26,13 @@ export default function SubmissionCard({ submission, onModerated }: Props) {
     <div
       className="card p-4 flex flex-col gap-2 transition-all duration-150 relative"
       style={{
-        background: factionCssVar(submission.task_faction_slug, 'card-bg'),
-        borderLeft: `4px solid ${factionCssVar(submission.task_faction_slug, 'card-accent')}`,
-        color: factionCssVar(submission.task_faction_slug, 'card-text'),
+        background: factionCssVar(praxis.task_faction_slug, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(praxis.task_faction_slug, 'card-accent')}`,
+        color: factionCssVar(praxis.task_faction_slug, 'card-text'),
       }}
     >
       {/* Moderation status badges */}
-      {submission.moderation_status === 'flagged' && (
+      {praxis.moderation_status === 'flagged' && (
         <span
           className="eyebrow"
           style={{
@@ -45,7 +45,7 @@ export default function SubmissionCard({ submission, onModerated }: Props) {
           under review
         </span>
       )}
-      {submission.moderation_status === 'failed' && (
+      {praxis.moderation_status === 'failed' && (
         <span
           className="eyebrow"
           style={{
@@ -60,7 +60,7 @@ export default function SubmissionCard({ submission, onModerated }: Props) {
       )}
 
       {/* Admin hide button */}
-      {showAdminControls && submission.moderation_status === 'visible' && (
+      {showAdminControls && praxis.moderation_status === 'visible' && (
         <button
           onClick={(e) => void handleHide(e)}
           className="eyebrow"
@@ -76,29 +76,29 @@ export default function SubmissionCard({ submission, onModerated }: Props) {
         </button>
       )}
 
-      <Link to={`/submissions/${submission.id}`}>
+      <Link to={`/praxes/${praxis.id}`}>
         <h3 className="font-display text-xl font-semibold leading-tight hover:underline">
-          {submission.title}
+          {praxis.title}
         </h3>
       </Link>
 
-      {submission.body_text && (
+      {praxis.body_text && (
         <p className="font-body text-sm text-muted leading-relaxed line-clamp-3">
-          {submission.body_text}
+          {praxis.body_text}
         </p>
       )}
 
-      <Link to={`/tasks/${submission.task_id}`} className="font-body text-xs text-muted hover:underline">
-        {submission.task_title}
+      <Link to={`/tasks/${praxis.task_id}`} className="font-body text-xs text-muted hover:underline">
+        {praxis.task_title}
       </Link>
 
       <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/40 font-body text-xs text-muted mt-auto">
-        <Link to={`/characters/${submission.character_id}`} className="hover:underline">
-          {submission.character_display_name || `#${submission.character_id}`}
+        <Link to={`/characters/${praxis.character_id}`} className="hover:underline">
+          {praxis.character_display_name || `#${praxis.character_id}`}
         </Link>
-        {submission.score !== null && (
+        {praxis.score !== null && (
           <span className="font-display text-sm font-bold text-ink">
-            ★ {submission.score.toFixed(1)}
+            ★ {praxis.score.toFixed(1)}
           </span>
         )}
       </div>

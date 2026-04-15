@@ -28,7 +28,7 @@ from models.message import Message  # noqa: F401
 from models.meta_task import MetaTask  # noqa: F401
 from models.relationship import Relationship  # noqa: F401
 from models.roles import AccountRole, Role  # noqa: F401
-from models.submission import MediaItem, Submission  # noqa: F401
+from models.praxis import MediaItem, Praxis  # noqa: F401
 from models.task import CharacterTask, Task, TaskFaction  # noqa: F401
 from models.vote import Vote  # noqa: F401
 from services.auth import create_jwt

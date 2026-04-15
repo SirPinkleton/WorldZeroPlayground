@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { createSubmission, uploadMedia } from '../api/submissions'
+import { createPraxis, uploadMedia } from '../api/praxis'
 import { getTask, dropTask, type TaskOut } from '../api/tasks'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import LevelPill from '../components/ui/LevelPill'
@@ -61,7 +61,7 @@ export default function SubmitProof() {
     setSaving(true)
     setError('')
     try {
-      const submission = await createSubmission({
+      const praxis = await createPraxis({
         task_id: parseInt(id, 10),
         title,
         body_text: body || undefined,
@@ -69,10 +69,10 @@ export default function SubmitProof() {
         partner_character_id: invitedPartners.length > 0 ? invitedPartners[0].id : undefined,
       })
       for (const file of files) {
-        await uploadMedia(submission.id, file)
+        await uploadMedia(praxis.id, file)
       }
       void refetch()
-      navigate(`/submissions/${submission.id}`)
+      navigate(`/praxes/${praxis.id}`)
     } catch {
       setError('Could not submit. Check you are signed up for this task.')
     } finally {

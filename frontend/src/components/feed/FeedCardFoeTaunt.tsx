@@ -14,7 +14,7 @@ export default function FeedCardFoeTaunt({ item }: Props) {
   const triggerLabel =
     trigger_type === 'score_overtake' ? 'Score overtake'
     : trigger_type === 'level_up' ? 'Level up'
-    : trigger_type === 'submission_complete' ? 'Completed a task'
+    : trigger_type === 'praxis_complete' ? 'Completed a task'
     : trigger_type
 
   return (

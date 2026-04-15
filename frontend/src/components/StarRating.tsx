@@ -4,13 +4,13 @@ import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
 
 interface Props {
-  submissionId: number
+  praxisId: number
   currentStars?: number
   averageStars?: number
   totalVotes?: number
 }
 
-export default function StarRating({ submissionId, currentStars, averageStars, totalVotes }: Props) {
+export default function StarRating({ praxisId, currentStars, averageStars, totalVotes }: Props) {
   const { user } = useAuth()
   const [hovered, setHovered] = useState(0)
   const [selected, setSelected] = useState(currentStars ?? 0)
@@ -21,7 +21,7 @@ export default function StarRating({ submissionId, currentStars, averageStars, t
     setSaving(true)
     setError('')
     try {
-      await castVote(submissionId, stars)
+      await castVote(praxisId, stars)
       setSelected(stars)
     } catch (err) {
       setError(extractError(err, 'Could not save your rating. Please try again.'))

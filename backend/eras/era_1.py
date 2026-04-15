@@ -406,7 +406,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
             "{from_name} leveled up while {to_name} was napping.",
             "{from_name} hit a new level. {to_name} remains where they are.",
         ],
-        "submission_complete": [
+        "praxis_complete": [
             "{from_name} just completed a task. {to_name} is still thinking about it.",
             "{from_name} submitted praxis. {to_name}... did not.",
         ],
@@ -420,7 +420,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
         "level_up": [
             "{from_name} ascended. {to_name} can see them from down there.",
         ],
-        "submission_complete": [
+        "praxis_complete": [
             "{from_name} finished what {to_name} couldn't start.",
         ],
     },
@@ -432,7 +432,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
         "level_up": [
             "{from_name} grew stronger through community. {to_name} walks alone.",
         ],
-        "submission_complete": [
+        "praxis_complete": [
             "{from_name} contributed to the whole. {to_name} remained apart.",
         ],
     },
@@ -444,7 +444,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
         "level_up": [
             "{from_name} discovered a new horizon. {to_name} hasn't packed yet.",
         ],
-        "submission_complete": [
+        "praxis_complete": [
             "{from_name} returned from the journey with proof. {to_name} stayed home.",
         ],
     },
@@ -456,7 +456,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
         "level_up": [
             "{from_name} leveled up through repetition. {to_name} got bored.",
         ],
-        "submission_complete": [
+        "praxis_complete": [
             "{from_name} made something real. {to_name} is still scrolling.",
         ],
     },
@@ -468,7 +468,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
         "level_up": [
             "{from_name} optimized beyond {to_name}'s level.",
         ],
-        "submission_complete": [
+        "praxis_complete": [
             "{from_name} executed. {to_name} is still in the queue.",
         ],
     },
