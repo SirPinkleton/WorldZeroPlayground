@@ -82,6 +82,9 @@ Read only what your task needs.
 - DB: `docker-compose up -d`; `alembic upgrade head` after pulling
 - Tests: `pytest --cov=. --cov-fail-under=80` from `/backend`
 
+## Workflow
+For any non-trivial code changes, work in an isolated git worktree rather than directly on the current branch.
+
 ## Multi-agent workflow
 Worktrees, one branch per agent.
 - Pick work from `docs/TASKS.md` matching your role

@@ -20,7 +20,9 @@
       "mcp__Claude_Preview__preview_start",
       "WebFetch(domain:render.com)",
       "Bash(Set-Location \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\")",
-      "Bash(Remove-Item commit_msg.txt)"
+      "Bash(Remove-Item commit_msg.txt)",
+      "Bash(gh repo *)",
+      "Skill(schedule)"
     ]
   }
 }
