@@ -1,106 +1,94 @@
 # World Zero — Agent Instructions
 
+A pointer document. It tells you *where* the rules live, not what they are.
+Keep it thin so it can't drift.
+
 ## Project
-A community game built with FastAPI (Python) + React. Players create Characters (public personas),
-complete real-world tasks, post proof ("praxis"), and earn points through community star-rating votes.
-
-## Identity Model (critical)
-- Account = private login identity (Google OAuth). Never exposed publicly.
-- Character = public game persona. Multiple per Account (level-gated at level 3).
-- All game logic uses Character IDs. Votes enforce account-level anti-self-voting.
-- Never expose account_id or email in public API responses.
-
-## Config Architecture (critical)
-- game_config.py is the single source of truth for all game rules.
-- EraConfig defines mechanics for one era: task limits, vote budget formula, level thresholds,
-  faction rules, and reset behaviour.
-- CURRENT_ERA is the one variable that controls live game mechanics.
-- The DB Era table stores config_key to record which era was active — it does not own rules.
-- All service functions accept `era: EraConfig = CURRENT_ERA` for testability.
+FastAPI (Python) + React community game. Players make Characters, complete
+real-world tasks, post proof ("praxis"), earn points via star-rating votes.
 
 ## Stack
-- Backend: FastAPI, SQLAlchemy (async), Alembic, PostgreSQL
-- Frontend: React, React Router, Axios
-- Auth: Google OAuth2 via Authlib → JWT (provider-agnostic)
-- Media: Local filesystem (v1), relative paths only
-- Testing: pytest + pytest-cov, GitHub Actions CI
+FastAPI · SQLAlchemy (async) · Alembic · PostgreSQL · React · Axios ·
+Google OAuth2 → JWT · local-fs media (relative paths) · pytest + GitHub Actions.
+Deeper notes: `docs/spec/SPEC-architecture.md`.
+
+---
+
+## Where to look for X
+
+| Need... | Go to |
+|---|---|
+| Active rule values (signup cap, vote budget, level thresholds, resets) | `backend/eras/era_1.py` (live `ERA_1`; `CURRENT_ERA` resolves here) |
+| Factions, tasks, taunts for the live era | `backend/eras/era_1.py` |
+| Era config *shape* (dataclass fields) | `backend/game_config.py` |
+| Building a new era | `backend/eras/_template.py` |
+| Account vs. Character, anti-self-voting | `docs/spec/SPEC-architecture.md` §3 |
+| DB schema | `docs/spec/SPEC-data-models.md` |
+| Scoring, level perks, era reset semantics | `docs/spec/SPEC-game-rules.md` |
+| API contracts | `docs/spec/SPEC-api.md` |
+| Pages, routing, UX | `docs/spec/SPEC-frontend.md` |
+| Testing approach | `docs/spec/SPEC-testing.md` |
+| Deployment, media, Render | `docs/spec/SPEC-deployment.md` |
+| Design intent, UX, faction archetypes | `WORLD_ZERO_STYLE.md` |
+| CSS variables (colors, type, themes) | `frontend/src/index.css` |
+| JS faction config | `frontend/src/factions.ts` |
+| Built vs. missing | `docs/BUILD_STATE.md` |
+| Task queue | `docs/TASKS.md` |
+
+Read only what your task needs.
+
+---
+
+## Config architecture
+- `game_config.py` = dataclass shape. `eras/era_N.py` = values. `CURRENT_ERA` = active era.
+- DB `Era.config_key` records which era was active; it does not own rules.
+- Services take `era: EraConfig = CURRENT_ERA`. Never import `CURRENT_ERA`
+  inside a service body.
+- Never hardcode a value that lives in `EraConfig`. Read `era.*`.
 
 ## Python conventions
-- async/await throughout all FastAPI routes
-- Pydantic schemas for all request/response bodies
-- SQLAlchemy models in models/, business logic in services/
-- Never put business logic in route handlers
-- Services accept EraConfig parameter; never import CURRENT_ERA inside a service function body
-- Prefer frozen dataclasses over tuples or plain dicts as data containers; only use mutable dataclasses when mutation is truly needed
-- Use ALL_CAPS for every module-level constant or singleton (e.g. `_BEARER`, `CURRENT_ERA`)
-- Use full human-readable names — no abbreviations (`index` not `idx`, `task` not `t`, `media_item` not `m`, etc.)
-- Type-annotate every function: all parameters and the return type
-- Never compare against bare string literals for domain values; define a module-level constant or use an Enum instead
-
-## Key business rules (all driven by CURRENT_ERA / EraConfig)
-- Max task signups: era.max_task_signups (default 20)
-- Task level gate: character.level >= task.level_required to sign up
-- Submission level gap: can submit up to era.task_submit_level_gap levels above own level
-- Vote budget: era.vote_budget_base + floor(era.vote_budget_multiplier × score)
-- First vote cast costs 1 from votes_available; updates are free
-- Cannot vote if voter_account_id == submission author's account_id
-- Character creation beyond first requires level >= 3
-
-## Testing
-- Unit tests: no DB required, test services directly with EraConfig instances
-- Integration tests: use test DB via conftest.py fixtures
-- Tests assert against config values, not hardcoded magic numbers
-- Run: pytest --cov=. --cov-fail-under=80 from /backend
-
-## Database
-- PostgreSQL via docker-compose
-- All migrations via Alembic only
-- Run: alembic upgrade head after pulling
-
-## Running locally
-- Backend: uvicorn main:app --reload from /backend
-- Frontend: npm start from /frontend
-- DB: docker-compose up -d
-- Tests: pytest from /backend
-
-## Do NOT
-- Put secrets or game rules in the same file (config.py = secrets, game_config.py = rules)
-- Hardcode magic numbers from EraConfig in service logic
-- Write sync SQLAlchemy in async routes
-- Store absolute media paths
-- Expose account_id or email in public API responses
-- Put business logic in route handlers
+- async/await throughout FastAPI routes; Pydantic for request/response bodies
+- Models in `models/`, business logic in `services/`. Routes stay thin.
+- Frozen dataclasses over tuples/dicts unless mutation is required
+- ALL_CAPS for module-level constants/singletons
+- Full names, no abbreviations (`task` not `t`, `index` not `idx`)
+- Type-annotate every parameter and return
+- No bare string literals for domain values — use a constant or Enum
 
 ## Frontend conventions
-- `WORLD_ZERO_STYLE.md` describes design *intent and constraints* — read it before any UI work
-- `index.css` is the source of truth for all color values (CSS custom properties). Never hardcode hex in components.
-- `factions.ts` is the JS-side source of truth for faction config. Use `factionCssVar()` for styles, `factionColor()` only when JS needs a raw value.
-- Dark mode works via CSS variable cascade (`[data-theme="dark"]` in index.css) — do NOT use `dark ? '#hex' : '#hex'` ternaries
-- Each faction has a unique card archetype — do not unify card designs
-- Use shared CSS classes (`.card-footer`, `.card-meta`, `.card-description`) for repeated card patterns
-- If a user can't use a control, hide it entirely — don't show disabled buttons
-- Faction-associated elements reuse the card archetype styling — change it once, it updates everywhere
+- Read `WORLD_ZERO_STYLE.md` before any UI work
+- Color values live only in `index.css` (CSS vars). Never hardcode hex.
+- Faction config: `factions.ts`. Use `factionCssVar()` for styles.
+- Dark mode via the `[data-theme="dark"]` cascade — no `dark ? '#a' : '#b'` ternaries
+- Each faction has its own card archetype; don't unify
+- Reuse `.card-footer`, `.card-meta`, `.card-description` for repeated patterns
+- Hide unusable controls; don't show them disabled
 
-## Key documents (read before starting any session)
-- `WORLD_ZERO_STYLE.md` — Design system reference. Describes intent, UX principles, and faction archetypes. Read before any frontend/UI work.
-- `index.css` — CSS variables: all colors, faction card themes, type scale, shared tokens. Source of truth for values.
-- `factions.ts` — Faction config (JS side). Synced with index.css. Use `factionCssVar()` for styles.
-- `docs/BUILD_STATE.md` — What has been built vs. what's missing. Read to understand current state.
-- `docs/TASKS.md` — Structured task queue. Read to find what to work on in this session.
+## Do NOT
+- Duplicate game rules into this file, services, tests, or docs — read `era.*` or cite the spec
+- Mix secrets and rules (`config.py` = secrets; `game_config.py` + `eras/` = rules)
+- Hardcode values that live in `EraConfig`
+- Write sync SQLAlchemy in async routes
+- Store absolute media paths
+- Expose `account_id` or `email` publicly
+- Put business logic in route handlers
 
-## Spec (read the relevant section only — do not load all sections)
-The spec has been split into focused files in `docs/spec/`:
-- `SPEC-architecture.md` — Project overview, stack, identity model (Account vs Character), EraConfig design, project structure. Read for any architectural decision.
-- `SPEC-data-models.md` — All DB models and their fields. Read when writing models, schemas, or migrations.
-- `SPEC-game-rules.md` — Scoring, vote budget, level privileges, factions, era reset logic. Read when working on game logic or services.
-- `SPEC-api.md` — All API endpoint definitions. Read when adding or modifying routes.
-- `SPEC-frontend.md` — Pages, navigation, and UI spec. Read when working on React.
-- `SPEC-testing.md` — Testing philosophy, file structure, examples, CI config. Read when writing or debugging tests.
-- `SPEC-deployment.md` — Media handling, build order, out-of-scope items, Render deployment, production checklist. Read when touching infra or deployment.
+---
+
+## Running locally
+- Backend: `uvicorn main:app --reload` from `/backend`
+- Frontend: `npm start` from `/frontend`
+- DB: `docker-compose up -d`; `alembic upgrade head` after pulling
+- Tests: `pytest --cov=. --cov-fail-under=80` from `/backend`
 
 ## Multi-agent workflow
-This project uses git worktrees for parallel agent sessions. Each agent works on its own branch.
-- Check docs/TASKS.md for which session/tasks are assigned to your role
-- Do not modify files outside the scope defined in your task
-- Do not start a higher-numbered session until lower-numbered sessions are complete
-- Update docs/BUILD_STATE.md when you finish a task: mark it ✅ with the completion date
+Worktrees, one branch per agent.
+- Pick work from `docs/TASKS.md` matching your role
+- Stay inside your task's file scope
+- Don't start a higher session number until lower ones are done
+- Mark finished tasks ✅ with date in `docs/BUILD_STATE.md`
+
+## Keeping this file thin
+Before adding a section: does it belong in a spec file, `game_config.py`, or
+an era file? Usually yes. This file holds only conventions, pointers, and the
+`Do NOT` list.
