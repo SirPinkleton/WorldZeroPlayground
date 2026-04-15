@@ -12,10 +12,11 @@ const ROTATIONS = [-2, 1.5, -1, 2.5]
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
-export default function TaskCardUA({ task, onSignup }: Props) {
+export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
   const rotation = ROTATIONS[task.id % ROTATIONS.length]
 
   return (
@@ -50,7 +51,7 @@ export default function TaskCardUA({ task, onSignup }: Props) {
       />
 
       <div className="card-meta" style={{ color: factionCssVar('ua', 'card-accent') }}>
-        UA · {task.point_value} pts
+        UA · {displayPoints} pts
       </div>
 
       <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -73,7 +74,7 @@ export default function TaskCardUA({ task, onSignup }: Props) {
 
       <div className="card-footer">
         <LevelPill level={task.level_required} factionSlug="ua" />
-        <span style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{task.point_value}</span>
+        <span style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{displayPoints}</span>
       </div>
     </div>
   )

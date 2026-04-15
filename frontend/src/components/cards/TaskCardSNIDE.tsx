@@ -12,6 +12,7 @@ const TORN_CLIP = 'polygon(0% 0%, 4% 100%, 8% 20%, 12% 90%, 16% 10%, 20% 80%, 24
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
@@ -31,7 +32,7 @@ function CutoutLetters({ text }: { text: string }) {
   )
 }
 
-export default function TaskCardSNIDE({ task, onSignup }: Props) {
+export default function TaskCardSNIDE({ task, displayPoints, onSignup }: Props) {
   const words = (task.description ?? '').split(' ')
   const mid = Math.ceil(words.length / 2)
   const col1 = words.slice(0, mid).join(' ')
@@ -64,7 +65,7 @@ export default function TaskCardSNIDE({ task, onSignup }: Props) {
 
       <div style={{ marginBottom: 6 }}>
         <CutoutLetters text="S.N.I.D.E." />
-        <span style={{ fontSize: 'var(--text-xs)', color: factionCssVar('snide', 'card-accent'), marginLeft: 4 }}>{task.point_value} pts</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: factionCssVar('snide', 'card-accent'), marginLeft: 4 }}>{displayPoints} pts</span>
       </div>
 
       {task.description && (
@@ -80,7 +81,7 @@ export default function TaskCardSNIDE({ task, onSignup }: Props) {
       )}
 
       <div className="card-footer">
-        <span style={{ fontSize: 'var(--text-xs)', color: factionCssVar('snide', 'card-accent'), fontFamily: "'Courier Prime', monospace" }}>{task.point_value} pts</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: factionCssVar('snide', 'card-accent'), fontFamily: "'Courier Prime', monospace" }}>{displayPoints} pts</span>
         <LevelPill level={task.level_required} factionSlug="snide" />
       </div>
     </div>

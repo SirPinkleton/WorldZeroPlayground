@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listTasks, signupTask, type TaskOut } from '../api/tasks'
 import { getFactions, type FactionOut } from '../api/factions'
+import { getGameConfig, type FactionConfigOut } from '../api/gameConfig'
 import TaskCard from '../components/TaskCard'
 import PageTitle from '../components/ui/PageTitle'
 import FilterStamps from '../components/ui/FilterStamps'
@@ -9,6 +10,7 @@ import FilterFactionTabs from '../components/ui/FilterFactionTabs'
 import FilterLevelNodes from '../components/ui/FilterLevelNodes'
 import { extractError } from '../utils/errors'
 import { useAuth } from '../auth/AuthContext'
+import { computeDisplayPoints } from '../utils/points'
 
 const LEVEL_FILTERS = [0, 1, 2, 3, 4, 5]
 
@@ -20,6 +22,7 @@ export default function Tasks() {
 
   const [tasks, setTasks] = useState<TaskOut[]>([])
   const [factions, setFactions] = useState<FactionOut[]>([])
+  const [factionConfigs, setFactionConfigs] = useState<FactionConfigOut[]>([])
   const [status, setStatus] = useState('All')
   const [faction, setFaction] = useState('')
   const [level, setLevel] = useState<number | ''>('')
@@ -27,9 +30,12 @@ export default function Tasks() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [signupMsg, setSignupMsg] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
 
-  // Fetch factions once for filter tabs
+  // Fetch factions (filter tabs) and game config (faction modifiers) once
   useEffect(() => {
     getFactions().then(setFactions).catch(() => {})
+    getGameConfig()
+      .then((config) => setFactionConfigs(config.factions))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -90,8 +96,18 @@ export default function Tasks() {
       ) : (
         /* Flex-wrap container — NOT a grid. Varied card sizes and rotations are intentional (Style Guide §6). */
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-start' }}>
-          {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} onSignup={user && characterLevel >= t.level_required ? handleSignup : undefined} />
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              displayPoints={computeDisplayPoints(
+                task.point_value,
+                user?.character?.faction_slug,
+                task.primary_faction_slug,
+                factionConfigs,
+              )}
+              onSignup={user && characterLevel >= task.level_required ? handleSignup : undefined}
+            />
           ))}
         </div>
       )}

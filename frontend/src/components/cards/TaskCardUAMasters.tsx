@@ -10,10 +10,11 @@ import { factionCssVar } from '../../utils/factions'
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
-export default function TaskCardUAMasters({ task, onSignup }: Props) {
+export default function TaskCardUAMasters({ task, displayPoints, onSignup }: Props) {
   const words = (task.description ?? '').split(' ')
   const mid = Math.ceil(words.length / 2)
   const col1 = words.slice(0, mid).join(' ')
@@ -43,7 +44,7 @@ export default function TaskCardUAMasters({ task, onSignup }: Props) {
       </Link>
 
       <div style={{ fontSize: 7, fontStyle: 'italic', color: factionCssVar('ua_masters', 'card-muted'), marginBottom: 6 }}>
-        UA Masters · {task.point_value} points
+        UA Masters · {displayPoints} points
       </div>
 
       {task.description && (
@@ -59,7 +60,7 @@ export default function TaskCardUAMasters({ task, onSignup }: Props) {
       )}
 
       <div className="card-footer">
-        <span style={{ fontSize: 'var(--text-xs)', color: factionCssVar('ua_masters', 'card-accent'), fontFamily: "'Courier Prime', monospace" }}>{task.point_value} pts</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: factionCssVar('ua_masters', 'card-accent'), fontFamily: "'Courier Prime', monospace" }}>{displayPoints} pts</span>
         <LevelPill level={task.level_required} factionSlug="ua_masters" />
       </div>
     </div>

@@ -10,10 +10,11 @@ import { factionCssVar } from '../../utils/factions'
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
-export default function TaskCardAnalog({ task, onSignup }: Props) {
+export default function TaskCardAnalog({ task, displayPoints, onSignup }: Props) {
   return (
     <div
       style={{
@@ -34,7 +35,7 @@ export default function TaskCardAnalog({ task, onSignup }: Props) {
       <div style={{ position: 'absolute', left: 20, top: 0, bottom: 0, width: 1, background: 'rgba(220,80,80,0.2)' }} />
 
       <div className="card-meta" style={{ color: factionCssVar('analog', 'card-accent'), fontFamily: "'Courier Prime', monospace" }}>
-        Analog · {task.point_value} pts
+        Analog · {displayPoints} pts
       </div>
 
       <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -53,7 +54,7 @@ export default function TaskCardAnalog({ task, onSignup }: Props) {
 
       <div className="card-footer">
         <LevelPill level={task.level_required} factionSlug="analog" />
-        <span style={{ fontSize: 'var(--text-base)', fontWeight: 700, fontFamily: "'Courier Prime', monospace" }}>{task.point_value}</span>
+        <span style={{ fontSize: 'var(--text-base)', fontWeight: 700, fontFamily: "'Courier Prime', monospace" }}>{displayPoints}</span>
       </div>
     </div>
   )

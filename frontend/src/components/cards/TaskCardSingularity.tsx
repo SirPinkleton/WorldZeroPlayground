@@ -12,6 +12,7 @@ import type { TaskOut } from '../../api/tasks'
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
@@ -35,7 +36,7 @@ function SprocketHoles() {
   )
 }
 
-export default function TaskCardSingularity({ task, onSignup }: Props) {
+export default function TaskCardSingularity({ task, displayPoints, onSignup }: Props) {
   return (
     <div
       style={{
@@ -93,7 +94,7 @@ export default function TaskCardSingularity({ task, onSignup }: Props) {
         </Link>
 
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--faction-singularity-card-muted)', lineHeight: 1.6, marginBottom: 6 }}>
-          <div>PTS: <span style={{ color: 'var(--faction-singularity-card-text)', fontSize: 'var(--text-md)', fontWeight: 700 }}>{task.point_value}</span></div>
+          <div>PTS: <span style={{ color: 'var(--faction-singularity-card-text)', fontSize: 'var(--text-md)', fontWeight: 700 }}>{displayPoints}</span></div>
           <div>LVL: {task.level_required}+</div>
         </div>
 

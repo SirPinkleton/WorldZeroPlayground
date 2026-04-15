@@ -10,10 +10,11 @@ import { factionCssVar } from '../../utils/factions'
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
-export default function TaskCardJourneymen({ task, onSignup }: Props) {
+export default function TaskCardJourneymen({ task, displayPoints, onSignup }: Props) {
   return (
     <div style={{ paddingTop: 26, position: 'relative', minWidth: 108, maxWidth: 132, flex: '0 1 118px' }}>
       {/* Hanging string */}
@@ -37,7 +38,7 @@ export default function TaskCardJourneymen({ task, onSignup }: Props) {
 
         <div style={{ padding: '8px 10px 10px' }}>
           <div className="card-meta" style={{ color: factionCssVar('journeymen', 'card-accent') }}>
-            Journeymen · {task.point_value} pts
+            Journeymen · {displayPoints} pts
           </div>
 
           <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -56,7 +57,7 @@ export default function TaskCardJourneymen({ task, onSignup }: Props) {
 
           <div className="card-footer">
             <LevelPill level={task.level_required} factionSlug="journeymen" />
-            <span style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{task.point_value}</span>
+            <span style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{displayPoints}</span>
           </div>
         </div>
       </div>

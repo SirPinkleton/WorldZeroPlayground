@@ -10,10 +10,11 @@ import { factionCssVar } from '../../utils/factions'
 
 interface Props {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
-export default function TaskCardGestalt({ task, onSignup }: Props) {
+export default function TaskCardGestalt({ task, displayPoints, onSignup }: Props) {
   return (
     <div style={{ position: 'relative', minWidth: 126, maxWidth: 152, flex: '0 1 138px', height: 'auto', minHeight: 128 }}>
       {/* Back scrap 2 (deepest) */}
@@ -39,7 +40,7 @@ export default function TaskCardGestalt({ task, onSignup }: Props) {
         <div style={{ position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%) rotate(-1deg)', width: 40, height: 12, background: 'var(--faction-gestalt-tape)', borderRadius: 1 }} />
 
         <div className="card-meta" style={{ color: factionCssVar('gestalt', 'card-accent') }}>
-          Gestalt · {task.point_value} pts
+          Gestalt · {displayPoints} pts
         </div>
 
         <Link to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -58,7 +59,7 @@ export default function TaskCardGestalt({ task, onSignup }: Props) {
 
         <div className="card-footer">
           <LevelPill level={task.level_required} factionSlug="gestalt" />
-          <span style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{task.point_value}</span>
+          <span style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>{displayPoints}</span>
         </div>
       </div>
     </div>

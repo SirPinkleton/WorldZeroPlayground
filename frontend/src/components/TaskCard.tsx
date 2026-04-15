@@ -13,6 +13,7 @@ import type { ComponentType } from 'react'
 
 interface CardProps {
   task: TaskOut
+  displayPoints: number
   onSignup?: (id: number) => void
 }
 
@@ -34,7 +35,7 @@ const DEFAULT_CARD = TaskCardUA
  * Router component: picks the correct faction card archetype based on task.primary_faction_slug.
  * When admin mode is on, adds inline status controls.
  */
-export default function TaskCard({ task, onSignup }: CardProps) {
+export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
   const { user } = useAuth()
   const { adminMode } = useAdminMode()
   const showAdminControls = user?.is_admin && adminMode
@@ -47,7 +48,7 @@ export default function TaskCard({ task, onSignup }: CardProps) {
   const Card = CARD_COMPONENTS[task.primary_faction_slug ?? ''] ?? DEFAULT_CARD
   return (
     <div style={{ position: 'relative' }}>
-      <Card task={task} onSignup={onSignup} />
+      <Card task={task} displayPoints={displayPoints} onSignup={onSignup} />
       {showAdminControls && (
         <div
           style={{
