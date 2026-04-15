@@ -100,7 +100,7 @@ async def test_admin_delete_praxis(
     client: AsyncClient,
     account: Account,
     character: Character,
-    active_task: Task,
+    signed_up_task: Task,
     auth_headers: dict,
     db_session: AsyncSession,
 ):
@@ -108,7 +108,7 @@ async def test_admin_delete_praxis(
 
     sub_resp = await client.post(
         "/praxes",
-        json={"task_id": active_task.id, "title": "To Delete"},
+        json={"task_id": signed_up_task.id, "title": "To Delete"},
         headers=auth_headers,
     )
     sub_id = sub_resp.json()["id"]

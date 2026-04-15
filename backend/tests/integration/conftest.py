@@ -3,6 +3,13 @@
 Requires a running PostgreSQL instance. Set TEST_DATABASE_URL in the environment
 (defaults to replacing the dev DB name with worldzero_test).
 
+Uses a single-connection-per-test pattern with SAVEPOINT rollback:
+- Session-scoped engine creates tables once (NullPool avoids asyncpg loop issues)
+- Each test gets a connection with a real transaction
+- The test session uses begin_nested() (SAVEPOINT) so route handlers can commit
+  without escaping the test transaction
+- After each test the outer transaction rolls back, leaving a clean DB
+
 Usage:
     TEST_DATABASE_URL=postgresql+asyncpg://postgres:password@localhost/worldzero_test \
     pytest backend/tests/integration/ -v
@@ -12,21 +19,26 @@ import os
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
 from config import settings
 from db import get_db
 from main import app
 import models  # noqa: F401 — registers all models on Base.metadata for create_all
-from models.account import Account, OAuthProvider
+from models.account import Account
 from models.base import Base
 from models.character import Character
 from models.character_stats import CharacterStats
 from models.era import Era
 from models.faction import Faction
-from models.praxis import Praxis
+from models.praxis import Praxis  # noqa: F401
 from models.task import CharacterTask, CharacterTaskStatus, Task
-from models.vote import Vote
+from models.vote import Vote  # noqa: F401
 from services.auth import create_jwt
 
 # ---------------------------------------------------------------------------
@@ -38,9 +50,14 @@ _TEST_DB_URL = os.environ.get(
 )
 
 
+# ---------------------------------------------------------------------------
+# Engine & schema — session-scoped, runs once
+# ---------------------------------------------------------------------------
+
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
-    engine = create_async_engine(_TEST_DB_URL, echo=False)
+    """Create tables once per session. NullPool prevents asyncpg loop-binding issues."""
+    engine = create_async_engine(_TEST_DB_URL, echo=False, poolclass=NullPool)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
@@ -49,13 +66,39 @@ async def test_engine():
     await engine.dispose()
 
 
+# ---------------------------------------------------------------------------
+# Per-test connection + session with SAVEPOINT rollback
+# ---------------------------------------------------------------------------
+
 @pytest_asyncio.fixture
-async def db_session(test_engine):
-    """Provide a test DB session that rolls back after each test."""
-    session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
-    async with session_factory() as session:
-        yield session
-        await session.rollback()
+async def db_connection(test_engine):
+    """One raw connection per test, wrapped in a transaction that rolls back."""
+    async with test_engine.connect() as conn:
+        trans = await conn.begin()
+        yield conn
+        await trans.rollback()
+
+
+@pytest_asyncio.fixture
+async def db_session(db_connection):
+    """AsyncSession bound to the test connection.
+
+    Uses begin_nested() (SAVEPOINT) so that when route handlers call
+    session.commit(), the commit only releases the savepoint — the outer
+    transaction still rolls back after the test.
+    """
+    session = AsyncSession(bind=db_connection, expire_on_commit=False)
+
+    # Every time the session commits, start a new SAVEPOINT so the next
+    # operation still lives inside the outer transaction.
+    @event.listens_for(session.sync_session, "after_transaction_end")
+    def restart_savepoint(session_sync, transaction):
+        if transaction.nested and not transaction._parent.nested:
+            session_sync.begin_nested()
+
+    await db_connection.begin_nested()
+    yield session
+    await session.close()
 
 
 @pytest_asyncio.fixture
@@ -202,7 +245,7 @@ async def active_task(db_session: AsyncSession, character: Character) -> Task:
         level_required=0,
         status=TaskStatus.active,
         created_by=character.id,
-        primary_faction_slug="na",
+        primary_faction_slug="ua",
     )
     db_session.add(task)
     await db_session.commit()
