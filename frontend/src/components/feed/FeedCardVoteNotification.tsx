@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function FeedCardVoteNotification({ item }: Props) {
-  const { stars, submission_id, submission_title, points_earned } = item.payload
+  const { stars, praxis_id, praxis_title, points_earned } = item.payload
   const color = factionColor(item.actor_faction_slug)
 
   return (
@@ -68,10 +68,10 @@ export default function FeedCardVoteNotification({ item }: Props) {
         <span className="font-body" style={{ fontSize: 10, color: 'var(--color-text-secondary)', flex: 1 }}>
           on{' '}
           <Link
-            to={`/submissions/${submission_id}`}
+            to={`/praxes/${praxis_id}`}
             style={{ color: 'var(--color-text-primary)', fontWeight: 600, textDecoration: 'none' }}
           >
-            {submission_title}
+            {praxis_title}
           </Link>
         </span>
 

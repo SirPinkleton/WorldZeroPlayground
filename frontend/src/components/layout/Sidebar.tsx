@@ -270,7 +270,7 @@ export default function Sidebar() {
                         </span>
                         {' completed '}
                         <span style={{ color: 'var(--color-text-secondary)' }}>
-                          {item.payload.task_title || item.payload.submission_title || 'a task'}
+                          {item.payload.task_title || item.payload.praxis_title || 'a task'}
                         </span>
                       </>
                     )}

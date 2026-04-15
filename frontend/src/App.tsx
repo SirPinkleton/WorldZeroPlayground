@@ -5,13 +5,13 @@ import Home from './pages/Home'
 import Tasks from './pages/Tasks'
 import TaskDetail from './pages/TaskDetail'
 import SubmitProof from './pages/SubmitProof'
-import SubmissionDetail from './pages/SubmissionDetail'
-import EditSubmission from './pages/EditSubmission'
+import PraxisDetail from './pages/PraxisDetail'
+import EditPraxis from './pages/EditPraxis'
 import CharacterProfile from './pages/CharacterProfile'
 import Leaderboard from './pages/Leaderboard'
 import Factions from './pages/Factions'
 import Updates from './pages/Updates'
-import Submissions from './pages/Submissions'
+import Praxes from './pages/Praxes'
 import Admin from './pages/Admin'
 import CreateCharacter from './pages/CreateCharacter'
 import EditCharacter from './pages/EditCharacter'
@@ -37,13 +37,13 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/submissions" element={<Submissions />} />
-        <Route path="/submissions/:id" element={<SubmissionDetail />} />
+        <Route path="/praxes" element={<Praxes />} />
+        <Route path="/praxes/:id" element={<PraxisDetail />} />
         <Route
-          path="/submissions/:id/edit"
+          path="/praxes/:id/edit"
           element={
             <ProtectedRoute>
-              <EditSubmission />
+              <EditPraxis />
             </ProtectedRoute>
           }
         />

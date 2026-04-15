@@ -57,9 +57,9 @@ class OverviewStats(BaseModel):
     accounts: int
     characters: int
     active_tasks: int
-    submissions: int
+    praxis: int
     votes: int
-    flagged_submissions: int = 0
+    flagged_praxis: int = 0
     suspended_accounts: int = 0
 
 

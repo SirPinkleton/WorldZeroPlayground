@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { acceptInvite, declineInvite } from '../../api/submissions'
+import { acceptInvite, declineInvite } from '../../api/praxis'
 import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 import FeedBadge from './FeedBadge'
@@ -12,7 +12,7 @@ interface Props {
 
 export default function FeedCardDuelChallenge({ item }: Props) {
   const {
-    submission_id, task_title, task_point_value, task_faction_slug,
+    praxis_id, task_title, task_point_value, task_faction_slug,
     invite_status, challenger_character_id,
   } = item.payload
   const taskColor = factionColor(task_faction_slug)
@@ -24,7 +24,7 @@ export default function FeedCardDuelChallenge({ item }: Props) {
   const handleAccept = async () => {
     setLoading(true)
     try {
-      await acceptInvite(submission_id)
+      await acceptInvite(praxis_id)
       setStatus('accepted')
     } catch { /* swallow */ }
     setLoading(false)
@@ -33,7 +33,7 @@ export default function FeedCardDuelChallenge({ item }: Props) {
   const handleDecline = async () => {
     setLoading(true)
     try {
-      await declineInvite(submission_id)
+      await declineInvite(praxis_id)
       setStatus('declined')
     } catch { /* swallow */ }
     setLoading(false)

@@ -17,22 +17,22 @@ async def test_cast_vote(
 ):
     """character2 submits; character votes on it."""
     sub_resp = await client.post(
-        "/submissions",
+        "/praxes",
         json={"task_id": active_task.id, "title": "Vote me"},
         headers=auth_headers2,
     )
     assert sub_resp.status_code == 201
-    sub_id = sub_resp.json()["id"]
+    praxis_id = sub_resp.json()["id"]
 
     vote_resp = await client.post(
-        f"/submissions/{sub_id}/vote",
+        f"/praxes/{praxis_id}/vote",
         json={"stars": 4},
         headers=auth_headers,
     )
     assert vote_resp.status_code == 200
     data = vote_resp.json()
     assert data["stars"] == 4
-    assert data["submission_id"] == sub_id
+    assert data["praxis_id"] == praxis_id
 
 
 @pytest.mark.asyncio
@@ -42,16 +42,16 @@ async def test_cast_vote_self_blocked(
     active_task: Task,
     auth_headers: dict,
 ):
-    """Cannot vote on own submission (account-level check)."""
+    """Cannot vote on own praxis (account-level check)."""
     sub_resp = await client.post(
-        "/submissions",
-        json={"task_id": active_task.id, "title": "Own sub"},
+        "/praxes",
+        json={"task_id": active_task.id, "title": "Own praxis"},
         headers=auth_headers,
     )
-    sub_id = sub_resp.json()["id"]
+    praxis_id = sub_resp.json()["id"]
 
     vote_resp = await client.post(
-        f"/submissions/{sub_id}/vote",
+        f"/praxes/{praxis_id}/vote",
         json={"stars": 5},
         headers=auth_headers,
     )
@@ -69,18 +69,18 @@ async def test_update_vote_free(
 ):
     """Updating a vote does not deduct budget."""
     sub_resp = await client.post(
-        "/submissions",
+        "/praxes",
         json={"task_id": active_task.id, "title": "Update vote test"},
         headers=auth_headers2,
     )
-    sub_id = sub_resp.json()["id"]
+    praxis_id = sub_resp.json()["id"]
 
     # Initial vote
-    await client.post(f"/submissions/{sub_id}/vote", json={"stars": 3}, headers=auth_headers)
+    await client.post(f"/praxes/{praxis_id}/vote", json={"stars": 3}, headers=auth_headers)
 
     # Update
     resp = await client.post(
-        f"/submissions/{sub_id}/vote", json={"stars": 5}, headers=auth_headers
+        f"/praxes/{praxis_id}/vote", json={"stars": 5}, headers=auth_headers
     )
     assert resp.status_code == 200
     assert resp.json()["stars"] == 5
@@ -96,17 +96,17 @@ async def test_vote_summary(
     auth_headers2: dict,
 ):
     sub_resp = await client.post(
-        "/submissions",
+        "/praxes",
         json={"task_id": active_task.id, "title": "Summary test"},
         headers=auth_headers2,
     )
-    sub_id = sub_resp.json()["id"]
-    await client.post(f"/submissions/{sub_id}/vote", json={"stars": 4}, headers=auth_headers)
+    praxis_id = sub_resp.json()["id"]
+    await client.post(f"/praxes/{praxis_id}/vote", json={"stars": 4}, headers=auth_headers)
 
-    resp = await client.get(f"/submissions/{sub_id}/votes")
+    resp = await client.get(f"/praxes/{praxis_id}/votes")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["submission_id"] == sub_id
+    assert data["praxis_id"] == praxis_id
     assert data["total_votes"] == 1
     assert data["average_stars"] == 4.0
 
@@ -121,13 +121,13 @@ async def test_invalid_stars(
     auth_headers2: dict,
 ):
     sub_resp = await client.post(
-        "/submissions",
+        "/praxes",
         json={"task_id": active_task.id, "title": "Star test"},
         headers=auth_headers2,
     )
-    sub_id = sub_resp.json()["id"]
+    praxis_id = sub_resp.json()["id"]
 
     resp = await client.post(
-        f"/submissions/{sub_id}/vote", json={"stars": 6}, headers=auth_headers
+        f"/praxes/{praxis_id}/vote", json={"stars": 6}, headers=auth_headers
     )
     assert resp.status_code == 422

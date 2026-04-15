@@ -9,10 +9,10 @@ from models.base import Base
 
 class Vote(Base):
     __tablename__ = "vote"
-    __table_args__ = (UniqueConstraint("submission_id", "voter_character_id"),)
+    __table_args__ = (UniqueConstraint("praxis_id", "voter_character_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    submission_id: Mapped[int] = mapped_column(ForeignKey("submission.id"), nullable=False)
+    praxis_id: Mapped[int] = mapped_column(ForeignKey("praxis.id"), nullable=False)
     voter_character_id: Mapped[int] = mapped_column(
         ForeignKey("character.id"), nullable=False
     )

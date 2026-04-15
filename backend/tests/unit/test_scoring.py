@@ -5,7 +5,7 @@ from services.scoring import (
     COLLABORATION_MODE_SOLO,
     compute_faction_multiplier,
     compute_level,
-    compute_submission_score,
+    compute_praxis_score,
     compute_vote_budget,
 )
 
@@ -60,21 +60,21 @@ def test_level_max():
     assert compute_level(score=ERA_1.level_thresholds[-1] + 10000, era=ERA_1) == max_level
 
 
-def test_submission_score_no_votes():
-    assert compute_submission_score(task_point_value=10, faction_multiplier=1.0, total_stars=0) == 10.0
+def test_praxis_score_no_votes():
+    assert compute_praxis_score(task_point_value=10, faction_multiplier=1.0, total_stars=0) == 10.0
 
 
-def test_submission_score_with_votes():
-    assert compute_submission_score(task_point_value=10, faction_multiplier=1.0, total_stars=3) == 13.0
+def test_praxis_score_with_votes():
+    assert compute_praxis_score(task_point_value=10, faction_multiplier=1.0, total_stars=3) == 13.0
 
 
-def test_submission_score_multiple_votes():
-    assert compute_submission_score(task_point_value=20, faction_multiplier=1.0, total_stars=9) == 29.0
+def test_praxis_score_multiple_votes():
+    assert compute_praxis_score(task_point_value=20, faction_multiplier=1.0, total_stars=9) == 29.0
 
 
-def test_submission_score_with_multiplier():
+def test_praxis_score_with_multiplier():
     # ua_masters gets 0.8 multiplier: 10 * 0.8 + 5 stars = 13.0
-    assert compute_submission_score(task_point_value=10, faction_multiplier=0.8, total_stars=5) == 13.0
+    assert compute_praxis_score(task_point_value=10, faction_multiplier=0.8, total_stars=5) == 13.0
 
 
 # ---------------------------------------------------------------------------

@@ -60,7 +60,7 @@ export default function FeedCardEraAnnouncement({ item }: Props) {
           See New Tasks
         </Link>
         <Link
-          to="/submissions"
+          to="/praxes"
           style={{
             fontFamily: "'Courier Prime', monospace",
             fontSize: 10,

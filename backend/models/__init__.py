@@ -6,12 +6,12 @@ from models.character import Character
 from models.era import Era
 from models.character_stats import CharacterStats
 from models.task import Task, TaskFaction, CharacterTask
-from models.submission import Submission, MediaItem
+from models.praxis import Praxis, MediaItem
 from models.vote import Vote
 from models.flag import Flag
 from models.relationship import Relationship
 from models.message import Message
-from models.meta_task import MetaTask, SubmissionMetaTask
+from models.meta_task import MetaTask, PraxisMetaTask
 from models.contact import ContactMessage
 from models.taunt_message import TauntMessage
 from models.faction_defection_history import FactionDefectionHistory
@@ -30,14 +30,14 @@ __all__ = [
     "Task",
     "TaskFaction",
     "CharacterTask",
-    "Submission",
+    "Praxis",
     "MediaItem",
     "Vote",
     "Flag",
     "Relationship",
     "Message",
     "MetaTask",
-    "SubmissionMetaTask",
+    "PraxisMetaTask",
     "ContactMessage",
     "TauntMessage",
     "FactionDefectionHistory",

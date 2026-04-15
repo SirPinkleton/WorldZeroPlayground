@@ -11,7 +11,7 @@ from models.character_stats import CharacterStats
 from models.faction import Faction, FactionStatus
 from models.roles import AccountRole, Role
 from models.contact import ContactMessage
-from models.submission import ModerationStatus, Submission
+from models.praxis import ModerationStatus, Praxis
 from models.task import Task, TaskStatus
 from models.vote import Vote
 from schemas.admin import (
@@ -131,11 +131,11 @@ async def game_overview(session: AsyncSession) -> OverviewStats:
     active_task_count_result = await session.execute(
         select(func.count()).select_from(Task).where(Task.status == TaskStatus.active)
     )
-    submission_count_result = await session.execute(select(func.count()).select_from(Submission))
+    praxis_count_result = await session.execute(select(func.count()).select_from(Praxis))
     vote_count_result = await session.execute(select(func.count()).select_from(Vote))
     flagged_count_result = await session.execute(
-        select(func.count()).select_from(Submission).where(
-            Submission.moderation_status == ModerationStatus.flagged
+        select(func.count()).select_from(Praxis).where(
+            Praxis.moderation_status == ModerationStatus.flagged
         )
     )
     suspended_count_result = await session.execute(
@@ -148,9 +148,9 @@ async def game_overview(session: AsyncSession) -> OverviewStats:
         accounts=account_count_result.scalar_one(),
         characters=character_count_result.scalar_one(),
         active_tasks=active_task_count_result.scalar_one(),
-        submissions=submission_count_result.scalar_one(),
+        praxis=praxis_count_result.scalar_one(),
         votes=vote_count_result.scalar_one(),
-        flagged_submissions=flagged_count_result.scalar_one(),
+        flagged_praxis=flagged_count_result.scalar_one(),
         suspended_accounts=suspended_count_result.scalar_one(),
     )
 
@@ -345,27 +345,27 @@ async def suspend_account(
 # ---------------------------------------------------------------------------
 
 
-async def moderate_submission(
-    submission_id: int,
+async def moderate_praxis(
+    praxis_id: int,
     new_status: ModerationStatus,
     admin_note: str | None,
     session: AsyncSession,
-) -> Submission:
-    """Set the moderation status of a submission. Admin can override any state."""
-    submission = await session.get(Submission, submission_id)
-    if submission is None:
-        raise HTTPException(status_code=404, detail="Submission not found.")
+) -> Praxis:
+    """Set the moderation status of a praxis. Admin can override any state."""
+    praxis = await session.get(Praxis, praxis_id)
+    if praxis is None:
+        raise HTTPException(status_code=404, detail="Praxis not found.")
 
-    submission.moderation_status = new_status
+    praxis.moderation_status = new_status
 
     if new_status == ModerationStatus.failed:
-        submission.admin_note = admin_note or ""
+        praxis.admin_note = admin_note or ""
     elif new_status == ModerationStatus.visible:
-        submission.admin_note = None
+        praxis.admin_note = None
 
     await session.commit()
-    await session.refresh(submission)
-    return submission
+    await session.refresh(praxis)
+    return praxis
 
 
 async def archive_message(

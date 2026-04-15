@@ -15,7 +15,7 @@ from models.era import Era
 from models.faction_defection_history import FactionDefectionHistory
 from models.invitation_letter import InvitationLetter
 from models.relationship import Relationship, RelationshipStatus, RelationshipType
-from models.submission import CollaborationMode, InviteStatus, Submission
+from models.praxis import CollaborationMode, InviteStatus, Praxis
 from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
 from models.taunt_message import TauntMessage
 from models.vote import Vote
@@ -117,7 +117,7 @@ async def _fetch_votes_on_mine(
     session: AsyncSession,
     before: Optional[datetime],
 ) -> list[ActivityFeedItem]:
-    """Votes cast on the current character's submissions."""
+    """Votes cast on the current character's praxis."""
     voter_char = Character.__table__.alias("voter_char")
 
     query = (
@@ -125,17 +125,17 @@ async def _fetch_votes_on_mine(
             Vote.id,
             Vote.stars,
             Vote.created_at,
-            Vote.submission_id,
-            Submission.title.label("submission_title"),
+            Vote.praxis_id,
+            Praxis.title.label("praxis_title"),
             Task.point_value.label("task_point_value"),
             voter_char.c.display_name.label("voter_display_name"),
             voter_char.c.faction_slug.label("voter_faction_slug"),
             voter_char.c.avatar_url.label("voter_avatar_url"),
         )
-        .join(Submission, Vote.submission_id == Submission.id)
-        .join(Task, Submission.task_id == Task.id)
+        .join(Praxis, Vote.praxis_id == Praxis.id)
+        .join(Task, Praxis.task_id == Task.id)
         .join(voter_char, Vote.voter_character_id == voter_char.c.id)
-        .where(Submission.character_id == character_id)
+        .where(Praxis.character_id == character_id)
     )
     if before is not None:
         query = query.where(Vote.created_at < before)
@@ -153,8 +153,8 @@ async def _fetch_votes_on_mine(
             payload={
                 "vote_id": row.id,
                 "stars": row.stars,
-                "submission_id": row.submission_id,
-                "submission_title": row.submission_title,
+                "praxis_id": row.praxis_id,
+                "praxis_title": row.praxis_title,
                 "task_point_value": row.task_point_value,
                 "points_earned": row.stars * row.task_point_value,
             },
@@ -167,16 +167,16 @@ async def _fetch_friend_completions(
     session: AsyncSession,
     before: Optional[datetime],
 ) -> list[ActivityFeedItem]:
-    """Recent submissions (completions) from friends."""
+    """Recent praxis (completions) from friends."""
     if not friend_ids:
         return []
 
     query = (
         select(
-            Submission.id,
-            Submission.title,
-            Submission.created_at,
-            Submission.character_id,
+            Praxis.id,
+            Praxis.title,
+            Praxis.created_at,
+            Praxis.character_id,
             Task.title.label("task_title"),
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
@@ -184,16 +184,16 @@ async def _fetch_friend_completions(
             Character.faction_slug.label("author_faction_slug"),
             Character.avatar_url.label("author_avatar_url"),
         )
-        .join(Task, Submission.task_id == Task.id)
-        .join(Character, Submission.character_id == Character.id)
+        .join(Task, Praxis.task_id == Task.id)
+        .join(Character, Praxis.character_id == Character.id)
         .where(
-            Submission.character_id.in_(friend_ids),
-            Submission.is_withdrawn == False,  # noqa: E712
+            Praxis.character_id.in_(friend_ids),
+            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     if before is not None:
-        query = query.where(Submission.created_at < before)
-    query = query.order_by(Submission.created_at.desc()).limit(SUB_QUERY_LIMIT)
+        query = query.where(Praxis.created_at < before)
+    query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
     items: list[ActivityFeedItem] = []
@@ -205,8 +205,8 @@ async def _fetch_friend_completions(
             actor_faction_slug=row.author_faction_slug,
             actor_avatar_url=row.author_avatar_url,
             payload={
-                "submission_id": row.id,
-                "submission_title": row.title,
+                "praxis_id": row.id,
+                "praxis_title": row.title,
                 "task_title": row.task_title,
                 "task_point_value": row.task_point_value,
                 "task_faction_slug": row.task_faction_slug,
@@ -260,16 +260,16 @@ async def _fetch_foe_completions(
     session: AsyncSession,
     before: Optional[datetime],
 ) -> list[ActivityFeedItem]:
-    """Recent submissions (completions) from foes."""
+    """Recent praxis (completions) from foes."""
     if not foe_ids:
         return []
 
     query = (
         select(
-            Submission.id,
-            Submission.title,
-            Submission.created_at,
-            Submission.character_id,
+            Praxis.id,
+            Praxis.title,
+            Praxis.created_at,
+            Praxis.character_id,
             Task.title.label("task_title"),
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
@@ -277,16 +277,16 @@ async def _fetch_foe_completions(
             Character.faction_slug.label("author_faction_slug"),
             Character.avatar_url.label("author_avatar_url"),
         )
-        .join(Task, Submission.task_id == Task.id)
-        .join(Character, Submission.character_id == Character.id)
+        .join(Task, Praxis.task_id == Task.id)
+        .join(Character, Praxis.character_id == Character.id)
         .where(
-            Submission.character_id.in_(foe_ids),
-            Submission.is_withdrawn == False,  # noqa: E712
+            Praxis.character_id.in_(foe_ids),
+            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     if before is not None:
-        query = query.where(Submission.created_at < before)
-    query = query.order_by(Submission.created_at.desc()).limit(SUB_QUERY_LIMIT)
+        query = query.where(Praxis.created_at < before)
+    query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
     items: list[ActivityFeedItem] = []
@@ -298,8 +298,8 @@ async def _fetch_foe_completions(
             actor_faction_slug=row.author_faction_slug,
             actor_avatar_url=row.author_avatar_url,
             payload={
-                "submission_id": row.id,
-                "submission_title": row.title,
+                "praxis_id": row.id,
+                "praxis_title": row.title,
                 "task_title": row.task_title,
                 "task_point_value": row.task_point_value,
                 "task_faction_slug": row.task_faction_slug,
@@ -387,11 +387,11 @@ async def _fetch_collab_invites(
     """Collab invites sent to the current character."""
     query = (
         select(
-            Submission.id,
-            Submission.title,
-            Submission.created_at,
-            Submission.invite_status,
-            Submission.character_id,
+            Praxis.id,
+            Praxis.title,
+            Praxis.created_at,
+            Praxis.invite_status,
+            Praxis.character_id,
             Task.title.label("task_title"),
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
@@ -400,18 +400,18 @@ async def _fetch_collab_invites(
             Character.faction_slug.label("inviter_faction_slug"),
             Character.avatar_url.label("inviter_avatar_url"),
         )
-        .join(Task, Submission.task_id == Task.id)
-        .join(Character, Submission.character_id == Character.id)
+        .join(Task, Praxis.task_id == Task.id)
+        .join(Character, Praxis.character_id == Character.id)
         .where(
-            Submission.partner_character_id == character_id,
-            Submission.collaboration_mode == CollaborationMode.collab,
+            Praxis.partner_character_id == character_id,
+            Praxis.collaboration_mode == CollaborationMode.collab,
         )
     )
     if pending_only:
-        query = query.where(Submission.invite_status == InviteStatus.pending)
+        query = query.where(Praxis.invite_status == InviteStatus.pending)
     if before is not None:
-        query = query.where(Submission.created_at < before)
-    query = query.order_by(Submission.created_at.desc()).limit(SUB_QUERY_LIMIT)
+        query = query.where(Praxis.created_at < before)
+    query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
     items: list[ActivityFeedItem] = []
@@ -424,8 +424,8 @@ async def _fetch_collab_invites(
             actor_faction_slug=row.inviter_faction_slug,
             actor_avatar_url=row.inviter_avatar_url,
             payload={
-                "submission_id": row.id,
-                "submission_title": row.title,
+                "praxis_id": row.id,
+                "praxis_title": row.title,
                 "task_title": row.task_title,
                 "task_point_value": row.task_point_value,
                 "task_faction_slug": row.task_faction_slug,
@@ -446,11 +446,11 @@ async def _fetch_duel_challenges(
     """Duel challenges sent to the current character."""
     query = (
         select(
-            Submission.id,
-            Submission.title,
-            Submission.created_at,
-            Submission.invite_status,
-            Submission.character_id,
+            Praxis.id,
+            Praxis.title,
+            Praxis.created_at,
+            Praxis.invite_status,
+            Praxis.character_id,
             Task.title.label("task_title"),
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
@@ -458,18 +458,18 @@ async def _fetch_duel_challenges(
             Character.faction_slug.label("challenger_faction_slug"),
             Character.avatar_url.label("challenger_avatar_url"),
         )
-        .join(Task, Submission.task_id == Task.id)
-        .join(Character, Submission.character_id == Character.id)
+        .join(Task, Praxis.task_id == Task.id)
+        .join(Character, Praxis.character_id == Character.id)
         .where(
-            Submission.partner_character_id == character_id,
-            Submission.collaboration_mode == CollaborationMode.duel,
+            Praxis.partner_character_id == character_id,
+            Praxis.collaboration_mode == CollaborationMode.duel,
         )
     )
     if pending_only:
-        query = query.where(Submission.invite_status == InviteStatus.pending)
+        query = query.where(Praxis.invite_status == InviteStatus.pending)
     if before is not None:
-        query = query.where(Submission.created_at < before)
-    query = query.order_by(Submission.created_at.desc()).limit(SUB_QUERY_LIMIT)
+        query = query.where(Praxis.created_at < before)
+    query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
     items: list[ActivityFeedItem] = []
@@ -482,8 +482,8 @@ async def _fetch_duel_challenges(
             actor_faction_slug=row.challenger_faction_slug,
             actor_avatar_url=row.challenger_avatar_url,
             payload={
-                "submission_id": row.id,
-                "submission_title": row.title,
+                "praxis_id": row.id,
+                "praxis_title": row.title,
                 "task_title": row.task_title,
                 "task_point_value": row.task_point_value,
                 "task_faction_slug": row.task_faction_slug,
@@ -671,8 +671,8 @@ async def _compute_counts(
         result = await session.execute(
             select(func.count())
             .select_from(Vote)
-            .join(Submission, Vote.submission_id == Submission.id)
-            .where(Submission.character_id == character_id)
+            .join(Praxis, Vote.praxis_id == Praxis.id)
+            .where(Praxis.character_id == character_id)
         )
         return result.scalar_one()
 
@@ -681,10 +681,10 @@ async def _compute_counts(
             return 0
         result = await session.execute(
             select(func.count())
-            .select_from(Submission)
+            .select_from(Praxis)
             .where(
-                Submission.character_id.in_(friend_ids),
-                Submission.is_withdrawn == False,  # noqa: E712
+                Praxis.character_id.in_(friend_ids),
+                Praxis.is_withdrawn == False,  # noqa: E712
             )
         )
         return result.scalar_one()
@@ -741,10 +741,10 @@ async def _compute_counts(
         """Votes on mine + collab invites + duel challenges + invitation letters."""
         collab_result = await session.execute(
             select(func.count())
-            .select_from(Submission)
+            .select_from(Praxis)
             .where(
-                Submission.partner_character_id == character_id,
-                Submission.collaboration_mode.in_([
+                Praxis.partner_character_id == character_id,
+                Praxis.collaboration_mode.in_([
                     CollaborationMode.collab, CollaborationMode.duel,
                 ]),
             )
@@ -768,13 +768,13 @@ async def _compute_counts(
     async def count_requests() -> int:
         result = await session.execute(
             select(func.count())
-            .select_from(Submission)
+            .select_from(Praxis)
             .where(
-                Submission.partner_character_id == character_id,
-                Submission.collaboration_mode.in_([
+                Praxis.partner_character_id == character_id,
+                Praxis.collaboration_mode.in_([
                     CollaborationMode.collab, CollaborationMode.duel,
                 ]),
-                Submission.invite_status == InviteStatus.pending,
+                Praxis.invite_status == InviteStatus.pending,
             )
         )
         return result.scalar_one()
@@ -789,10 +789,10 @@ async def _compute_counts(
     if foe_ids_for_count:
         foe_completions_result = await session.execute(
             select(func.count())
-            .select_from(Submission)
+            .select_from(Praxis)
             .where(
-                Submission.character_id.in_(foe_ids_for_count),
-                Submission.is_withdrawn == False,  # noqa: E712
+                Praxis.character_id.in_(foe_ids_for_count),
+                Praxis.is_withdrawn == False,  # noqa: E712
             )
         )
         foe_completions_count = foe_completions_result.scalar_one()

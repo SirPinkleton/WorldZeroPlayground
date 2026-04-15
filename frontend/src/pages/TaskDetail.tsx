@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getTask, getMyTasks, signupTask, dropTask, getTaskSignups, type TaskOut, type TaskSignupOut } from '../api/tasks'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
+import { listPraxes, type PraxisOut } from '../api/praxis'
 import { listRelationships } from '../api/relationships'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
-import SubmissionCard from '../components/SubmissionCard'
+import PraxisCard from '../components/PraxisCard'
 import LevelPill from '../components/ui/LevelPill'
 import PageTitle from '../components/ui/PageTitle'
 import FeedBadge from '../components/feed/FeedBadge'
@@ -27,7 +27,7 @@ export default function TaskDetail() {
   const dark = theme === 'dark'
 
   const [task, setTask] = useState<TaskOut | null>(null)
-  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
+  const [submissions, setSubmissions] = useState<PraxisOut[]>([])
   const [signups, setSignups] = useState<TaskSignupOut[]>([])
   const [metaTasks, setMetaTasks] = useState<MetaTaskOut[]>([])
   const [isInProgress, setIsInProgress] = useState(false)
@@ -55,7 +55,7 @@ export default function TaskDetail() {
 
     const fetches: Promise<unknown>[] = [
       getTask(taskId),
-      listSubmissions({ task_id: taskId }),
+      listPraxes({ task_id: taskId }),
       getTaskSignups(taskId),
       getMetaTasks(taskId).catch(() => []),
     ]
@@ -76,7 +76,7 @@ export default function TaskDetail() {
     Promise.all(fetches)
       .then(([t, s, sg, mt, myTasks, friendSet, foeSet]) => {
         setTask(t as TaskOut)
-        setSubmissions(s as SubmissionOut[])
+        setSubmissions(s as PraxisOut[])
         setSignups(sg as TaskSignupOut[])
         setMetaTasks(mt as MetaTaskOut[])
         if (myTasks) {
@@ -94,7 +94,7 @@ export default function TaskDetail() {
   // Re-fetch submissions when sort changes
   useEffect(() => {
     if (!id) return
-    listSubmissions({ task_id: parseInt(id, 10) })
+    listPraxes({ task_id: parseInt(id, 10) })
       .then((s) => setSubmissions(s))
       .catch(() => {})
   }, [submissionSort, id])
@@ -297,7 +297,7 @@ export default function TaskDetail() {
                   You've submitted praxis for this task
                 </span>
               </div>
-              <Link to={`/submissions/${mySubmission.id}/edit`} className="btn-outline" style={{ fontSize: 8, padding: '4px 12px' }}>
+              <Link to={`/praxes/${mySubmission.id}/edit`} className="btn-outline" style={{ fontSize: 8, padding: '4px 12px' }}>
                 edit
               </Link>
             </div>
@@ -408,12 +408,12 @@ export default function TaskDetail() {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {sortedSubmissions.slice(0, 4).map((s) => <SubmissionCard key={s.id} submission={s} />)}
+                  {sortedSubmissions.slice(0, 4).map((s) => <PraxisCard key={s.id} praxis={s} />)}
                 </div>
                 {submissions.length > 4 && (
                   <div style={{ textAlign: 'center', marginTop: 16 }}>
                     <Link
-                      to={`/submissions?task_id=${task.id}`}
+                      to={`/praxes?task_id=${task.id}`}
                       style={{
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 10, fontWeight: 700, textTransform: 'uppercase',

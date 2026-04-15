@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function FeedCardFriendActivity({ item }: Props) {
-  const { submission_id, task_title, task_point_value, task_faction_slug, character_id } = item.payload
+  const { praxis_id, task_title, task_point_value, task_faction_slug, character_id } = item.payload
   const actorColor = factionColor(item.actor_faction_slug)
   const taskColor = factionColor(task_faction_slug)
 
@@ -60,7 +60,7 @@ export default function FeedCardFriendActivity({ item }: Props) {
         }}
       >
         <Link
-          to={`/submissions/${submission_id}`}
+          to={`/praxes/${praxis_id}`}
           className="font-body"
           style={{
             fontSize: 11,

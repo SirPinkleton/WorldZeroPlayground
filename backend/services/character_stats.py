@@ -5,11 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.submission import ModerationStatus, Submission
+from models.praxis import ModerationStatus, Praxis
 from models.task import Task
 from models.vote import Vote
 from services.era import get_current_era_row, get_or_create_stats
-from services.scoring import compute_faction_multiplier, compute_level, compute_submission_score, compute_vote_budget
+from services.scoring import compute_faction_multiplier, compute_level, compute_praxis_score, compute_vote_budget
 
 
 async def recalculate_character_stats(
@@ -28,18 +28,18 @@ async def recalculate_character_stats(
     author = await session.get(Character, character_id)
     character_faction_slug = author.faction_slug if author else "na"
 
-    submissions_result = await session.execute(
-        select(Submission).where(
-            Submission.character_id == character_id,
-            Submission.moderation_status != ModerationStatus.hidden,
-            Submission.is_withdrawn == False,
+    praxis_result = await session.execute(
+        select(Praxis).where(
+            Praxis.character_id == character_id,
+            Praxis.moderation_status != ModerationStatus.hidden,
+            Praxis.is_withdrawn == False,
         )
     )
-    submissions = submissions_result.scalars().all()
+    praxis_list = praxis_result.scalars().all()
 
     total_score = 0.0
-    for submission in submissions:
-        task = await session.get(Task, submission.task_id)
+    for praxis in praxis_list:
+        task = await session.get(Task, praxis.task_id)
         if task is None:
             continue
         task_faction_slug = task.primary_faction_slug or "na"
@@ -47,13 +47,13 @@ async def recalculate_character_stats(
             character_faction_slug,
             task_faction_slug,
             era,
-            collaboration_mode=submission.collaboration_mode.value,
+            collaboration_mode=praxis.collaboration_mode.value,
         )
         sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.submission_id == submission.id)
+            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
         )
         total_stars = int(sum_result.scalar_one_or_none() or 0)
-        total_score += compute_submission_score(task.point_value, faction_multiplier, total_stars)
+        total_score += compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 
     new_score = int(total_score)
     stats = await get_or_create_stats(session, character_id, era_row.id)

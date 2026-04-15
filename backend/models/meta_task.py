@@ -30,11 +30,11 @@ class MetaTask(Base):
     )
 
 
-class SubmissionMetaTask(Base):
-    __tablename__ = "submission_meta_task"
+class PraxisMetaTask(Base):
+    __tablename__ = "praxis_meta_task"
 
-    submission_id: Mapped[int] = mapped_column(
-        ForeignKey("submission.id"), primary_key=True
+    praxis_id: Mapped[int] = mapped_column(
+        ForeignKey("praxis.id"), primary_key=True
     )
     meta_task_id: Mapped[int] = mapped_column(
         ForeignKey("meta_task.id"), primary_key=True

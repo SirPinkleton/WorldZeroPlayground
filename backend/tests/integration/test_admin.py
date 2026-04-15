@@ -96,7 +96,7 @@ async def test_admin_retire_task(
 
 
 @pytest.mark.asyncio
-async def test_admin_delete_submission(
+async def test_admin_delete_praxis(
     client: AsyncClient,
     account: Account,
     character: Character,
@@ -107,14 +107,14 @@ async def test_admin_delete_submission(
     await _make_admin(account, db_session)
 
     sub_resp = await client.post(
-        "/submissions",
+        "/praxes",
         json={"task_id": active_task.id, "title": "To Delete"},
         headers=auth_headers,
     )
     sub_id = sub_resp.json()["id"]
 
-    resp = await client.delete(f"/admin/submissions/{sub_id}", headers=auth_headers)
+    resp = await client.delete(f"/admin/praxes/{sub_id}", headers=auth_headers)
     assert resp.status_code == 204
 
-    get_resp = await client.get(f"/submissions/{sub_id}")
+    get_resp = await client.get(f"/praxes/{sub_id}")
     assert get_resp.status_code == 404
