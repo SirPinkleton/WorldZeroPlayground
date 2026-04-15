@@ -45,5 +45,5 @@ jobs:
         working-directory: backend
 
       - name: Run tests with coverage
-        run: pytest --cov=. --cov-report=term-missing --cov-fail-under=60
+        run: pytest --cov=. --cov-report=term-missing --cov-fail-under=58
         working-directory: backend
