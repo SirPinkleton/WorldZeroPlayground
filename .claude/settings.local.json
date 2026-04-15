@@ -6,7 +6,7 @@
       "Bash(mkdir:*)",
       "Bash(docker:*)",
       "Bash(cp:*)",
-      "Bash cd:*)",
+      "Bash(cd:*)",
       "Bash(rm:*)",
       "Bash(ssh:*)",
       "Bash(curl:*)",
