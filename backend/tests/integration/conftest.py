@@ -245,7 +245,7 @@ async def active_task(db_session: AsyncSession, character: Character) -> Task:
         level_required=0,
         status=TaskStatus.active,
         created_by=character.id,
-        primary_faction_slug="na",
+        primary_faction_slug="ua",
     )
     db_session.add(task)
     await db_session.commit()

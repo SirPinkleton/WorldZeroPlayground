@@ -4,6 +4,8 @@ from httpx import AsyncClient
 
 from models.account import Account
 from models.character import Character
+from models.era import Era
+from models.faction import Faction
 
 
 @pytest.mark.asyncio
@@ -34,7 +36,9 @@ async def test_get_character_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_character(client: AsyncClient, account: Account, auth_headers: dict):
+async def test_create_character(
+    client: AsyncClient, account: Account, era: Era, faction_ua: Faction, auth_headers: dict
+):
     resp = await client.post(
         "/characters",
         json={"username": "newchar", "display_name": "New Character"},
