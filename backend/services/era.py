@@ -1,12 +1,25 @@
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character_stats import CharacterStats
 from models.era import Era
+from models.faction_defection_history import FactionDefectionHistory
 
 ERA_RESET_DEFAULT_FACTION: str = "na"
+
+
+async def clear_defection_history_for_era(
+    era_id: int,
+    session: AsyncSession,
+) -> None:
+    """Delete all defection records for a given era. Called during era reset."""
+    await session.execute(
+        delete(FactionDefectionHistory).where(
+            FactionDefectionHistory.era_id == era_id,
+        )
+    )
 
 
 async def get_current_era_row(session: AsyncSession) -> Era:
@@ -93,7 +106,6 @@ async def apply_era_reset(
 
     # Clear defection history so players can join any faction fresh
     if era.reset_faction:
-        from services.faction_service import clear_defection_history_for_era
         await clear_defection_history_for_era(new_era_row.id, session)
 
     await session.commit()

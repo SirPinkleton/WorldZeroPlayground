@@ -73,7 +73,12 @@ async def auth_me(
     account: Account = Depends(get_current_account),
     session: AsyncSession = Depends(get_db),
 ):
-    """Return the current account and its first active character."""
+    """Return the current account and its first active character.
+
+    Exposes account_id — this is intentional and the single authorized exception to the
+    "never leak account_id publicly" rule. Caller is authenticated; they receive only their
+    own id. See SPEC-backend-architecture.md §4.
+    """
     result = await session.execute(
         select(Character)
         .where(

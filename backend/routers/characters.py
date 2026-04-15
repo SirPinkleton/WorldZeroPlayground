@@ -19,12 +19,11 @@ from models.account import Account
 from models.character import Character, CharacterStatus
 from models.character_stats import CharacterStats
 from models.relationship import Relationship
-from models.praxis import MediaItem, Praxis
-from models.task import Task
+from models.praxis import Praxis
 from models.vote import Vote
 from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
 from schemas.relationship import RelationshipOut
-from schemas.praxis import MediaItemOut, PraxisOut
+from schemas.praxis import PraxisOut
 from services.auth import get_current_account
 from services.character import (
     CharacterCreationResult,
@@ -33,7 +32,7 @@ from services.character import (
     update_character,
 )
 from services.era import get_current_era_row
-from services.praxis import compute_praxis_score_from_db
+from services.praxis import build_praxis_out
 
 router = APIRouter()
 
@@ -183,31 +182,7 @@ async def get_character_praxes(
         .offset(offset)
     )
     praxis_list = result.scalars().all()
-    out = []
-    for praxis in praxis_list:
-        score = await compute_praxis_score_from_db(praxis, session)
-        media_result = await session.execute(
-            select(MediaItem)
-            .where(MediaItem.praxis_id == praxis.id)
-            .order_by(MediaItem.display_order)
-        )
-        media = [MediaItemOut.model_validate(media_item) for media_item in media_result.scalars().all()]
-        out.append(
-            PraxisOut(
-                id=praxis.id,
-                task_id=praxis.task_id,
-                character_id=praxis.character_id,
-                title=praxis.title,
-                body_text=praxis.body_text,
-                moderation_status=praxis.moderation_status.value,
-                admin_note=praxis.admin_note,
-                created_at=praxis.created_at,
-                updated_at=praxis.updated_at,
-                media=media,
-                score=score,
-            )
-        )
-    return out
+    return [await build_praxis_out(praxis, session) for praxis in praxis_list]
 
 
 @router.post("/{character_id}/avatar", response_model=CharacterOut)

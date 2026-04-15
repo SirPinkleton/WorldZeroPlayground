@@ -1,10 +1,15 @@
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.account import Account
+    from models.praxis import Praxis
 
 
 class CharacterStatus(enum.Enum):
@@ -37,3 +42,13 @@ class Character(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
     # score, level, votes_available, all_time_score live in CharacterStats (star schema split)
+
+    account: Mapped["Account"] = relationship(
+        "Account", back_populates="characters", lazy="raise"
+    )
+    praxes: Mapped[List["Praxis"]] = relationship(
+        "Praxis",
+        back_populates="character",
+        foreign_keys="Praxis.character_id",
+        lazy="raise",
+    )

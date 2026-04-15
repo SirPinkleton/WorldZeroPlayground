@@ -1,15 +1,13 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
-from models.character import Character
 from models.flag import Flag
-from models.praxis import CollaborationMode, InviteStatus, MediaItem, ModerationStatus, Praxis
+from models.praxis import CollaborationMode, InviteStatus, ModerationStatus, Praxis
 from models.task import CharacterTask, CharacterTaskStatus, Task
-from models.vote import Vote
 from schemas.praxis import MediaItemOut, PraxisCreate, PraxisOut
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
@@ -227,11 +225,10 @@ async def compute_praxis_score_from_db(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> float:
-    task = await session.get(Task, praxis.task_id)
+    task = praxis.task
     if task is None:
         return 0.0
-    author = await session.get(Character, praxis.character_id)
-    character_faction_slug = author.faction_slug if author else "na"
+    character_faction_slug = praxis.character.faction_slug if praxis.character else "na"
     task_faction_slug = task.primary_faction_slug or "na"
     faction_multiplier = compute_faction_multiplier(
         character_faction_slug,
@@ -239,45 +236,32 @@ async def compute_praxis_score_from_db(
         era,
         collaboration_mode=praxis.collaboration_mode.value,
     )
-    sum_result = await session.execute(
-        select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-    )
-    total_stars = int(sum_result.scalar_one_or_none() or 0)
+    total_stars = int(sum(vote.stars for vote in praxis.votes))
     return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 
 
 async def build_praxis_out(
     praxis: Praxis, session: AsyncSession
 ) -> PraxisOut:
-    """Build a complete PraxisOut with all joined fields (task, character, media, score)."""
+    """Build a complete PraxisOut with all joined fields (task, character, media, score).
+
+    All relationships are eager-loaded (lazy="selectin") so this function reads from the
+    already-populated attributes rather than issuing additional per-praxis queries.
+    """
     score = await compute_praxis_score_from_db(praxis, session)
-    media_result = await session.execute(
-        select(MediaItem)
-        .where(MediaItem.praxis_id == praxis.id)
-        .order_by(MediaItem.display_order)
-    )
-    media = [MediaItemOut.model_validate(item) for item in media_result.scalars().all()]
+    media = [MediaItemOut.model_validate(item) for item in praxis.media_items]
 
-    character = await session.get(Character, praxis.character_id)
-    character_display_name = character.display_name if character else ""
+    character_display_name = praxis.character.display_name if praxis.character else ""
 
-    task = await session.get(Task, praxis.task_id)
-    task_title = task.title if task else ""
-    task_point_value = task.point_value if task else 0
-    task_faction_slug = task.primary_faction_slug if task else None
+    task_title = praxis.task.title if praxis.task else ""
+    task_point_value = praxis.task.point_value if praxis.task else 0
+    task_faction_slug = praxis.task.primary_faction_slug if praxis.task else None
 
-    partner_display_name = None
-    if praxis.partner_character_id:
-        partner = await session.get(Character, praxis.partner_character_id)
-        partner_display_name = partner.display_name if partner else None
+    partner_display_name = praxis.partner.display_name if praxis.partner else None
 
     invite_status_value = None
     if praxis.invite_status is not None:
-        invite_status_value = (
-            praxis.invite_status.value
-            if hasattr(praxis.invite_status, "value")
-            else str(praxis.invite_status)
-        )
+        invite_status_value = praxis.invite_status.value
 
     return PraxisOut(
         id=praxis.id,

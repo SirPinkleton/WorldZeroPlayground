@@ -1,7 +1,7 @@
 """Faction lifecycle: defection, invitation letters, and Analog Double Dipper."""
 
 from fastapi import HTTPException
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
@@ -11,7 +11,7 @@ from models.character_stats import CharacterStats
 from models.faction_defection_history import FactionDefectionHistory
 from models.invitation_letter import InvitationLetter
 from models.task import Task
-from services.era import get_current_era_row, get_or_create_stats
+from services.era import clear_defection_history_for_era, get_current_era_row, get_or_create_stats
 
 FACTION_GRADUATION_LEVEL: int = 3
 INVITATION_POINT_THRESHOLD: int = 20
@@ -120,18 +120,6 @@ async def get_defection_history(
         )
     )
     return list(result.scalars().all())
-
-
-async def clear_defection_history_for_era(
-    era_id: int,
-    session: AsyncSession,
-) -> None:
-    """Delete all defection records for a given era. Called during era reset."""
-    await session.execute(
-        delete(FactionDefectionHistory).where(
-            FactionDefectionHistory.era_id == era_id,
-        )
-    )
 
 
 # ---------------------------------------------------------------------------

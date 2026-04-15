@@ -1,11 +1,17 @@
 import enum
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.character import Character
+    from models.flag import Flag
+    from models.task import Task
+    from models.vote import Vote
 
 
 class MediaType(enum.Enum):
@@ -59,11 +65,38 @@ class Praxis(Base):
     partner_character_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("character.id"), nullable=True
     )
-    invite_status: Mapped[Optional[str]] = mapped_column(
+    invite_status: Mapped[Optional[InviteStatus]] = mapped_column(
         Enum(InviteStatus, create_type=False), nullable=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    character: Mapped["Character"] = relationship(
+        "Character",
+        foreign_keys=[character_id],
+        back_populates="praxes",
+        lazy="selectin",
+    )
+    partner: Mapped[Optional["Character"]] = relationship(
+        "Character",
+        foreign_keys=[partner_character_id],
+        lazy="selectin",
+    )
+    task: Mapped["Task"] = relationship(
+        "Task", back_populates="praxes", lazy="selectin"
+    )
+    votes: Mapped[List["Vote"]] = relationship(
+        "Vote", back_populates="praxis", lazy="selectin"
+    )
+    media_items: Mapped[List["MediaItem"]] = relationship(
+        "MediaItem",
+        back_populates="praxis",
+        order_by="MediaItem.display_order",
+        lazy="selectin",
+    )
+    flags: Mapped[List["Flag"]] = relationship(
+        "Flag", back_populates="praxis", lazy="selectin"
     )
 
 
@@ -79,4 +112,8 @@ class MediaItem(Base):
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    praxis: Mapped["Praxis"] = relationship(
+        "Praxis", back_populates="media_items", lazy="raise"
     )

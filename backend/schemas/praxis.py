@@ -19,9 +19,10 @@ class PraxisOut(BaseModel):
     id: int
     task_id: int
     character_id: int
-    character_display_name: str = ""
-    task_title: str = ""
-    task_point_value: int = 0
+    # Denormalized display fields — populated from relationships, never None once a Praxis is persisted.
+    character_display_name: str
+    task_title: str
+    task_point_value: int
     task_faction_slug: Optional[str] = None
     title: str
     body_text: Optional[str]

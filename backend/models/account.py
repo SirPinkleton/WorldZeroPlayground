@@ -1,10 +1,14 @@
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.character import Character
 
 
 class AccountStatus(enum.Enum):
@@ -28,6 +32,13 @@ class Account(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
+    characters: Mapped[List["Character"]] = relationship(
+        "Character", back_populates="account", lazy="raise"
+    )
+    oauth_providers: Mapped[List["OAuthProvider"]] = relationship(
+        "OAuthProvider", back_populates="account", lazy="raise"
+    )
+
 
 class OAuthProvider(Base):
     __tablename__ = "oauth_provider"
@@ -42,4 +53,8 @@ class OAuthProvider(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    account: Mapped["Account"] = relationship(
+        "Account", back_populates="oauth_providers", lazy="raise"
     )

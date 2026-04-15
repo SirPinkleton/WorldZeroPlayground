@@ -1,10 +1,15 @@
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.character import Character
+    from models.praxis import Praxis
 
 
 class TaskStatus(enum.Enum):
@@ -45,6 +50,10 @@ class Task(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
+    praxes: Mapped[List["Praxis"]] = relationship(
+        "Praxis", back_populates="task", lazy="raise"
+    )
+
 
 class TaskFaction(Base):
     """Join table for future multi-faction task support."""
@@ -74,4 +83,11 @@ class CharacterTask(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    character: Mapped["Character"] = relationship(
+        "Character", lazy="selectin"
+    )
+    task: Mapped["Task"] = relationship(
+        "Task", lazy="selectin"
     )

@@ -4,10 +4,16 @@
 
 All formulas are driven by `CURRENT_ERA` (or a passed `EraConfig` in tests).
 
-### Submission Score (computed on-the-fly)
+### Praxis Score (computed on-the-fly)
 ```
-submission_score = mean(vote.stars for all votes on submission) × task.point_value
+praxis_score = task.point_value × faction_multiplier + total_stars
 ```
+- `faction_multiplier` — determined by the character's faction relative to the task's faction,
+  the collaboration mode (solo/collab/duel), and duel outcome. See `scoring.py::compute_faction_multiplier`.
+- `total_stars` — the **sum** of raw star ratings across all votes on this praxis (not an average).
+  Each star adds flat to the score regardless of the number of voters.
+- Base points (`task.point_value × faction_multiplier`) are awarded immediately on praxis creation,
+  not deferred until voting. Stars accumulate as votes arrive.
 
 ### Character Score
 ```

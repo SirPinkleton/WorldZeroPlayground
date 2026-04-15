@@ -17,7 +17,7 @@ This file is the source of truth for what has been built, what is in progress, a
   - `era.py` — Era DB record (stores config_key, not rules)
   - `faction.py` — Faction with FactionStatus enum (visible/hidden/deprecated; rules live in game_config.py)
   - `task.py` — Task, TaskFaction (join), CharacterTask (signup tracking)
-  - `submission.py` — Submission (praxis) + MediaItem + CollaborationMode + ModerationStatus (visible/flagged/hidden/failed)
+  - `praxis.py` — Praxis (submission artifact) + MediaItem + CollaborationMode + ModerationStatus (visible/flagged/hidden/failed) ✅ renamed from submission.py (TASK A.1 2026-04-15)
   - `contact.py` — ContactMessage (public contact form submissions) ✅
   - `vote.py` — Vote with voter_account_id for anti-self-vote
   - `relationship.py` — friend/foe relationships (instant declarations, active/blocked status) ✅ redesigned 2026-04-13

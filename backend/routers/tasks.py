@@ -6,17 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from dependencies import get_current_character
-from models.character import Character
-from models.faction import Faction, FactionStatus
 from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
 from schemas.task import CharacterTaskOut, TaskCreate, TaskOut, TaskSignupOut
-from services.task import drop_task, propose_task, signup_for_task
+from services.task import build_task_out, drop_task, list_tasks as service_list_tasks, propose_task, signup_for_task
 
 router = APIRouter()
 
 
-async def _build_character_task_out(ct: CharacterTask, session: AsyncSession) -> CharacterTaskOut:
-    task = await session.get(Task, ct.task_id)
+def _build_character_task_out(ct: CharacterTask) -> CharacterTaskOut:
+    task = ct.task
     return CharacterTaskOut(
         id=ct.id,
         task=TaskOut(
@@ -48,60 +46,18 @@ async def list_tasks(
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
 ):
-    # Collect hidden faction slugs to exclude their tasks
-    hidden_result = await session.execute(
-        select(Faction.slug).where(Faction.status != FactionStatus.visible)
+    tasks = await service_list_tasks(
+        session,
+        status=status,
+        level=level,
+        faction=faction,
+        min_points=min_points,
+        max_points=max_points,
+        exclude_character_id=exclude_character_id,
+        limit=limit,
+        offset=offset,
     )
-    hidden_slugs = [row[0] for row in hidden_result.all()]
-
-    query = select(Task)
-    if status and status != "all":
-        try:
-            query = query.where(Task.status == TaskStatus[status])
-        except KeyError:
-            raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
-    elif not status:
-        query = query.where(Task.status == TaskStatus.active)
-    # status == "all" -> no status filter, return tasks of every status
-    if level is not None:
-        query = query.where(Task.level_required >= level)
-    if faction:
-        query = query.where(Task.primary_faction_slug == faction)
-    if min_points is not None:
-        query = query.where(Task.point_value >= min_points)
-    if max_points is not None:
-        query = query.where(Task.point_value <= max_points)
-
-    # Exclude tasks from hidden/deprecated factions
-    if hidden_slugs:
-        query = query.where(Task.primary_faction_slug.notin_(hidden_slugs))
-
-    # Exclude tasks the character has already signed up for or completed
-    if exclude_character_id is not None:
-        active_task_ids = select(CharacterTask.task_id).where(
-            CharacterTask.character_id == exclude_character_id,
-            CharacterTask.status.in_([CharacterTaskStatus.in_progress, CharacterTaskStatus.submitted]),
-        )
-        query = query.where(Task.id.notin_(active_task_ids))
-
-    query = query.order_by(Task.level_required.asc(), Task.point_value.desc()).limit(limit).offset(offset)
-    result = await session.execute(query)
-    tasks = result.scalars().all()
-    return [
-        TaskOut(
-            id=task.id,
-            title=task.title,
-            description=task.description,
-            point_value=task.point_value,
-            level_required=task.level_required,
-            status=task.status.value,
-            created_by=task.created_by,
-            primary_faction_slug=task.primary_faction_slug,
-            is_task_vision_eligible=task.is_task_vision_eligible,
-            created_at=task.created_at,
-        )
-        for task in tasks
-    ]
+    return [build_task_out(task) for task in tasks]
 
 
 @router.get("/my-tasks", response_model=list[CharacterTaskOut])
@@ -122,7 +78,7 @@ async def list_my_tasks(
     query = query.order_by(CharacterTask.signed_up_at.desc())
     result = await session.execute(query)
     character_tasks = result.scalars().all()
-    return [await _build_character_task_out(ct, session) for ct in character_tasks]
+    return [_build_character_task_out(ct) for ct in character_tasks]
 
 
 @router.get("/{task_id}/signups", response_model=list[TaskSignupOut])
@@ -135,24 +91,24 @@ async def list_task_signups(
         raise HTTPException(status_code=404, detail="Task not found.")
 
     result = await session.execute(
-        select(CharacterTask, Character)
-        .join(Character, Character.id == CharacterTask.character_id)
+        select(CharacterTask)
         .where(
             CharacterTask.task_id == task_id,
             CharacterTask.status.in_([CharacterTaskStatus.in_progress, CharacterTaskStatus.submitted]),
         )
         .order_by(CharacterTask.signed_up_at.asc())
     )
+    character_tasks = result.scalars().all()
     return [
         TaskSignupOut(
-            character_id=character.id,
-            display_name=character.display_name,
-            avatar_url=character.avatar_url,
-            faction_slug=character.faction_slug,
-            status=character_task.status.value,
-            signed_up_at=character_task.signed_up_at,
+            character_id=ct.character.id,
+            display_name=ct.character.display_name,
+            avatar_url=ct.character.avatar_url,
+            faction_slug=ct.character.faction_slug,
+            status=ct.status.value,
+            signed_up_at=ct.signed_up_at,
         )
-        for character_task, character in result.all()
+        for ct in character_tasks
     ]
 
 

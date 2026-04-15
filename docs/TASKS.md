@@ -45,7 +45,7 @@
 > None of these tasks are blocking a feature. Pull them in when an agent has
 > capacity between feature work.
 
-### TASK A.1 — Rename `Submission` → `Praxis` across the codebase
+### TASK A.1 ✅ 2026-04-15 — Rename `Submission` → `Praxis` across the codebase
 
 The canonical noun is **Praxis** (the completed-task artifact). "Submit" is
 the verb — a player *submits* a praxis. Today the code names the entity
@@ -89,7 +89,7 @@ can land safely:
 - `GET /praxes/{id}` replaces `GET /submissions/{id}`; a deprecation window
   is not required since we have no external API consumers yet.
 
-### TASK A.2 — Declare SQLAlchemy `relationship()` on core models
+### TASK A.2 ✅ 2026-04-15 — Declare SQLAlchemy `relationship()` on core models
 
 Today every join is hand-written. `models/submission.py`, `models/vote.py`,
 `models/media_item.py`, `models/character.py`, `models/account.py` have no
@@ -113,7 +113,7 @@ relationships (targets: `build_submission_out`, `list_task_signups`,
 **Acceptance:** three previously hand-joined queries become single
 relationship-loaded statements; all tests still pass (`pytest --cov=. --cov-fail-under=80`).
 
-### TASK A.3 — Fix `Submission.invite_status` type annotation
+### TASK A.3 ✅ 2026-04-15 — Fix `Submission.invite_status` type annotation
 
 `backend/models/submission.py:62` declares
 `invite_status: Mapped[Optional[str]]` but the column is
@@ -130,7 +130,7 @@ migration needed (the column is already an Enum); this is a Python-side fix.
 `InviteStatus.pending` / `.accepted` / `.declined` rather than bare strings;
 tests pass.
 
-### TASK A.4 — Break the `era` ↔ `faction_service` import cycle
+### TASK A.4 ✅ 2026-04-15 — Break the `era` ↔ `faction_service` import cycle
 
 `backend/services/era.py:96` imports `clear_defection_history_for_era` from
 `services.faction_service` **inside a function body** to dodge a module-load
@@ -149,7 +149,7 @@ Whichever you pick, remove the function-scoped import.
 **Acceptance:** `services/era.py` has only module-level imports; no
 `# TODO: break cycle` comments anywhere in `services/`; all tests pass.
 
-### TASK A.5 — Slim `routers/tasks.py::list_tasks`
+### TASK A.5 ✅ 2026-04-15 — Slim `routers/tasks.py::list_tasks`
 
 The `GET /tasks` handler in `backend/routers/tasks.py:39–104` contains ~60
 lines of filter-building, hidden-faction lookup, exclusion subqueries, and
@@ -165,7 +165,7 @@ result via a `build_task_out` helper (also in `services/task.py`).
 lines; the same query shapes are still covered by
 `backend/tests/integration/test_tasks.py`; no behavior change.
 
-### TASK A.6 — Audit `admin_service.py` for era parameterization
+### TASK A.6 ✅ 2026-04-15 — Audit `admin_service.py` for era parameterization
 
 `services/admin_service.py::set_character_stats` and other functions that
 touch `CharacterStats` do not currently take `era: EraConfig = CURRENT_ERA`.
@@ -181,7 +181,7 @@ Thread it through any downstream calls (`recalculate_character_stats`,
 inside its body; unit tests covering era reset can inject a custom
 `EraConfig`.
 
-### TASK A.7 — Annotate the `/auth/me` identity exception
+### TASK A.7 ✅ 2026-04-15 — Annotate the `/auth/me` identity exception
 
 `schemas/auth.py::CurrentUser` exposes `account_id`, which is the one
 deliberate exception to the "never leak account_id publicly" rule (see
@@ -195,7 +195,7 @@ exception.
 **Acceptance:** `schemas/auth.py` and `routers/auth.py` both reference the
 spec section; no behavior change.
 
-### TASK A.8 — Tighten `build_submission_out` / `build_praxis_out` after A.2 lands
+### TASK A.8 ✅ 2026-04-15 — Tighten `build_praxis_out` after A.2 lands
 
 `services/submission.py::build_submission_out` passes optional defaults
 (`""`, `None`) for joined fields (`character_display_name`,
@@ -213,7 +213,7 @@ integration tests pass.
 
 **Depends on:** A.2.
 
-### TASK A.9 — Reconcile `submission_score` formula between code and spec
+### TASK A.9 ✅ 2026-04-15 — Reconcile `submission_score` formula between code and spec
 
 `SPEC-game-rules.md` §6 says:
 
