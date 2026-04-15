@@ -276,7 +276,17 @@ export default function TaskDetail() {
               </div>
 
               {signupError && (
-                <p className="font-body" style={{ fontSize: 9, color: '#dc2626', marginTop: 6 }}>{signupError}</p>
+                <div
+                  className="font-body"
+                  style={{
+                    fontSize: 11, color: '#dc2626', marginTop: 8,
+                    padding: '8px 12px',
+                    background: 'rgba(220,38,38,0.06)',
+                    border: '1px solid rgba(220,38,38,0.2)',
+                  }}
+                >
+                  {signupError}
+                </div>
               )}
             </div>
           )}
