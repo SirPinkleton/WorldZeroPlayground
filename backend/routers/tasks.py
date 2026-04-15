@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from dependencies import get_current_character
+from models.character import Character
 from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
 from schemas.task import CharacterTaskOut, TaskCreate, TaskOut, TaskSignupOut
 from services.task import build_task_out, drop_task, list_tasks as service_list_tasks, propose_task, signup_for_task
