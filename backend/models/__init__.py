@@ -7,6 +7,7 @@ from models.era import Era
 from models.character_stats import CharacterStats
 from models.task import Task, TaskFaction, CharacterTask
 from models.praxis import Praxis, MediaItem
+from models.collaboration import Collaboration, CollaborationMember, CollaborationInvite
 from models.vote import Vote
 from models.flag import Flag
 from models.relationship import Relationship
@@ -32,6 +33,9 @@ __all__ = [
     "CharacterTask",
     "Praxis",
     "MediaItem",
+    "Collaboration",
+    "CollaborationMember",
+    "CollaborationInvite",
     "Vote",
     "Flag",
     "Relationship",
