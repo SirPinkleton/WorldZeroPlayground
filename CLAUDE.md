@@ -21,6 +21,7 @@ Deeper notes: `docs/spec/SPEC-architecture.md`.
 | Active rule values (signup cap, vote budget, level thresholds, resets) | `backend/eras/era_1.py` (live `ERA_1`; `CURRENT_ERA` resolves here) |
 | Factions, tasks, taunts for the live era | `backend/eras/era_1.py` |
 | Era config *shape* (dataclass fields) | `backend/game_config.py` |
+| Backend layering, DDD posture, what goes in services vs. routes | `docs/spec/SPEC-backend-architecture.md` |
 | Building a new era | `backend/eras/_template.py` |
 | Account vs. Character, anti-self-voting | `docs/spec/SPEC-architecture.md` §3 |
 | DB schema | `docs/spec/SPEC-data-models.md` |

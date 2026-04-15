@@ -1,5 +1,10 @@
 # World Zero — Architecture & Stack
 
+> **Scope:** this file describes *what the project is* — stack, identity
+> model, data-flow overview. For *how to write backend code in it* (layering,
+> service signatures, DDD posture, patterns to follow and avoid), see
+> [SPEC-backend-architecture.md](SPEC-backend-architecture.md).
+
 ## 1. Project Overview
 
 A community game where players create characters, complete real-world tasks, post proof of completion (text, images, video, audio), and earn points through community voting. Inspired by the original SF0 / SFZero alternate reality game.
