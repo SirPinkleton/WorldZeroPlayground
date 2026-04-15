@@ -52,7 +52,7 @@ export default function TaskCard({ task, onSignup }: CardProps) {
         <div
           style={{
             position: 'absolute', bottom: 4, right: 4,
-            display: 'flex', gap: 3,
+            display: 'flex', gap: 3, zIndex: 10,
           }}
         >
           {task.status === 'active' && (
