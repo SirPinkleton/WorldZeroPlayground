@@ -237,6 +237,91 @@ contradiction.
 
 ---
 
+## 🧪 SESSION — Fix Integration Test Infrastructure
+
+> Added 2026-04-15 after discovering all integration tests have been silently
+> failing in CI since before the Praxis rename. Unit tests (105) pass and meet
+> the 80% coverage threshold on their own, so CI failure was masked.
+>
+> **Root cause:** `conftest.py`'s session-scoped `test_engine` creates tables
+> via `create_all`, but asyncpg connections bind to a specific event loop.
+> When function-scoped fixtures (`db_session`, `account`, etc.) try to use the
+> same engine, asyncpg raises "cannot perform operation: another operation is
+> in progress." This is a well-documented SQLAlchemy + asyncpg + pytest-asyncio
+> incompatibility when mixing fixture scopes.
+>
+> **Read before starting:** `backend/tests/integration/conftest.py`,
+> `backend/db.py`, `backend/pytest.ini`.
+
+### TASK T.1 — Rewrite conftest engine/session fixtures for asyncpg compatibility
+
+The `test_engine` fixture (session-scoped) and `db_session` fixture
+(function-scoped) share an engine across event loop boundaries. asyncpg
+connections are bound to a single event loop, so this causes
+"another operation is in progress" errors.
+
+**Do:** Rewrite the test fixtures using one of these approaches (pick one):
+
+**Option A — Function-scoped engine (simplest, slower):**
+- Make `test_engine` function-scoped instead of session-scoped
+- Each test gets its own engine → own connection → own event loop
+- Trade-off: `create_all` runs per test (slower), but no concurrency issues
+- Mitigate by using `scope="module"` if per-test is too slow
+
+**Option B — NullPool + begin_nested (recommended):**
+- Add `poolclass=NullPool` to `create_async_engine` in the test engine
+- Use `connection.begin_nested()` (SAVEPOINT) pattern:
+  ```python
+  @pytest_asyncio.fixture
+  async def db_session(test_engine):
+      async with test_engine.connect() as conn:
+          trans = await conn.begin()
+          session = AsyncSession(bind=conn, expire_on_commit=False)
+          yield session
+          await trans.rollback()
+  ```
+- Override `get_db` to yield the same bound session
+- The single connection avoids asyncpg's concurrent-operation check
+
+**Option C — Sync create_all + async tests:**
+- Use a synchronous engine for `create_all`/`drop_all` only
+- Use the async engine only for test sessions
+- Avoids the session-scoped async fixture loop-binding issue entirely
+
+**Also:**
+- Set `asyncio_default_fixture_loop_scope = "session"` in `pytest.ini` to
+  ensure all async fixtures share one event loop (requires pytest-asyncio ≥ 0.23)
+- OR pin `pytest-asyncio` and set `loop_scope="session"` on the engine fixture
+
+**Acceptance:** `pytest backend/tests/integration/ -v` passes all tests in CI
+(GitHub Actions with PostgreSQL service container). No "another operation is
+in progress" errors.
+
+### TASK T.2 — Verify full test suite passes with coverage ≥ 80%
+
+After T.1 is done, run the full suite:
+
+```
+pytest --cov=. --cov-report=term-missing --cov-fail-under=80
+```
+
+With integration tests now passing, coverage should increase from 52% (unit
+only) well past the 80% threshold. If not, investigate which lines are still
+uncovered and add targeted tests.
+
+**Acceptance:** CI is green. Coverage ≥ 80%.
+
+### TASK T.3 — Add CI status check enforcement
+
+Currently PRs can be merged even when CI fails (as evidenced by multiple
+merged PRs with failing tests). Consider adding branch protection rules
+requiring the Test workflow to pass before merge.
+
+**Acceptance:** GitHub branch protection on `main` requires the "Test" status
+check to pass.
+
+---
+
 ## 🟣 SESSION 5+ — Ambitious Frontend (post-launch)
 
 ## Completed Sessions
