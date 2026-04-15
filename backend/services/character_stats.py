@@ -24,7 +24,7 @@ from services.scoring import (
 
 async def _get_meta_task_points(praxis_id: int, session: AsyncSession) -> int:
     """Return flat bonus points from any meta task attached to a solo praxis."""
-    from models.meta_task import MetaTask
+    from models.meta_task import MetaTask, PraxisMetaTask
 
     result = await session.execute(
         select(PraxisMetaTask).where(PraxisMetaTask.praxis_id == praxis_id)

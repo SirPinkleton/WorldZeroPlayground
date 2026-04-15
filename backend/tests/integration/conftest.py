@@ -17,20 +17,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from config import settings
 from db import get_db
 from main import app
-from models.account import Account, OAuthProvider  # noqa: F401
+import models  # noqa: F401 — registers all models on Base.metadata for create_all
+from models.account import Account, OAuthProvider
 from models.base import Base
-from models.character import Character  # noqa: F401
-from models.character_stats import CharacterStats  # noqa: F401
-from models.era import Era  # noqa: F401  # ensure all models are registered
-from models.faction import Faction  # noqa: F401
-from models.flag import Flag  # noqa: F401
-from models.message import Message  # noqa: F401
-from models.meta_task import MetaTask  # noqa: F401
-from models.relationship import Relationship  # noqa: F401
-from models.roles import AccountRole, Role  # noqa: F401
-from models.praxis import MediaItem, Praxis  # noqa: F401
-from models.task import CharacterTask, Task, TaskFaction  # noqa: F401
-from models.vote import Vote  # noqa: F401
+from models.character import Character
+from models.character_stats import CharacterStats
+from models.era import Era
+from models.faction import Faction
+from models.praxis import Praxis
+from models.task import CharacterTask, CharacterTaskStatus, Task
+from models.vote import Vote
 from services.auth import create_jwt
 
 # ---------------------------------------------------------------------------
@@ -212,3 +208,33 @@ async def active_task(db_session: AsyncSession, character: Character) -> Task:
     await db_session.commit()
     await db_session.refresh(task)
     return task
+
+
+@pytest_asyncio.fixture
+async def signed_up_task(
+    db_session: AsyncSession, character: Character, active_task: Task
+) -> Task:
+    """An active task with character already signed up."""
+    ct = CharacterTask(
+        character_id=character.id,
+        task_id=active_task.id,
+        status=CharacterTaskStatus.in_progress,
+    )
+    db_session.add(ct)
+    await db_session.commit()
+    return active_task
+
+
+@pytest_asyncio.fixture
+async def signed_up_task2(
+    db_session: AsyncSession, character2: Character, active_task: Task
+) -> Task:
+    """An active task with character2 already signed up."""
+    ct = CharacterTask(
+        character_id=character2.id,
+        task_id=active_task.id,
+        status=CharacterTaskStatus.in_progress,
+    )
+    db_session.add(ct)
+    await db_session.commit()
+    return active_task

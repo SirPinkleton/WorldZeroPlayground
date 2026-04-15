@@ -9,6 +9,7 @@ import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 import { factionColor, factionName } from '../utils/factions'
+import { extractError } from '../utils/errors'
 
 const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
 
@@ -89,7 +90,7 @@ export default function SubmitProof() {
         navigate(`/praxes/${praxis.id}`)
       }
     } catch (err: any) {
-      setError(err?.response?.data?.detail ?? 'Could not submit. Check you are signed up for this task.')
+      setError(extractError(err, 'Could not submit. Please try again.'))
     } finally {
       setSaving(false)
     }
@@ -539,7 +540,17 @@ export default function SubmitProof() {
 
         {/* ── Error ── */}
         {error && (
-          <p className="font-body" style={{ fontSize: 10, color: '#dc2626' }}>{error}</p>
+          <div
+            className="font-body"
+            style={{
+              fontSize: 11, color: '#dc2626', marginTop: 8,
+              padding: '8px 12px',
+              background: 'rgba(220,38,38,0.06)',
+              border: '1px solid rgba(220,38,38,0.2)',
+            }}
+          >
+            {error}
+          </div>
         )}
 
         {/* ── Submit Row (§18.4) ── */}
