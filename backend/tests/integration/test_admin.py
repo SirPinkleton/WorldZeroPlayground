@@ -500,3 +500,271 @@ async def test_admin_messages(
     )
     assert archive_resp.status_code == 200
     assert archive_resp.json()["is_archived"] is True
+
+
+# ---------------------------------------------------------------------------
+# Hide / unhide praxis via moderation endpoint
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_admin_hide_praxis(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    signed_up_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin can hide a visible praxis (sets moderation_status=hidden)."""
+    await _make_admin(account, db_session)
+
+    sub_resp = await client.post(
+        "/praxes",
+        json={"task_id": signed_up_task.id, "title": "To Hide"},
+        headers=auth_headers,
+    )
+    assert sub_resp.status_code == 201
+    praxis_id = sub_resp.json()["id"]
+    assert sub_resp.json()["moderation_status"] == "visible"
+
+    hide_resp = await client.patch(
+        f"/admin/praxes/{praxis_id}/moderate",
+        json={"status": "hidden"},
+        headers=auth_headers,
+    )
+    assert hide_resp.status_code == 200
+    assert hide_resp.json()["moderation_status"] == "hidden"
+
+    # Hidden praxis should return 404 from public endpoint
+    get_resp = await client.get(f"/praxes/{praxis_id}")
+    assert get_resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_unhide_praxis(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    signed_up_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin can restore a hidden praxis back to visible."""
+    await _make_admin(account, db_session)
+
+    # Create and immediately hide
+    sub_resp = await client.post(
+        "/praxes",
+        json={"task_id": signed_up_task.id, "title": "To Unhide"},
+        headers=auth_headers,
+    )
+    praxis_id = sub_resp.json()["id"]
+
+    await client.patch(
+        f"/admin/praxes/{praxis_id}/moderate",
+        json={"status": "hidden"},
+        headers=auth_headers,
+    )
+
+    # Now unhide
+    unhide_resp = await client.patch(
+        f"/admin/praxes/{praxis_id}/moderate",
+        json={"status": "visible"},
+        headers=auth_headers,
+    )
+    assert unhide_resp.status_code == 200
+    assert unhide_resp.json()["moderation_status"] == "visible"
+
+    # Praxis should be accessible again
+    get_resp = await client.get(f"/praxes/{praxis_id}")
+    assert get_resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_moderate_praxis_failed(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    signed_up_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin can mark a praxis as failed with an admin note."""
+    await _make_admin(account, db_session)
+
+    sub_resp = await client.post(
+        "/praxes",
+        json={"task_id": signed_up_task.id, "title": "Bad Praxis"},
+        headers=auth_headers,
+    )
+    praxis_id = sub_resp.json()["id"]
+
+    resp = await client.patch(
+        f"/admin/praxes/{praxis_id}/moderate",
+        json={"status": "failed", "admin_note": "Does not meet requirements."},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["moderation_status"] == "failed"
+    assert data["admin_note"] == "Does not meet requirements."
+
+
+# ---------------------------------------------------------------------------
+# Admin character list with filters
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_admin_list_characters_filter_faction(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin can filter character list by faction slug."""
+    await _make_admin(account, db_session)
+
+    resp = await client.get("/admin/characters?faction=ua", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    ids = [c["id"] for c in data]
+    assert character.id in ids
+    assert character2.id in ids
+    for c in data:
+        assert c["faction_slug"] == "ua"
+
+
+@pytest.mark.asyncio
+async def test_admin_list_characters_no_results(
+    client: AsyncClient,
+    account: Account,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin character list returns empty list for unknown faction."""
+    await _make_admin(account, db_session)
+
+    resp = await client.get("/admin/characters?faction=nonexistent", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+# ---------------------------------------------------------------------------
+# Era reset
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_admin_era_reset(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+    era: Era,
+):
+    """Era reset creates a new era row and resets character stats."""
+    from sqlalchemy import select
+    from models.character_stats import CharacterStats
+
+    await _make_admin(account, db_session)
+
+    # Record pre-reset score for character2 (level 5, score 500)
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character2.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    old_stats = result.scalar_one()
+    assert old_stats.score == 500
+
+    resp = await client.put("/admin/era/reset", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "era_id" in data
+    assert data["era_id"] != era.id  # New era row created
+    assert data["characters_reset"] >= 2  # At least character + character2
+
+    new_era_id = data["era_id"]
+    # Both characters should have new stat rows with reset values
+    result2 = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character2.id,
+            CharacterStats.era_id == new_era_id,
+        )
+    )
+    new_stats = result2.scalar_one()
+    # ERA_1 has reset_score=True
+    assert new_stats.score == 0
+
+
+@pytest.mark.asyncio
+async def test_admin_era_reset_requires_admin(
+    client: AsyncClient,
+    auth_headers: dict,
+):
+    """Non-admin gets 403 on era reset."""
+    resp = await client.put("/admin/era/reset", headers=auth_headers)
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Admin edit task (PATCH /admin/tasks/{id})
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_admin_edit_pending_task(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin can edit title and point_value of a pending task."""
+    await _make_admin(account, db_session)
+
+    task = Task(
+        title="Original Title",
+        point_value=5,
+        level_required=0,
+        status=TaskStatus.pending,
+        created_by=character.id,
+    )
+    db_session.add(task)
+    await db_session.commit()
+
+    resp = await client.patch(
+        f"/admin/tasks/{task.id}",
+        json={"title": "Updated Title", "point_value": 20},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title"] == "Updated Title"
+    assert data["point_value"] == 20
+
+
+@pytest.mark.asyncio
+async def test_admin_edit_active_task_rejected(
+    client: AsyncClient,
+    account: Account,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin cannot edit an active task (must retire first)."""
+    await _make_admin(account, db_session)
+
+    resp = await client.patch(
+        f"/admin/tasks/{active_task.id}",
+        json={"title": "Should Fail"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
