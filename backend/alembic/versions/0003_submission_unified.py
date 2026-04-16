@@ -16,32 +16,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ── 1. New enum types ─────────────────────────────────────────────────────
+    # ── 1. New enum types (checkfirst=True makes each call idempotent) ────────
 
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE submissiontype AS ENUM ('solo', 'collaboration', 'duel');
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$
-    """)
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE submissioninvitestatus AS ENUM ('pending', 'accepted', 'declined');
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$
-    """)
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE submissionstatus AS ENUM ('in_progress', 'published');
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$
-    """)
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE collabmodeenum AS ENUM ('collaboration', 'duel');
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$
-    """)
+    bind = op.get_bind()
+    sa.Enum("solo", "collaboration", "duel", name="submissiontype").create(bind, checkfirst=True)
+    sa.Enum("pending", "accepted", "declined", name="submissioninvitestatus").create(bind, checkfirst=True)
+    sa.Enum("in_progress", "published", name="submissionstatus").create(bind, checkfirst=True)
+    sa.Enum("collaboration", "duel", name="collabmodeenum").create(bind, checkfirst=True)
 
     # ── 2. Create submission table ────────────────────────────────────────────
 
