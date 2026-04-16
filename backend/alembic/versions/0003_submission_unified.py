@@ -18,10 +18,30 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # ── 1. New enum types ─────────────────────────────────────────────────────
 
-    op.execute("CREATE TYPE submissiontype AS ENUM ('solo', 'collaboration', 'duel')")
-    op.execute("CREATE TYPE submissioninvitestatus AS ENUM ('pending', 'accepted', 'declined')")
-    op.execute("CREATE TYPE submissionstatus AS ENUM ('in_progress', 'published')")
-    op.execute("CREATE TYPE collabmodeenum AS ENUM ('collaboration', 'duel')")
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE submissiontype AS ENUM ('solo', 'collaboration', 'duel');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE submissioninvitestatus AS ENUM ('pending', 'accepted', 'declined');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE submissionstatus AS ENUM ('in_progress', 'published');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE collabmodeenum AS ENUM ('collaboration', 'duel');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+    """)
 
     # ── 2. Create submission table ────────────────────────────────────────────
 
