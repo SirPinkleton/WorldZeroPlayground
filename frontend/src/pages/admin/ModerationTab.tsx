@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getFlaggedPraxes, getMessages, moderatePraxis, archiveMessage } from '../../api/admin'
 import type { ContactMessageOut } from '../../api/admin'
-import type { PraxisOut } from '../../api/praxis'
+import type { SubmissionOut } from '../../api/submissions'
 import { formatTimestamp } from '../../utils/dates'
 import { extractError } from '../../utils/errors'
 
 export default function ModerationTab() {
-  const [flagged, setFlagged] = useState<PraxisOut[]>([])
+  const [flagged, setFlagged] = useState<SubmissionOut[]>([])
   const [messages, setMessages] = useState<ContactMessageOut[]>([])
   const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)

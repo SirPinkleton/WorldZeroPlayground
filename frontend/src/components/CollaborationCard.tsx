@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
-import type { CollaborationCardOut } from '../api/collaborations'
+import type { SubmissionCardOut } from '../api/submissions'
 import { factionCssVar } from '../utils/factions'
 
 interface Props {
-  collab: CollaborationCardOut
+  collab: SubmissionCardOut
 }
 
 export default function CollaborationCard({ collab }: Props) {
-  const isDuel = collab.mode === 'duel'
+  const isDuel = collab.collab_mode === 'duel'
   const separator = isDuel ? ' × ' : ', '
   const memberNames = collab.members.map((m) => m.display_name).join(separator)
 

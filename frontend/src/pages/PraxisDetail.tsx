@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { getPraxis, flagPraxis, withdrawPraxis, resubmitPraxis, type PraxisOut } from '../api/praxis'
+import {
+  getSubmission,
+  flagSubmission,
+  withdrawSubmission,
+  resubmitSubmission,
+  type SubmissionOut,
+} from '../api/submissions'
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
 import { formatTimestamp } from '../utils/dates'
@@ -22,7 +28,7 @@ export default function PraxisDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { adminMode } = useAdminMode()
-  const [praxis, setPraxis] = useState<PraxisOut | null>(null)
+  const [praxis, setPraxis] = useState<SubmissionOut | null>(null)
   const [votes, setVotes] = useState<VoteSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -58,7 +64,7 @@ export default function PraxisDetail() {
   useEffect(() => {
     if (!id) return
     const pid = parseInt(id, 10)
-    Promise.all([getPraxis(pid), getVotes(pid)])
+    Promise.all([getSubmission(pid), getVotes(pid)])
       .then(([p, v]) => { setPraxis(p); setVotes(v) })
       .catch((err) => setFetchError(extractError(err, "Couldn't load this praxis.")))
       .finally(() => setLoading(false))
@@ -69,7 +75,7 @@ export default function PraxisDetail() {
     setFlagging(true)
     setFlagError(null)
     try {
-      const updated = await flagPraxis(praxis.id, 'Flagged by community member')
+      const updated = await flagSubmission(praxis.id, 'Flagged by community member')
       setPraxis(updated)
       setShowFlagConfirm(false)
     } catch (err) {
@@ -86,7 +92,7 @@ export default function PraxisDetail() {
     setWithdrawing(true)
     setWithdrawError(null)
     try {
-      const updated = await withdrawPraxis(praxis.id)
+      const updated = await withdrawSubmission(praxis.id)
       setPraxis(updated)
       setShowWithdrawConfirm(false)
       void refetch()
@@ -102,7 +108,7 @@ export default function PraxisDetail() {
     setWithdrawing(true)
     setWithdrawError(null)
     try {
-      const updated = await resubmitPraxis(praxis.id)
+      const updated = await resubmitSubmission(praxis.id)
       setPraxis(updated)
       void refetch()
     } catch (err) {

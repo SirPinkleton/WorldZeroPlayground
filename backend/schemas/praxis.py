@@ -1,39 +1,17 @@
+# DEPRECATED — use schemas/submission.py
+# This file is a thin shim kept for backward compatibility while routers
+# are updated in U.3. Do not add new logic here.
 from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-class MediaItemOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    type: str
-    file_path: str
-    display_order: int
+from schemas.submission import MediaItemOut, SubmissionOut, SubmissionCreate
 
 
-class PraxisOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    task_id: int
-    character_id: int
-    # Denormalized display fields — populated from relationships, never None once a Praxis is persisted.
-    character_display_name: str
-    character_avatar_url: Optional[str] = None
-    task_title: str
-    task_point_value: int
-    task_faction_slug: Optional[str] = None
-    title: str
-    body_text: Optional[str]
-    moderation_status: str = "visible"
-    is_withdrawn: bool = False
-    admin_note: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-    media: list[MediaItemOut] = []
-    score: Optional[float] = None
+class PraxisOut(SubmissionOut):
+    """Backward-compat alias for SubmissionOut (solo type)."""
+    pass
 
 
 class PraxisCreate(BaseModel):
@@ -41,3 +19,6 @@ class PraxisCreate(BaseModel):
     title: str = Field(..., max_length=200)
     body_text: Optional[str] = Field(None, max_length=10000)
     meta_task_id: Optional[int] = None
+
+
+__all__ = ["PraxisOut", "PraxisCreate", "MediaItemOut"]

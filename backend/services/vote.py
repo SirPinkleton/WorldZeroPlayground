@@ -4,8 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.collaboration import Collaboration, CollaborationMember, CollaborationMode
-from models.praxis import Praxis
+from models.submission import CollabModeEnum, Submission, SubmissionMember, SubmissionType
 from models.vote import Vote
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
@@ -13,18 +12,18 @@ from services.era import get_current_era_row, get_or_create_stats
 
 async def cast_or_update_vote(
     voter: Character,
-    praxis: Praxis,
+    submission: Submission,
     stars: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Vote:
-    """Cast or update a vote on a solo praxis."""
+    """Cast or update a vote on a solo submission."""
     if not 1 <= stars <= 5:
         raise HTTPException(status_code=422, detail="Stars must be between 1 and 5.")
 
     result = await session.execute(
         select(Vote).where(
-            Vote.praxis_id == praxis.id,
+            Vote.submission_id == submission.id,
             Vote.voter_character_id == voter.id,
         )
     )
@@ -34,7 +33,7 @@ async def cast_or_update_vote(
         # Update is free — no budget deduction
         existing.stars = stars
         await session.commit()
-        await recalculate_character_stats(praxis.character_id, session, era)
+        await recalculate_character_stats(submission.character_id, session, era)
         await session.commit()
         await session.refresh(existing)
         return existing
@@ -47,7 +46,7 @@ async def cast_or_update_vote(
         raise HTTPException(status_code=403, detail="No votes remaining in your budget.")
 
     vote = Vote(
-        praxis_id=praxis.id,
+        submission_id=submission.id,
         voter_character_id=voter.id,
         voter_account_id=voter.account_id,
         stars=stars,
@@ -55,7 +54,7 @@ async def cast_or_update_vote(
     stats.votes_available -= 1
     session.add(vote)
     await session.flush()  # persist vote before recalculating so avg includes it
-    await recalculate_character_stats(praxis.character_id, session, era)
+    await recalculate_character_stats(submission.character_id, session, era)
     await session.commit()
     await session.refresh(vote)
     return vote
@@ -63,13 +62,13 @@ async def cast_or_update_vote(
 
 async def cast_or_update_duel_vote(
     voter: Character,
-    collaboration_id: int,
+    submission_id: int,
     target_character_id: int,
     stars: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Vote:
-    """Cast or update a vote on a specific player in a duel collaboration.
+    """Cast or update a vote on a specific player in a duel submission.
 
     - Voters must NOT be members of the duel.
     - target_character_id must be a member of the duel.
@@ -79,14 +78,14 @@ async def cast_or_update_duel_vote(
     if not 1 <= stars <= 5:
         raise HTTPException(status_code=422, detail="Stars must be between 1 and 5.")
 
-    collab = await session.get(Collaboration, collaboration_id)
-    if collab is None:
-        raise HTTPException(status_code=404, detail="Collaboration not found.")
+    submission = await session.get(Submission, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
 
-    if collab.mode != CollaborationMode.duel:
-        raise HTTPException(status_code=400, detail="Duel votes can only be cast on duel collaborations.")
+    if submission.collab_mode != CollabModeEnum.duel:
+        raise HTTPException(status_code=400, detail="Duel votes can only be cast on duel submissions.")
 
-    member_ids = {m.character_id for m in collab.members}
+    member_ids = {m.character_id for m in submission.members}
 
     # Anti-self-vote: members cannot vote on their own duel
     if voter.id in member_ids:
@@ -96,10 +95,10 @@ async def cast_or_update_duel_vote(
     if target_character_id not in member_ids:
         raise HTTPException(status_code=400, detail="Target player is not a member of this duel.")
 
-    # Check for existing vote by this voter for this target in this collaboration
+    # Check for existing vote by this voter for this target in this submission
     existing_result = await session.execute(
         select(Vote).where(
-            Vote.collaboration_id == collaboration_id,
+            Vote.submission_id == submission_id,
             Vote.voter_character_id == voter.id,
             Vote.duel_vote_for == target_character_id,
         )
@@ -125,7 +124,7 @@ async def cast_or_update_duel_vote(
         raise HTTPException(status_code=403, detail="No votes remaining in your budget.")
 
     vote = Vote(
-        collaboration_id=collaboration_id,
+        submission_id=submission_id,
         voter_character_id=voter.id,
         voter_account_id=voter.account_id,
         stars=stars,

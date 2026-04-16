@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from config import settings
 from routers import activity_feed, admin, auth, characters, collaborations, factions, game_config, leaderboard, messages, meta_tasks, praxes, relationships, tasks, taunts, votes
 from routers import contact
+from routers import submissions
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ app.include_router(characters.router, prefix="/characters", tags=["characters"])
 app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 app.include_router(praxes.router, prefix="/praxes", tags=["praxes"])
 app.include_router(collaborations.router, prefix="/collaborations", tags=["collaborations"])
+app.include_router(submissions.router, prefix="/submissions", tags=["submissions"])
 app.include_router(votes.router, tags=["votes"])  # prefix embedded in routes (/praxes/{id}/vote)
 app.include_router(relationships.router, prefix="/relationships", tags=["relationships"])
 app.include_router(messages.router, prefix="/messages", tags=["messages"])

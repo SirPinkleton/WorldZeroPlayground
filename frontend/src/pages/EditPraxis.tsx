@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getPraxis,
-  editPraxis,
-  uploadMedia,
+  getSubmission,
+  updateSubmission,
+  addMedia,
   deleteMedia,
   type MediaItemOut,
-} from '../api/praxis'
+} from '../api/submissions'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 import { factionColor, factionName } from '../utils/factions'
@@ -57,7 +57,7 @@ export default function EditPraxis() {
 
   useEffect(() => {
     if (!id) return
-    getPraxis(parseInt(id, 10))
+    getSubmission(parseInt(id, 10))
       .then((praxis) => {
         if (user?.character?.id !== praxis.character_id) {
           navigate(`/praxes/${id}`, { replace: true })
@@ -66,7 +66,7 @@ export default function EditPraxis() {
         setTaskId(praxis.task_id)
         setTaskTitle(praxis.task_title)
         setTaskFactionSlug(praxis.task_faction_slug)
-        setTitle(praxis.title)
+        setTitle(praxis.title ?? '')
         setBody(praxis.body_text ?? '')
         setMedia(praxis.media)
       })
@@ -91,10 +91,10 @@ export default function EditPraxis() {
     setError('')
     try {
       const praxisId = parseInt(id, 10)
-      await editPraxis(praxisId, { task_id: taskId!, title, body_text: body || undefined })
+      await updateSubmission(praxisId, { title, body_text: body || undefined })
       if (newFiles) {
         for (const file of Array.from(newFiles)) {
-          const uploaded = await uploadMedia(praxisId, file)
+          const uploaded = await addMedia(praxisId, file)
           setMedia((previous) => [...previous, uploaded])
         }
       }

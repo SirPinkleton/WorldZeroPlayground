@@ -1,4 +1,4 @@
-import type { MediaItemOut } from '../api/praxis'
+import type { MediaItemOut } from '../api/submissions'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 

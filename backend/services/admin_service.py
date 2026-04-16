@@ -11,7 +11,8 @@ from models.character_stats import CharacterStats
 from models.faction import Faction, FactionStatus
 from models.roles import AccountRole, Role
 from models.contact import ContactMessage
-from models.praxis import ModerationStatus, Praxis
+from models.praxis import ModerationStatus
+from models.submission import Submission
 from models.task import Task, TaskStatus
 from models.vote import Vote
 from schemas.admin import (
@@ -132,11 +133,11 @@ async def game_overview(session: AsyncSession) -> OverviewStats:
     active_task_count_result = await session.execute(
         select(func.count()).select_from(Task).where(Task.status == TaskStatus.active)
     )
-    praxis_count_result = await session.execute(select(func.count()).select_from(Praxis))
+    praxis_count_result = await session.execute(select(func.count()).select_from(Submission))
     vote_count_result = await session.execute(select(func.count()).select_from(Vote))
     flagged_count_result = await session.execute(
-        select(func.count()).select_from(Praxis).where(
-            Praxis.moderation_status == ModerationStatus.flagged
+        select(func.count()).select_from(Submission).where(
+            Submission.moderation_status == ModerationStatus.flagged.value
         )
     )
     suspended_count_result = await session.execute(
@@ -346,27 +347,37 @@ async def suspend_account(
 # ---------------------------------------------------------------------------
 
 
+async def moderate_submission(
+    submission_id: int,
+    new_status: ModerationStatus,
+    admin_note: str | None,
+    session: AsyncSession,
+) -> Submission:
+    """Set the moderation status of a submission. Admin can override any state."""
+    submission = await session.get(Submission, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+
+    submission.moderation_status = new_status.value
+
+    if new_status == ModerationStatus.failed:
+        submission.admin_note = admin_note or ""
+    elif new_status == ModerationStatus.visible:
+        submission.admin_note = None
+
+    await session.commit()
+    await session.refresh(submission)
+    return submission
+
+
 async def moderate_praxis(
     praxis_id: int,
     new_status: ModerationStatus,
     admin_note: str | None,
     session: AsyncSession,
-) -> Praxis:
-    """Set the moderation status of a praxis. Admin can override any state."""
-    praxis = await session.get(Praxis, praxis_id)
-    if praxis is None:
-        raise HTTPException(status_code=404, detail="Praxis not found.")
-
-    praxis.moderation_status = new_status
-
-    if new_status == ModerationStatus.failed:
-        praxis.admin_note = admin_note or ""
-    elif new_status == ModerationStatus.visible:
-        praxis.admin_note = None
-
-    await session.commit()
-    await session.refresh(praxis)
-    return praxis
+) -> Submission:
+    """Alias for moderate_submission for backward compatibility."""
+    return await moderate_submission(praxis_id, new_status, admin_note, session)
 
 
 async def archive_message(

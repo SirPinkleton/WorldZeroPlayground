@@ -5,14 +5,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.collaboration import Collaboration, CollaborationMember, CollaborationStatus
-from models.praxis import ModerationStatus, Praxis
+from models.submission import (
+    Submission,
+    SubmissionMember,
+    SubmissionStatus,
+    SubmissionType,
+)
 from models.task import Task
 from models.vote import Vote
 from services.era import get_current_era_row, get_or_create_stats
 from services.scoring import (
     COLLABORATION_MODE_COLLAB,
-    COLLABORATION_MODE_DUEL,
     COLLABORATION_MODE_SOLO,
     compute_duel_multiplier,
     compute_faction_multiplier,
@@ -23,16 +26,16 @@ from services.scoring import (
 
 
 async def _get_meta_task_points(
-    praxis_id: int, character_level: int, session: AsyncSession
+    submission_id: int, character_level: int, session: AsyncSession
 ) -> int:
-    """Return flat bonus points from any meta task attached to a solo praxis.
+    """Return flat bonus points from any meta task attached to a solo submission.
 
     Returns 0 if the character does not meet the meta task's level_required.
     """
     from models.meta_task import MetaTask, PraxisMetaTask
 
     result = await session.execute(
-        select(PraxisMetaTask).where(PraxisMetaTask.praxis_id == praxis_id)
+        select(PraxisMetaTask).where(PraxisMetaTask.submission_id == submission_id)
     )
     praxis_meta_task = result.scalar_one_or_none()
     if praxis_meta_task is None:
@@ -49,12 +52,12 @@ async def _get_meta_task_points(
 
 
 async def _get_duel_vote_totals(
-    collaboration_id: int, session: AsyncSession
+    submission_id: int, session: AsyncSession
 ) -> dict[int, int]:
-    """Return {character_id: total_stars} for all duel votes on a collaboration."""
+    """Return {character_id: total_stars} for all duel votes on a submission."""
     result = await session.execute(
         select(Vote.duel_vote_for, func.sum(Vote.stars)).where(
-            Vote.collaboration_id == collaboration_id,
+            Vote.submission_id == submission_id,
             Vote.duel_vote_for.is_not(None),
         ).group_by(Vote.duel_vote_for)
     )
@@ -69,10 +72,10 @@ async def recalculate_character_stats(
     """Recompute and persist score, level, and vote budget for a character.
 
     Sums scores across:
-    - All solo praxis records (formula: (base + meta) × faction × duel_multiplier + stars)
+    - All solo submission records (formula: (base + meta) × faction × duel_multiplier + stars)
     - All published collaborations/duels the character is a member of
 
-    Safe to call on praxis creation (0 votes → base points only) or after any vote change.
+    Safe to call on submission creation (0 votes → base points only) or after any vote change.
     """
     era_row = await get_current_era_row(session)
 
@@ -81,16 +84,17 @@ async def recalculate_character_stats(
 
     total_score = 0.0
 
-    # ── Solo praxes ───────────────────────────────────────────────────────────
-    praxis_result = await session.execute(
-        select(Praxis).where(
-            Praxis.character_id == character_id,
-            Praxis.moderation_status != ModerationStatus.hidden,
-            Praxis.is_withdrawn == False,
+    # ── Solo submissions ──────────────────────────────────────────────────────
+    solo_result = await session.execute(
+        select(Submission).where(
+            Submission.submission_type == SubmissionType.solo,
+            Submission.character_id == character_id,
+            Submission.moderation_status != "hidden",
+            Submission.is_withdrawn == False,
         )
     )
-    for praxis in praxis_result.scalars().all():
-        task = await session.get(Task, praxis.task_id)
+    for submission in solo_result.scalars().all():
+        task = await session.get(Task, submission.task_id)
         if task is None:
             continue
         task_faction_slug = task.primary_faction_slug or "na"
@@ -101,10 +105,10 @@ async def recalculate_character_stats(
             collaboration_mode=COLLABORATION_MODE_SOLO,
         )
         meta_task_points = await _get_meta_task_points(
-            praxis.id, author.level if author else 0, session
+            submission.id, author.level if author else 0, session
         )
         sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
+            select(func.sum(Vote.stars)).where(Vote.submission_id == submission.id)
         )
         total_stars = int(sum_result.scalar_one_or_none() or 0)
         total_score += compute_praxis_score(
@@ -117,31 +121,31 @@ async def recalculate_character_stats(
 
     # ── Published collaborations and duels ────────────────────────────────────
     member_result = await session.execute(
-        select(CollaborationMember).where(
-            CollaborationMember.character_id == character_id,
+        select(SubmissionMember).where(
+            SubmissionMember.character_id == character_id,
         )
     )
     for member in member_result.scalars().all():
-        collab = await session.get(Collaboration, member.collaboration_id)
-        if collab is None or collab.status != CollaborationStatus.published:
+        submission = await session.get(Submission, member.submission_id)
+        if submission is None or submission.collab_status != SubmissionStatus.published:
             continue
 
-        task = await session.get(Task, collab.task_id)
+        task = await session.get(Task, submission.task_id)
         if task is None:
             continue
 
         task_faction_slug = task.primary_faction_slug or "na"
-        mode = collab.mode.value  # "collaboration" or "duel"
+        mode = submission.collab_mode.value if submission.collab_mode else "collaboration"
 
         if mode == "duel":
             # Determine duel outcome for this member
-            vote_totals = await _get_duel_vote_totals(collab.id, session)
+            vote_totals = await _get_duel_vote_totals(submission.id, session)
             member_stars = vote_totals.get(character_id, 0)
 
             other_member_result = await session.execute(
-                select(CollaborationMember).where(
-                    CollaborationMember.collaboration_id == collab.id,
-                    CollaborationMember.character_id != character_id,
+                select(SubmissionMember).where(
+                    SubmissionMember.submission_id == submission.id,
+                    SubmissionMember.character_id != character_id,
                 )
             )
             other_members = other_member_result.scalars().all()
@@ -182,9 +186,9 @@ async def recalculate_character_stats(
                 era,
                 collaboration_mode=COLLABORATION_MODE_COLLAB,
             )
-            # Votes on collaborations use praxis-style voting (no duel_vote_for needed)
+            # Votes on collaborations use submission-wide voting (no duel_vote_for needed)
             sum_result = await session.execute(
-                select(func.sum(Vote.stars)).where(Vote.collaboration_id == collab.id)
+                select(func.sum(Vote.stars)).where(Vote.submission_id == submission.id)
             )
             total_stars = int(sum_result.scalar_one_or_none() or 0)
             total_score += compute_praxis_score(

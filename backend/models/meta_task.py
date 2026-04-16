@@ -33,8 +33,8 @@ class MetaTask(Base):
 class PraxisMetaTask(Base):
     __tablename__ = "praxis_meta_task"
 
-    praxis_id: Mapped[int] = mapped_column(
-        ForeignKey("praxis.id"), primary_key=True
+    submission_id: Mapped[int] = mapped_column(
+        ForeignKey("submission.id"), primary_key=True
     )
     meta_task_id: Mapped[int] = mapped_column(
         ForeignKey("meta_task.id"), primary_key=True

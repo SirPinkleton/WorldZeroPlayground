@@ -1,6 +1,6 @@
 # World Zero — API Endpoints
 
-> Last synced with code: 2026-04-13
+> Last synced with code: 2026-04-15
 
 ## 9. API Endpoints
 
@@ -43,41 +43,53 @@ DELETE /tasks/{id}/signup      → drop task — auth required
 ```
 
 ### Submissions (`/submissions`)
+All submission types (solo, collaboration, duel) are served from a single unified router.
+Legacy `/praxes` and `/collaborations` routes are shims that forward to this router.
+
 ```
-GET    /submissions                        → list (query: sort, task_id, character_id, moderation_status, limit, offset)
-GET    /submissions/{id}                   → SubmissionOut
-POST   /submissions                        → SubmissionCreate → SubmissionOut — auth required
-PUT    /submissions/{id}                   → SubmissionCreate → SubmissionOut (owner only)
-POST   /submissions/{id}/withdraw          → SubmissionOut (owner only)
-POST   /submissions/{id}/resubmit          → SubmissionOut (owner only)
-POST   /submissions/{id}/media             → multipart file + display_order → MediaItemOut (owner only)
-DELETE /submissions/{id}/media/{media_id}  → delete media file (owner only)
-POST   /submissions/{id}/flag              → SubmissionOut (query: reason) — level 4+ required
+GET    /submissions                              → list (query: type, task_id, character_id, moderation_status, is_flagged, sort, limit, offset)
+GET    /submissions/{id}                         → SubmissionOut (invites included for members of collab/duel)
+POST   /submissions                              → SubmissionCreate → SubmissionOut — auth required
+PUT    /submissions/{id}                         → SubmissionUpdate → SubmissionOut (solo owner only)
+POST   /submissions/{id}/withdraw                → SubmissionOut (owner only)
+POST   /submissions/{id}/resubmit                → SubmissionOut (owner only)
+POST   /submissions/{id}/flag                    → SubmissionOut (query: reason) — level 4+ required
+
+-- Media (solo only)
+POST   /submissions/{id}/media                   → multipart file + display_order → MediaItemOut (owner only)
+DELETE /submissions/{id}/media/{media_id}        → 204 (owner only)
+
+-- Collaboration / duel lifecycle (auth required; caller must be a member)
+POST   /submissions/{id}/invite                  → SubmissionInviteCreate { invitee_character_id } → SubmissionInviteOut
+POST   /submissions/{id}/invites/{invite_id}/respond → InviteResponse { accept, drop_task_id? } → SubmissionOut (invitee only)
+POST   /submissions/{id}/submit                  → SubmissionOut (marks caller's has_submitted; publishes when all members submitted)
+POST   /submissions/{id}/reopen                  → SubmissionOut (resets all submit states, status → in_progress)
+POST   /submissions/{id}/kick/{character_id}     → SubmissionOut (any member; removes target)
+PUT    /submissions/{id}/document                → SubmissionDocumentUpdate { body_text } → SubmissionOut (shared doc; any member)
+PUT    /submissions/{id}/my-content              → SubmissionMemberContentUpdate { title, body_text } → SubmissionOut (per-member content)
+
+-- Voting
+POST   /submissions/{id}/vote                    → SubmissionVoteIn { stars, target_character_id? } → VoteOut — auth required
+GET    /submissions/{id}/votes                   → list[DuelVoteSummary] (duel tallies; solo/collab use VoteSummary from VoteOut)
 ```
+
+**?type filter values:**
+- `solo` → solo submissions only
+- `collaboration` → collaborations only (alias: `collab`)
+- `duel` → duels only
+- `published` → published collab/duel cards (returns `SubmissionCardOut` list)
+- *(omitted)* → all non-hidden submissions
+
+*Creating a collaboration/duel requires the character to have the task in-progress.*
+*Collaborations require level ≥ 1; duels require level ≥ 2.*
+*Task-list-full (20 tasks): respond with drop_task_id to drop a task and accept in one request.*
 
 ### Votes (no prefix — paths embed in `/submissions`)
 ```
-POST /submissions/{id}/vote    → VoteIn { stars: 1-5 } → VoteOut — auth required
-GET  /submissions/{id}/votes   → VoteSummary { total_votes, average_stars, total_score }
-GET  /submissions/{id}/voters  → list[VoterDetail]
+POST /submissions/{id}/vote    → SubmissionVoteIn { stars, target_character_id? } → VoteOut — auth required
+GET  /submissions/{id}/votes   → list[DuelVoteSummary] (duel vote tally per member)
 ```
-
-### Collaborations (`/collaborations`)
-```
-POST /collaborations                                       → CollaborationCreate { task_id, mode } → CollaborationOut — auth required
-GET  /collaborations/{id}                                  → CollaborationOut (members, document, invite list for members)
-POST /collaborations/{id}/document                         → { body_text } → CollaborationOut (any member)
-POST /collaborations/{id}/invite                           → CollaborationInviteCreate { invitee_character_id } → CollaborationInviteOut (any member)
-POST /collaborations/{id}/invites/{invite_id}/respond      → InviteResponse { accept, drop_task_id? } → CollaborationOut (invitee only)
-POST /collaborations/{id}/submit                           → CollaborationOut (any member; marks caller as submitted)
-POST /collaborations/{id}/edit                             → CollaborationOut (any member; resets all submit states, status → in_progress)
-POST /collaborations/{id}/kick/{character_id}              → CollaborationOut (any member; removes target member)
-GET  /collaborations/{id}/votes                            → list[DuelVoteSummary] (duel only)
-POST /collaborations/{id}/vote                             → CollaborationVoteIn { target_character_id, stars: 1-5 } → VoteOut (duel only; non-members only)
-```
-*Creating a collaboration requires the character to have the task in-progress.*
-*Collaborations require level ≥ 1; duels require level ≥ 2.*
-*Task-list-full (20 tasks): respond with drop_task_id to drop a task and accept in one request.*
+*For solo and collaboration votes, vote summary is returned in the main SubmissionOut.*
 
 ### Task Drop (`/tasks`)
 ```
@@ -198,30 +210,36 @@ level, score, all_time_score,  ← from CharacterStats join
 faction_slug, status, created_at
 ```
 
-### PraxisOut (solo submissions)
+### SubmissionOut (all types)
 ```
-id, task_id, character_id, character_display_name, task_title, task_point_value,
-title, body_text, moderation_status, is_withdrawn, admin_note,
-created_at, updated_at, media: list[MediaItemOut], score
+id, task_id, task_title, task_point_value, submission_type,
+moderation_status, is_withdrawn, admin_note, created_at, updated_at,
+
+-- solo fields (null for collab/duel)
+character_id, character_display_name, title, body_text,
+media: list[MediaItemOut], score,
+
+-- collab/duel fields (null for solo)
+created_by_id, collab_status, collab_body_text,
+members: list[SubmissionMemberOut],
+invites: list[SubmissionInviteOut]  ← only included when viewer is a member
 ```
 
-### CollaborationOut
+### SubmissionMemberOut
 ```
-id, task_id, task_title, task_point_value, mode, status, body_text,
-created_by_id, created_at, updated_at,
-members: list[CollaborationMemberOut],
-invites: list[CollaborationInviteOut]  ← only included for members
+character_id, display_name, faction_slug, has_submitted, title, body_text, joined_at
 ```
 
-### CollaborationMemberOut
+### SubmissionInviteOut
 ```
-character_id, display_name, faction_slug, has_submitted, joined_at
+id, submission_id, inviter_id, inviter_display_name,
+invitee_id, invitee_display_name, invite_type, status, created_at
 ```
 
-### CollaborationInviteOut
+### SubmissionCardOut (published collab/duel summary card)
 ```
-id, collaboration_id, inviter_id, inviter_display_name,
-invitee_id, invitee_display_name, type, status, created_at
+id, task_id, task_title, submission_type, collab_status, created_at,
+members: list[SubmissionMemberOut]
 ```
 
 ### DuelVoteSummary

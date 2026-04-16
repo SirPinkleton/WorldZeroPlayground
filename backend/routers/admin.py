@@ -12,7 +12,8 @@ from models.account import Account
 from models.character import Character, CharacterStatus
 from models.contact import ContactMessage
 from models.roles import AccountRole, Role
-from models.praxis import ModerationStatus, Praxis
+from models.praxis import ModerationStatus
+from models.submission import Submission
 from models.task import Task, TaskStatus
 from schemas.admin import (
     AccountDetail,
@@ -32,8 +33,8 @@ from schemas.admin import (
     TaskStatusAction,
 )
 from schemas.task import TaskCreate, TaskOut
-from schemas.praxis import PraxisOut
-from services.praxis import build_praxis_out
+from schemas.submission import SubmissionOut
+from services.submission import build_submission_out
 from services.admin_service import (
     admin_create_character,
     admin_edit_task,
@@ -44,7 +45,7 @@ from services.admin_service import (
     get_account_detail,
     list_accounts,
     list_characters,
-    moderate_praxis,
+    moderate_submission,
     reactivate_task,
     set_character_stats,
     suspend_account,
@@ -314,22 +315,22 @@ async def admin_cli_token(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/praxes/flagged", response_model=list[PraxisOut])
+@router.get("/praxes/flagged", response_model=list[SubmissionOut])
 async def admin_list_flagged_praxes(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):
-    """Return praxis with moderation_status == flagged."""
+    """Return submissions with moderation_status == flagged."""
     result = await session.execute(
-        select(Praxis)
-        .where(Praxis.moderation_status == ModerationStatus.flagged)
-        .order_by(Praxis.created_at.desc())
+        select(Submission)
+        .where(Submission.moderation_status == ModerationStatus.flagged.value)
+        .order_by(Submission.created_at.desc())
     )
-    praxis_list = result.scalars().all()
-    return [await build_praxis_out(praxis, session) for praxis in praxis_list]
+    submission_list = result.scalars().all()
+    return [await build_submission_out(submission, session) for submission in submission_list]
 
 
-@router.patch("/praxes/{praxis_id}/moderate", response_model=PraxisOut)
+@router.patch("/praxes/{praxis_id}/moderate", response_model=SubmissionOut)
 async def admin_moderate_praxis(
     praxis_id: int,
     data: ModerationAction,
@@ -337,8 +338,8 @@ async def admin_moderate_praxis(
     session: AsyncSession = Depends(get_db),
 ):
     new_status = ModerationStatus(data.status)
-    praxis = await moderate_praxis(praxis_id, new_status, data.admin_note, session)
-    return await build_praxis_out(praxis, session)
+    submission = await moderate_submission(praxis_id, new_status, data.admin_note, session)
+    return await build_submission_out(submission, session)
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskOut)
@@ -519,10 +520,10 @@ async def delete_praxis(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):
-    praxis = await session.get(Praxis, praxis_id)
-    if praxis is None:
+    submission = await session.get(Submission, praxis_id)
+    if submission is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    praxis.moderation_status = ModerationStatus.hidden
+    submission.moderation_status = ModerationStatus.hidden.value
     await session.commit()
 
 
