@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from db import get_db
 from dependencies import require_admin
+from game_config import CURRENT_ERA
 from models.account import Account
 from models.character import Character, CharacterStatus
 from models.contact import ContactMessage
+from models.era import Era
 from models.roles import AccountRole, Role
 from models.praxis import ModerationStatus
 from models.submission import Submission
@@ -52,6 +54,7 @@ from services.admin_service import (
     update_task_status,
 )
 from services.character_stats import recalculate_character_stats
+from services.era import apply_era_reset, get_current_era_row
 from services.auth import create_jwt
 
 router = APIRouter()
@@ -217,6 +220,32 @@ async def backfill_all_character_stats(
         await recalculate_character_stats(character.id, session)
     await session.commit()
     return {"recalculated": len(characters)}
+
+
+@router.put("/era/reset", status_code=200)
+async def admin_era_reset(
+    admin: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    """Trigger an era reset: create a new Era row and reset all character stats.
+
+    Behaviour controlled by EraConfig reset flags (reset_score, reset_level,
+    reset_faction, reset_vote_budget, reset_all_time_score).
+    """
+    new_era_row = Era(
+        name=CURRENT_ERA.name,
+        config_key=CURRENT_ERA.config_key,
+        started_by=admin.id,
+    )
+    session.add(new_era_row)
+    await session.flush()
+
+    result = await session.execute(select(Character).where(Character.status != CharacterStatus.banned))
+    characters = result.scalars().all()
+
+    await apply_era_reset(characters, new_era_row, session)
+
+    return {"era_id": new_era_row.id, "characters_reset": len(characters)}
 
 
 @router.post("/tasks/{task_id}/reactivate", response_model=TaskOut)
