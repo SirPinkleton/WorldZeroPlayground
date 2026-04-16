@@ -1,7 +1,7 @@
 # World Zero — Build State
 
 > Last updated: 2026-04-15
-> Updated by: Claude Code — U.2 Unified submission service layer complete
+> Updated by: Claude Code — U.3 Unified /submissions router complete
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -173,6 +173,16 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `frontend/src/components/feed/FeedCardDuelChallenge.tsx` — Uses new collaboration API + task-list-full modal ✅
   - `frontend/src/App.tsx` — /collaborations/:id route added ✅
   - Spec files updated (SPEC-backend-architecture.md, SPEC-deployment.md, SPEC-game-rules.md, SPEC-data-models.md, SPEC-api.md) ✅
+  - 105 unit tests passing ✅
+- **SESSION U.3 — Unified /submissions router ✅ 2026-04-15**
+  - `backend/routers/submissions.py` — New unified router under /submissions; merges all routes from praxes.py and collaborations.py; supports ?type=solo|collaboration|duel|published filter; media upload/delete; collab/duel operations (invite, respond, kick, document, my-content, submit, reopen); unified voting endpoint ✅
+  - `backend/main.py` — /submissions router mounted alongside legacy /praxes and /collaborations (preserved for frontend compat until U.4) ✅
+  - `backend/routers/votes.py` — Fixed: replaced Vote.praxis_id (removed column) with Vote.submission_id; switched Praxis lookups to Submission model; uses compute_submission_score ✅
+  - `backend/routers/admin.py` — Fixed: replaced Praxis model with Submission model in flagged list + moderate + delete routes; uses build_submission_out and moderate_submission from admin_service ✅
+  - `backend/models/praxis.py` — Fixed: removed stale Vote.praxis_id and Flag.praxis back_populates relationships (column removed in U.1); replaced media_items ORM relationship with a property returning [] ✅
+  - `backend/schemas/vote.py` — Fixed VoteOut: praxis_id/collaboration_id replaced with submission_id to match updated Vote model ✅
+  - `backend/schemas/submission.py` — SubmissionVoteIn.target_character_id made Optional (solo votes don't require it) ✅
+  - `backend/services/praxis.py` — Fixed shim: removed praxis.votes access (relationship removed); score returns 0 for legacy Praxis rows ✅
   - 105 unit tests passing ✅
 - **SESSION U.2 — Unified submission service layer ✅ 2026-04-15**
   - `backend/models/vote.py` — Changed from dual nullable FKs (praxis_id, collaboration_id) to single `submission_id` FK → submission.id; updated unique constraints; updated relationships ✅
