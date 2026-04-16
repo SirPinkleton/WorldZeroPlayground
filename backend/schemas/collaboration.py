@@ -1,102 +1,32 @@
-from datetime import datetime
-from typing import Optional
+# DEPRECATED — use schemas/submission.py
+# This file is a thin shim kept for backward compatibility while routers
+# are updated in U.3. Do not add new logic here.
+from schemas.submission import (
+    DuelVoteSummary,
+    InviteResponse,
+    SubmissionCardOut as CollaborationCardOut,
+    SubmissionCreate as CollaborationCreate,
+    SubmissionDocumentUpdate as CollaborationDocumentUpdate,
+    SubmissionInviteCreate as CollaborationInviteCreate,
+    SubmissionInviteOut as CollaborationInviteOut,
+    SubmissionMemberCardOut as CollaborationMemberCardOut,
+    SubmissionMemberContentUpdate as CollaborationMemberContentUpdate,
+    SubmissionMemberOut as CollaborationMemberOut,
+    SubmissionOut as CollaborationOut,
+    SubmissionVoteIn as CollaborationVoteIn,
+)
 
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class CollaborationCreate(BaseModel):
-    task_id: int
-    mode: str  # "collaboration" or "duel"
-
-
-class CollaborationMemberOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    character_id: int
-    display_name: str
-    faction_slug: str
-    has_submitted: bool
-    title: Optional[str] = None
-    body_text: Optional[str] = None
-    joined_at: datetime
-
-
-class CollaborationInviteOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    collaboration_id: int
-    inviter_id: int
-    inviter_display_name: str
-    invitee_id: int
-    invitee_display_name: str
-    type: str
-    status: str
-    created_at: datetime
-
-
-class CollaborationOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    task_id: int
-    task_title: str
-    task_point_value: int
-    mode: str
-    status: str
-    body_text: str
-    created_by_id: int
-    created_at: datetime
-    updated_at: datetime
-    members: list[CollaborationMemberOut] = []
-    # Invites only included when the viewer is a member (populated at service layer)
-    invites: list[CollaborationInviteOut] = []
-
-
-class CollaborationMemberContentUpdate(BaseModel):
-    title: str = Field(..., max_length=200)
-    body_text: Optional[str] = Field(None, max_length=10000)
-
-
-class CollaborationInviteCreate(BaseModel):
-    invitee_character_id: int
-
-
-class InviteResponse(BaseModel):
-    accept: bool
-    # If the invitee's task list is full, they must supply a task_id to drop before accepting.
-    drop_task_id: Optional[int] = None
-
-
-class CollaborationDocumentUpdate(BaseModel):
-    body_text: str = Field(..., max_length=50000)
-
-
-class DuelVoteSummary(BaseModel):
-    character_id: int
-    display_name: str
-    total_stars: int
-    is_winning: bool
-
-
-class CollaborationVoteIn(BaseModel):
-    target_character_id: int
-    stars: int = Field(..., ge=1, le=5)
-
-
-class CollaborationMemberCardOut(BaseModel):
-    character_id: int
-    display_name: str
-    faction_slug: Optional[str] = None
-    score: Optional[float] = None
-
-
-class CollaborationCardOut(BaseModel):
-    id: int
-    task_id: int
-    task_title: str
-    task_faction_slug: Optional[str] = None
-    mode: str
-    status: str
-    created_at: datetime
-    members: list[CollaborationMemberCardOut] = []
+__all__ = [
+    "CollaborationCreate",
+    "CollaborationMemberOut",
+    "CollaborationInviteOut",
+    "CollaborationOut",
+    "CollaborationMemberContentUpdate",
+    "CollaborationInviteCreate",
+    "InviteResponse",
+    "CollaborationDocumentUpdate",
+    "DuelVoteSummary",
+    "CollaborationVoteIn",
+    "CollaborationMemberCardOut",
+    "CollaborationCardOut",
+]

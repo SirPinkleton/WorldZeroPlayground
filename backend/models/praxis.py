@@ -10,6 +10,7 @@ from models.base import Base
 if TYPE_CHECKING:
     from models.character import Character
     from models.flag import Flag
+    from models.submission import Submission
     from models.task import Task
     from models.vote import Vote
 
@@ -83,8 +84,8 @@ class MediaItem(Base):
     __tablename__ = "media_item"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    praxis_id: Mapped[int] = mapped_column(
-        ForeignKey("praxis.id"), nullable=False
+    submission_id: Mapped[int] = mapped_column(
+        ForeignKey("submission.id"), nullable=False
     )
     type: Mapped[MediaType] = mapped_column(Enum(MediaType, create_type=False), nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
@@ -93,6 +94,6 @@ class MediaItem(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    praxis: Mapped["Praxis"] = relationship(
-        "Praxis", back_populates="media_items", lazy="raise"
+    submission: Mapped["Submission"] = relationship(
+        "Submission", foreign_keys=[submission_id], back_populates="media_items", lazy="raise"
     )
