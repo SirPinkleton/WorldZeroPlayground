@@ -49,8 +49,8 @@ async def build_praxis_out(
             era,
             collaboration_mode=COLLABORATION_MODE_SOLO,
         )
-        total_stars = int(sum(vote.stars for vote in praxis.votes))
-        score = compute_praxis_score(task.point_value, faction_multiplier, total_stars)
+        # Votes are now on Submission table; praxis legacy rows have no votes in new schema
+        score = compute_praxis_score(task.point_value, faction_multiplier, 0)
 
     media = [MediaItemOut.model_validate(item) for item in praxis.media_items]
     character_display_name = praxis.character.display_name if praxis.character else ""
@@ -163,8 +163,8 @@ async def compute_praxis_score_from_db(
         era,
         collaboration_mode=COLLABORATION_MODE_SOLO,
     )
-    total_stars = int(sum(vote.stars for vote in praxis.votes))
-    return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
+    # Votes are now on Submission table; praxis legacy rows have no votes in new schema
+    return compute_praxis_score(task.point_value, faction_multiplier, 0)
 
 
 __all__ = [

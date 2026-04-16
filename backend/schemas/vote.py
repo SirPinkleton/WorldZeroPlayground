@@ -12,9 +12,8 @@ class VoteOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    praxis_id: Optional[int] = None        # None for duel votes
-    collaboration_id: Optional[int] = None  # Set for duel votes
-    duel_vote_for: Optional[int] = None     # Set for duel votes
+    submission_id: int
+    duel_vote_for: Optional[int] = None
     voter_character_id: int
     stars: int
     created_at: datetime

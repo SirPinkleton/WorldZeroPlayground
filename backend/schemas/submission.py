@@ -112,7 +112,7 @@ class DuelVoteSummary(BaseModel):
 
 
 class SubmissionVoteIn(BaseModel):
-    target_character_id: int
+    target_character_id: Optional[int] = None
     stars: int = Field(..., ge=1, le=5)
 
 
