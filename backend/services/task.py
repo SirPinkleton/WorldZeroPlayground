@@ -86,11 +86,12 @@ async def propose_task(
     character: Character,
     data: TaskCreate,
     session: AsyncSession,
+    skip_level_check: bool = False,
 ) -> Task:
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character.id, era_row.id)
 
-    if stats.level < 3:
+    if not skip_level_check and stats.level < 3:
         raise HTTPException(
             status_code=403,
             detail="Must be level 3 or above to propose tasks.",

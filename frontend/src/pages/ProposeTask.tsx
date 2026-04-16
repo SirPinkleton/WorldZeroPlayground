@@ -9,7 +9,7 @@ import { useTheme } from '../hooks/useTheme'
 import { factionColor, factionName, FACTIONS } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
-const LEVEL_OPTIONS = [0, 1, 2, 3, 4, 5]
+const LEVEL_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 const FACTION_DESCRIPTORS: Record<string, string> = {
   ua: 'Unaffiliated', gestalt: 'Collective', analog: 'Document',
@@ -49,7 +49,7 @@ export default function ProposeTask() {
     )
   }
 
-  if (characterLevel < 3) {
+  if (!user?.is_admin && characterLevel < 3) {
     return (
       <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}>
         <PageTitle title="Propose a Task" />

@@ -18,6 +18,7 @@ from schemas.admin import (
     AccountDetail,
     AccountSummary,
     AdminCharacterCreate,
+    AdminTaskPatch,
     CharacterBrief,
     CharacterStatsPatch,
     CharacterSummary,
@@ -406,6 +407,33 @@ async def update_task_status(
         )
 
     task.status = new_status
+    await session.commit()
+    await session.refresh(task)
+    return task
+
+
+async def admin_edit_task(
+    task_id: int,
+    data: AdminTaskPatch,
+    session: AsyncSession,
+) -> Task:
+    """Edit editable fields on a pending or retired task. Active tasks are locked."""
+    task = await session.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    if task.status == TaskStatus.active:
+        raise HTTPException(
+            status_code=400,
+            detail="Active tasks cannot be edited. Retire the task first.",
+        )
+    if data.title is not None:
+        task.title = data.title
+    if data.description is not None:
+        task.description = data.description
+    if data.point_value is not None:
+        task.point_value = data.point_value
+    if data.level_required is not None:
+        task.level_required = data.level_required
     await session.commit()
     await session.refresh(task)
     return task

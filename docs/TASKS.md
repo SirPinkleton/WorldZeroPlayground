@@ -10,6 +10,81 @@
 
 ---
 
+## 🐛 SESSION B — Small Bug Fixes
+
+> Five independent fixes identified 2026-04-15. Each is self-contained.
+> **Read before starting:** `CLAUDE.md`. No spec file required for these.
+
+### TASK B.1 — Fix praxis hide/fail buttons in PraxisCard
+
+**Problem:** `PraxisCard.tsx` reads `praxis` as a read-only prop and never updates it after a moderation action. None of the callers pass `onModerated`, so the refresh callback is always a no-op. Errors are silently swallowed.
+
+**Fix:**
+- Add `const [localPraxis, setLocalPraxis] = useState(praxis)` and render from `localPraxis`
+- Rewrite `handleHide` / `handleFail` with try/catch; on success call `setLocalPraxis(updated)` (API returns updated `PraxisOut`); on error show an inline error message
+
+**Files:** `frontend/src/components/PraxisCard.tsx`
+
+**Acceptance:** Clicking hide/fail on a praxis card updates the card badge instantly without a page reload; errors surface visibly.
+
+---
+
+### TASK B.2 — Level selector: extend from 5 to 8
+
+**Problem:** `ProposeTask.tsx:12` has `const LEVEL_OPTIONS = [0, 1, 2, 3, 4, 5]`. Tasks in era_1 go up to `level_required=7` and the era has 9 level thresholds (0–8).
+
+**Fix:** Change to `[0, 1, 2, 3, 4, 5, 6, 7, 8]`.
+
+**Files:** `frontend/src/pages/ProposeTask.tsx` line 12
+
+**Acceptance:** Level selector on Propose Task shows 0–8.
+
+---
+
+### TASK B.3 — Rename era to "TestEra"
+
+**Problem:** `backend/eras/era_1.py:488` has `name="Era 1"`. Should be `"TestEra"`.
+
+**Fix:** Change `name="Era 1"` → `name="TestEra"`.
+
+**Files:** `backend/eras/era_1.py` line 488
+
+**Acceptance:** `GET /game-config` returns `"era_name": "TestEra"`.
+
+---
+
+### TASK B.4 — Admin can edit fields on pending/retired tasks
+
+**Problem:** No admin endpoint or UI exists to edit task title, description, point_value, or level_required after a task is created. `PUT /tasks/{id}` rejects everyone except the original proposer on pending-only tasks.
+
+**Backend:**
+1. Add `AdminTaskPatch` schema to `backend/schemas/admin.py` — optional fields: title, description, point_value, level_required
+2. Add `admin_edit_task(task_id, data, session)` to `backend/services/admin_service.py` — loads task, rejects if status is `active`, applies non-None fields, commits
+3. Add `PATCH /admin/tasks/{task_id}` route in `backend/routers/admin.py` that calls the service and returns `TaskOut`
+
+**Frontend:**
+4. Add `adminPatchTask(id, data)` to `frontend/src/api/admin.ts` calling `PATCH /admin/tasks/{id}`
+5. In `frontend/src/pages/admin/TasksTab.tsx`, add an "edit" button on pending and retired task rows that toggles an inline form for title, description, point_value, level_required; on save call `adminPatchTask` then `refresh()`
+
+**Acceptance:** Admin can open the edit form on any pending/retired task, change any of the four fields, save, and see the updated values in the list. Active tasks show no edit button.
+
+---
+
+### TASK B.5 — Admin can propose tasks regardless of level
+
+**Problem:** `services/task.py` gates proposals behind `stats.level < 3`. `ProposeTask.tsx` shows a hard error page for any character below level 3. Admins should bypass both gates.
+
+**Backend:**
+1. Add `skip_level_check: bool = False` param to `propose_task()` in `backend/services/task.py`; gate on `not skip_level_check`
+2. In `backend/routers/tasks.py` propose route: load the current Account; if `account.is_admin`, pass `skip_level_check=True`
+
+**Frontend:**
+3. In `frontend/src/pages/ProposeTask.tsx`, change the level gate from `if (characterLevel < 3)` to `if (!user?.is_admin && characterLevel < 3)`
+
+**Acceptance:** An admin character at level 0 can navigate to Propose Task without hitting the gate and successfully submit a proposal.
+
+---
+
 ## 🎨 SESSION — Frontend Style Polish
 
 > Migrated from `STYLE_MIGRATION_NOTES.md` (deleted 2026-04-14). The original style migration is

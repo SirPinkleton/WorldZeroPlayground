@@ -18,6 +18,7 @@ from schemas.admin import (
     AccountDetail,
     AccountSummary,
     AdminCharacterCreate,
+    AdminTaskPatch,
     CharacterStatsPatch,
     CharacterStatsOut,
     CharacterSummary,
@@ -35,6 +36,7 @@ from schemas.praxis import PraxisOut
 from services.praxis import build_praxis_out
 from services.admin_service import (
     admin_create_character,
+    admin_edit_task,
     archive_message,
     assign_or_revoke_role,
     create_faction,
@@ -337,6 +339,28 @@ async def admin_moderate_praxis(
     new_status = ModerationStatus(data.status)
     praxis = await moderate_praxis(praxis_id, new_status, data.admin_note, session)
     return await build_praxis_out(praxis, session)
+
+
+@router.patch("/tasks/{task_id}", response_model=TaskOut)
+async def admin_patch_task(
+    task_id: int,
+    data: AdminTaskPatch,
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    task = await admin_edit_task(task_id, data, session)
+    return TaskOut(
+        id=task.id,
+        title=task.title,
+        description=task.description,
+        point_value=task.point_value,
+        level_required=task.level_required,
+        status=task.status.value,
+        created_by=task.created_by,
+        primary_faction_slug=task.primary_faction_slug,
+        is_task_vision_eligible=task.is_task_vision_eligible,
+        created_at=task.created_at,
+    )
 
 
 @router.put("/tasks/{task_id}/status", response_model=TaskOut)

@@ -485,7 +485,7 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
 # =============================================================================
 
 ERA_1 = EraConfig(
-    name="Era 1",
+    name="TestEra",
     config_key="era_1",
     max_task_signups=20,
     task_submit_level_gap=2,

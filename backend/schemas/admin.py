@@ -131,6 +131,13 @@ class ModerationAction(BaseModel):
     admin_note: str | None = Field(None, max_length=1000)
 
 
+class AdminTaskPatch(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = None
+    point_value: int | None = Field(None, ge=1)
+    level_required: int | None = Field(None, ge=0)
+
+
 class TaskStatusAction(BaseModel):
     status: Literal["active", "retired"]
 

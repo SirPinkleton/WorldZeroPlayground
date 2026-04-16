@@ -102,6 +102,18 @@ export async function updateTaskStatus(id: number, status: string): Promise<Task
   return data
 }
 
+interface AdminTaskPatch {
+  title?: string
+  description?: string
+  point_value?: number
+  level_required?: number
+}
+
+export async function adminPatchTask(id: number, patch: AdminTaskPatch): Promise<TaskOut> {
+  const { data } = await api.patch<TaskOut>(`/admin/tasks/${id}`, patch)
+  return data
+}
+
 export async function moderatePraxis(
   id: number,
   status: string,

@@ -6,10 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from dependencies import get_current_character
+from models.account import Account
 from models.character import Character
 from models.faction import Faction, FactionStatus
+from models.roles import AccountRole, Role
 from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
 from schemas.task import CharacterTaskOut, TaskCreate, TaskOut, TaskSignupOut
+from services.auth import get_current_account
 from services.task import build_task_out, drop_task, list_tasks as service_list_tasks, propose_task, signup_for_task
 
 router = APIRouter()
@@ -137,9 +140,16 @@ async def get_task(task_id: int, session: AsyncSession = Depends(get_db)):
 async def propose_task_route(
     data: TaskCreate,
     character: Character = Depends(get_current_character),
+    account: Account = Depends(get_current_account),
     session: AsyncSession = Depends(get_db),
 ):
-    task = await propose_task(character, data, session)
+    admin_result = await session.execute(
+        select(AccountRole)
+        .join(Role, AccountRole.role_id == Role.id)
+        .where(AccountRole.account_id == account.id, Role.name == "admin")
+    )
+    is_admin = admin_result.scalar_one_or_none() is not None
+    task = await propose_task(character, data, session, skip_level_check=is_admin)
     return TaskOut(
         id=task.id,
         title=task.title,
