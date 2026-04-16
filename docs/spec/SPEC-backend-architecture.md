@@ -72,7 +72,7 @@ through a service. Treat them as aggregates even without the ceremony.
 | Aggregate root | Owns |
 |---|---|
 | `Character` | `CharacterStats` (per-era), `CharacterTask` (signups), `Relationship` (as `from_character`) |
-| `Submission` | `MediaItem`, `Vote`, `Flag`, `SubmissionMetaTask` |
+| `Submission` | `SubmissionMember`, `SubmissionInvite`, `MediaItem`, `Vote`, `Flag`, `SubmissionMetaTask` |
 | `Account` | `OAuthProvider`, `AccountRole` |
 | `Task` | `CharacterTask` (on the task side — shared with Character aggregate; services enforce consistency) |
 
@@ -153,7 +153,7 @@ docs**:
 |---|---|---|
 | Private login identity | **Account** | Not "User". The word "User" does not appear in code. |
 | Public game persona | **Character** | |
-| Completed-task artifact (the noun) | **Praxis** | A player *submits* a praxis. "Submit" is the verb; "praxis" is the noun. The code currently uses `Submission` for the entity — that's the vocabulary drift that needs fixing. See TASK A.1. |
+| Completed-task artifact (the noun) | **Submission** | A player *submits* a submission. "Submit" is the verb; "submission" is the noun. The STI `Submission` table covers solo praxes, collaborations, and duels. |
 | The act of posting a praxis (the verb) | **submit** | Use "submit" / "submitted" as the verb; never as the noun for the artifact. |
 | Activity unit players complete | **Task** | |
 | Community rating of a submission | **Vote** | |
@@ -176,11 +176,12 @@ use the canonical one.
   primitives + `EraConfig` with no DB. Example: `compute_faction_multiplier`.
 - **`build_*_out(orm, session)` helpers** for ORM → response conversion.
   Live in the service that owns the aggregate. Example:
-  `services/submission.py::build_submission_out`.
+  `services/submission.py::build_submission_out` — the canonical helper for all
+  submission types (solo, collaboration, duel).
 - **Migrations are Alembic-only.** Never edit a model without generating a
   migration.
 - **Use Enums for domain values**, not string literals. Examples:
-  `ModerationStatus`, `CollaborationMode`, `CharacterTaskStatus`, `TaskStatus`.
+  `ModerationStatus`, `SubmissionType`, `CollabModeEnum`, `CharacterTaskStatus`, `TaskStatus`.
   When a column stores an enum, the `Mapped[...]` annotation should be the
   enum class, not `Optional[str]`.
 - **Separate `tests/unit/` from `tests/integration/`.** Unit tests import
@@ -224,8 +225,11 @@ Do not "fix" them — they are deliberately parked until v2. See
 
 **Already implemented — do not confuse with the above:** faction multipliers, MetaTask scoring,
 Collaboration, and Duel resolution are *all* live. `services/scoring.py::compute_praxis_score`
-applies meta-task bonuses and duel multipliers. `services/collaboration.py` handles the full
-collab/duel lifecycle. Only the exotic cases in the table above remain deferred.
+applies meta-task bonuses and duel multipliers. `services/submission.py` handles the full
+lifecycle for all submission types (solo, collaboration, duel) via STI. The former
+`services/collaboration.py` and `services/praxis.py` are thin shims that re-export from
+`services/submission.py` for backward compatibility. Only the exotic cases in the table above
+remain deferred.
 
 ---
 

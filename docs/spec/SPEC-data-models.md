@@ -1,6 +1,6 @@
 # World Zero — Data Models
 
-> Last synced with code: 2026-04-13
+> Last synced with code: 2026-04-15
 
 ## 5. Data Models
 
@@ -121,57 +121,62 @@ updated_at
 ```
 *Active rows capped at `EraConfig.max_task_signups` per character, enforced at API layer.*
 
-### Praxis (solo submissions only)
+### Submission (STI — all submission types)
+Single-table inheritance. The `submission_type` discriminator column determines
+which nullable columns are active. All three types share the `id`, `task_id`,
+`moderation_status`, `is_withdrawn`, `admin_note`, `flagged_at`, `created_at`,
+and `updated_at` columns.
+
 ```
 id
-task_id              -- FK -> Task
-character_id         -- FK -> Character
-title
-body_text            -- rich text / markdown (default "")
-moderation_status    -- enum: visible | flagged | hidden | failed (ModerationStatus)
+task_id              -- FK -> Task (NOT NULL)
+submission_type      -- enum: solo | collaboration | duel (SubmissionType); discriminator
+
+-- Shared columns
+moderation_status    -- enum: visible | flagged | hidden | failed (ModerationStatus); default "visible"
 is_withdrawn         -- bool, default false
-admin_note           -- text, nullable (for failed/hidden submissions)
+admin_note           -- text, nullable (set by admin on failed/hidden)
 flagged_at           -- nullable; NULL means "not yet flagged"
 created_at
 updated_at
-```
-*Score is computed on-the-fly from votes; not stored in v1.*
-*Collaboration and duel submissions use the Collaboration model instead — see below.*
 
-### Collaboration
-```
-id
-task_id              -- FK -> Task
-mode                 -- enum: collaboration | duel (CollaborationMode)
-status               -- enum: in_progress | published (CollaborationStatus)
-body_text            -- shared document; all members edit this (default "")
+-- Solo-only (NULL when type is collaboration or duel)
+character_id         -- FK -> Character (the submitting player)
+title                -- submission title
+body_text            -- rich text / markdown proof text
+
+-- Collaboration/duel-only (NULL when type is solo)
 created_by_id        -- FK -> Character (the player who initiated)
-created_at
-updated_at
+collab_mode          -- enum: collaboration | duel; mirrors submission_type for legacy compat
+collab_status        -- enum: in_progress | published
+collab_body_text     -- shared document; all members edit this (default "")
 ```
-*Score per member computed on-the-fly when status = published.*
+*Score is computed on-the-fly from votes; not stored.*
+*Replaces the former `Praxis` (solo) and `Collaboration` (collab/duel) tables.*
 
-### CollaborationMember
+### SubmissionMember
 ```
 id
-collaboration_id     -- FK -> Collaboration
+submission_id        -- FK -> Submission (collaboration/duel only)
 character_id         -- FK -> Character
 has_submitted        -- bool; whether this member has pressed Submit (resets on edit or kick)
+title                -- per-member title (nullable)
+body_text            -- per-member body text (nullable)
 joined_at
-CONSTRAINT: unique(collaboration_id, character_id)
+CONSTRAINT: unique(submission_id, character_id)
 ```
 
-### CollaborationInvite
+### SubmissionInvite
 ```
 id
-collaboration_id     -- FK -> Collaboration
+submission_id        -- FK -> Submission
 inviter_id           -- FK -> Character
 invitee_id           -- FK -> Character
-type                 -- enum: collaboration | duel (mirrors Collaboration.mode)
-status               -- enum: pending | accepted | declined (CollaborationInviteStatus)
+invite_type          -- enum: collaboration | duel
+status               -- enum: pending | accepted | declined (SubmissionInviteStatus)
 created_at
 ```
-*Only one pending invite per (collaboration_id, inviter_id, invitee_id) is allowed — enforced at service layer.*
+*Only one pending invite per (submission_id, inviter_id, invitee_id) is allowed — enforced at service layer.*
 
 ### MediaItem
 ```
@@ -186,19 +191,18 @@ created_at
 ### Vote
 ```
 id
-praxis_id            -- FK -> Praxis (nullable; NULL for duel votes)
-collaboration_id     -- FK -> Collaboration (nullable; set only for duel votes)
+submission_id        -- FK -> Submission (NOT NULL)
 voter_character_id   -- FK -> Character
 voter_account_id     -- FK -> Account (denormalized for anti-self-vote check)
 stars                -- integer 1-5
 duel_vote_for        -- FK -> Character (nullable; Duels only — which player this vote is for)
 created_at
 updated_at           -- votes can be updated; update costs 0 additional budget
-CONSTRAINT: unique(praxis_id, voter_character_id)  -- solo votes
-CONSTRAINT: unique(collaboration_id, voter_character_id, duel_vote_for)  -- duel votes
+CONSTRAINT: unique(submission_id, voter_character_id)             -- solo/collab votes
+CONSTRAINT: unique(submission_id, voter_character_id, duel_vote_for)  -- duel votes
 ```
-*Exactly one of praxis_id or collaboration_id must be set. For duel votes, duel_vote_for is required.*
-*Anti-self-vote: duel members cannot vote on their own collaboration.*
+*For duel votes, duel_vote_for is required.*
+*Anti-self-vote: duel members cannot vote on their own submission.*
 
 ### Flag
 ```
@@ -298,10 +302,11 @@ created_at
 | TaskStatus | pending, active, retired | Task.status |
 | CharacterTaskStatus | in_progress, submitted, abandoned | CharacterTask.status |
 | MediaType | image, video, audio | MediaItem.type |
-| CollaborationMode | collaboration, duel | Collaboration.mode |
-| CollaborationStatus | in_progress, published | Collaboration.status |
-| CollaborationInviteStatus | pending, accepted, declined | CollaborationInvite.status |
-| ModerationStatus | visible, flagged, hidden, failed | Praxis.moderation_status |
+| SubmissionType | solo, collaboration, duel | Submission.submission_type |
+| CollabModeEnum | collaboration, duel | Submission.collab_mode, SubmissionInvite.invite_type |
+| SubmissionStatus | in_progress, published | Submission.collab_status |
+| SubmissionInviteStatus | pending, accepted, declined | SubmissionInvite.status |
+| ModerationStatus | visible, flagged, hidden, failed | Submission.moderation_status |
 | RelationshipType | friend, foe | Relationship.type |
 | RelationshipStatus | active, blocked | Relationship.status |
 | BonusType | flat, percentage | MetaTask.bonus_type |

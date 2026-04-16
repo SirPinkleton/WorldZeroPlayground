@@ -1,7 +1,7 @@
 # World Zero — Build State
 
 > Last updated: 2026-04-15
-> Updated by: Claude Code — U.3 Unified /submissions router complete
+> Updated by: Claude Code — U.5 Documentation updated for STI submission refactor
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -174,6 +174,12 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `frontend/src/App.tsx` — /collaborations/:id route added ✅
   - Spec files updated (SPEC-backend-architecture.md, SPEC-deployment.md, SPEC-game-rules.md, SPEC-data-models.md, SPEC-api.md) ✅
   - 105 unit tests passing ✅
+- **SESSION U.5 — Documentation updated for STI submission refactor ✅ 2026-04-15**
+  - `docs/spec/SPEC-data-models.md` — Replaced Praxis + Collaboration + CollaborationMember + CollaborationInvite sections with unified Submission (STI), SubmissionMember, SubmissionInvite; updated Vote, Flag, MediaItem FKs; updated Enum Summary ✅
+  - `docs/spec/SPEC-api.md` — Replaced /praxes + /collaborations sections with unified /submissions; documented all endpoints and ?type filter; updated response schemas ✅
+  - `docs/spec/SPEC-backend-architecture.md` — Updated aggregate table, ubiquitous language, patterns, and §9 deferred features for STI model ✅
+- **SESSION U.4 — Frontend migrated to /submissions ✅ 2026-04-15**
+  - All frontend API calls now target `/submissions/*`; legacy shim routers preserved server-side ✅
 - **SESSION U.3 — Unified /submissions router ✅ 2026-04-15**
   - `backend/routers/submissions.py` — New unified router under /submissions; merges all routes from praxes.py and collaborations.py; supports ?type=solo|collaboration|duel|published filter; media upload/delete; collab/duel operations (invite, respond, kick, document, my-content, submit, reopen); unified voting endpoint ✅
   - `backend/main.py` — /submissions router mounted alongside legacy /praxes and /collaborations (preserved for frontend compat until U.4) ✅
@@ -184,6 +190,10 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `backend/schemas/submission.py` — SubmissionVoteIn.target_character_id made Optional (solo votes don't require it) ✅
   - `backend/services/praxis.py` — Fixed shim: removed praxis.votes access (relationship removed); score returns 0 for legacy Praxis rows ✅
   - 105 unit tests passing ✅
+- **SESSION U.1 — Submission STI model + migration ✅ 2026-04-15**
+  - `backend/models/submission.py` — New `Submission` STI table with `submission_type` discriminator (`solo | collaboration | duel`); `SubmissionMember`; `SubmissionInvite` ✅
+  - `backend/alembic/versions/0003_submission_unified.py` — Creates `submission`, `submission_member`, `submission_invite` tables; migrates data from legacy `praxis` + `collaboration` tables ✅
+  - Architecture: Submission STI model replaces Praxis + Collaboration; all child tables (Vote, Flag, MediaItem, PraxisMetaTask) now FK to `submission.id`
 - **SESSION U.2 — Unified submission service layer ✅ 2026-04-15**
   - `backend/models/vote.py` — Changed from dual nullable FKs (praxis_id, collaboration_id) to single `submission_id` FK → submission.id; updated unique constraints; updated relationships ✅
   - `backend/models/praxis.py` — `MediaItem.praxis_id` → `MediaItem.submission_id` FK → submission.id; updated relationships ✅
