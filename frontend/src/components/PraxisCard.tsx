@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { PraxisOut } from '../api/praxis'
+import type { SubmissionOut } from '../api/submissions'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderatePraxis } from '../api/admin'
@@ -8,7 +8,7 @@ import { factionCssVar } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
 interface Props {
-  praxis: PraxisOut
+  praxis: SubmissionOut
   onModerated?: () => void
 }
 

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getCollaboration,
+  getSubmission,
   updateMemberContent,
-  type CollaborationOut,
-} from '../api/collaborations'
+  type SubmissionOut,
+} from '../api/submissions'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 import { factionName } from '../utils/factions'
@@ -20,7 +20,7 @@ export default function EditCollaboration() {
   const { theme } = useTheme()
   const dark = theme === 'dark'
 
-  const [collab, setCollab] = useState<CollaborationOut | null>(null)
+  const [collab, setCollab] = useState<SubmissionOut | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [loading, setLoading] = useState(true)
@@ -31,7 +31,7 @@ export default function EditCollaboration() {
 
   useEffect(() => {
     if (!collaborationId) return
-    getCollaboration(collaborationId)
+    getSubmission(collaborationId)
       .then((data) => {
         const myCharacterId = user?.character?.id
         const myMember = data.members.find((m) => m.character_id === myCharacterId)
@@ -39,7 +39,7 @@ export default function EditCollaboration() {
           navigate(`/collaborations/${id}`, { replace: true })
           return
         }
-        if (data.status === 'published') {
+        if (data.collab_status === 'published') {
           navigate(`/collaborations/${id}`, { replace: true })
           return
         }
@@ -71,7 +71,7 @@ export default function EditCollaboration() {
   if (error && !collab) return <div className="py-8 font-body text-sm" style={{ color: '#dc2626' }}>{error}</div>
   if (!collab) return null
 
-  const isDuel = collab.mode === 'duel'
+  const isDuel = collab.collab_mode === 'duel'
   const modeLabel = isDuel ? 'Duel' : 'Collaboration'
   const modeColor = isDuel ? '#dc2626' : '#15803d'
   const partners = collab.members.filter((m) => m.character_id !== user?.character?.id)

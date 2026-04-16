@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getTask, getMyTasks, signupTask, dropTask, getTaskSignups, type TaskOut, type TaskSignupOut } from '../api/tasks'
-import { listPraxes, type PraxisOut } from '../api/praxis'
+import { listSubmissions, type SubmissionOut } from '../api/submissions'
 import { listRelationships } from '../api/relationships'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import PraxisCard from '../components/PraxisCard'
@@ -23,7 +23,7 @@ export default function TaskDetail() {
   const location = useLocation()
   const { user } = useAuth()
   const [task, setTask] = useState<TaskOut | null>(null)
-  const [submissions, setSubmissions] = useState<PraxisOut[]>([])
+  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
   const [signups, setSignups] = useState<TaskSignupOut[]>([])
   const [metaTasks, setMetaTasks] = useState<MetaTaskOut[]>([])
   const [isInProgress, setIsInProgress] = useState(false)
@@ -51,7 +51,7 @@ export default function TaskDetail() {
 
     const fetches: Promise<unknown>[] = [
       getTask(taskId),
-      listPraxes({ task_id: taskId }),
+      listSubmissions({ task_id: taskId }),
       getTaskSignups(taskId),
       getMetaTasks(taskId).catch(() => []),
     ]
@@ -90,7 +90,7 @@ export default function TaskDetail() {
   // Re-fetch submissions when sort changes
   useEffect(() => {
     if (!id) return
-    listPraxes({ task_id: parseInt(id, 10) })
+    listSubmissions({ task_id: parseInt(id, 10) })
       .then((s) => setSubmissions(s))
       .catch(() => {})
   }, [submissionSort, id])

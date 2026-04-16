@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { respondToInvite } from '../../api/collaborations'
+import { respondToInvite } from '../../api/submissions'
 import { getMyTasks } from '../../api/tasks'
 import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'

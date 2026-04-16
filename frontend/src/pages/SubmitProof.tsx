@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { createPraxis, uploadMedia } from '../api/praxis'
-import { createCollaboration, inviteMember } from '../api/collaborations'
+import { createSoloSubmission, addMedia, createCollabSubmission, inviteMember } from '../api/submissions'
 import { getTask, dropTask, type TaskOut } from '../api/tasks'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
@@ -72,9 +71,9 @@ export default function SubmitProof() {
     setError('')
     try {
       if (selectedMode !== 'solo') {
-        // Collaboration or duel: create a Collaboration, send invites, redirect to collab page
+        // Collaboration or duel: create a unified submission, send invites, redirect to collab page
         const mode = selectedMode === 'duel' ? 'duel' : 'collaboration'
-        const collab = await createCollaboration(parseInt(id, 10), mode)
+        const collab = await createCollabSubmission(parseInt(id, 10), mode)
         // Send invites to all selected partners; collect any eligibility errors
         const inviteErrors: string[] = []
         for (const partner of invitedPartners) {
@@ -93,19 +92,19 @@ export default function SubmitProof() {
           navigate(`/collaborations/${collab.id}`)
         }
       } else {
-        // Solo submission: create praxis as before
+        // Solo submission
         if (!title.trim()) { setError('Title is required.'); setSaving(false); return }
-        const praxis = await createPraxis({
+        const submission = await createSoloSubmission({
           task_id: parseInt(id, 10),
           title,
           body_text: body || undefined,
           meta_task_id: selectedMetaTaskId ?? undefined,
         })
         for (const file of files) {
-          await uploadMedia(praxis.id, file)
+          await addMedia(submission.id, file)
         }
         void refetch()
-        navigate(`/praxes/${praxis.id}`)
+        navigate(`/praxes/${submission.id}`)
       }
     } catch (err: any) {
       setError(extractError(err, 'Could not submit. Please try again.'))

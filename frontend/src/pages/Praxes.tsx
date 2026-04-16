@@ -1,21 +1,19 @@
 import { useEffect, useState } from 'react'
-import { listPraxes } from '../api/praxis'
-import type { PraxisOut } from '../api/praxis'
-import { listPublishedCollaborations } from '../api/collaborations'
-import type { CollaborationCardOut } from '../api/collaborations'
+import { listSubmissions, listPublishedSubmissions } from '../api/submissions'
+import type { SubmissionOut, SubmissionCardOut } from '../api/submissions'
 import PraxisCard from '../components/PraxisCard'
 import CollaborationCard from '../components/CollaborationCard'
 import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 
 export default function Praxes() {
-  const [praxes, setPraxes] = useState<PraxisOut[]>([])
-  const [collabs, setCollabs] = useState<CollaborationCardOut[]>([])
+  const [praxes, setPraxes] = useState<SubmissionOut[]>([])
+  const [collabs, setCollabs] = useState<SubmissionCardOut[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([listPraxes(), listPublishedCollaborations()])
+    Promise.all([listSubmissions({ type: 'solo' }), listPublishedSubmissions()])
       .then(([praxData, collabData]) => {
         setPraxes(praxData)
         setCollabs(collabData)

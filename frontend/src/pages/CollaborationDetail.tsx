@@ -2,17 +2,17 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getCollaboration,
+  getSubmission,
   updateDocument,
   submitForMember,
-  reopenCollaboration,
+  reopenSubmission,
   kickMember,
   inviteMember,
   getDuelVoteSummary,
   castDuelVote,
-  type CollaborationOut,
+  type SubmissionOut,
   type DuelVoteSummary,
-} from '../api/collaborations'
+} from '../api/submissions'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import { useAuth } from '../auth/AuthContext'
 import { factionColor, factionName } from '../utils/factions'
@@ -31,7 +31,7 @@ export default function CollaborationDetail() {
   const locationState = location.state as { inviteErrors?: string[] } | null
   const [startupInviteErrors] = useState<string[]>(locationState?.inviteErrors ?? [])
 
-  const [collab, setCollab] = useState<CollaborationOut | null>(null)
+  const [collab, setCollab] = useState<SubmissionOut | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -62,9 +62,9 @@ export default function CollaborationDetail() {
   const loadCollab = useCallback(async () => {
     if (!collaborationId) return
     try {
-      const data = await getCollaboration(collaborationId)
+      const data = await getSubmission(collaborationId)
       setCollab(data)
-      if (!editing) setDocDraft(data.body_text ?? '')
+      if (!editing) setDocDraft(data.collab_body_text ?? '')
     } catch {
       setFetchError('Could not load collaboration.')
     } finally {
@@ -73,7 +73,7 @@ export default function CollaborationDetail() {
   }, [collaborationId, editing])
 
   const loadDuelVotes = useCallback(async () => {
-    if (!collaborationId || !collab || collab.mode !== 'duel') return
+    if (!collaborationId || !collab || collab.collab_mode !== 'duel') return
     try {
       const votes = await getDuelVoteSummary(collaborationId)
       setDuelVotes(votes)
@@ -85,7 +85,7 @@ export default function CollaborationDetail() {
   }, [loadCollab])
 
   useEffect(() => {
-    if (collab?.mode === 'duel') loadDuelVotes()
+    if (collab?.collab_mode === 'duel') loadDuelVotes()
   }, [collab, loadDuelVotes])
 
   if (loading) {
@@ -97,9 +97,9 @@ export default function CollaborationDetail() {
 
   const isMember = collab.members.some((m) => m.character_id === myCharacterId)
   const myMember = collab.members.find((m) => m.character_id === myCharacterId)
-  const isPublished = collab.status === 'published'
-  const isDuel = collab.mode === 'duel'
-  const isCollab = collab.mode === 'collaboration'
+  const isPublished = collab.collab_status === 'published'
+  const isDuel = collab.collab_mode === 'duel'
+  const isCollab = collab.collab_mode === 'collaboration'
   const taskColor = '#6b6a7a' // fallback; task faction not on collab out directly
   const modeLabel = isDuel ? 'Duel' : 'Collaboration'
   const modeColor = isDuel ? '#dc2626' : '#15803d'
@@ -110,6 +110,7 @@ export default function CollaborationDetail() {
     try {
       const updated = await updateDocument(collaborationId, docDraft)
       setCollab(updated)
+      setDocDraft(updated.collab_body_text ?? '')
       setEditing(false)
     } catch {
       setActionError('Could not save document.')
@@ -132,7 +133,7 @@ export default function CollaborationDetail() {
     if (!collaborationId) return
     setActionError('')
     try {
-      const updated = await reopenCollaboration(collaborationId)
+      const updated = await reopenSubmission(collaborationId)
       setCollab(updated)
       setEditing(false)
     } catch {
@@ -415,7 +416,7 @@ export default function CollaborationDetail() {
           <p className="eyebrow">Shared Document</p>
           {isMember && !editing && (
             <button
-              onClick={() => { setEditing(true); setDocDraft(collab.body_text ?? '') }}
+              onClick={() => { setEditing(true); setDocDraft(collab.collab_body_text ?? '') }}
               style={{
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
@@ -474,9 +475,9 @@ export default function CollaborationDetail() {
               </button>
             </div>
           </div>
-        ) : collab.body_text ? (
+        ) : collab.collab_body_text ? (
           <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--color-text-primary)' }}>
-            <ReactMarkdown>{collab.body_text}</ReactMarkdown>
+            <ReactMarkdown>{collab.collab_body_text}</ReactMarkdown>
           </div>
         ) : (
           <p className="font-body" style={{ fontSize: 12, color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
@@ -506,7 +507,8 @@ export default function CollaborationDetail() {
                   <div
                     style={{
                       width: 24, height: 24, borderRadius: '50%',
-                      background: `linear-gradient(135deg, ${factionColor(v.faction_slug)}, ${factionColor(v.faction_slug)}88)`,
+                      background: 'var(--color-bg-surface-alt)',
+                      border: '1px solid var(--color-border)',
                       flexShrink: 0,
                     }}
                   />
@@ -515,7 +517,7 @@ export default function CollaborationDetail() {
                     {v.is_winning && <span style={{ marginLeft: 8, color: '#dc2626', fontSize: 10 }}>★ leading</span>}
                   </span>
                   <span className="eyebrow" style={{ fontSize: 9 }}>
-                    {v.total_stars} stars · {v.vote_count} vote{v.vote_count !== 1 ? 's' : ''}
+                    {v.total_stars} stars
                   </span>
                 </div>
               ))}
