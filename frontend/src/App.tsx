@@ -22,6 +22,7 @@ import Disclaimer from './pages/Disclaimer'
 import Attributions from './pages/Attributions'
 import Donate from './pages/Donate'
 import CollaborationDetail from './pages/CollaborationDetail'
+import EditCollaboration from './pages/EditCollaboration'
 
 export default function App() {
   return (
@@ -39,6 +40,14 @@ export default function App() {
           }
         />
         <Route path="/collaborations/:id" element={<CollaborationDetail />} />
+        <Route
+          path="/collaborations/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditCollaboration />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/praxes" element={<Praxes />} />
         <Route path="/praxes/:id" element={<PraxisDetail />} />
         <Route

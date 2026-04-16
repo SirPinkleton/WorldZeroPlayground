@@ -16,6 +16,8 @@ class CollaborationMemberOut(BaseModel):
     display_name: str
     faction_slug: str
     has_submitted: bool
+    title: Optional[str] = None
+    body_text: Optional[str] = None
     joined_at: datetime
 
 
@@ -51,6 +53,11 @@ class CollaborationOut(BaseModel):
     invites: list[CollaborationInviteOut] = []
 
 
+class CollaborationMemberContentUpdate(BaseModel):
+    title: str = Field(..., max_length=200)
+    body_text: Optional[str] = Field(None, max_length=10000)
+
+
 class CollaborationInviteCreate(BaseModel):
     invitee_character_id: int
 
@@ -75,3 +82,21 @@ class DuelVoteSummary(BaseModel):
 class CollaborationVoteIn(BaseModel):
     target_character_id: int
     stars: int = Field(..., ge=1, le=5)
+
+
+class CollaborationMemberCardOut(BaseModel):
+    character_id: int
+    display_name: str
+    faction_slug: Optional[str] = None
+    score: Optional[float] = None
+
+
+class CollaborationCardOut(BaseModel):
+    id: int
+    task_id: int
+    task_title: str
+    task_faction_slug: Optional[str] = None
+    mode: str
+    status: str
+    created_at: datetime
+    members: list[CollaborationMemberCardOut] = []
