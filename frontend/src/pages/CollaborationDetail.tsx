@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
   getCollaboration,
@@ -22,8 +22,14 @@ const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '
 
 export default function CollaborationDetail() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const myCharacterId = user?.character?.id
+
+  // Invite errors passed from SubmitProof when some invites failed on collab creation
+  const locationState = location.state as { inviteErrors?: string[] } | null
+  const [startupInviteErrors] = useState<string[]>(locationState?.inviteErrors ?? [])
 
   const [collab, setCollab] = useState<CollaborationOut | null>(null)
   const [loading, setLoading] = useState(true)
@@ -589,6 +595,58 @@ export default function CollaborationDetail() {
         </div>
       )}
 
+      {/* My Proof — edit link for current member */}
+      {isMember && !isPublished && (
+        <div className="sidebar-card mb-4" style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <p className="eyebrow">My Proof</p>
+            <button
+              onClick={() => navigate(`/collaborations/${id}/edit`)}
+              style={{
+                fontFamily: "'Courier Prime', monospace",
+                fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
+                background: 'transparent', border: `1px solid ${modeColor}`,
+                padding: '3px 10px', cursor: 'pointer',
+                color: modeColor,
+              }}
+            >
+              Edit my proof
+            </button>
+          </div>
+          {myMember?.title ? (
+            <div>
+              <p className="font-display italic" style={{ fontSize: 16, color: 'var(--color-text-primary)', marginBottom: 4 }}>
+                {myMember.title}
+              </p>
+              {myMember.body_text && (
+                <p className="font-body" style={{ fontSize: 12, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>
+                  {myMember.body_text.length > 200 ? myMember.body_text.slice(0, 200) + '…' : myMember.body_text}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="font-body" style={{ fontSize: 12, color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
+              No proof written yet. Click "Edit my proof" to add your submission.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* My Proof — read-only view when published */}
+      {isMember && isPublished && myMember?.title && (
+        <div className="sidebar-card mb-4" style={{ padding: '16px 20px' }}>
+          <p className="eyebrow mb-3">My Proof</p>
+          <p className="font-display italic" style={{ fontSize: 16, color: 'var(--color-text-primary)', marginBottom: 4 }}>
+            {myMember.title}
+          </p>
+          {myMember.body_text && (
+            <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--color-text-primary)', marginTop: 8 }}>
+              <ReactMarkdown>{myMember.body_text}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Submit / Reopen controls */}
       {isMember && !isPublished && (
         <div className="sidebar-card mb-4" style={{ padding: '16px 20px' }}>
@@ -639,6 +697,16 @@ export default function CollaborationDetail() {
           <p className="font-body" style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 4 }}>
             {isDuel ? 'Duel complete. Points have been awarded.' : 'Collaboration published. All members have been scored.'}
           </p>
+        </div>
+      )}
+
+      {startupInviteErrors.length > 0 && (
+        <div className="sidebar-card mb-4" style={{ padding: '12px 16px', borderLeft: '3px solid #d97706' }}>
+          <p className="eyebrow" style={{ color: '#d97706', marginBottom: 6 }}>Some invites could not be sent</p>
+          {startupInviteErrors.map((err, i) => (
+            <p key={i} className="font-body" style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>{err}</p>
+          ))}
+          <p className="eyebrow" style={{ fontSize: 7, marginTop: 6, color: 'var(--color-text-tertiary)' }}>You can invite eligible players from the Members section above.</p>
         </div>
       )}
 

@@ -16,7 +16,9 @@ from models.collaboration import (
 )
 from models.task import CharacterTask, CharacterTaskStatus, Task
 from schemas.collaboration import (
+    CollaborationCardOut,
     CollaborationInviteOut,
+    CollaborationMemberCardOut,
     CollaborationMemberOut,
     CollaborationOut,
     DuelVoteSummary,
@@ -35,6 +37,8 @@ def _build_member_out(member: CollaborationMember) -> CollaborationMemberOut:
         display_name=member.character.display_name,
         faction_slug=member.character.faction_slug,
         has_submitted=member.has_submitted,
+        title=member.title,
+        body_text=member.body_text,
         joined_at=member.joined_at,
     )
 
@@ -217,6 +221,39 @@ async def invite_member(
     invitee = await session.get(Character, invitee_character_id)
     if invitee is None:
         raise HTTPException(status_code=404, detail="Invitee not found.")
+
+    # Eligibility check: skip for Analog faction (they can redo tasks via Double Dipper)
+    ANALOG_FACTION_SLUG = "analog"
+    if invitee.faction_slug != ANALOG_FACTION_SLUG:
+        from models.praxis import Praxis
+
+        existing_solo_result = await session.execute(
+            select(Praxis).where(
+                Praxis.character_id == invitee_character_id,
+                Praxis.task_id == collab.task_id,
+                Praxis.is_withdrawn == False,
+            )
+        )
+        if existing_solo_result.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="This player has already submitted proof for this task and is not eligible to be invited.",
+            )
+
+        existing_collab_result = await session.execute(
+            select(CollaborationMember)
+            .join(Collaboration, CollaborationMember.collaboration_id == Collaboration.id)
+            .where(
+                CollaborationMember.character_id == invitee_character_id,
+                Collaboration.task_id == collab.task_id,
+                Collaboration.status == CollaborationStatus.published,
+            )
+        )
+        if existing_collab_result.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="This player has already completed this task in a collaboration and is not eligible to be invited.",
+            )
 
     invite = CollaborationInvite(
         collaboration_id=collaboration_id,
@@ -474,6 +511,115 @@ async def update_document(
     await session.commit()
     await session.refresh(collab)
     return collab
+
+
+async def update_member_content(
+    collaboration_id: int,
+    character: Character,
+    title: str,
+    body_text: str | None,
+    session: AsyncSession,
+) -> Collaboration:
+    """Update the current member's individual title and body content."""
+    collab = await session.get(Collaboration, collaboration_id)
+    if collab is None:
+        raise HTTPException(status_code=404, detail="Collaboration not found.")
+
+    member_ids = {m.character_id for m in collab.members}
+    if character.id not in member_ids:
+        raise HTTPException(status_code=403, detail="You are not a member of this collaboration.")
+
+    if collab.status == CollaborationStatus.published:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot edit content in a published collaboration. Reopen it first.",
+        )
+
+    for member in collab.members:
+        if member.character_id == character.id:
+            member.title = title
+            member.body_text = body_text
+            break
+
+    await session.commit()
+    await session.refresh(collab)
+    return collab
+
+
+def build_collaboration_card_out(
+    collab: Collaboration,
+    vote_totals: dict[int, int],
+    vote_counts: dict[int, int],
+) -> CollaborationCardOut:
+    """Serialize a published Collaboration for display on the praxis listing."""
+    members_out = []
+    for member in collab.members:
+        total_stars = vote_totals.get(member.character_id, 0)
+        count = vote_counts.get(member.character_id, 0)
+        avg_score = round(total_stars / count, 1) if count > 0 else None
+        members_out.append(
+            CollaborationMemberCardOut(
+                character_id=member.character_id,
+                display_name=member.character.display_name,
+                faction_slug=member.character.faction_slug,
+                score=avg_score,
+            )
+        )
+    return CollaborationCardOut(
+        id=collab.id,
+        task_id=collab.task_id,
+        task_title=collab.task.title,
+        task_faction_slug=collab.task.primary_faction_slug,
+        mode=collab.mode.value,
+        status=collab.status.value,
+        created_at=collab.created_at,
+        members=members_out,
+    )
+
+
+async def list_published_collaborations(
+    session: AsyncSession,
+) -> list[CollaborationCardOut]:
+    """Return all published collaborations for the praxis listing page."""
+    from sqlalchemy import func
+    from models.vote import Vote
+
+    result = await session.execute(
+        select(Collaboration).where(Collaboration.status == CollaborationStatus.published)
+    )
+    collabs = result.scalars().all()
+
+    if not collabs:
+        return []
+
+    collab_ids = [c.id for c in collabs]
+
+    # Fetch vote totals and counts per (collaboration_id, target_character)
+    votes_result = await session.execute(
+        select(
+            Vote.collaboration_id,
+            Vote.duel_vote_for,
+            func.sum(Vote.stars).label("total_stars"),
+            func.count(Vote.id).label("vote_count"),
+        ).where(
+            Vote.collaboration_id.in_(collab_ids),
+            Vote.duel_vote_for.is_not(None),
+        ).group_by(Vote.collaboration_id, Vote.duel_vote_for)
+    )
+
+    # Map: collab_id -> {char_id -> (total_stars, count)}
+    votes_by_collab: dict[int, dict[int, tuple[int, int]]] = {}
+    for collab_id, char_id, total_stars, vote_count in votes_result.all():
+        votes_by_collab.setdefault(collab_id, {})[char_id] = (int(total_stars), int(vote_count))
+
+    cards = []
+    for collab in collabs:
+        char_votes = votes_by_collab.get(collab.id, {})
+        vote_totals = {char_id: data[0] for char_id, data in char_votes.items()}
+        vote_counts = {char_id: data[1] for char_id, data in char_votes.items()}
+        cards.append(build_collaboration_card_out(collab, vote_totals, vote_counts))
+
+    return cards
 
 
 async def get_duel_vote_summary(

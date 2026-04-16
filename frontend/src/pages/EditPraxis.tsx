@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
   getPraxis,
@@ -9,17 +9,24 @@ import {
   type MediaItemOut,
 } from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
+import { useTheme } from '../hooks/useTheme'
+import { factionColor, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 import PageTitle from '../components/ui/PageTitle'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
 
 export default function EditPraxis() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { theme } = useTheme()
+  const dark = theme === 'dark'
 
   const [taskId, setTaskId] = useState<number | null>(null)
+  const [taskTitle, setTaskTitle] = useState<string>('')
+  const [taskFactionSlug, setTaskFactionSlug] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [media, setMedia] = useState<MediaItemOut[]>([])
@@ -38,7 +45,6 @@ export default function EditPraxis() {
     const tooLarge = incoming.filter((f) => f.size > MAX_FILE_SIZE)
     if (tooLarge.length > 0) {
       setFileError(`File${tooLarge.length > 1 ? 's' : ''} too large (50 MB limit): ${tooLarge.map((f) => f.name).join(', ')}`)
-      // Build a DataTransfer with only valid files
       const dt = new DataTransfer()
       incoming.filter((f) => f.size <= MAX_FILE_SIZE).forEach((f) => dt.items.add(f))
       e.target.files = dt.files
@@ -58,6 +64,8 @@ export default function EditPraxis() {
           return
         }
         setTaskId(praxis.task_id)
+        setTaskTitle(praxis.task_title)
+        setTaskFactionSlug(praxis.task_faction_slug)
         setTitle(praxis.title)
         setBody(praxis.body_text ?? '')
         setMedia(praxis.media)
@@ -100,74 +108,153 @@ export default function EditPraxis() {
 
   if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
+  const color = factionColor(taskFactionSlug)
+  const fname = factionName(taskFactionSlug)
+  const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0
+
   return (
-    <div className="py-8 max-w-6xl">
+    <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}>
       <PageTitle title="Edit Praxis" />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {/* Breadcrumb */}
+      <nav className="font-body mb-4" style={{ fontSize: 9, letterSpacing: '0.1em', color: 'var(--color-text-tertiary)' }}>
+        <Link to="/tasks" style={{ color: 'inherit', textDecoration: 'none' }}>Tasks</Link>
+        {taskId && taskTitle && (
+          <>
+            {' › '}
+            <Link to={`/tasks/${taskId}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>{taskTitle}</Link>
+          </>
+        )}
+        {' › '}
+        <Link to={`/praxes/${id}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Praxis</Link>
+        {' › '}
+        <span style={{ color: 'var(--color-text-primary)' }}>Edit</span>
+      </nav>
+
+      {/* Task context header */}
+      {taskTitle && (
+        <div className="sidebar-card mb-5" style={{ borderLeft: `4px solid ${color}`, padding: '12px 16px' }}>
+          <span className="eyebrow" style={{ marginBottom: 4, display: 'block' }}>Editing proof of completion for</span>
+          <Link
+            to={`/tasks/${taskId}`}
+            className="font-display italic"
+            style={{ fontSize: 18, color, textDecoration: 'none', display: 'block', marginBottom: 4 }}
+          >
+            {taskTitle}
+          </Link>
+          {fname && (
+            <span className="eyebrow" style={{ fontSize: 8, color: 'var(--color-text-tertiary)' }}>{fname}</span>
+          )}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
         {/* Title */}
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-bold">Title *</label>
+        <div className="sidebar-card" style={{ padding: '16px 18px', borderRadius: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+            <span className="eyebrow">Title</span>
+            <span className="font-body" style={{ fontSize: 8, fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}>required</span>
+          </div>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="What did you do?"
             maxLength={200}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
+            style={{
+              width: '100%',
+              fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 24,
+              color: 'var(--color-text-primary)',
+              background: 'transparent', border: 'none',
+              borderBottom: `2px solid ${title ? color : (dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)')}`,
+              outline: 'none', paddingBottom: 6,
+              transition: 'border-color 150ms',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderBottomColor = color }}
+            onBlur={(e) => { if (!title) e.currentTarget.style.borderBottomColor = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)' }}
           />
-          <span className={`font-body text-xs self-end ${title.length >= 180 ? 'text-red-600' : 'text-muted'}`}>{title.length}/200</span>
+          {title && (
+            <div style={{ display: 'flex', height: 3, marginTop: 4, opacity: 0.6 }}>
+              {RAINBOW_COLORS.map((c, i) => <div key={i} style={{ flex: 1, background: c }} />)}
+            </div>
+          )}
+          <span
+            className="eyebrow"
+            style={{ fontSize: 7, marginTop: 4, display: 'block', textAlign: 'right', color: title.length >= 180 ? '#dc2626' : undefined }}
+          >
+            {title.length}/200
+          </span>
         </div>
 
-        {/* Split pane: editor + preview */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex flex-col gap-1 flex-1">
-            <label className="font-body text-sm font-bold">Body</label>
+        {/* Body */}
+        <div className="sidebar-card" style={{ padding: '16px 18px', borderRadius: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+            <span className="eyebrow">The proof</span>
+            <span className="font-body" style={{ fontSize: 8, fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}>supports markdown</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              rows={16}
-              className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none resize-none h-full min-h-64"
-              placeholder="Describe what you did... (supports **markdown**)"
+              rows={12}
+              placeholder="Describe what you did..."
+              style={{
+                width: '100%',
+                fontFamily: "'Lora', serif", fontSize: 14, color: dark ? '#e8dcc8' : '#2a1e10',
+                lineHeight: 1.75, minHeight: 180,
+                background: 'transparent', border: 'none', outline: 'none',
+                resize: 'vertical',
+              }}
             />
-          </div>
-          <div className="flex flex-col gap-1 flex-1">
-            <label className="font-body text-sm font-bold text-muted">Preview</label>
-            <div className="border-2 border-border px-4 py-3 bg-card min-h-64 overflow-auto font-body text-sm markdown-preview">
-              {body.trim() ? (
-                <ReactMarkdown>{body}</ReactMarkdown>
-              ) : (
-                <p className="text-muted italic">Preview will appear here...</p>
-              )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="eyebrow">{wordCount} words</span>
             </div>
           </div>
+          {body.trim() && (
+            <div style={{ borderTop: '1px dashed var(--color-border)', marginTop: 10, paddingTop: 10 }}>
+              <span className="eyebrow" style={{ marginBottom: 6, display: 'block' }}>Preview</span>
+              <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: dark ? '#e8dcc8' : '#2a1e10' }}>
+                <ReactMarkdown>{body}</ReactMarkdown>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Existing media */}
         {media.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <label className="font-body text-sm font-bold">Attached Media</label>
-            <div className="flex flex-col gap-3">
+          <div className="sidebar-card" style={{ padding: '16px 18px', borderRadius: 12 }}>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 10 }}>Attached media</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {media.map((item) => {
                 const src = `${BASE_URL}/media/${item.file_path}`
                 const filename = item.file_path.split('/').pop() ?? item.file_path
                 return (
-                  <div key={item.id} className="flex items-center gap-3 border-2 border-border p-2 bg-card">
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 10px',
+                      background: 'var(--color-bg-surface-alt)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  >
                     {item.type === 'image' && (
-                      <img src={src} alt="" className="h-16 w-16 object-cover border border-border shrink-0" />
+                      <img src={src} alt="" style={{ height: 48, width: 48, objectFit: 'cover', border: '1px solid var(--color-border)', flexShrink: 0 }} />
                     )}
                     {item.type === 'video' && (
-                      <video src={src} className="h-16 w-16 object-cover border border-border shrink-0" />
+                      <video src={src} style={{ height: 48, width: 48, objectFit: 'cover', border: '1px solid var(--color-border)', flexShrink: 0 }} />
                     )}
                     {item.type === 'audio' && (
-                      <div className="h-16 w-16 flex items-center justify-center border border-border shrink-0 bg-muted/10 font-body text-xs text-muted">
-                        audio
+                      <div style={{ height: 48, width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-border)', flexShrink: 0, background: 'var(--color-bg-surface)' }}>
+                        <span className="eyebrow" style={{ fontSize: 7 }}>audio</span>
                       </div>
                     )}
-                    <span className="font-body text-xs text-ink flex-1 truncate">{filename}</span>
+                    <span className="font-body" style={{ fontSize: 10, color: 'var(--color-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{filename}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveMedia(item)}
-                      className="font-body text-xs text-red-600 hover:underline shrink-0"
+                      className="eyebrow"
+                      style={{ fontSize: 8, color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', flexShrink: 0 }}
                     >
                       Remove
                     </button>
@@ -179,8 +266,8 @@ export default function EditPraxis() {
         )}
 
         {/* Add new media */}
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-bold">Add Media</label>
+        <div className="sidebar-card" style={{ padding: '16px 18px', borderRadius: 12 }}>
+          <span className="eyebrow" style={{ display: 'block', marginBottom: 8 }}>Add media</span>
           <input
             ref={fileRef}
             type="file"
@@ -189,16 +276,44 @@ export default function EditPraxis() {
             onChange={handleFileChange}
             className="font-body text-sm"
           />
-          {fileError && <p className="font-body text-xs text-red-600 mt-1">{fileError}</p>}
+          {fileError && (
+            <p className="font-body" style={{ fontSize: 10, color: '#dc2626', marginTop: 6 }}>{fileError}</p>
+          )}
         </div>
 
-        {error && <p className="font-body text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="font-body text-sm" style={{ color: '#dc2626' }}>{error}</p>
+        )}
 
-        <div className="flex gap-3">
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Saving...' : 'Save Changes'}
+        {/* Submit buttons */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              background: color, color: '#fff',
+              fontFamily: "'Courier Prime', monospace",
+              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.12em', padding: '10px 24px',
+              border: 'none', cursor: saving ? 'wait' : 'pointer',
+              position: 'relative',
+            }}
+          >
+            <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+            {saving ? 'Saving...' : 'Save proof'}
           </button>
-          <button type="button" onClick={() => navigate(`/praxes/${id}`)} className="btn-outline">
+          <button
+            type="button"
+            onClick={() => navigate(`/praxes/${id}`)}
+            style={{
+              background: 'transparent',
+              fontFamily: "'Courier Prime', monospace",
+              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.12em', padding: '10px 24px',
+              border: '1px solid var(--color-border)',
+              cursor: 'pointer', color: 'var(--color-text-secondary)',
+            }}
+          >
             Cancel
           </button>
         </div>

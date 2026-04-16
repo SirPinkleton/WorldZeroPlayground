@@ -75,14 +75,23 @@ export default function SubmitProof() {
         // Collaboration or duel: create a Collaboration, send invites, redirect to collab page
         const mode = selectedMode === 'duel' ? 'duel' : 'collaboration'
         const collab = await createCollaboration(parseInt(id, 10), mode)
-        // Send invites to all selected partners
+        // Send invites to all selected partners; collect any eligibility errors
+        const inviteErrors: string[] = []
         for (const partner of invitedPartners) {
           try {
             await inviteMember(collab.id, partner.id)
-          } catch { /* best-effort */ }
+          } catch (inviteErr: any) {
+            const detail: string = inviteErr?.response?.data?.detail ?? `Could not invite ${partner.name}.`
+            inviteErrors.push(`${partner.name}: ${detail}`)
+          }
         }
         void refetch()
-        navigate(`/collaborations/${collab.id}`)
+        // Navigate even if some invites failed; user can re-invite from the collab page
+        if (inviteErrors.length > 0) {
+          navigate(`/collaborations/${collab.id}`, { state: { inviteErrors } })
+        } else {
+          navigate(`/collaborations/${collab.id}`)
+        }
       } else {
         // Solo submission: create praxis as before
         if (!title.trim()) { setError('Title is required.'); setSaving(false); return }

@@ -8,10 +8,12 @@ from dependencies import get_current_character
 from game_config import CURRENT_ERA
 from models.character import Character
 from schemas.collaboration import (
+    CollaborationCardOut,
     CollaborationCreate,
     CollaborationDocumentUpdate,
     CollaborationInviteCreate,
     CollaborationInviteOut,
+    CollaborationMemberContentUpdate,
     CollaborationOut,
     CollaborationVoteIn,
     DuelVoteSummary,
@@ -24,14 +26,24 @@ from services.collaboration import (
     get_duel_vote_summary,
     invite_member,
     kick_member,
+    list_published_collaborations,
     reopen_collaboration,
     respond_to_invite,
     submit_for_member,
     update_document,
+    update_member_content,
 )
 from services.vote import cast_or_update_duel_vote
 
 router = APIRouter()
+
+
+@router.get("", response_model=list[CollaborationCardOut])
+async def list_collaborations_route(
+    session: AsyncSession = Depends(get_db),
+):
+    """List all published collaborations and duels for the praxis feed."""
+    return await list_published_collaborations(session)
 
 
 @router.post("", response_model=CollaborationOut)
@@ -76,6 +88,24 @@ async def update_document_route(
 ):
     """Update the shared document. Any member can edit."""
     collab = await update_document(collaboration_id, character, data.body_text, session)
+    return build_collaboration_out(collab, viewer_character_id=character.id)
+
+
+@router.put("/{collaboration_id}/my-content", response_model=CollaborationOut)
+async def update_my_content_route(
+    collaboration_id: int,
+    data: CollaborationMemberContentUpdate,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+):
+    """Update this member's individual title and body content."""
+    collab = await update_member_content(
+        collaboration_id=collaboration_id,
+        character=character,
+        title=data.title,
+        body_text=data.body_text,
+        session=session,
+    )
     return build_collaboration_out(collab, viewer_character_id=character.id)
 
 

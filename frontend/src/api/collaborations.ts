@@ -10,7 +10,27 @@ export interface CollaborationMemberOut {
   faction_slug: string | null
   avatar_url: string | null
   has_submitted: boolean
+  title: string | null
+  body_text: string | null
   joined_at: string
+}
+
+export interface CollaborationMemberCardOut {
+  character_id: number
+  display_name: string
+  faction_slug: string | null
+  score: number | null
+}
+
+export interface CollaborationCardOut {
+  id: number
+  task_id: number
+  task_title: string
+  task_faction_slug: string | null
+  mode: CollaborationMode
+  status: CollaborationStatus
+  created_at: string
+  members: CollaborationMemberCardOut[]
 }
 
 export interface CollaborationInviteOut {
@@ -48,6 +68,11 @@ export interface DuelVoteSummary {
   is_winning: boolean
 }
 
+export async function listPublishedCollaborations(): Promise<CollaborationCardOut[]> {
+  const { data } = await api.get<CollaborationCardOut[]>('/collaborations')
+  return data
+}
+
 export async function createCollaboration(
   task_id: number,
   mode: CollaborationMode,
@@ -63,6 +88,18 @@ export async function getCollaboration(id: number): Promise<CollaborationOut> {
 
 export async function updateDocument(id: number, body_text: string): Promise<CollaborationOut> {
   const { data } = await api.post<CollaborationOut>(`/collaborations/${id}/document`, { body_text })
+  return data
+}
+
+export async function updateMemberContent(
+  collaboration_id: number,
+  title: string,
+  body_text: string | undefined,
+): Promise<CollaborationOut> {
+  const { data } = await api.put<CollaborationOut>(
+    `/collaborations/${collaboration_id}/my-content`,
+    { title, body_text: body_text ?? null },
+  )
   return data
 }
 
