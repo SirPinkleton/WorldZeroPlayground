@@ -138,7 +138,7 @@ async def _fetch_votes_on_mine(
         .join(Praxis, Vote.praxis_id == Praxis.id)
         .join(Task, Praxis.task_id == Task.id)
         .join(voter_char, Vote.voter_character_id == voter_char.c.id)
-        .where(Praxis.created_by_id == character_id)
+        .where(Praxis.character_id == character_id)
     )
     if before is not None:
         query = query.where(Vote.created_at < before)
@@ -179,7 +179,7 @@ async def _fetch_friend_completions(
             Praxis.id,
             Praxis.title,
             Praxis.created_at,
-            Praxis.created_by_id.label("character_id"),
+            Praxis.character_id,
             Task.title.label("task_title"),
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
@@ -188,10 +188,11 @@ async def _fetch_friend_completions(
             Character.avatar_url.label("author_avatar_url"),
         )
         .join(Task, Praxis.task_id == Task.id)
-        .join(Character, Praxis.created_by_id == Character.id)
+        .join(Character, Praxis.character_id == Character.id)
         .where(
-            Praxis.created_by_id.in_(friend_ids),
+            Praxis.character_id.in_(friend_ids),
             Praxis.is_withdrawn == False,  # noqa: E712
+            Praxis.status == PraxisStatus.submitted,
         )
     )
     if before is not None:
@@ -272,7 +273,7 @@ async def _fetch_foe_completions(
             Praxis.id,
             Praxis.title,
             Praxis.created_at,
-            Praxis.created_by_id.label("character_id"),
+            Praxis.character_id,
             Task.title.label("task_title"),
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
@@ -281,10 +282,11 @@ async def _fetch_foe_completions(
             Character.avatar_url.label("author_avatar_url"),
         )
         .join(Task, Praxis.task_id == Task.id)
-        .join(Character, Praxis.created_by_id == Character.id)
+        .join(Character, Praxis.character_id == Character.id)
         .where(
-            Praxis.created_by_id.in_(foe_ids),
+            Praxis.character_id.in_(foe_ids),
             Praxis.is_withdrawn == False,  # noqa: E712
+            Praxis.status == PraxisStatus.submitted,
         )
     )
     if before is not None:
@@ -676,7 +678,7 @@ async def _compute_counts(
             select(func.count())
             .select_from(Vote)
             .join(Praxis, Vote.praxis_id == Praxis.id)
-            .where(Praxis.created_by_id == character_id)
+            .where(Praxis.character_id == character_id)
         )
         return result.scalar_one()
 
@@ -687,8 +689,9 @@ async def _compute_counts(
             select(func.count())
             .select_from(Praxis)
             .where(
-                Praxis.created_by_id.in_(friend_ids),
+                Praxis.character_id.in_(friend_ids),
                 Praxis.is_withdrawn == False,  # noqa: E712
+                Praxis.status == PraxisStatus.submitted,
             )
         )
         return result.scalar_one()
@@ -788,8 +791,9 @@ async def _compute_counts(
             select(func.count())
             .select_from(Praxis)
             .where(
-                Praxis.created_by_id.in_(foe_ids_for_count),
+                Praxis.character_id.in_(foe_ids_for_count),
                 Praxis.is_withdrawn == False,  # noqa: E712
+                Praxis.status == PraxisStatus.submitted,
             )
         )
         foe_completions_count = foe_completions_result.scalar_one()

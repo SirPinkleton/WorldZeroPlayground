@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from schemas.praxis import (
     DuelVoteSummary,
     MediaItemOut,
+    PraxisCardOut,
     PraxisCreate,
     PraxisInviteCreate,
     PraxisOut,
@@ -35,6 +36,7 @@ class InviteResponse(BaseModel):
 from schemas.vote import VoteOut
 from services.praxis import (
     _build_invite_out,
+    build_praxis_card_out,
     build_praxis_out,
     create_praxis,
     delete_praxis,
@@ -61,7 +63,7 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
-@router.get("", response_model=list[PraxisOut])
+@router.get("", response_model=list[PraxisCardOut])
 async def list_praxes_route(
     task_id: Optional[int] = None,
     character_id: Optional[int] = None,
@@ -98,7 +100,7 @@ async def list_praxes_route(
         limit=limit,
         offset=offset,
     )
-    return [await build_praxis_out(praxis, session) for praxis in praxes]
+    return [await build_praxis_card_out(praxis, session) for praxis in praxes]
 
 
 @router.get("/{praxis_id}", response_model=PraxisOut)
