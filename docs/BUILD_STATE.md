@@ -203,6 +203,15 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `backend/eras/_template.py` — Added max_duel_participants=2 to template ✅
   - `backend/tests/unit/test_scoring.py` — Fixed: added max_duel_participants to inline EraConfig construction ✅
   - 105 unit tests passing ✅
+- **SESSION P — Praxis Unification ✅ 2026-04-16**
+  - P.1: migration 0004_praxis_unification validated ✅
+  - P.2: models rewritten (Praxis, PraxisMember, PraxisInvite) ✅
+  - P.3: schemas rewritten ✅
+  - P.4: services rewritten ✅
+  - P.5: routes unified at /praxes ✅
+  - P.6: frontend API client rewritten ✅
+  - P.7: frontend pages updated ✅
+  - P.8: integration tests + spec docs updated ✅
 - **SESSION P.1 — Migration 0004_praxis_unification validated ✅ 2026-04-16**
   - `backend/alembic/versions/0004_praxis_unification.py` — upgrade (0001→0004) and downgrade (-1) both run cleanly against a fresh PostgreSQL DB; no changes to migration file required ✅
 - **SESSION U.1 — Submission STI model + migration ✅ 2026-04-15**

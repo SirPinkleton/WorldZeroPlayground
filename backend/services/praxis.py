@@ -90,7 +90,7 @@ async def _get_meta_task_points(
     from models.meta_task import MetaTask, PraxisMetaTask
 
     result = await session.execute(
-        select(PraxisMetaTask).where(PraxisMetaTask.submission_id == praxis_id)
+        select(PraxisMetaTask).where(PraxisMetaTask.praxis_id == praxis_id)
     )
     praxis_meta_task = result.scalar_one_or_none()
     if praxis_meta_task is None:
@@ -145,7 +145,12 @@ async def compute_praxis_score_from_db(
             era,
             collaboration_mode=COLLABORATION_MODE_SOLO,
         )
-        creator_level = creator.level if creator else 0
+        if creator:
+            era_row = await get_current_era_row(session)
+            creator_stats = await get_or_create_stats(session, creator.id, era_row.id)
+            creator_level = creator_stats.level
+        else:
+            creator_level = 0
         meta_task_points = await _get_meta_task_points(praxis.id, creator_level, session)
         total_stars = int(sum(vote.stars for vote in praxis.votes))
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars, meta_task_points)

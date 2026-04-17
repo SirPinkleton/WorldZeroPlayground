@@ -56,7 +56,7 @@ async def list_task_signups(
         raise HTTPException(status_code=404, detail="Task not found.")
 
     result = await session.execute(
-        select(PraxisMember, Character)
+        select(PraxisMember, Character, Praxis)
         .join(Praxis, PraxisMember.praxis_id == Praxis.id)
         .join(Character, PraxisMember.character_id == Character.id)
         .where(
@@ -73,10 +73,10 @@ async def list_task_signups(
             "display_name": character.display_name,
             "avatar_url": character.avatar_url,
             "faction_slug": character.faction_slug,
-            "praxis_type": member.praxis.type.value if member.praxis else PraxisType.solo.value,
+            "praxis_type": praxis.type.value,
             "joined_at": member.joined_at,
         }
-        for member, character in rows
+        for member, character, praxis in rows
     ]
 
 

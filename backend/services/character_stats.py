@@ -35,7 +35,7 @@ async def _get_meta_task_points(
     from models.meta_task import MetaTask, PraxisMetaTask
 
     result = await session.execute(
-        select(PraxisMetaTask).where(PraxisMetaTask.submission_id == praxis_id)
+        select(PraxisMetaTask).where(PraxisMetaTask.praxis_id == praxis_id)
     )
     praxis_meta_task = result.scalar_one_or_none()
     if praxis_meta_task is None:
@@ -82,6 +82,12 @@ async def recalculate_character_stats(
     author = await session.get(Character, character_id)
     character_faction_slug = author.faction_slug if author else "na"
 
+    # Pre-fetch current stats to get author level for meta task lookups.
+    # This is the *current* level before recalculation; it's used only for
+    # meta-task eligibility checks, where slight staleness is acceptable.
+    current_stats = await get_or_create_stats(session, character_id, era_row.id)
+    author_level = current_stats.level
+
     total_score = 0.0
 
     # ── Solo praxes ───────────────────────────────────────────────────────────
@@ -105,7 +111,7 @@ async def recalculate_character_stats(
             collaboration_mode=COLLABORATION_MODE_SOLO,
         )
         meta_task_points = await _get_meta_task_points(
-            praxis.id, author.level if author else 0, session
+            praxis.id, author_level, session
         )
         sum_result = await session.execute(
             select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
@@ -202,7 +208,7 @@ async def recalculate_character_stats(
             )
 
     new_score = int(total_score)
-    stats = await get_or_create_stats(session, character_id, era_row.id)
+    stats = current_stats
     old_score = stats.score
 
     old_budget_capacity = compute_vote_budget(old_score, era)

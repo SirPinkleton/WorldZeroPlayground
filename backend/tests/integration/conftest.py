@@ -37,7 +37,7 @@ from models.character_stats import CharacterStats
 from models.era import Era
 from models.faction import Faction
 from models.praxis import Praxis  # noqa: F401
-from models.task import CharacterTask, CharacterTaskStatus, Task
+from models.task import Task
 from models.vote import Vote  # noqa: F401
 from services.auth import create_jwt
 
@@ -257,14 +257,10 @@ async def active_task(db_session: AsyncSession, character: Character) -> Task:
 async def signed_up_task(
     db_session: AsyncSession, character: Character, active_task: Task
 ) -> Task:
-    """An active task with character already signed up."""
-    ct = CharacterTask(
-        character_id=character.id,
-        task_id=active_task.id,
-        status=CharacterTaskStatus.in_progress,
-    )
-    db_session.add(ct)
-    await db_session.commit()
+    """Active task alias — in the new model, 'signing up' is implicit in praxis creation.
+
+    Kept for test compatibility; simply returns the active_task.
+    """
     return active_task
 
 
@@ -272,12 +268,8 @@ async def signed_up_task(
 async def signed_up_task2(
     db_session: AsyncSession, character2: Character, active_task: Task
 ) -> Task:
-    """An active task with character2 already signed up."""
-    ct = CharacterTask(
-        character_id=character2.id,
-        task_id=active_task.id,
-        status=CharacterTaskStatus.in_progress,
-    )
-    db_session.add(ct)
-    await db_session.commit()
+    """Active task alias — in the new model, 'signing up' is implicit in praxis creation.
+
+    Kept for test compatibility; simply returns the active_task.
+    """
     return active_task
