@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getFlaggedPraxes, getMessages, moderatePraxis, archiveMessage } from '../../api/admin'
 import type { ContactMessageOut } from '../../api/admin'
-import type { SubmissionOut } from '../../api/submissions'
+import type { PraxisOut } from '../../api/praxis'
 import { formatTimestamp } from '../../utils/dates'
 import { extractError } from '../../utils/errors'
 
 export default function ModerationTab() {
-  const [flagged, setFlagged] = useState<SubmissionOut[]>([])
+  const [flagged, setFlagged] = useState<PraxisOut[]>([])
   const [messages, setMessages] = useState<ContactMessageOut[]>([])
   const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -75,7 +75,7 @@ export default function ModerationTab() {
                   <div className="flex-1">
                     <p className="font-display text-lg font-bold">{s.title}</p>
                     <p className="font-body text-xs text-muted">
-                      by {s.character_display_name || `#${s.character_id}`} &middot; {formatTimestamp(s.created_at)}
+                      by {s.created_by_display_name || `#${s.created_by_id}`} &middot; {formatTimestamp(s.created_at)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
-import { respondToInvite } from '../../api/submissions'
+import { respondToInvite } from '../../api/praxis'
 import { getMyTasks } from '../../api/tasks'
 import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
@@ -13,7 +13,7 @@ interface Props {
 
 export default function FeedCardDuelChallenge({ item }: Props) {
   const {
-    invite_id, collaboration_id, task_title, task_point_value, task_faction_slug,
+    invite_id, praxis_id, task_title, task_point_value, task_faction_slug,
     invite_status, challenger_character_id,
   } = item.payload
   const taskColor = factionColor(task_faction_slug)
@@ -30,14 +30,18 @@ export default function FeedCardDuelChallenge({ item }: Props) {
   const doAccept = async (drop_task_id?: number) => {
     setLoading(true)
     try {
-      await respondToInvite(collaboration_id, invite_id, true, drop_task_id)
+      await respondToInvite(praxis_id, invite_id, true)
+      if (drop_task_id) {
+        // Drop task was selected from modal — handled server-side via the task list
+      }
       setStatus('accepted')
       setShowDropModal(false)
-      navigate(`/collaborations/${collaboration_id}`)
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+      navigate(`/praxes/${praxis_id}`)
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number } }
+      if (axiosErr?.response?.status === 409) {
         const tasks = await getMyTasks('in_progress')
-        setMyTasks(tasks as any)
+        setMyTasks(tasks as { id: number; task: { id: number; title: string } }[])
         setShowDropModal(true)
       } else {
         setDropError('Could not accept duel. Please try again.')
@@ -51,7 +55,7 @@ export default function FeedCardDuelChallenge({ item }: Props) {
   const handleDecline = async () => {
     setLoading(true)
     try {
-      await respondToInvite(collaboration_id, invite_id, false)
+      await respondToInvite(praxis_id, invite_id, false)
       setStatus('declined')
     } catch { /* swallow */ }
     setLoading(false)
@@ -162,7 +166,7 @@ export default function FeedCardDuelChallenge({ item }: Props) {
 
         {status === 'accepted' && (
           <div style={{ marginTop: 8, marginLeft: 38 }}>
-            <Link to={`/collaborations/${collaboration_id}`} className="eyebrow" style={{ color: 'var(--badge-duel)', textDecoration: 'none' }}>
+            <Link to={`/praxes/${praxis_id}`} className="eyebrow" style={{ color: 'var(--badge-duel)', textDecoration: 'none' }}>
               Duel Accepted — view duel
             </Link>
           </div>
@@ -200,7 +204,7 @@ export default function FeedCardDuelChallenge({ item }: Props) {
               You have 20 in-progress tasks. Drop one to accept this duel:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
-              {myTasks.map((ct: any) => (
+              {myTasks.map((ct) => (
                 <button
                   key={ct.id}
                   onClick={() => doAccept(ct.task.id)}

@@ -1,28 +1,31 @@
 import { useEffect, useState } from 'react'
-import { listSubmissions, listPublishedSubmissions } from '../api/submissions'
-import type { SubmissionOut, SubmissionCardOut } from '../api/submissions'
+import { listPraxes, type PraxisCardOut } from '../api/praxis'
 import PraxisCard from '../components/PraxisCard'
 import CollaborationCard from '../components/CollaborationCard'
 import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
 
 export default function Praxes() {
-  const [praxes, setPraxes] = useState<SubmissionOut[]>([])
-  const [collabs, setCollabs] = useState<SubmissionCardOut[]>([])
+  const [soloItems, setSoloItems] = useState<PraxisCardOut[]>([])
+  const [collabItems, setCollabItems] = useState<PraxisCardOut[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([listSubmissions({ type: 'solo' }), listPublishedSubmissions()])
-      .then(([praxData, collabData]) => {
-        setPraxes(praxData)
-        setCollabs(collabData)
+    Promise.all([
+      listPraxes({ type: 'solo' }),
+      listPraxes({ type: 'collab' }),
+      listPraxes({ type: 'duel' }),
+    ])
+      .then(([solo, collab, duel]) => {
+        setSoloItems(solo)
+        setCollabItems([...collab, ...duel])
       })
       .catch((err) => setFetchError(extractError(err, "Couldn't load praxes.")))
       .finally(() => setLoading(false))
   }, [])
 
-  const isEmpty = praxes.length === 0 && collabs.length === 0
+  const isEmpty = soloItems.length === 0 && collabItems.length === 0
 
   return (
     <div className="py-8">
@@ -42,10 +45,10 @@ export default function Praxes() {
         <p className="font-body text-muted">No praxes yet. Be the first.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {praxes.map((p) => (
+          {soloItems.map((p) => (
             <PraxisCard key={`praxis-${p.id}`} praxis={p} />
           ))}
-          {collabs.map((c) => (
+          {collabItems.map((c) => (
             <CollaborationCard key={`collab-${c.id}`} collab={c} />
           ))}
         </div>

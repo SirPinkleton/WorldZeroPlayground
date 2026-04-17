@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCharacter, type CharacterOut } from '../api/characters'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
+import { listPraxes, type PraxisCardOut } from '../api/praxis'
 import { listRelationships, createRelationship, deleteRelationship, type RelationshipListItem } from '../api/relationships'
 import PraxisCard from '../components/PraxisCard'
 import PageTitle from '../components/ui/PageTitle'
@@ -18,7 +18,7 @@ export default function CharacterProfile() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const [character, setCharacter] = useState<CharacterOut | null>(null)
-  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
+  const [submissions, setSubmissions] = useState<PraxisCardOut[]>([])
   const [relationship, setRelationship] = useState<RelationshipListItem | null>(null)
   const [relationshipLoading, setRelationshipLoading] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -27,7 +27,7 @@ export default function CharacterProfile() {
   useEffect(() => {
     if (!id) return
     const cid = parseInt(id, 10)
-    Promise.all([getCharacter(cid), listSubmissions({ character_id: cid })])
+    Promise.all([getCharacter(cid), listPraxes({ character_id: cid })])
       .then(([c, s]) => { setCharacter(c); setSubmissions(s) })
       .catch((err) => setFetchError(extractError(err, "Couldn't load this character.")))
       .finally(() => setLoading(false))

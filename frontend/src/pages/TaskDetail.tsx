@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getTask, getMyTasks, signupTask, dropTask, getTaskSignups, type TaskOut, type TaskSignupOut } from '../api/tasks'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
+import { listPraxes, type PraxisCardOut } from '../api/praxis'
 import { listRelationships } from '../api/relationships'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import PraxisCard from '../components/PraxisCard'
@@ -23,7 +23,7 @@ export default function TaskDetail() {
   const location = useLocation()
   const { user } = useAuth()
   const [task, setTask] = useState<TaskOut | null>(null)
-  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
+  const [submissions, setSubmissions] = useState<PraxisCardOut[]>([])
   const [signups, setSignups] = useState<TaskSignupOut[]>([])
   const [metaTasks, setMetaTasks] = useState<MetaTaskOut[]>([])
   const [isInProgress, setIsInProgress] = useState(false)
@@ -51,7 +51,7 @@ export default function TaskDetail() {
 
     const fetches: Promise<unknown>[] = [
       getTask(taskId),
-      listSubmissions({ task_id: taskId }),
+      listPraxes({ task_id: taskId }),
       getTaskSignups(taskId),
       getMetaTasks(taskId).catch(() => []),
     ]
@@ -72,7 +72,7 @@ export default function TaskDetail() {
     Promise.all(fetches)
       .then(([t, s, sg, mt, myTasks, friendSet, foeSet]) => {
         setTask(t as TaskOut)
-        setSubmissions(s as PraxisOut[])
+        setSubmissions(s as PraxisCardOut[])
         setSignups(sg as TaskSignupOut[])
         setMetaTasks(mt as MetaTaskOut[])
         if (myTasks) {
@@ -90,13 +90,13 @@ export default function TaskDetail() {
   // Re-fetch submissions when sort changes
   useEffect(() => {
     if (!id) return
-    listSubmissions({ task_id: parseInt(id, 10) })
+    listPraxes({ task_id: parseInt(id, 10) })
       .then((s) => setSubmissions(s))
       .catch(() => {})
   }, [submissionSort, id])
 
   const mySubmission = user?.character
-    ? submissions.find((s) => s.character_id === user.character!.id)
+    ? submissions.find((s) => s.created_by_id === user.character!.id)
     : undefined
 
   const handleSignup = async () => {
