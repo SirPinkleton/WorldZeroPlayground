@@ -182,8 +182,8 @@ export default function TasksTab() {
                           fontSize: 8,
                           padding: '1px 6px',
                           border: '1px solid var(--color-border)',
-                          color: t.status === 'active' ? '#16a34a'
-                            : t.status === 'pending' ? '#d97706'
+                          color: t.status === 'active' ? 'var(--color-success)'
+                            : t.status === 'pending' ? 'var(--color-warning)'
                             : 'var(--color-text-tertiary)',
                         }}
                       >

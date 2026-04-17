@@ -418,3 +418,189 @@ async def test_create_praxis_for_hidden_faction_task_rejected(
     # so this may succeed — the important gate is the task listing exclusion.
     # If the service gains a faction gate later this assertion should be updated.
     assert resp.status_code in (201, 400, 403, 422)
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_filter_by_level(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+):
+    """level filter returns only tasks with level_required >= the given value."""
+    low_task = Task(
+        title="Level 0 Task",
+        description="",
+        point_value=5,
+        level_required=0,
+        status=TaskStatus.active,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    high_task = Task(
+        title="Level 5 Task",
+        description="",
+        point_value=5,
+        level_required=5,
+        status=TaskStatus.active,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    db_session.add(low_task)
+    db_session.add(high_task)
+    await db_session.commit()
+
+    resp = await client.get("/tasks", params={"level": 5})
+    assert resp.status_code == 200
+    data = resp.json()
+    for task_data in data:
+        assert task_data["level_required"] >= 5
+
+    ids = [t["id"] for t in data]
+    assert high_task.id in ids
+    assert low_task.id not in ids
+
+
+@pytest.mark.asyncio
+async def test_edit_task_not_found(
+    client: AsyncClient,
+    auth_headers2: dict,
+    character2: Character,
+):
+    """PUT /tasks/99999 returns 404 when the task does not exist."""
+    resp = await client.put(
+        "/tasks/99999",
+        json={"title": "Ghost Task", "point_value": 5, "level_required": 0},
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_propose_task_faction_slug_stored(
+    client: AsyncClient,
+    character2: Character,
+    auth_headers2: dict,
+):
+    """Proposed task stores the given primary_faction_slug."""
+    resp = await client.post(
+        "/tasks",
+        json={
+            "title": "Faction Task",
+            "point_value": 10,
+            "level_required": 0,
+            "primary_faction_slug": "ua",
+        },
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["primary_faction_slug"] == "ua"
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_default_returns_only_active(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+):
+    """GET /tasks with no status param returns only active tasks."""
+    pending_task = Task(
+        title="Pending Only Task",
+        description="",
+        point_value=5,
+        level_required=0,
+        status=TaskStatus.pending,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    db_session.add(pending_task)
+    await db_session.commit()
+
+    resp = await client.get("/tasks")
+    assert resp.status_code == 200
+    data = resp.json()
+    for task_data in data:
+        assert task_data["status"] == "active"
+    ids = [t["id"] for t in data]
+    assert pending_task.id not in ids
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_limit_and_offset(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    active_task: Task,
+):
+    """limit and offset pagination parameters are respected."""
+    for index in range(3):
+        extra_task = Task(
+            title=f"Extra Task {index}",
+            description="",
+            point_value=5,
+            level_required=0,
+            status=TaskStatus.active,
+            created_by=character.id,
+            primary_faction_slug="ua",
+        )
+        db_session.add(extra_task)
+    await db_session.commit()
+
+    resp_limited = await client.get("/tasks", params={"limit": 2, "offset": 0})
+    assert resp_limited.status_code == 200
+    assert len(resp_limited.json()) == 2
+
+    resp_all = await client.get("/tasks", params={"limit": 50, "offset": 0})
+    total = len(resp_all.json())
+
+    resp_offset = await client.get("/tasks", params={"limit": 50, "offset": total})
+    assert resp_offset.status_code == 200
+    assert resp_offset.json() == []
+
+
+@pytest.mark.asyncio
+async def test_get_task_response_fields(client: AsyncClient, active_task: Task):
+    """GET /tasks/{id} response includes all required TaskOut fields."""
+    resp = await client.get(f"/tasks/{active_task.id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    required_fields = {
+        "id", "title", "description", "point_value",
+        "level_required", "status", "created_by",
+        "primary_faction_slug", "is_task_vision_eligible", "created_at",
+    }
+    assert required_fields.issubset(data.keys())
+    # account_id and email must never be exposed
+    assert "account_id" not in data
+    assert "email" not in data
+
+
+@pytest.mark.asyncio
+async def test_list_task_signups_only_in_progress(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """GET /tasks/{id}/signups only returns characters with in_progress praxes (not withdrawn)."""
+    # Create a praxis for character via the API
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    # Withdraw the praxis — it should then be absent from signups
+    withdraw_resp = await client.post(
+        f"/praxes/{praxis_id}/withdraw",
+        headers=auth_headers,
+    )
+    assert withdraw_resp.status_code in (200, 204)
+
+    resp = await client.get(f"/tasks/{active_task.id}/signups")
+    assert resp.status_code == 200
+    character_ids = [entry["character_id"] for entry in resp.json()]
+    assert character.id not in character_ids
