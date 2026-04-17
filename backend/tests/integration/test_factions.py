@@ -107,16 +107,18 @@ async def test_choose_faction_from_ua(
 ):
     """Character can defect from UA to ua_masters (a selectable faction in era config)."""
     from models.faction import Faction as FactionModel
+    from sqlalchemy import select
 
     # Seed the ua_masters faction in the DB (required for FK constraint)
-    ua_masters = FactionModel(
-        slug="ua_masters",
-        name="UA Masters",
-        description="Veterans",
-        status=FactionStatus.visible,
-    )
-    db_session.add(ua_masters)
-    await db_session.commit()
+    existing = await db_session.execute(select(FactionModel).where(FactionModel.slug == "ua_masters"))
+    if existing.scalar_one_or_none() is None:
+        db_session.add(FactionModel(
+            slug="ua_masters",
+            name="UA Masters",
+            description="Veterans",
+            status=FactionStatus.visible,
+        ))
+        await db_session.commit()
 
     resp = await client.post(
         "/factions/choose",
