@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getFactions, getFactionStatus, getInvitations, chooseFaction } from '../api/factions'
 import type { FactionOut, FactionPageOut, InvitationLetterOut } from '../api/factions'
 import PageTitle from '../components/ui/PageTitle'
+import FactionCard from '../components/cards/FactionCard'
 import { extractError } from '../utils/errors'
 import { factionCssVar, factionName } from '../utils/factions'
 import { relativeTime } from '../utils/dates'
@@ -176,191 +177,111 @@ export default function Factions() {
       )}
 
       {/* Faction grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
         {sortedFactions.map((f) => {
           const status = statusFor(f.slug)
-          const isMember = status === STATUS_MEMBER
-          const isInvited = status === STATUS_INVITED
           const isDefected = status === STATUS_DEFECTED
           const canReturn = status === STATUS_CAN_RETURN
-          const canJoin = isInvited || canReturn || (needsFactionChoice && status !== STATUS_DEFECTED)
+          const canJoin = status === STATUS_INVITED || canReturn || (needsFactionChoice && status !== STATUS_DEFECTED)
           const isConfirming = confirmSlug === f.slug
+
+          // Derive card-level props from page state
+          // "eligible" is passed when the character can join (via invitation, return, or graduation)
+          const cardStatus = isConfirming
+            ? status
+            : status === STATUS_CAN_RETURN
+            ? 'welcome_back'
+            : status
 
           return (
             <div
               key={f.slug}
-              className="sidebar-card relative overflow-hidden"
               style={{
-                borderLeft: `3px solid ${factionCssVar(f.slug, 'border')}`,
+                flex: '1 1 280px',
+                minWidth: 260,
+                maxWidth: 420,
                 opacity: isDefected ? 0.5 : 1,
               }}
             >
-              {/* Header row: name + status badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span
-                  style={{ width: 10, height: 10, borderRadius: '50%', background: factionCssVar(f.slug), flexShrink: 0 }}
-                />
-                <h2 className="font-display italic" style={{ fontSize: 18, color: factionCssVar(f.slug), flex: 1 }}>
-                  {f.name}
-                </h2>
-
-                {/* Status badge */}
-                {isMember && (
-                  <span
-                    className="eyebrow"
+              {isConfirming ? (
+                // Confirmation overlay wrapping the card
+                <div>
+                  <FactionCard
+                    faction={f}
+                    status={cardStatus}
+                  />
+                  <div
                     style={{
-                      fontSize: 8,
-                      background: 'var(--color-success)',
-                      color: '#fff',
-                      padding: '2px 8px',
-                      letterSpacing: '0.1em',
+                      marginTop: 8,
+                      padding: '12px 14px',
+                      background: 'var(--color-bg-card)',
+                      border: '1px solid var(--color-border)',
                     }}
                   >
-                    MEMBER
-                  </span>
-                )}
-                {isInvited && (
-                  <span
-                    className="eyebrow"
-                    style={{
-                      fontSize: 8,
-                      background: factionCssVar(f.slug),
-                      color: '#fff',
-                      padding: '2px 8px',
-                      letterSpacing: '0.1em',
-                    }}
-                  >
-                    <span className="eyebrow">INVITE</span>
-                  </span>
-                )}
-                {isDefected && (
-                  <span
-                    className="eyebrow"
-                    style={{
-                      fontSize: 8,
-                      background: 'var(--color-danger)',
-                      color: '#fff',
-                      padding: '2px 8px',
-                      letterSpacing: '0.1em',
-                      textDecoration: 'line-through',
-                    }}
-                  >
-                    BURNED
-                  </span>
-                )}
-                {canReturn && (
-                  <span
-                    className="eyebrow"
-                    style={{
-                      fontSize: 8,
-                      background: factionCssVar(f.slug),
-                      color: '#fff',
-                      padding: '2px 8px',
-                      letterSpacing: '0.1em',
-                    }}
-                  >
-                    WELCOME BACK
-                  </span>
-                )}
-              </div>
-
-              {/* Description */}
-              {f.description && (
-                <p
-                  className="font-body text-sm leading-relaxed"
-                  style={{
-                    color: 'var(--color-text-secondary)',
-                    marginBottom: canJoin ? 12 : 0,
-                  }}
-                >
-                  {f.description}
-                </p>
-              )}
-
-              {/* Not invited hint */}
-              {!character ? null : status === STATUS_NOT_INVITED && !needsFactionChoice && (
-                <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 8, fontStyle: 'italic' }}>
-                  Complete tasks from this faction to unlock an invitation.
-                </p>
-              )}
-
-              {/* Join / Rejoin button */}
-              {character && canJoin && !isConfirming && (
-                <button
-                  onClick={() => setConfirmSlug(f.slug)}
-                  style={{
-                    fontFamily: "'Courier Prime', monospace",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    background: factionCssVar(f.slug),
-                    color: '#fff',
-                    border: 'none',
-                    padding: '6px 16px',
-                    cursor: 'pointer',
-                    marginTop: 4,
-                  }}
-                >
-                  {canReturn ? 'Rejoin' : 'Join'}
-                </button>
-              )}
-
-              {/* Confirmation step */}
-              {isConfirming && (
-                <div style={{ marginTop: 8 }}>
-                  <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-primary)', marginBottom: 8 }}>
-                    {needsFactionChoice
-                      ? `Join ${f.name}?`
-                      : `Join ${f.name}? You won't be able to rejoin ${factionName(character?.faction_slug)} after leaving.`
-                    }
-                  </p>
-
-                  {joinError && (
-                    <p className="font-body" style={{ fontSize: 10, color: 'var(--color-danger)', marginBottom: 6 }}>
-                      {joinError}
+                    <p className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)', marginBottom: 8 }}>
+                      {needsFactionChoice
+                        ? `Join ${f.name}?`
+                        : `Join ${f.name}? You won't be able to rejoin ${factionName(character?.faction_slug)} after leaving.`
+                      }
                     </p>
-                  )}
-
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => handleJoin(f.slug)}
-                      disabled={joining}
-                      style={{
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 9,
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.1em',
-                        background: 'var(--color-success)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '5px 14px',
-                        cursor: joining ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {joining ? 'Joining...' : 'Confirm'}
-                    </button>
-                    <button
-                      onClick={() => { setConfirmSlug(null); setJoinError(null) }}
-                      disabled={joining}
-                      style={{
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 9,
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.1em',
-                        background: 'transparent',
-                        color: 'var(--color-text-secondary)',
-                        border: '1px solid var(--color-border)',
-                        padding: '5px 14px',
-                        cursor: joining ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      Cancel
-                    </button>
+                    {joinError && (
+                      <p className="font-body" style={{ fontSize: 10, color: 'var(--color-danger)', marginBottom: 6 }}>
+                        {joinError}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => void handleJoin(f.slug)}
+                        disabled={joining}
+                        style={{
+                          fontFamily: "'Courier Prime', monospace",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          background: 'var(--color-success)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '5px 14px',
+                          cursor: joining ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {joining ? 'Joining...' : 'Confirm'}
+                      </button>
+                      <button
+                        onClick={() => { setConfirmSlug(null); setJoinError(null) }}
+                        disabled={joining}
+                        style={{
+                          fontFamily: "'Courier Prime', monospace",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          background: 'transparent',
+                          color: 'var(--color-text-secondary)',
+                          border: '1px solid var(--color-border)',
+                          padding: '5px 14px',
+                          cursor: joining ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <FactionCard
+                  faction={f}
+                  status={cardStatus}
+                  onJoin={character && canJoin ? () => setConfirmSlug(f.slug) : undefined}
+                />
+              )}
+
+              {/* Not-invited hint */}
+              {character && status === STATUS_NOT_INVITED && !needsFactionChoice && (
+                <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 6, fontStyle: 'italic' }}>
+                  Complete tasks from this faction to unlock an invitation.
+                </p>
               )}
             </div>
           )
