@@ -52,6 +52,8 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
         background: factionCssVar(null, 'card-bg'),
         borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
         color: factionCssVar(null, 'card-text'),
+        minWidth: '280px',
+        flex: '1 1 280px',
       }}
     >
       {/* Moderation status badges */}
@@ -61,7 +63,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
           style={{
             position: 'absolute', top: 8, right: 8,
             fontSize: 7, padding: '1px 5px',
-            border: '1px solid rgba(220,38,38,0.4)', color: '#dc2626',
+            border: '1px solid rgba(220,38,38,0.4)', color: 'var(--color-danger)',
             background: 'rgba(220,38,38,0.05)',
           }}
         >
@@ -74,7 +76,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
           style={{
             position: 'absolute', top: 8, right: 8,
             fontSize: 7, padding: '1px 5px',
-            border: '1px solid rgba(245,158,11,0.4)', color: '#d97706',
+            border: '1px solid rgba(245,158,11,0.4)', color: 'var(--color-warning)',
             background: 'rgba(245,158,11,0.05)',
           }}
         >
@@ -87,7 +89,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
           style={{
             position: 'absolute', top: 8, right: 8,
             fontSize: 7, padding: '1px 5px',
-            border: '1px solid rgba(107,114,128,0.4)', color: '#6b7280',
+            border: '1px solid rgba(107,114,128,0.4)', color: 'var(--color-text-secondary)',
             background: 'rgba(107,114,128,0.05)',
           }}
         >
@@ -96,7 +98,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
       )}
 
       {moderateError && (
-        <p className="font-body text-xs" style={{ color: '#dc2626' }}>{moderateError}</p>
+        <p className="font-body text-xs" style={{ color: 'var(--color-danger)' }}>{moderateError}</p>
       )}
 
       {/* Admin action buttons */}
@@ -112,7 +114,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
             className="eyebrow"
             style={{
               fontSize: 7, padding: '1px 5px',
-              border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626',
+              border: '1px solid rgba(220,38,38,0.3)', color: 'var(--color-danger)',
               background: 'rgba(220,38,38,0.05)',
               cursor: 'pointer',
             }}
@@ -124,7 +126,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
             className="eyebrow"
             style={{
               fontSize: 7, padding: '1px 5px',
-              border: '1px solid rgba(245,158,11,0.3)', color: '#d97706',
+              border: '1px solid rgba(245,158,11,0.3)', color: 'var(--color-warning)',
               background: 'rgba(245,158,11,0.05)',
               cursor: 'pointer',
             }}
@@ -156,7 +158,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
         </Link>
         {localPraxis.score !== null && (
           <span className="font-display text-sm font-bold text-ink">
-            ★ {localPraxis.score.toFixed(1)}
+            {localPraxis.score.toFixed(1)}
           </span>
         )}
       </div>

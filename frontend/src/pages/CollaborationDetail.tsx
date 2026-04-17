@@ -15,10 +15,10 @@ import {
 } from '../api/praxis'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import { useAuth } from '../auth/AuthContext'
-import { factionColor, factionName } from '../utils/factions'
+import { factionColor, factionName, factionCssVar } from '../utils/factions'
 import { formatTimestamp } from '../utils/dates'
 
-const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
+const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', 'var(--color-success)', '#f97316', '#fbbf24', '#be185d']
 
 export default function CollaborationDetail() {
   const { id } = useParams<{ id: string }>()
@@ -92,7 +92,7 @@ export default function CollaborationDetail() {
     return <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}><p className="eyebrow">Loading...</p></div>
   }
   if (fetchError || !collab) {
-    return <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}><p className="eyebrow" style={{ color: '#dc2626' }}>{fetchError ?? 'Not found.'}</p></div>
+    return <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}><p className="eyebrow" style={{ color: 'var(--color-danger)' }}>{fetchError ?? 'Not found.'}</p></div>
   }
 
   const isMember = collab.members.some((m) => m.character_id === myCharacterId)
@@ -101,7 +101,7 @@ export default function CollaborationDetail() {
   const isDuel = collab.type === 'duel'
   const isCollab = collab.type === 'collab'
   const modeLabel = isDuel ? 'Duel' : 'Collaboration'
-  const modeColor = isDuel ? '#dc2626' : '#15803d'
+  const modeColor = isDuel ? 'var(--color-danger)' : 'var(--color-success)'
 
   const handleSaveDocument = async () => {
     if (!praxisId) return
@@ -237,7 +237,7 @@ export default function CollaborationDetail() {
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.1em', padding: '3px 10px',
-                background: isPublished ? '#14532d' : 'var(--color-bg-surface-alt)',
+                background: isPublished ? 'var(--color-success)' : 'var(--color-bg-surface-alt)',
                 color: isPublished ? '#fff' : 'var(--color-text-secondary)',
                 border: isPublished ? 'none' : '1px solid var(--color-border)',
               }}
@@ -290,7 +290,7 @@ export default function CollaborationDetail() {
                     fontFamily: "'Courier Prime', monospace",
                     fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                     padding: '2px 8px',
-                    background: member.has_submitted ? '#14532d' : 'transparent',
+                    background: member.has_submitted ? 'var(--color-success)' : 'transparent',
                     color: member.has_submitted ? '#fff' : 'var(--color-text-tertiary)',
                     border: member.has_submitted ? 'none' : '1px solid var(--color-border)',
                   }}
@@ -403,7 +403,7 @@ export default function CollaborationDetail() {
               )}
             </div>
             {inviteError && (
-              <p className="eyebrow" style={{ color: '#dc2626', marginTop: 4 }}>{inviteError}</p>
+              <p className="eyebrow" style={{ color: 'var(--color-danger)', marginTop: 4 }}>{inviteError}</p>
             )}
           </div>
         )}
@@ -499,8 +499,8 @@ export default function CollaborationDetail() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '8px 12px',
-                    background: 'var(--color-bg-surface-alt)',
-                    border: `1px solid var(--color-border)`,
+                    background: v.is_winning ? 'rgba(220,38,38,0.07)' : 'var(--color-bg-surface-alt)',
+                    border: `1px solid ${v.is_winning ? 'var(--color-danger)' : 'var(--color-border)'}`,
                   }}
                 >
                   <div
@@ -513,6 +513,7 @@ export default function CollaborationDetail() {
                   />
                   <span className="font-body" style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>
                     {v.character_display_name}
+                    {v.is_winning && <span style={{ marginLeft: 8, color: 'var(--color-danger)', fontSize: 10 }}>leading</span>}
                   </span>
                   <span className="eyebrow" style={{ fontSize: 9 }}>
                     {v.total_stars} stars ({v.vote_count} votes)
@@ -527,7 +528,7 @@ export default function CollaborationDetail() {
             <div style={{ marginTop: 14, borderTop: '1px dashed var(--color-border)', paddingTop: 14 }}>
               <p className="eyebrow mb-2" style={{ fontSize: 8 }}>Cast your vote</p>
               {voteSuccess ? (
-                <p className="eyebrow" style={{ color: '#14532d' }}>Vote recorded!</p>
+                <p className="eyebrow" style={{ color: 'var(--color-success)' }}>Vote recorded!</p>
               ) : (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -539,9 +540,9 @@ export default function CollaborationDetail() {
                             fontFamily: "'Courier Prime', monospace",
                             fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
                             padding: '4px 12px',
-                            background: votingForMemberId === member.id ? '#dc2626' : 'transparent',
+                            background: votingForMemberId === member.id ? 'var(--color-danger)' : 'transparent',
                             color: votingForMemberId === member.id ? '#fff' : 'var(--color-text-primary)',
-                            border: `1px solid ${votingForMemberId === member.id ? '#dc2626' : 'var(--color-border)'}`,
+                            border: `1px solid ${votingForMemberId === member.id ? 'var(--color-danger)' : 'var(--color-border)'}`,
                             cursor: 'pointer',
                           }}
                         >
@@ -578,7 +579,7 @@ export default function CollaborationDetail() {
                         marginTop: 10,
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                        background: '#dc2626', color: '#fff', border: 'none',
+                        background: 'var(--color-danger)', color: '#fff', border: 'none',
                         padding: '6px 18px', cursor: castingVote ? 'wait' : 'pointer',
                       }}
                     >
@@ -586,7 +587,7 @@ export default function CollaborationDetail() {
                     </button>
                   )}
                   {voteError && (
-                    <p className="eyebrow" style={{ color: '#dc2626', marginTop: 6 }}>{voteError}</p>
+                    <p className="eyebrow" style={{ color: 'var(--color-danger)', marginTop: 6 }}>{voteError}</p>
                   )}
                 </>
               )}
@@ -606,7 +607,7 @@ export default function CollaborationDetail() {
           </p>
           {myMember?.has_submitted ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="eyebrow" style={{ color: '#14532d' }}>You have submitted</span>
+              <span className="eyebrow" style={{ color: 'var(--color-success)' }}>You have submitted</span>
               <button
                 onClick={handleReopen}
                 style={{
@@ -640,8 +641,8 @@ export default function CollaborationDetail() {
       )}
 
       {isPublished && (
-        <div className="sidebar-card mb-4" style={{ padding: '14px 20px', borderLeft: `4px solid #14532d` }}>
-          <p className="eyebrow" style={{ color: '#14532d' }}>Published</p>
+        <div className="sidebar-card mb-4" style={{ padding: '14px 20px', borderLeft: '4px solid var(--color-success)' }}>
+          <p className="eyebrow" style={{ color: 'var(--color-success)' }}>Published</p>
           <p className="font-body" style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 4 }}>
             {isDuel ? 'Duel complete. Points have been awarded.' : 'Collaboration published. All members have been scored.'}
           </p>
@@ -649,8 +650,8 @@ export default function CollaborationDetail() {
       )}
 
       {startupInviteErrors.length > 0 && (
-        <div className="sidebar-card mb-4" style={{ padding: '12px 16px', borderLeft: '3px solid #d97706' }}>
-          <p className="eyebrow" style={{ color: '#d97706', marginBottom: 6 }}>Some invites could not be sent</p>
+        <div className="sidebar-card mb-4" style={{ padding: '12px 16px', borderLeft: '3px solid var(--color-warning)' }}>
+          <p className="eyebrow" style={{ color: 'var(--color-warning)', marginBottom: 6 }}>Some invites could not be sent</p>
           {startupInviteErrors.map((err, i) => (
             <p key={i} className="font-body" style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>{err}</p>
           ))}
@@ -659,7 +660,7 @@ export default function CollaborationDetail() {
       )}
 
       {actionError && (
-        <p className="eyebrow mb-4" style={{ color: '#dc2626' }}>{actionError}</p>
+        <p className="eyebrow mb-4" style={{ color: 'var(--color-danger)' }}>{actionError}</p>
       )}
 
       {/* Rainbow footer bar */}

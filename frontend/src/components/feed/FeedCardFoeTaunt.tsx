@@ -29,7 +29,7 @@ export default function FeedCardFoeTaunt({ item }: Props) {
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span style={{ fontSize: 14 }}>&#x1F43A;</span>
+        <span className="eyebrow">FOE</span>
         <span
           className="eyebrow"
           style={{ color: 'var(--faction-journeymen)', fontSize: 8 }}

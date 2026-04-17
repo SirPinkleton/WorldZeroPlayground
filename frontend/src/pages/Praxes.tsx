@@ -44,7 +44,7 @@ export default function Praxes() {
       ) : isEmpty ? (
         <p className="font-body text-muted">No praxes yet. Be the first.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-wrap gap-4 items-start">
           {soloItems.map((p) => (
             <PraxisCard key={`praxis-${p.id}`} praxis={p} />
           ))}

@@ -52,7 +52,7 @@ export default function Home() {
       {feed.length === 0 ? (
         <p className="font-body text-muted">No praxes yet. Be the first!</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="flex flex-wrap gap-5 items-start">
           {feed.map((s) => <PraxisCard key={s.id} praxis={s} />)}
         </div>
       )}

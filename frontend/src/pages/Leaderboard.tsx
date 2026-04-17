@@ -5,7 +5,7 @@ import type { CharacterOut } from '../api/auth'
 import PageTitle from '../components/ui/PageTitle'
 import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
-import { factionColor, factionName } from '../utils/factions'
+import { factionCssVar, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 import { mediaUrl } from '../utils/media'
 
@@ -60,7 +60,6 @@ export default function Leaderboard() {
                 const player = top3[podiumIndex]
                 if (!player) return null
                 const rank = podiumIndex
-                const color = factionColor(player.faction_slug)
                 const isFirst = rank === 0
                 const cardWidth = isFirst ? 160 : 140
                 const avatarSize = isFirst ? 64 : 52
@@ -74,7 +73,7 @@ export default function Leaderboard() {
                       className="sidebar-card"
                       style={{
                         width: cardWidth,
-                        borderLeft: `${isFirst ? 3 : 2}px solid ${isFirst ? 'var(--rank-gold)' : color}`,
+                        borderLeft: `${isFirst ? 3 : 2}px solid ${isFirst ? 'var(--rank-gold)' : factionCssVar(player.faction_slug, 'border')}`,
                         padding: '12px 10px',
                         textAlign: 'center',
                         position: 'relative',
@@ -97,10 +96,10 @@ export default function Leaderboard() {
 
                       {/* Faction pennant */}
                       <span
+                        className="pennant-shape"
                         style={{
                           display: 'inline-block',
-                          clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
-                          background: color, color: 'white',
+                          background: factionCssVar(player.faction_slug), color: 'white',
                           fontFamily: "'Courier Prime', monospace",
                           fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
                           letterSpacing: '0.07em', padding: '2px 10px',
@@ -119,16 +118,16 @@ export default function Leaderboard() {
                           style={{
                             width: avatarSize, height: avatarSize, borderRadius: '50%',
                             objectFit: 'cover', margin: '0 auto 6px',
-                            border: `2px solid ${color}`,
+                            border: `2px solid ${factionCssVar(player.faction_slug, 'border')}`,
                           }}
                         />
                       ) : (
                         <div
                           style={{
                             width: avatarSize, height: avatarSize, borderRadius: '50%',
-                            background: `linear-gradient(135deg, ${color}, ${color}88)`,
+                            background: `linear-gradient(135deg, ${factionCssVar(player.faction_slug, 'light')}, ${factionCssVar(player.faction_slug)})`,
                             margin: '0 auto 6px',
-                            border: `2px solid ${color}`,
+                            border: `2px solid ${factionCssVar(player.faction_slug, 'border')}`,
                           }}
                         />
                       )}
@@ -137,13 +136,13 @@ export default function Leaderboard() {
                       <Link
                         to={`/characters/${player.id}`}
                         className="font-display italic block truncate"
-                        style={{ fontSize: 12, color, textDecoration: 'none', marginBottom: 4 }}
+                        style={{ fontSize: 12, color: factionCssVar(player.faction_slug), textDecoration: 'none', marginBottom: 4 }}
                       >
                         {player.display_name}
                       </Link>
 
                       {/* Score */}
-                      <div className="font-display italic" style={{ fontSize: scoreSize, fontWeight: 700, color }}>
+                      <div className="font-display italic" style={{ fontSize: scoreSize, fontWeight: 700, color: factionCssVar(player.faction_slug) }}>
                         {scoreMode === 'era' ? player.score : player.all_time_score}
                       </div>
                       <span className="eyebrow" style={{ fontSize: 7 }}>
@@ -197,7 +196,7 @@ export default function Leaderboard() {
                 <div
                   style={{
                     width: 28, height: 28, borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${factionColor(user?.character?.faction_slug)}, ${factionColor(user?.character?.faction_slug)}88)`,
+                    background: `linear-gradient(135deg, ${factionCssVar(user?.character?.faction_slug, 'light')}, ${factionCssVar(user?.character?.faction_slug)})`,
                   }}
                 />
               )}
@@ -266,12 +265,12 @@ export default function Leaderboard() {
             {/* Rows */}
             {rest.map((c, index) => {
               const rank = index + 4
-              const color = factionColor(c.faction_slug)
               const isMe = c.id === myCharId
 
               return (
                 <div
                   key={c.id}
+                  className="leaderboard-row"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '40px 1fr 80px 50px 60px',
@@ -279,17 +278,15 @@ export default function Leaderboard() {
                     alignItems: 'center',
                     borderBottom: '1px dashed var(--color-border)',
                     position: 'relative',
-                    background: isMe ? `${color}0F` : 'transparent',
+                    background: isMe ? factionCssVar(c.faction_slug, 'light') : 'transparent',
                     transition: 'background 120ms',
                   }}
-                  onMouseEnter={(e) => { if (!isMe) e.currentTarget.style.background = 'var(--leaderboard-row-hover)' }}
-                  onMouseLeave={(e) => { if (!isMe) e.currentTarget.style.background = 'transparent' }}
                 >
                   {/* Faction left accent */}
-                  <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: color }} />
+                  <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: factionCssVar(c.faction_slug, 'border') }} />
 
                   {/* Rank */}
-                  <span className="font-display" style={{ fontSize: 13, fontWeight: 700, color: isMe ? color : 'var(--color-text-tertiary)' }}>
+                  <span className="font-display" style={{ fontSize: 13, fontWeight: 700, color: isMe ? factionCssVar(c.faction_slug) : 'var(--color-text-tertiary)' }}>
                     {rank}
                   </span>
 
@@ -298,10 +295,10 @@ export default function Leaderboard() {
                     {c.avatar_url ? (
                       <img src={mediaUrl(c.avatar_url)} alt={c.display_name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                     ) : (
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}88)`, flexShrink: 0 }} />
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${factionCssVar(c.faction_slug, 'light')}, ${factionCssVar(c.faction_slug)})`, flexShrink: 0 }} />
                     )}
                     <div className="min-w-0">
-                      <Link to={`/characters/${c.id}`} className="font-display italic block truncate" style={{ fontSize: 12, color: isMe ? color : 'var(--color-text-primary)', textDecoration: 'none' }}>
+                      <Link to={`/characters/${c.id}`} className="font-display italic block truncate" style={{ fontSize: 12, color: isMe ? factionCssVar(c.faction_slug) : 'var(--color-text-primary)', textDecoration: 'none' }}>
                         {c.display_name}
                       </Link>
                     </div>
@@ -309,7 +306,7 @@ export default function Leaderboard() {
 
                   {/* Faction */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: factionCssVar(c.faction_slug, 'border'), flexShrink: 0 }} />
                     <span className="eyebrow" style={{ fontSize: 8 }}>{factionName(c.faction_slug)}</span>
                   </div>
 

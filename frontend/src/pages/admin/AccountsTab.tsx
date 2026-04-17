@@ -111,7 +111,7 @@ export default function AccountsTab() {
                   <p className="font-body text-xs text-muted">
                     <span
                       style={{
-                        color: account.status === 'suspended' ? '#dc2626' : '#16a34a',
+                        color: account.status === 'suspended' ? 'var(--color-danger)' : 'var(--color-success)',
                         fontWeight: 700,
                       }}
                     >
@@ -124,8 +124,8 @@ export default function AccountsTab() {
                   onClick={() => void handleSuspend(account.id, account.status !== 'suspended')}
                   className="btn-outline text-xs shrink-0"
                   style={account.status === 'suspended'
-                    ? { borderColor: '#16a34a', color: '#16a34a' }
-                    : { borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }
+                    ? { borderColor: 'var(--color-success)', color: 'var(--color-success)' }
+                    : { borderColor: 'rgba(220,38,38,0.5)', color: 'var(--color-danger)' }
                   }
                 >
                   {account.status === 'suspended' ? 'unsuspend' : 'suspend'}
@@ -152,9 +152,9 @@ export default function AccountsTab() {
                             <span
                               className="ml-2 font-body text-xs"
                               style={{
-                                color: character.status === 'banned' ? '#dc2626'
-                                  : character.status === 'paused' ? '#d97706'
-                                  : '#16a34a',
+                                color: character.status === 'banned' ? 'var(--color-danger)'
+                                  : character.status === 'paused' ? 'var(--color-warning)'
+                                  : 'var(--color-success)',
                                 fontWeight: 700,
                               }}
                             >
@@ -165,8 +165,8 @@ export default function AccountsTab() {
                             onClick={() => void handleBan(character.id, character.status !== 'banned')}
                             className="btn-outline text-xs"
                             style={character.status === 'banned'
-                              ? { borderColor: '#16a34a', color: '#16a34a', fontSize: 9, padding: '2px 8px' }
-                              : { borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626', fontSize: 9, padding: '2px 8px' }
+                              ? { borderColor: 'var(--color-success)', color: 'var(--color-success)', fontSize: 9, padding: '2px 8px' }
+                              : { borderColor: 'rgba(220,38,38,0.5)', color: 'var(--color-danger)', fontSize: 9, padding: '2px 8px' }
                             }
                           >
                             {character.status === 'banned' ? 'unban' : 'ban'}

@@ -15,12 +15,10 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderatePraxis } from '../api/admin'
 import { extractError } from '../utils/errors'
+import { factionCssVar } from '../utils/factions'
 
 /** Rainbow underline bar colors — 8 segments cycling (Style Guide §12.3) */
-const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
-
-/** Default accent color when faction is unknown */
-const ACCENT = '#be185d'
+const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)', 'var(--underline-1)', 'var(--underline-2)']
 
 export default function PraxisDetail() {
   const { id } = useParams<{ id: string }>()
@@ -134,8 +132,8 @@ export default function PraxisDetail() {
             display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
-          <span style={{ fontSize: 16 }}>⏸</span>
-          <span className="font-body" style={{ fontSize: 11, color: '#92400e', fontWeight: 700 }}>
+          <span className="eyebrow">WITHDRAWN</span>
+          <span className="font-body" style={{ fontSize: 11, color: 'var(--color-warning)', fontWeight: 700 }}>
             This praxis has been withdrawn. Points and votes are paused until resubmitted.
           </span>
         </div>
@@ -152,10 +150,10 @@ export default function PraxisDetail() {
         >
           <span style={{ fontSize: 16 }}>&#10007;</span>
           <div>
-            <span className="font-body" style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, display: 'block' }}>
+            <span className="font-body" style={{ fontSize: 11, color: 'var(--color-danger)', fontWeight: 700, display: 'block' }}>
               This praxis was marked as failed.
             </span>
-            <span className="font-body" style={{ fontSize: 11, color: '#92400e' }}>
+            <span className="font-body" style={{ fontSize: 11, color: 'var(--color-warning)' }}>
               {praxis.admin_note}
             </span>
           </div>
@@ -177,10 +175,10 @@ export default function PraxisDetail() {
               style={{
                 fontSize: 8, padding: '1px 6px',
                 border: '1px solid var(--color-border)',
-                color: praxis.moderation_status === 'flagged' ? '#dc2626'
+                color: praxis.moderation_status === 'flagged' ? 'var(--color-danger)'
                   : praxis.moderation_status === 'hidden' ? 'var(--color-text-tertiary)'
-                  : praxis.moderation_status === 'failed' ? '#d97706'
-                  : '#16a34a',
+                  : praxis.moderation_status === 'failed' ? 'var(--color-warning)'
+                  : 'var(--color-success)',
               }}
             >
               {praxis.moderation_status}
@@ -200,7 +198,7 @@ export default function PraxisDetail() {
                     onClick={() => void handleModerate('hidden')}
                     disabled={moderating}
                     className="btn-outline text-xs"
-                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: 'var(--color-danger)' }}
                   >
                     hide
                   </button>
@@ -208,7 +206,7 @@ export default function PraxisDetail() {
                     onClick={() => setShowFailInput(!showFailInput)}
                     disabled={moderating}
                     className="btn-outline text-xs"
-                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: 'var(--color-warning)' }}
                   >
                     fail
                   </button>
@@ -220,7 +218,7 @@ export default function PraxisDetail() {
                     onClick={() => void handleModerate('hidden')}
                     disabled={moderating}
                     className="btn-outline text-xs"
-                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(220,38,38,0.5)', color: 'var(--color-danger)' }}
                   >
                     hide
                   </button>
@@ -228,7 +226,7 @@ export default function PraxisDetail() {
                     onClick={() => setShowFailInput(!showFailInput)}
                     disabled={moderating}
                     className="btn-outline text-xs"
-                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: 'var(--color-warning)' }}
                   >
                     fail
                   </button>
@@ -248,7 +246,7 @@ export default function PraxisDetail() {
                     onClick={() => setShowFailInput(!showFailInput)}
                     disabled={moderating}
                     className="btn-outline text-xs"
-                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                    style={{ padding: '2px 10px', fontSize: 9, borderColor: 'rgba(245,158,11,0.5)', color: 'var(--color-warning)' }}
                   >
                     fail
                   </button>
@@ -269,14 +267,14 @@ export default function PraxisDetail() {
                 onClick={() => void handleModerate('failed', adminFailNote)}
                 disabled={moderating}
                 className="btn-primary text-xs"
-                style={{ background: '#d97706', borderColor: '#92400e', fontSize: 9 }}
+                style={{ background: 'var(--color-warning)', borderColor: 'var(--color-warning)', fontSize: 9 }}
               >
                 confirm
               </button>
             </div>
           )}
           {moderateError && (
-            <p className="font-body text-xs mt-1" style={{ color: '#dc2626' }}>{moderateError}</p>
+            <p className="font-body text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{moderateError}</p>
           )}
         </div>
       )}
@@ -292,7 +290,7 @@ export default function PraxisDetail() {
             style={{
               width: 42,
               height: 42,
-              background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}88)`,
+              background: `linear-gradient(135deg, ${factionCssVar(null, 'card-accent')}, ${factionCssVar(null, 'card-bg')})`,
             }}
           />
         </Link>
@@ -300,7 +298,7 @@ export default function PraxisDetail() {
           <Link
             to={`/characters/${praxis.created_by_id}`}
             className="font-display italic block truncate"
-            style={{ fontSize: 14, color: ACCENT, textDecoration: 'none' }}
+            style={{ fontSize: 14, color: factionCssVar(null, 'card-accent'), textDecoration: 'none' }}
           >
             {praxis.created_by_display_name || `#${praxis.created_by_id}`}
           </Link>
@@ -346,7 +344,7 @@ export default function PraxisDetail() {
               onClick={handleResubmit}
               disabled={withdrawing}
               style={{
-                background: '#14532d', color: 'white',
+                background: 'var(--color-success)', color: 'white',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em',
                 padding: '4px 12px', border: 'none', cursor: 'pointer', borderRadius: 0,
@@ -370,7 +368,7 @@ export default function PraxisDetail() {
                 onClick={handleWithdraw}
                 disabled={withdrawing}
                 style={{
-                  background: 'rgba(220,38,38,0.1)', border: '1.5px solid #dc2626', color: '#dc2626',
+                  background: 'rgba(220,38,38,0.1)', border: '1.5px solid var(--color-danger)', color: 'var(--color-danger)',
                   fontFamily: "'Courier Prime', monospace", fontSize: 9, textTransform: 'uppercase',
                   padding: '3px 10px', cursor: 'pointer', borderRadius: 0,
                 }}
@@ -388,14 +386,14 @@ export default function PraxisDetail() {
         </div>
       )}
       {withdrawError && (
-        <p className="font-body text-xs mb-3" style={{ color: '#dc2626' }}>{withdrawError}</p>
+        <p className="font-body text-xs mb-3" style={{ color: 'var(--color-danger)' }}>{withdrawError}</p>
       )}
 
       {/* ── Task Context Strip (§12.4) ── */}
       <div
         className="sidebar-card mb-5"
         style={{
-          borderLeft: `4px solid ${ACCENT}`,
+          borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
           borderRadius: '0 8px 8px 0',
           padding: '8px 14px',
           display: 'flex',
@@ -427,7 +425,7 @@ export default function PraxisDetail() {
       {praxis.body_text && (
         <div
           className="font-display mb-6 markdown-preview"
-          style={{ fontSize: 15, lineHeight: 1.75, color: '#2a1e10' }}
+          style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--color-text-primary)' }}
         >
           <ReactMarkdown>{praxis.body_text}</ReactMarkdown>
         </div>
@@ -455,7 +453,7 @@ export default function PraxisDetail() {
       <div className="flex items-center gap-4 eyebrow mb-4">
         <span>Submitted {formatTimestamp(praxis.created_at)}</span>
         {praxis.moderation_status === 'flagged' && (
-          <span style={{ border: '1px solid rgba(220,38,38,0.4)', color: '#dc2626', padding: '1px 6px', fontSize: 8 }}>
+          <span style={{ border: '1px solid rgba(220,38,38,0.4)', color: 'var(--color-danger)', padding: '1px 6px', fontSize: 8 }}>
             flagged
           </span>
         )}
@@ -476,12 +474,10 @@ export default function PraxisDetail() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 14,
-              color: 'rgba(220,38,38,0.5)',
               flexShrink: 0,
             }}
           >
-            ⚑
+            <span className="eyebrow">FLAG</span>
           </div>
           <div className="flex-1">
             <p className="font-body" style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-secondary)' }}>

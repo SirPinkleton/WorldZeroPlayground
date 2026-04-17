@@ -87,6 +87,7 @@ For any non-trivial code changes, work in an isolated git worktree rather than d
 
 ## Multi-agent workflow
 Worktrees, one branch per agent.
+- agents live at claude/agents
 - Pick work from `docs/TASKS.md` matching your role
 - Stay inside your task's file scope
 - Don't start a higher session number until lower ones are done

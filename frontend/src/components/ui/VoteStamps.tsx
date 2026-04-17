@@ -16,11 +16,11 @@ interface StampConfig {
 }
 
 const STAMPS: StampConfig[] = [
-  { value: 1, label: 'a start', color: '#9b8e7d' },
-  { value: 2, label: 'solid',   color: '#0e7490' },
-  { value: 3, label: 'good',    color: '#4f46e5' },
-  { value: 4, label: 'excellent', color: '#be185d' },
-  { value: 5, label: 'legendary', color: '#14532d' },
+  { value: 1, label: 'a start', color: 'var(--vote-1)' },
+  { value: 2, label: 'solid',   color: 'var(--vote-2)' },
+  { value: 3, label: 'good',    color: 'var(--vote-3)' },
+  { value: 4, label: 'excellent', color: 'var(--vote-4)' },
+  { value: 5, label: 'legendary', color: 'var(--vote-5)' },
 ]
 
 interface Props {
@@ -56,73 +56,77 @@ export default function VoteStamps({ praxisId, currentStars, averageStars, total
 
   return (
     <div>
-      {/* Stamp buttons */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-        {STAMPS.map((stamp) => {
-          const active = selected === stamp.value
-          const isHovered = hovered === stamp.value
-          return (
-            <div key={stamp.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-              <button
-                disabled={saving || !user}
-                onMouseEnter={() => setHovered(stamp.value)}
-                onMouseLeave={() => setHovered(0)}
-                onClick={() => void handleVote(stamp.value)}
-                style={{
-                  position: 'relative',
-                  width: 44,
-                  height: 44,
-                  border: `2.5px solid ${stamp.color}`,
-                  borderRadius: 0,
-                  background: active
-                    ? stamp.color
-                    : isHovered
-                      ? `${stamp.color}18`
-                      : dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.8)',
-                  color: active ? 'white' : (dark ? 'var(--color-text-primary)' : stamp.color),
-                  fontFamily: "'Courier Prime', monospace",
-                  fontSize: 18,
-                  fontWeight: 900,
-                  cursor: user ? 'pointer' : 'default',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 120ms',
-                  opacity: saving ? 0.5 : 1,
-                }}
-                aria-label={`Rate ${stamp.value} — ${stamp.label}`}
-              >
-                {/* Inner dashed border on selected */}
-                {active && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      inset: 2,
-                      border: '1px dashed rgba(255,255,255,0.25)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                )}
-                {stamp.value}
-              </button>
-              {/* Word label */}
-              <span
-                style={{
-                  fontFamily: "'Courier Prime', monospace",
-                  fontSize: 7,
-                  textTransform: 'uppercase',
-                  color: active ? stamp.color : 'var(--color-text-tertiary)',
-                  maxWidth: 44,
-                  textAlign: 'center',
-                  lineHeight: 1.2,
-                }}
-              >
-                {stamp.label}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      {/* Stamp buttons — hidden for logged-out users */}
+      {!user ? (
+        <p className="eyebrow">Log in to vote</p>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          {STAMPS.map((stamp) => {
+            const active = selected === stamp.value
+            const isHovered = hovered === stamp.value
+            return (
+              <div key={stamp.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                <button
+                  disabled={saving}
+                  onMouseEnter={() => setHovered(stamp.value)}
+                  onMouseLeave={() => setHovered(0)}
+                  onClick={() => void handleVote(stamp.value)}
+                  style={{
+                    position: 'relative',
+                    width: 44,
+                    height: 44,
+                    border: `2.5px solid ${stamp.color}`,
+                    borderRadius: 0,
+                    background: active
+                      ? stamp.color
+                      : isHovered
+                        ? `${stamp.color}18`
+                        : 'var(--stamp-inactive-bg)',
+                    color: active ? 'white' : (dark ? 'var(--color-text-primary)' : stamp.color),
+                    fontFamily: "'Courier Prime', monospace",
+                    fontSize: 18,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 120ms',
+                    opacity: saving ? 0.5 : 1,
+                  }}
+                  aria-label={`Rate ${stamp.value} — ${stamp.label}`}
+                >
+                  {/* Inner dashed border on selected */}
+                  {active && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        inset: 2,
+                        border: '1px dashed rgba(255,255,255,0.25)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  {stamp.value}
+                </button>
+                {/* Word label */}
+                <span
+                  style={{
+                    fontFamily: "'Courier Prime', monospace",
+                    fontSize: 7,
+                    textTransform: 'uppercase',
+                    color: active ? stamp.color : 'var(--color-text-tertiary)',
+                    maxWidth: 44,
+                    textAlign: 'center',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {stamp.label}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Vote economy info */}
       {selected > 0 && (
@@ -138,8 +142,7 @@ export default function VoteStamps({ praxisId, currentStars, averageStars, total
         </p>
       )}
 
-      {error && <p className="font-body" style={{ fontSize: 9, color: '#dc2626', marginTop: 4 }}>{error}</p>}
-      {!user && <p className="font-body" style={{ fontSize: 9, color: 'var(--color-text-tertiary)', marginTop: 4 }}>Log in to vote on this praxis.</p>}
+      {error && <p className="font-body" style={{ fontSize: 9, color: 'var(--color-danger)', marginTop: 4 }}>{error}</p>}
     </div>
   )
 }

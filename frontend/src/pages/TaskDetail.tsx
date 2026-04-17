@@ -9,7 +9,7 @@ import LevelPill from '../components/ui/LevelPill'
 import PageTitle from '../components/ui/PageTitle'
 import FeedBadge from '../components/feed/FeedBadge'
 import { useAuth } from '../auth/AuthContext'
-import { factionColor, factionName } from '../utils/factions'
+import { factionCssVar, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 import { mediaUrl } from '../utils/media'
 import { useGameConfig } from '../hooks/useGameConfig'
@@ -133,7 +133,7 @@ export default function TaskDetail() {
   )
   if (!task) return <div className="py-8 font-body text-muted">Task not found.</div>
 
-  const color = factionColor(task.primary_faction_slug)
+  const color = factionCssVar(task.primary_faction_slug)
   const fname = factionName(task.primary_faction_slug)
   const canSignUp = user && !mySubmission && !isInProgress && (user.character?.level ?? 0) >= task.level_required
   const meetsLevel = (user?.character?.level ?? 0) >= task.level_required
@@ -182,9 +182,9 @@ export default function TaskDetail() {
             {/* Faction pennant + status + level */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span
+                className="pennant-shape"
                 style={{
                   display: 'inline-block',
-                  clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
                   background: color, color: 'white',
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
@@ -269,14 +269,14 @@ export default function TaskDetail() {
 
               <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
                 <span>You have {slotsOpen} of {maxTaskSlots} task slots open</span>
-                <span>Level {task.level_required} required {meetsLevel ? '✓' : ''}</span>
+                <span>Level {task.level_required} required {meetsLevel ? <span className="eyebrow">MET</span> : ''}</span>
               </div>
 
               {signupError && (
                 <div
                   className="font-body"
                   style={{
-                    fontSize: 11, color: '#dc2626', marginTop: 8,
+                    fontSize: 11, color: 'var(--color-danger)', marginTop: 8,
                     padding: '8px 12px',
                     background: 'rgba(220,38,38,0.06)',
                     border: '1px solid rgba(220,38,38,0.2)',
@@ -294,12 +294,12 @@ export default function TaskDetail() {
             <div className="sidebar-card mb-5" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
-                  background: `${color}18`, border: `1.5px solid ${color}40`,
+                  background: factionCssVar(task.primary_faction_slug, 'light'), border: `1.5px solid ${factionCssVar(task.primary_faction_slug, 'border')}`,
                   borderRadius: 8, padding: '8px 16px',
                   display: 'flex', alignItems: 'center', gap: 8, flex: 1,
                 }}
               >
-                <span style={{ color, fontSize: 16 }}>✓</span>
+                <span className="eyebrow" style={{ color }}>DONE</span>
                 <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)' }}>
                   You've submitted praxis for this task
                 </span>
@@ -314,12 +314,12 @@ export default function TaskDetail() {
             <div className="sidebar-card mb-5" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
-                  background: `${color}18`, border: `1.5px solid ${color}40`,
+                  background: factionCssVar(task.primary_faction_slug, 'light'), border: `1.5px solid ${factionCssVar(task.primary_faction_slug, 'border')}`,
                   borderRadius: 8, padding: '8px 16px',
                   display: 'flex', alignItems: 'center', gap: 8, flex: 1,
                 }}
               >
-                <span style={{ color, fontSize: 12 }}>◎</span>
+                <span className="eyebrow" style={{ color }}>IN PROGRESS</span>
                 <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)' }}>You're on this task</span>
               </div>
               <Link
@@ -347,7 +347,6 @@ export default function TaskDetail() {
               <p className="eyebrow mb-3">Meta tasks available for this task</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {metaTasks.map((mt) => {
-                  const mtColor = factionColor(mt.faction_slug)
                   const bonusLabel = mt.bonus_type === 'percentage' ? `+${mt.bonus_value}%` : `+${mt.bonus_value} flat`
                   return (
                     <div
@@ -358,7 +357,7 @@ export default function TaskDetail() {
                         borderTop: '1px dashed var(--color-border)',
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: mtColor, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: factionCssVar(mt.faction_slug), flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span className="font-body" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)', display: 'block' }}>
                           {mt.name}
@@ -371,7 +370,7 @@ export default function TaskDetail() {
                         style={{
                           fontFamily: "'Courier Prime', monospace",
                           fontSize: 10, fontWeight: 700,
-                          color: '#15803d',
+                          color: 'var(--color-success)',
                           whiteSpace: 'nowrap',
                         }}
                       >
@@ -414,7 +413,7 @@ export default function TaskDetail() {
               <p className="font-body text-muted">No submissions yet. Be the first.</p>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-wrap gap-4 items-start">
                   {sortedSubmissions.slice(0, 4).map((s) => <PraxisCard key={s.id} praxis={s} />)}
                 </div>
                 {submissions.length > 4 && (
@@ -444,7 +443,6 @@ export default function TaskDetail() {
             <p className="eyebrow mb-2">{signups.length} Players in Progress</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {signups.slice(0, VISIBLE_SIGNUPS).map((signup) => {
-                const signupColor = factionColor(signup.faction_slug)
                 const isFriend = friends.has(signup.character_id)
                 const isFoe = foes.has(signup.character_id)
                 return (
@@ -466,7 +464,7 @@ export default function TaskDetail() {
                         <div
                           style={{
                             width: 24, height: 24, borderRadius: '50%',
-                            background: `linear-gradient(135deg, ${signupColor}, ${signupColor}88)`,
+                            background: `linear-gradient(135deg, ${factionCssVar(signup.faction_slug, 'light')}, ${factionCssVar(signup.faction_slug)})`,
                           }}
                         />
                       )}

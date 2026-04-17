@@ -14,7 +14,7 @@ import LevelPill from '../components/ui/LevelPill'
 import { extractError } from '../utils/errors'
 import { useAuth } from '../auth/AuthContext'
 import { computeDisplayPoints } from '../utils/points'
-import { factionColor, factionName } from '../utils/factions'
+import { factionCssVar, factionName } from '../utils/factions'
 
 const LEVEL_FILTERS = [0, 1, 2, 3, 4, 5]
 
@@ -112,9 +112,9 @@ export default function Tasks() {
               fontFamily: "'Courier Prime', monospace",
               fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.1em', padding: '4px 12px',
-              background: showMetaTasks ? '#15803d' : 'transparent',
+              background: showMetaTasks ? 'var(--color-success)' : 'transparent',
               color: showMetaTasks ? '#fff' : 'var(--color-text-tertiary)',
-              border: `1.5px solid ${showMetaTasks ? '#15803d' : 'var(--color-border)'}`,
+              border: `1.5px solid ${showMetaTasks ? 'var(--color-success)' : 'var(--color-border)'}`,
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >
@@ -138,22 +138,21 @@ export default function Tasks() {
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-start' }}>
             {visibleMetaTasks.map((mt) => {
-              const mtColor = factionColor(mt.faction_slug)
               return (
                 <div
                   key={mt.id}
                   className="sidebar-card"
                   style={{
-                    borderLeft: `4px solid ${mtColor}`,
+                    borderLeft: `4px solid ${factionCssVar(mt.faction_slug, 'border')}`,
                     padding: '16px 18px',
                     minWidth: 220, maxWidth: 320, flex: '1 1 220px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <span
+                      className="pennant-shape"
                       style={{
-                        clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
-                        background: mtColor, color: 'white',
+                        background: factionCssVar(mt.faction_slug), color: 'white',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.07em', padding: '2px 10px',
@@ -172,7 +171,7 @@ export default function Tasks() {
                   <span
                     style={{
                       fontFamily: "'Courier Prime', monospace",
-                      fontSize: 11, fontWeight: 700, color: '#15803d',
+                      fontSize: 11, fontWeight: 700, color: 'var(--color-success)',
                     }}
                   >
                     +{mt.bonus_value} pts bonus
