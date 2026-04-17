@@ -437,6 +437,12 @@
     clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
   }
 
+  /* ── Leaderboard row hover ── */
+
+  .leaderboard-row:hover {
+    background: var(--leaderboard-row-hover) !important;
+  }
+
   /* ── Page wrapper ── */
 
   .page {
