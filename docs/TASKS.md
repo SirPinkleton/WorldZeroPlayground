@@ -4,7 +4,7 @@
 > Molly and her Cowork assistant maintain this file during the day.
 > Claude Code agents read it at the start of every session and work through tasks in order.
 >
-> **Always read CLAUDE.md and docs/BUILD_STATE.md before starting.**
+> **Always read CLAUDE.md before starting.**
 > **Read the relevant file in `docs/spec/` before implementing any feature** (see the routing table in `CLAUDE.md`).
 > **Mark tasks DONE (with date) when complete. Do not delete them.**
 

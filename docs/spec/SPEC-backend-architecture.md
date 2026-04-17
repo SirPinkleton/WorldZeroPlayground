@@ -217,7 +217,7 @@ use the canonical one.
 
 These features have schema or skeleton support but **no service enforcement**.
 Do not "fix" them — they are deliberately parked until v2. See
-`docs/BUILD_STATE.md` for the master list.
+
 
 | Feature | What exists | What's missing |
 |---|---|---|

@@ -26,17 +26,19 @@ Deeper notes: `docs/spec/SPEC-architecture.md`.
 | Account vs. Character, anti-self-voting | `docs/spec/SPEC-architecture.md` §3 |
 | DB schema | `docs/spec/SPEC-data-models.md` |
 | Scoring, level perks, era reset semantics | `docs/spec/SPEC-game-rules.md` |
-| API contracts | `docs/spec/SPEC-api.md` |
-| Pages, routing, UX | `docs/spec/SPEC-frontend.md` |
+| API routes + auth guards | `backend/routers/` (source files) |
+| Pages, routing, components | `frontend/src/` (source files) |
+| Frontend API clients | `frontend/src/api/` |
 | Testing approach | `docs/spec/SPEC-testing.md` |
-| Deployment, media, Render | `docs/spec/SPEC-deployment.md` |
 | Design intent, UX, faction archetypes | `WORLD_ZERO_STYLE.md` |
 | CSS variables (colors, type, themes) | `frontend/src/index.css` |
 | JS faction config | `frontend/src/factions.ts` |
-| Built vs. missing | `docs/BUILD_STATE.md` |
 | Task queue | `docs/TASKS.md` |
+| Library/framework API docs (React, FastAPI, SQLAlchemy, Alembic, Pydantic, etc.) | Context7 -- call `mcp__MCP_DOCKER__resolve-library-id` then `mcp__MCP_DOCKER__get-library-docs` |
 
 Read only what your task needs.
+
+**Library lookups:** Use Context7 (`resolve-library-id` to `get-library-docs`) instead of relying on training knowledge for any third-party library API question.
 
 ---
 
@@ -87,11 +89,9 @@ For any non-trivial code changes, work in an isolated git worktree rather than d
 
 ## Multi-agent workflow
 Worktrees, one branch per agent.
-- agents live at claude/agents
 - Pick work from `docs/TASKS.md` matching your role
 - Stay inside your task's file scope
 - Don't start a higher session number until lower ones are done
-- Mark finished tasks ✅ with date in `docs/BUILD_STATE.md`
 
 ## Keeping this file thin
 Before adding a section: does it belong in a spec file, `game_config.py`, or
