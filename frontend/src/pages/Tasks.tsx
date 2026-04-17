@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listTasks, signupTask, type TaskOut } from '../api/tasks'
+import { listTasks, type TaskOut } from '../api/tasks'
+import { createPraxis } from '../api/praxis'
 import { getFactions, type FactionOut } from '../api/factions'
 import { getGameConfig, type FactionConfigOut } from '../api/gameConfig'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
@@ -71,8 +72,8 @@ export default function Tasks() {
   const handleSignup = async (id: number) => {
     setSignupMsg(null)
     try {
-      await signupTask(id)
-      navigate(`/tasks/${id}/submit`)
+      const praxis = await createPraxis({ task_id: id, type: 'solo' })
+      navigate(`/praxes/${praxis.id}/edit`)
     } catch (err) {
       setSignupMsg({ id, msg: extractError(err, 'Could not sign up — make sure you are logged in.'), ok: false })
     }

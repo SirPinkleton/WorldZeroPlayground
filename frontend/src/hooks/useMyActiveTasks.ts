@@ -1,25 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getMyTasks, type CharacterTaskOut } from '../api/tasks'
+import { listPraxes, type PraxisCardOut } from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
 
 /**
- * Hook to fetch the current character's in-progress task signups.
+ * Hook to fetch the current character's in-progress praxes.
  * Re-fetches when the authenticated user changes.
  */
 export function useMyActiveTasks() {
   const { user } = useAuth()
-  const [activeTasks, setActiveTasks] = useState<CharacterTaskOut[]>([])
+  const [activeTasks, setActiveTasks] = useState<PraxisCardOut[]>([])
   const [loading, setLoading] = useState(true)
 
   const refetch = useCallback(() => {
-    if (!user) {
+    if (!user?.character) {
       setActiveTasks([])
       setLoading(false)
       return
     }
     setLoading(true)
-    getMyTasks('in_progress')
-      .then(setActiveTasks)
+    listPraxes({ character_id: user.character.id, status: 'in_progress' })
+      .then((praxes) => setActiveTasks(praxes.filter((p) => !p.is_withdrawn)))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [user])
