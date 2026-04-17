@@ -3,7 +3,6 @@ services:
     name: worldzero-backend
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
     branch: main
     autoDeploy: true
     disk:
@@ -60,4 +59,4 @@ databases:
   - name: worldzero-db
     databaseName: worldzero
     user: worldzero
-    plan: starter
+    plan: pro
