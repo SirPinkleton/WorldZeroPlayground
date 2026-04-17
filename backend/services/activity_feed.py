@@ -15,8 +15,8 @@ from models.era import Era
 from models.faction_defection_history import FactionDefectionHistory
 from models.invitation_letter import InvitationLetter
 from models.relationship import Relationship, RelationshipStatus, RelationshipType
-from models.praxis import Praxis, PraxisInvite, PraxisInviteStatus, PraxisType
-from models.task import CharacterTask, CharacterTaskStatus, Task, TaskStatus
+from models.praxis import Praxis, PraxisInvite, PraxisInviteStatus, PraxisMember, PraxisStatus, PraxisType
+from models.task import Task, TaskStatus
 from models.taunt_message import TauntMessage
 from models.vote import Vote
 from schemas.activity_feed import ActivityFeedItem, ActivityFeedResponse, FeedCounts
@@ -102,11 +102,14 @@ async def _get_my_task_ids(
     character_id: int,
     session: AsyncSession,
 ) -> list[int]:
-    """Get task IDs that the character is currently working on."""
+    """Get task IDs that the character is currently working on via praxis membership."""
     result = await session.execute(
-        select(CharacterTask.task_id).where(
-            CharacterTask.character_id == character_id,
-            CharacterTask.status == CharacterTaskStatus.in_progress,
+        select(Praxis.task_id)
+        .join(PraxisMember, PraxisMember.praxis_id == Praxis.id)
+        .where(
+            PraxisMember.character_id == character_id,
+            Praxis.status == PraxisStatus.in_progress,
+            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     return list(result.scalars().all())
@@ -500,15 +503,15 @@ async def _fetch_friend_signups(
     session: AsyncSession,
     before: Optional[datetime],
 ) -> list[ActivityFeedItem]:
-    """Friends who signed up for tasks the current character is also doing."""
+    """Friends who joined praxes on tasks the current character is also doing."""
     if not friend_ids or not my_task_ids:
         return []
 
     query = (
         select(
-            CharacterTask.id,
-            CharacterTask.signed_up_at,
-            CharacterTask.task_id,
+            PraxisMember.id,
+            PraxisMember.joined_at,
+            Praxis.task_id,
             Character.id.label("character_id"),
             Character.display_name,
             Character.faction_slug,
@@ -517,29 +520,30 @@ async def _fetch_friend_signups(
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
         )
-        .join(Character, CharacterTask.character_id == Character.id)
-        .join(Task, CharacterTask.task_id == Task.id)
+        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+        .join(Character, PraxisMember.character_id == Character.id)
+        .join(Task, Praxis.task_id == Task.id)
         .where(
-            CharacterTask.character_id.in_(friend_ids),
-            CharacterTask.task_id.in_(my_task_ids),
-            CharacterTask.status != CharacterTaskStatus.abandoned,
+            PraxisMember.character_id.in_(friend_ids),
+            Praxis.task_id.in_(my_task_ids),
+            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     if before is not None:
-        query = query.where(CharacterTask.signed_up_at < before)
-    query = query.order_by(CharacterTask.signed_up_at.desc()).limit(SUB_QUERY_LIMIT)
+        query = query.where(PraxisMember.joined_at < before)
+    query = query.order_by(PraxisMember.joined_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
     items: list[ActivityFeedItem] = []
     for row in result.all():
         items.append(ActivityFeedItem(
             type=FEED_ITEM_TYPE_FRIEND_SIGNUP,
-            timestamp=row.signed_up_at,
+            timestamp=row.joined_at,
             actor_display_name=row.display_name,
             actor_faction_slug=row.faction_slug,
             actor_avatar_url=row.avatar_url,
             payload={
-                "character_task_id": row.id,
+                "praxis_member_id": row.id,
                 "character_id": row.character_id,
                 "task_id": row.task_id,
                 "task_title": row.task_title,
@@ -694,11 +698,12 @@ async def _compute_counts(
             return 0
         result = await session.execute(
             select(func.count())
-            .select_from(CharacterTask)
+            .select_from(PraxisMember)
+            .join(Praxis, PraxisMember.praxis_id == Praxis.id)
             .where(
-                CharacterTask.character_id.in_(friend_ids),
-                CharacterTask.task_id.in_(my_task_ids),
-                CharacterTask.status != CharacterTaskStatus.abandoned,
+                PraxisMember.character_id.in_(friend_ids),
+                Praxis.task_id.in_(my_task_ids),
+                Praxis.is_withdrawn == False,  # noqa: E712
             )
         )
         return result.scalar_one()
