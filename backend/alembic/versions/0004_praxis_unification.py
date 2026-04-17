@@ -166,6 +166,16 @@ def upgrade() -> None:
         FROM submission_member
     """))
 
+    # Reset sequence after bulk-inserting explicit IDs from submission_member,
+    # so the auto-increment in step 6 doesn't collide with those IDs.
+    op.execute(sa.text("""
+        SELECT setval(
+            pg_get_serial_sequence('praxis_member', 'id'),
+            COALESCE((SELECT MAX(id) FROM praxis_member), 0) + 1,
+            false
+        )
+    """))
+
     # ── 6. Insert praxis_member for every solo submission (creator = only member) ─
 
     op.execute(sa.text("""
