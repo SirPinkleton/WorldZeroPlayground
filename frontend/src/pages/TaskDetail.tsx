@@ -51,7 +51,7 @@ export default function TaskDetail() {
 
     const fetches: Promise<unknown>[] = [
       getTask(taskId),
-      listPraxes({ task_id: taskId }),
+      listPraxes({ task_id: taskId, status: 'submitted' }),
       getTaskSignups(taskId),
       getMetaTasks(taskId).catch(() => []),
     ]

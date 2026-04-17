@@ -85,6 +85,8 @@ export default function ProposeTask() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (title.length > 200) { setError('Task name must be 200 characters or fewer.'); return }
+    if (description.length > 5000) { setError('Description must be 5000 characters or fewer.'); return }
     setSubmitting(true)
     setError(null)
     try {
@@ -206,6 +208,9 @@ export default function ProposeTask() {
                   onBlur={(e) => { if (!title) e.currentTarget.style.borderBottomColor = 'var(--color-border-strong)' }}
                 />
                 <span className={`eyebrow self-end ${title.length >= 180 ? 'text-red-600' : ''}`} style={{ fontSize: 7, marginTop: 4 }}>{title.length}/200</span>
+                {title.length >= 200 && (
+                  <span className="font-body" style={{ fontSize: 10, color: '#dc2626', display: 'block', marginTop: 2 }}>Task name must be 200 characters or fewer.</span>
+                )}
               </div>
 
               {/* Description (§20.4) */}
@@ -227,6 +232,9 @@ export default function ProposeTask() {
                   }}
                 />
                 <span className={`eyebrow self-end ${description.length >= 4500 ? 'text-red-600' : ''}`} style={{ fontSize: 7, marginTop: 4 }}>{description.length}/5000</span>
+                {description.length >= 5000 && (
+                  <span className="font-body" style={{ fontSize: 10, color: '#dc2626', display: 'block', marginTop: 2 }}>Description must be 5000 characters or fewer.</span>
+                )}
               </div>
 
               {/* Suggested Difficulty (§20.4) */}

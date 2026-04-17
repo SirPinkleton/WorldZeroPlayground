@@ -220,3 +220,9 @@ async def recalculate_character_stats(
     stats.score = new_score
     stats.all_time_score = max(stats.all_time_score, new_score)
     stats.level = compute_level(new_score, era)
+
+    if author:
+        from services.character import check_faction_graduation
+        new_faction = check_faction_graduation(author, stats, era)
+        if new_faction:
+            author.faction_slug = new_faction
