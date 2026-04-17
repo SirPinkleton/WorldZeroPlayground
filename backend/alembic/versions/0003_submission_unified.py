@@ -16,28 +16,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ── 1. New enum types (raw SQL + pg_type check = idempotent, no registry) ──
+    # ── 1. New enum types ─────────────────────────────────────────────────────
     #
-    # Do NOT use sa.Enum(...).create() here. Calling it registers the Enum in
-    # SQLAlchemy's type cache with create_type=True. When op.create_table()
-    # later fires _on_table_create it finds that cached object and tries to
-    # CREATE TYPE again, ignoring the create_type=False on the inline column
-    # definition. Raw SQL bypasses the registry entirely.
-
-    bind = op.get_bind()
+    # Do NOT use sa.Enum(...).create() here — it registers the Enum in
+    # SQLAlchemy's type cache with create_type=True and op.create_table() will
+    # try to CREATE TYPE again, ignoring create_type=False on the inline column.
+    #
+    # Use a PL/pgSQL DO block so the duplicate-object exception is caught inside
+    # Postgres itself. A prior pg_type SELECT check is unreliable in the
+    # asyncpg + run_sync bridge because the SELECT and CREATE TYPE execute on
+    # different protocol paths and the type can appear between them.
     for typname, values in [
         ("submissiontype", ["solo", "collaboration", "duel"]),
         ("submissioninvitestatus", ["pending", "accepted", "declined"]),
         ("submissionstatus", ["in_progress", "published"]),
         ("collabmodeenum", ["collaboration", "duel"]),
     ]:
-        exists = bind.execute(
-            sa.text("SELECT 1 FROM pg_type WHERE typname = :name"),
-            {"name": typname},
-        ).scalar()
-        if not exists:
-            vals = ", ".join(f"'{v}'" for v in values)
-            bind.execute(sa.text(f"CREATE TYPE {typname} AS ENUM ({vals})"))
+        vals = ", ".join(f"'{v}'" for v in values)
+        op.execute(sa.text(
+            f"DO $$ BEGIN CREATE TYPE {typname} AS ENUM ({vals});"
+            f" EXCEPTION WHEN duplicate_object THEN NULL; END; $$;"
+        ))
 
     # ── 2. Create submission table ────────────────────────────────────────────
 
