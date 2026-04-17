@@ -372,7 +372,7 @@ requiring the Test workflow to pass before merge.
 **Acceptance:** GitHub branch protection on `main` requires the "Test" status
 check to pass.
 
-### TASK T.4 — Integration tests: praxes routes (coverage: 36%)
+### TASK T.4 ⛔ SUPERSEDED by P.8 — Integration tests: praxes routes (coverage: 36%)
 
 `routers/praxes.py` is the least-tested router. Missing tests:
 
@@ -444,7 +444,7 @@ check to pass.
 
 Lower-priority routes with partial coverage:
 
-- `routers/collaborations.py` (55%) — create collab, invite, accept, publish
+- `routers/collaborations.py` (55%) ⛔ SUPERSEDED by P.8 — create collab, invite, accept, publish
 - `routers/factions.py` (52%) — list factions, defect, faction details
 - `routers/leaderboard.py` (47%) — top scores, faction leaderboard
 - `routers/messages.py` (44%) — send message, list messages
@@ -454,6 +454,158 @@ Each needs 2–4 tests to cover the happy path + key error cases.
 
 **Target:** raise overall coverage from 59% → 80%+. This is the
 milestone where the `--cov-fail-under` threshold can be raised back.
+
+---
+
+## 🔵 SESSION P — Praxis Unification
+
+> Collapses the three overlapping submission systems (legacy `praxis` shim, legacy `collaboration`, current `submission` STI) into a single **Praxis** model. A solo praxis is a collab praxis with one member. A duel is a praxis with config-driven max participants + per-member star voting. Creating a praxis IS signing up — CharacterTask goes away.
+>
+> **Starting state (as of this branch):** The `submission` table is live (migration 0003 complete). The old `praxis` and `collaboration` tables are already dropped. `test_submissions.py`, `test_votes.py`, `test_collaborations.py` are all skipped with "being gutted" markers.
+>
+> **Tasks must run in order.** Read the full plan at `~/.claude/plans/rippling-gliding-finch.md` before starting.
+> **Read:** `docs/spec/SPEC-data-models.md`, `docs/spec/SPEC-backend-architecture.md`
+
+### TASK P.1 — Alembic migration: praxis_unification
+
+`backend/alembic/versions/0004_praxis_unification.py` already exists on this branch. Validate and finalize it:
+
+- Creates `praxistype`, `praxisstatus`, `praxisinvitestatus` enum types via DO blocks
+- Creates `praxis` table (unified, replaces `submission`): id, task_id, type, status, title, body_text, is_withdrawn, moderation_status, admin_note, flagged_at, created_by_id, created_at, updated_at
+- Creates `praxis_member` (replaces `submission_member` + `character_task`): id, praxis_id, character_id, has_submitted, joined_at + UNIQUE(praxis_id, character_id)
+- Creates `praxis_invite` (replaces `submission_invite`): id, praxis_id, inviter_id, invitee_id, status, created_at
+- Migrates `submission` → `praxis`; `submission_member` → `praxis_member`; solo submissions get a praxis_member row; `character_task` in_progress rows without a praxis become skeleton praxis rows
+- Migrates `submission_invite` → `praxis_invite`
+- Updates `vote`: `submission_id` → `praxis_id`; `duel_vote_for` (character FK) → `praxis_member_id` (nullable FK to praxis_member); partial unique indexes
+- Updates `media_item`, `flag`, `praxis_meta_task`: `submission_id` → `praxis_id`
+- Drops: `submission_invite`, `submission_member`, `submission`, `character_task`, old enum types
+- `downgrade()` reverses all of the above
+
+**Important:** Use `PgEnum(..., create_type=False)` from `sqlalchemy.dialects.postgresql` in all `op.create_table` calls. Enum types are created by DO blocks only (matching the 0003 pattern).
+
+**Acceptance:** `python -m alembic upgrade head` runs clean from a fresh DB (starting from 0001). `python -m alembic downgrade -1` also runs clean.
+
+---
+
+### TASK P.2 — Backend models: new praxis.py
+
+Rewrite `backend/models/praxis.py` as the single canonical model file:
+- Python enums: `PraxisType(solo|collab|duel)`, `PraxisStatus(in_progress|submitted)`, `PraxisInviteStatus(pending|accepted|declined)`
+- `Praxis` model (table `praxis`) with all columns + relationships to Task, Character, PraxisMember, PraxisInvite, Vote, Flag, MediaItem, PraxisMetaTask
+- `PraxisMember` model (table `praxis_member`) with relationships to Praxis + Character
+- `PraxisInvite` model (table `praxis_invite`) with relationships
+
+Delete `backend/models/submission.py`. Delete `backend/models/collaboration.py` (its imports were already removed from `__init__.py`).
+Remove `CharacterTask` and `CharacterTaskStatus` from `backend/models/task.py`.
+Update `backend/models/vote.py`: `submission_id` → `praxis_id`; `duel_vote_for` → `praxis_member_id` (nullable FK to praxis_member).
+Update `backend/models/flag.py`, `backend/models/praxis.py` (MediaItem), `backend/models/meta_task.py`: `submission_id` → `praxis_id`.
+Update `backend/models/__init__.py` to import from the new model layout.
+
+**Acceptance:** `python -c "from models import *"` runs cleanly; `pytest backend/tests/unit/ -v` passes.
+
+---
+
+### TASK P.3 — Backend schemas: praxis schemas
+
+Rewrite `backend/schemas/praxis.py` with all output, create, and update schemas:
+- `PraxisOut` (full detail with members, invites, votes)
+- `PraxisCardOut` (list-view summary)
+- `PraxisCreate` (task_id, type)
+- `PraxisMemberOut`, `PraxisInviteOut`, `PraxisInviteCreate`
+- `DuelVoteSummary` (per-member star totals)
+
+Delete `backend/schemas/submission.py` and `backend/schemas/collaboration.py`.
+Update `backend/schemas/vote.py` for `praxis_id` FK.
+
+**Acceptance:** All schema imports resolve; unit tests pass.
+
+---
+
+### TASK P.4 — Backend services: praxis service
+
+Rewrite `backend/services/praxis.py` as the single canonical service:
+- `create_praxis(task_id, type, character_id, session, era)` — creates praxis + praxis_member; enforces bank cap
+- `build_praxis_out(praxis, session)` → `PraxisOut`
+- Invite/respond/kick, submit/reopen/withdraw/resubmit, moderate operations
+- Duel vote summary
+
+Add `max_duel_participants: int` to `EraConfig` in `backend/game_config.py`; set value in `backend/eras/era_1.py`.
+Delete `backend/services/submission.py` and `backend/services/collaboration.py`.
+Update `backend/services/character_stats.py` to query `Praxis`/`PraxisMember` instead of `Submission`.
+Update `backend/services/admin_service.py` to reference `Praxis` model.
+Update `backend/services/activity_feed.py` for `PraxisInvite`.
+
+**Acceptance:** Unit tests pass; `alembic upgrade head` still clean.
+
+---
+
+### TASK P.5 — Backend routes: unified /praxes router
+
+Rewrite `backend/routers/praxes.py` as the single unified router (replaces both `/praxes` and `/submissions` + `/collaborations`):
+- `GET /praxes`, `GET /praxes/{id}`, `POST /praxes`, `PUT /praxes/{id}`
+- `POST /praxes/{id}/withdraw`, `POST /praxes/{id}/resubmit`, `DELETE /praxes/{id}`
+- `POST /praxes/{id}/media`, `DELETE /praxes/{id}/media/{media_id}`
+- `POST /praxes/{id}/invite`, `POST /praxes/{id}/invite/{invite_id}/respond`
+- `POST /praxes/{id}/kick/{member_id}`, `POST /praxes/{id}/submit`, `POST /praxes/{id}/reopen`
+- `POST /praxes/{id}/vote`
+
+Delete `backend/routers/submissions.py` and `backend/routers/collaborations.py`.
+Update `backend/routers/admin.py` to use `Praxis`/`PraxisMember` models.
+Update `backend/routers/characters.py`: remove CharacterTask signup routes; add `GET /characters/{id}/praxes`.
+Update `backend/routers/tasks.py`: remove signup/drop routes (creating a praxis IS signing up now).
+Update `backend/main.py` to register only the new router.
+
+**Acceptance:** `uvicorn main:app` starts without errors; `GET /praxes` returns 200.
+
+---
+
+### TASK P.6 — Frontend API: single praxis.ts client
+
+Rewrite `frontend/src/api/praxis.ts` as the single API client covering all praxis operations:
+- `listPraxes(filters)`, `getPraxis(id)`, `createPraxis(data)`, `updatePraxis(id, data)`
+- `withdrawPraxis(id)`, `resubmitPraxis(id)`, `deletePraxis(id)`
+- `uploadPraxisMedia(id, file)`, `deletePraxisMedia(id, mediaId)`
+- `inviteToPraxis(id, data)`, `respondToInvite(id, inviteId, data)`
+- `kickMember(id, memberId)`, `submitPraxis(id)`, `reopenPraxis(id)`, `votePraxis(id, data)`
+
+Delete `frontend/src/api/submissions.ts` and `frontend/src/api/collaborations.ts`.
+Update `frontend/src/api/votes.ts` for `praxis_id`.
+
+**Acceptance:** `npm run build` zero TypeScript errors; all import sites updated.
+
+---
+
+### TASK P.7 — Frontend pages: use new praxis API
+
+Update all frontend pages and components to use the new praxis API:
+- Rename/rewrite `SubmissionCard` → `PraxisCard`; `SubmissionDetail` → `PraxisDetail`
+- Update `TaskDetail.tsx`: task sign-up → `createPraxis()`
+- Rename `SubmitProof.tsx` → `CreatePraxis.tsx` (or update in place)
+- Update `CharacterProfile.tsx`, `Leaderboard.tsx`, admin pages for new field names
+- Replace `CollaborationDetail.tsx` with praxis-based collab/duel view (or unify into `PraxisDetail`)
+- Update activity feed cards that reference collaboration/duel invites → use `PraxisInvite`
+- Update `App.tsx` routing: `/praxes/*` routes
+
+**Acceptance:** Dev server starts clean; `/praxes` page loads; creating a solo praxis works end-to-end; collab and duel creation flows work.
+
+---
+
+### TASK P.8 — Tests + spec docs
+
+**Tests:**
+- Rewrite `backend/tests/integration/test_submissions.py` → `test_praxes.py`: solo create/submit/withdraw/resubmit, collab create/invite/accept/submit, duel vote-per-member
+- Delete `backend/tests/integration/test_collaborations.py` (collab is now part of praxis)
+- Update `backend/tests/integration/test_votes.py` for `praxis_id` FK
+- Update `backend/tests/integration/test_admin.py` for praxis model
+
+**Spec docs:**
+- `docs/spec/SPEC-data-models.md` — replace Submission/SubmissionMember/SubmissionInvite sections with Praxis/PraxisMember/PraxisInvite; update Vote, Flag, MediaItem FKs
+- `docs/spec/SPEC-api.md` — replace /submissions section with /praxes; document all endpoints
+- `docs/spec/SPEC-backend-architecture.md` — update aggregate table + ubiquitous language
+
+Update `docs/BUILD_STATE.md` to mark SESSION P complete.
+
+**Acceptance:** `pytest backend/tests/ -v --cov=. --cov-fail-under=80` passes; `npm run build` zero errors.
 
 ---
 
