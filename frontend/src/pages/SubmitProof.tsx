@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { createPraxis, uploadPraxisMedia, inviteToPraxis } from '../api/praxis'
-import { getTask, dropTask, type TaskOut } from '../api/tasks'
+import { getTask, type TaskOut } from '../api/tasks'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import LevelPill from '../components/ui/LevelPill'
@@ -161,13 +161,8 @@ export default function SubmitProof() {
   }
 
   const handleDrop = async () => {
-    if (!task || !window.confirm('Drop this task? You can sign up again later.')) return
-    try {
-      await dropTask(task.id)
-      navigate(`/tasks/${task.id}`)
-    } catch {
-      setError('Could not drop this task.')
-    }
+    if (!task) return
+    navigate(`/tasks/${task.id}`)
   }
 
   const color = factionColor(task?.primary_faction_slug)

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ActivityFeedItem } from '../../api/activityFeed'
 import { respondToInvite } from '../../api/praxis'
-import { getMyTasks } from '../../api/tasks'
 import { factionColor, factionCssVar } from '../../utils/factions'
 import { relativeTime } from '../../utils/dates'
 import FeedBadge from './FeedBadge'
@@ -37,15 +36,8 @@ export default function FeedCardDuelChallenge({ item }: Props) {
       setStatus('accepted')
       setShowDropModal(false)
       navigate(`/praxes/${praxis_id}`)
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number } }
-      if (axiosErr?.response?.status === 409) {
-        const tasks = await getMyTasks('in_progress')
-        setMyTasks(tasks as { id: number; task: { id: number; title: string } }[])
-        setShowDropModal(true)
-      } else {
-        setDropError('Could not accept duel. Please try again.')
-      }
+    } catch {
+      setDropError('Could not accept duel. Please try again.')
     }
     setLoading(false)
   }

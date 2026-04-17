@@ -13,13 +13,6 @@ export interface TaskOut {
   created_at: string
 }
 
-export interface CharacterTaskOut {
-  id: number
-  task: TaskOut
-  status: string
-  signed_up_at: string
-}
-
 export interface TaskCreate {
   title: string
   description?: string
@@ -45,22 +38,8 @@ export async function getTask(id: number): Promise<TaskOut> {
   return data
 }
 
-export async function signupTask(id: number): Promise<CharacterTaskOut> {
-  const { data } = await api.post<CharacterTaskOut>(`/tasks/${id}/signup`)
-  return data
-}
-
-export async function dropTask(id: number): Promise<void> {
-  await api.delete(`/tasks/${id}/signup`)
-}
-
 export async function proposeTask(body: TaskCreate): Promise<TaskOut> {
   const { data } = await api.post<TaskOut>('/tasks', body)
-  return data
-}
-
-export async function getMyTasks(status?: string): Promise<CharacterTaskOut[]> {
-  const { data } = await api.get<CharacterTaskOut[]>('/tasks/my-tasks', { params: status ? { status } : undefined })
   return data
 }
 
