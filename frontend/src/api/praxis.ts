@@ -87,6 +87,7 @@ export interface PraxisCardOut {
   updated_at: string
   member_count: number
   score: number
+  task_faction_slug: string | null
 }
 
 export interface PraxisCreate {

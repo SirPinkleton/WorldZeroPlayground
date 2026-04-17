@@ -49,9 +49,9 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
     <div
       className="card p-4 flex flex-col gap-2 transition-all duration-150 relative"
       style={{
-        background: factionCssVar(null, 'card-bg'),
-        borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
-        color: factionCssVar(null, 'card-text'),
+        background: factionCssVar(localPraxis.task_faction_slug, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(localPraxis.task_faction_slug, 'card-accent')}`,
+        color: factionCssVar(localPraxis.task_faction_slug, 'card-text'),
         minWidth: '280px',
         flex: '1 1 280px',
       }}

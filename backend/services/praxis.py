@@ -282,6 +282,7 @@ async def build_praxis_card_out(
         updated_at=praxis.updated_at,
         member_count=len(praxis.members),
         score=score,
+        task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
     )
 
 

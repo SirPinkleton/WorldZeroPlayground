@@ -13,9 +13,9 @@ export default function CollaborationCard({ collab }: Props) {
     <div
       className="card p-4 flex flex-col gap-2 transition-all duration-150"
       style={{
-        background: factionCssVar(null, 'card-bg'),
-        borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
-        color: factionCssVar(null, 'card-text'),
+        background: factionCssVar(collab.task_faction_slug, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(collab.task_faction_slug, 'card-accent')}`,
+        color: factionCssVar(collab.task_faction_slug, 'card-text'),
       }}
     >
       {/* Mode label */}
