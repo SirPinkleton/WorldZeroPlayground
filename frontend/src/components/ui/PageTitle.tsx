@@ -5,7 +5,7 @@
  * Spaces render as gaps with no underline.
  */
 
-const UNDERLINE_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316']
+const UNDERLINE_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)']
 
 interface Props {
   title: string
@@ -21,7 +21,7 @@ export default function PageTitle({ title, eyebrow }: Props) {
       {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
       <h1
         className="font-display italic font-medium leading-tight"
-        style={{ fontSize: 34, color: 'var(--color-text-primary)' }}
+        style={{ fontSize: 'var(--text-4xl)', color: 'var(--color-text-primary)' }}
       >
         {title.split('').map((char, index) => {
           if (char === ' ') {

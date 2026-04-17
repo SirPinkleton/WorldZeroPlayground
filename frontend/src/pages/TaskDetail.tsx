@@ -268,14 +268,14 @@ export default function TaskDetail() {
 
               <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
                 <span>You have {slotsOpen} of {maxTaskSlots} task slots open</span>
-                <span>Level {task.level_required} required {meetsLevel ? '✓' : ''}</span>
+                <span>Level {task.level_required} required {meetsLevel ? <span className="eyebrow">MET</span> : ''}</span>
               </div>
 
               {signupError && (
                 <div
                   className="font-body"
                   style={{
-                    fontSize: 11, color: '#dc2626', marginTop: 8,
+                    fontSize: 11, color: 'var(--color-danger)', marginTop: 8,
                     padding: '8px 12px',
                     background: 'rgba(220,38,38,0.06)',
                     border: '1px solid rgba(220,38,38,0.2)',
@@ -298,7 +298,7 @@ export default function TaskDetail() {
                   display: 'flex', alignItems: 'center', gap: 8, flex: 1,
                 }}
               >
-                <span style={{ color, fontSize: 16 }}>✓</span>
+                <span className="eyebrow" style={{ color }}>DONE</span>
                 <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)' }}>
                   You've submitted praxis for this task
                 </span>
@@ -318,7 +318,7 @@ export default function TaskDetail() {
                   display: 'flex', alignItems: 'center', gap: 8, flex: 1,
                 }}
               >
-                <span style={{ color, fontSize: 12 }}>◎</span>
+                <span className="eyebrow" style={{ color }}>IN PROGRESS</span>
                 <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)' }}>You're on this task</span>
               </div>
               <Link
@@ -370,7 +370,7 @@ export default function TaskDetail() {
                         style={{
                           fontFamily: "'Courier Prime', monospace",
                           fontSize: 10, fontWeight: 700,
-                          color: '#15803d',
+                          color: 'var(--color-success)',
                           whiteSpace: 'nowrap',
                         }}
                       >
@@ -413,7 +413,7 @@ export default function TaskDetail() {
               <p className="font-body text-muted">No submissions yet. Be the first.</p>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-wrap gap-4 items-start">
                   {sortedSubmissions.slice(0, 4).map((s) => <PraxisCard key={s.id} praxis={s} />)}
                 </div>
                 {submissions.length > 4 && (

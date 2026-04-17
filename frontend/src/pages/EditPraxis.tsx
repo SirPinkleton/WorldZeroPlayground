@@ -15,7 +15,7 @@ import { extractError } from '../utils/errors'
 import PageTitle from '../components/ui/PageTitle'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
+const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)', 'var(--underline-1)', 'var(--underline-2)']
 
 export default function EditPraxis() {
   const { id } = useParams<{ id: string }>()
@@ -200,7 +200,7 @@ export default function EditPraxis() {
               placeholder="Describe what you did..."
               style={{
                 width: '100%',
-                fontFamily: "'Lora', serif", fontSize: 14, color: dark ? '#e8dcc8' : '#2a1e10',
+                fontFamily: "'Lora', serif", fontSize: 14, color: 'var(--color-text-primary)',
                 lineHeight: 1.75, minHeight: 180,
                 background: 'transparent', border: 'none', outline: 'none',
                 resize: 'vertical',
@@ -213,7 +213,7 @@ export default function EditPraxis() {
           {body.trim() && (
             <div style={{ borderTop: '1px dashed var(--color-border)', marginTop: 10, paddingTop: 10 }}>
               <span className="eyebrow" style={{ marginBottom: 6, display: 'block' }}>Preview</span>
-              <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: dark ? '#e8dcc8' : '#2a1e10' }}>
+              <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--color-text-primary)' }}>
                 <ReactMarkdown>{body}</ReactMarkdown>
               </div>
             </div>

@@ -364,7 +364,7 @@ export default function CharacterProfile() {
         {submissions.length === 0 ? (
           <p className="font-body text-muted">No submissions yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-4 items-start">
             {submissions.map((s) => <PraxisCard key={s.id} praxis={s} />)}
           </div>
         )}

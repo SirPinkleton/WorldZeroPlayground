@@ -10,7 +10,7 @@ import { useAuth } from '../auth/AuthContext'
 import { factionColor, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
-const RAINBOW_COLORS = ['#fbbf24', '#be185d', '#4f46e5', '#0e7490', '#16a34a', '#f97316', '#fbbf24', '#be185d']
+const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)', 'var(--underline-1)', 'var(--underline-2)']
 
 type CollabMode = 'solo' | 'collab' | 'duel'
 
@@ -223,7 +223,7 @@ export default function SubmitProof() {
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                   padding: '2px 8px', borderRadius: 3,
-                  background: selectedMode === 'duel' ? '#dc2626' : '#15803d',
+                  background: selectedMode === 'duel' ? 'var(--color-danger)' : 'var(--color-success)',
                   color: '#fff',
                 }}
               >
@@ -242,10 +242,10 @@ export default function SubmitProof() {
         {/* Mode cards */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
           {([
-            { mode: 'solo' as CollabMode, icon: '◎', label: 'Solo', desc: 'Just you. All points are yours.' },
-            { mode: 'collab' as CollabMode, icon: '⬡', label: 'Collaboration', desc: 'Invite others. Everyone earns full points.' },
-            { mode: 'duel' as CollabMode, icon: '⚔', label: 'Duel', desc: 'Challenge one player. Winner takes the points.' },
-          ]).map(({ mode, icon, label, desc }) => {
+            { mode: 'solo' as CollabMode, eyebrowLabel: 'SOLO', label: 'Solo', desc: 'Just you. All points are yours.' },
+            { mode: 'collab' as CollabMode, eyebrowLabel: 'COLLAB', label: 'Collaboration', desc: 'Invite others. Everyone earns full points.' },
+            { mode: 'duel' as CollabMode, eyebrowLabel: 'DUEL', label: 'Duel', desc: 'Challenge one player. Winner takes the points.' },
+          ]).map(({ mode, eyebrowLabel, label, desc }) => {
             const active = selectedMode === mode
             return (
               <button
@@ -266,7 +266,7 @@ export default function SubmitProof() {
                 }}
               >
                 {active && <span style={{ position: 'absolute', inset: 2, border: '1px dashed var(--stamp-active-dashed)', pointerEvents: 'none' }} />}
-                <span style={{ display: 'block', fontSize: 18, marginBottom: 4 }}>{icon}</span>
+                <span className="eyebrow" style={{ display: 'block', marginBottom: 4 }}>{eyebrowLabel}</span>
                 <span style={{ display: 'block', marginBottom: 2 }}>{label}</span>
                 <span style={{ display: 'block', fontSize: 7, fontWeight: 400, opacity: 0.7, textTransform: 'none', letterSpacing: '0.02em' }}>{desc}</span>
               </button>
@@ -434,7 +434,7 @@ export default function SubmitProof() {
                   <span style={{
                     fontFamily: "'Courier Prime', monospace",
                     fontSize: 11, fontWeight: 700,
-                    color: selected ? '#15803d' : 'var(--color-text-tertiary)',
+                    color: selected ? 'var(--color-success)' : 'var(--color-text-tertiary)',
                     whiteSpace: 'nowrap',
                   }}>
                     +{mt.bonus_value} pts
@@ -618,7 +618,7 @@ export default function SubmitProof() {
           <div
             className="font-body"
             style={{
-              fontSize: 11, color: '#dc2626', marginTop: 8,
+              fontSize: 11, color: 'var(--color-danger)', marginTop: 8,
               padding: '8px 12px',
               background: 'rgba(220,38,38,0.06)',
               border: '1px solid rgba(220,38,38,0.2)',
@@ -665,7 +665,7 @@ export default function SubmitProof() {
       {/* ── Tips Panel (§18.5) ── */}
       <div className="sidebar-card mt-6" style={{ padding: '14px 16px' }}>
         <p className="eyebrow mb-2">What makes a good proof post</p>
-        <ul className="font-body" style={{ fontSize: 9, color: '#4a3f30', lineHeight: 1.6, paddingLeft: 14, listStyleType: 'disc' }}>
+        <ul className="font-body" style={{ fontSize: 9, color: 'var(--color-text-primary)', lineHeight: 1.6, paddingLeft: 14, listStyleType: 'disc' }}>
           <li>Write in first person. We want to feel like we were there.</li>
           <li>Specificity beats spectacle. A real moment with one pigeon beats a zoo photo.</li>
           <li>Photos and video help, but they don't replace the writing.</li>
