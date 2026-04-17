@@ -2,9 +2,8 @@ import api from './axios'
 
 export interface VoteOut {
   id: number
-  praxis_id: number | null
-  collaboration_id: number | null
-  duel_vote_for: number | null
+  praxis_id: number
+  praxis_member_id: number | null
   voter_character_id: number
   stars: number
   created_at: string

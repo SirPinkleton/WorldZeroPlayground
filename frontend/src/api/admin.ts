@@ -1,6 +1,6 @@
 import api from './axios'
 import type { TaskOut } from './tasks'
-import type { SubmissionOut } from './submissions'
+import type { PraxisOut } from './praxis'
 
 export interface PendingTaskOut extends TaskOut {
   created_by_name: string
@@ -63,8 +63,8 @@ export async function getMessages(archived = false): Promise<ContactMessageOut[]
   return data
 }
 
-export async function getFlaggedPraxes(): Promise<SubmissionOut[]> {
-  const { data } = await api.get<SubmissionOut[]>('/admin/praxes/flagged')
+export async function getFlaggedPraxes(): Promise<PraxisOut[]> {
+  const { data } = await api.get<PraxisOut[]>('/admin/praxes/flagged')
   return data
 }
 
@@ -118,8 +118,8 @@ export async function moderatePraxis(
   id: number,
   status: string,
   adminNote?: string,
-): Promise<SubmissionOut> {
-  const { data } = await api.patch<SubmissionOut>(`/admin/praxes/${id}/moderate`, {
+): Promise<PraxisOut> {
+  const { data } = await api.patch<PraxisOut>(`/admin/praxes/${id}/moderate`, {
     status,
     admin_note: adminNote || null,
   })
