@@ -1,24 +1,115 @@
-# DEPRECATED — use schemas/submission.py
-# This file is a thin shim kept for backward compatibility while routers
-# are updated in U.3. Do not add new logic here.
 from datetime import datetime
-from typing import Optional
-
-from pydantic import BaseModel, ConfigDict, Field
-
-from schemas.submission import MediaItemOut, SubmissionOut, SubmissionCreate
+from typing import List, Optional
+from pydantic import BaseModel
+from models.praxis import PraxisType, PraxisStatus, PraxisInviteStatus, MediaType, ModerationStatus
 
 
-class PraxisOut(SubmissionOut):
-    """Backward-compat alias for SubmissionOut (solo type)."""
-    pass
+class MediaItemOut(BaseModel):
+    id: int
+    praxis_id: int
+    type: MediaType
+    file_path: str
+    display_order: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PraxisMemberOut(BaseModel):
+    id: int
+    praxis_id: int
+    character_id: int
+    character_display_name: str  # populated by build_praxis_out
+    has_submitted: bool
+    joined_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PraxisInviteOut(BaseModel):
+    id: int
+    praxis_id: int
+    inviter_id: int
+    invitee_id: int
+    inviter_display_name: str   # populated by build_praxis_out
+    invitee_display_name: str   # populated by build_praxis_out
+    status: PraxisInviteStatus
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DuelVoteSummary(BaseModel):
+    member_id: int
+    character_id: int
+    character_display_name: str
+    total_stars: int
+    vote_count: int
+
+
+class PraxisOut(BaseModel):
+    id: int
+    task_id: int
+    task_title: str             # populated by build_praxis_out
+    task_point_value: int       # populated by build_praxis_out
+    type: PraxisType
+    status: PraxisStatus
+    title: Optional[str]
+    body_text: Optional[str]
+    is_withdrawn: bool
+    moderation_status: ModerationStatus
+    admin_note: Optional[str]
+    flagged_at: Optional[datetime]
+    created_by_id: int
+    created_by_display_name: str  # populated by build_praxis_out
+    created_at: datetime
+    updated_at: datetime
+    members: List[PraxisMemberOut]
+    invites: List[PraxisInviteOut]
+    media_items: List[MediaItemOut]
+    score: float                # populated by build_praxis_out
+    duel_vote_summary: Optional[List[DuelVoteSummary]]  # only for duels
+
+    model_config = {"from_attributes": True}
+
+
+class PraxisCardOut(BaseModel):
+    """Lightweight list-view schema."""
+    id: int
+    task_id: int
+    task_title: str
+    task_point_value: int
+    type: PraxisType
+    status: PraxisStatus
+    title: Optional[str]
+    is_withdrawn: bool
+    moderation_status: ModerationStatus
+    created_by_id: int
+    created_by_display_name: str
+    created_at: datetime
+    updated_at: datetime
+    member_count: int
+    score: float
+
+    model_config = {"from_attributes": True}
 
 
 class PraxisCreate(BaseModel):
     task_id: int
-    title: str = Field(..., max_length=200)
-    body_text: Optional[str] = Field(None, max_length=10000)
-    meta_task_id: Optional[int] = None
+    type: PraxisType = PraxisType.solo
+    title: Optional[str] = None
+    body_text: Optional[str] = None
 
 
-__all__ = ["PraxisOut", "PraxisCreate", "MediaItemOut"]
+class PraxisUpdate(BaseModel):
+    title: Optional[str] = None
+    body_text: Optional[str] = None
+
+
+class PraxisInviteCreate(BaseModel):
+    invitee_id: int
+
+
+class PraxisVoteIn(BaseModel):
+    stars: int
+    praxis_member_id: Optional[int] = None  # required for duel votes
