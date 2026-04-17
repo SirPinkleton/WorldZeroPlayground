@@ -176,7 +176,7 @@ async def get_character_praxes(
 ):
     result = await session.execute(
         select(Praxis)
-        .where(Praxis.character_id == character_id)
+        .where(Praxis.created_by_id == character_id)
         .order_by(Praxis.created_at.desc())
         .limit(limit)
         .offset(offset)
@@ -277,7 +277,7 @@ async def get_votes_received_count(
         select(func.count())
         .select_from(Vote)
         .join(Praxis, Vote.praxis_id == Praxis.id)
-        .where(Praxis.character_id == character_id)
+        .where(Praxis.created_by_id == character_id)
     )
     count = result.scalar_one()
     return {"character_id": character_id, "votes_received": count}

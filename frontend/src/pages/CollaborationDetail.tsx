@@ -2,17 +2,17 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getSubmission,
-  updateDocument,
-  submitForMember,
-  reopenSubmission,
+  getPraxis,
+  updatePraxis,
+  submitPraxis,
+  reopenPraxis,
   kickMember,
-  inviteMember,
-  getDuelVoteSummary,
-  castDuelVote,
-  type SubmissionOut,
+  inviteToPraxis,
+  votePraxis,
+  getPraxisVotes,
+  type PraxisOut,
   type DuelVoteSummary,
-} from '../api/submissions'
+} from '../api/praxis'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import { useAuth } from '../auth/AuthContext'
 import { factionColor, factionName, factionCssVar } from '../utils/factions'
@@ -31,7 +31,7 @@ export default function CollaborationDetail() {
   const locationState = location.state as { inviteErrors?: string[] } | null
   const [startupInviteErrors] = useState<string[]>(locationState?.inviteErrors ?? [])
 
-  const [collab, setCollab] = useState<SubmissionOut | null>(null)
+  const [collab, setCollab] = useState<PraxisOut | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -48,7 +48,7 @@ export default function CollaborationDetail() {
 
   // Duel votes
   const [duelVotes, setDuelVotes] = useState<DuelVoteSummary[]>([])
-  const [votingFor, setVotingFor] = useState<number | null>(null)
+  const [votingForMemberId, setVotingForMemberId] = useState<number | null>(null)
   const [voteStars, setVoteStars] = useState(0)
   const [castingVote, setCastingVote] = useState(false)
   const [voteError, setVoteError] = useState('')
@@ -57,35 +57,35 @@ export default function CollaborationDetail() {
   // Action errors
   const [actionError, setActionError] = useState('')
 
-  const collaborationId = id ? parseInt(id, 10) : null
+  const praxisId = id ? parseInt(id, 10) : null
 
   const loadCollab = useCallback(async () => {
-    if (!collaborationId) return
+    if (!praxisId) return
     try {
-      const data = await getSubmission(collaborationId)
+      const data = await getPraxis(praxisId)
       setCollab(data)
-      if (!editing) setDocDraft(data.collab_body_text ?? '')
+      if (!editing) setDocDraft(data.body_text ?? '')
     } catch {
       setFetchError('Could not load collaboration.')
     } finally {
       setLoading(false)
     }
-  }, [collaborationId, editing])
+  }, [praxisId, editing])
 
   const loadDuelVotes = useCallback(async () => {
-    if (!collaborationId || !collab || collab.collab_mode !== 'duel') return
+    if (!praxisId || !collab || collab.type !== 'duel') return
     try {
-      const votes = await getDuelVoteSummary(collaborationId)
-      setDuelVotes(votes)
+      const votes = await getPraxisVotes(praxisId)
+      setDuelVotes(votes as DuelVoteSummary[])
     } catch { /* non-fatal */ }
-  }, [collaborationId, collab])
+  }, [praxisId, collab])
 
   useEffect(() => {
     loadCollab()
   }, [loadCollab])
 
   useEffect(() => {
-    if (collab?.collab_mode === 'duel') loadDuelVotes()
+    if (collab?.type === 'duel') loadDuelVotes()
   }, [collab, loadDuelVotes])
 
   if (loading) {
@@ -97,20 +97,19 @@ export default function CollaborationDetail() {
 
   const isMember = collab.members.some((m) => m.character_id === myCharacterId)
   const myMember = collab.members.find((m) => m.character_id === myCharacterId)
-  const isPublished = collab.collab_status === 'published'
-  const isDuel = collab.collab_mode === 'duel'
-  const isCollab = collab.collab_mode === 'collaboration'
-  const taskColor = factionCssVar('ua') // fallback; task faction not on collab out directly
+  const isPublished = collab.status === 'submitted'
+  const isDuel = collab.type === 'duel'
+  const isCollab = collab.type === 'collab'
   const modeLabel = isDuel ? 'Duel' : 'Collaboration'
   const modeColor = isDuel ? 'var(--color-danger)' : 'var(--color-success)'
 
   const handleSaveDocument = async () => {
-    if (!collaborationId) return
+    if (!praxisId) return
     setSaving(true)
     try {
-      const updated = await updateDocument(collaborationId, docDraft)
+      const updated = await updatePraxis(praxisId, { body_text: docDraft })
       setCollab(updated)
-      setDocDraft(updated.collab_body_text ?? '')
+      setDocDraft(updated.body_text ?? '')
       setEditing(false)
     } catch {
       setActionError('Could not save document.')
@@ -119,21 +118,22 @@ export default function CollaborationDetail() {
   }
 
   const handleSubmit = async () => {
-    if (!collaborationId) return
+    if (!praxisId) return
     setActionError('')
     try {
-      const updated = await submitForMember(collaborationId)
+      const updated = await submitPraxis(praxisId)
       setCollab(updated)
-    } catch (err: any) {
-      setActionError(err?.response?.data?.detail ?? 'Could not submit.')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } }
+      setActionError(axiosErr?.response?.data?.detail ?? 'Could not submit.')
     }
   }
 
   const handleReopen = async () => {
-    if (!collaborationId) return
+    if (!praxisId) return
     setActionError('')
     try {
-      const updated = await reopenSubmission(collaborationId)
+      const updated = await reopenPraxis(praxisId)
       setCollab(updated)
       setEditing(false)
     } catch {
@@ -141,12 +141,12 @@ export default function CollaborationDetail() {
     }
   }
 
-  const handleKick = async (targetId: number, name: string) => {
-    if (!collaborationId || !window.confirm(`Remove ${name} from this ${modeLabel.toLowerCase()}?`)) return
+  const handleKick = async (memberId: number, name: string) => {
+    if (!praxisId || !window.confirm(`Remove ${name} from this ${modeLabel.toLowerCase()}?`)) return
     setActionError('')
     try {
-      const updated = await kickMember(collaborationId, targetId)
-      setCollab(updated)
+      await kickMember(praxisId, memberId)
+      await loadCollab()
     } catch {
       setActionError('Could not remove member.')
     }
@@ -167,30 +167,32 @@ export default function CollaborationDetail() {
   }
 
   const handleSendInvite = async (character: CharacterOut) => {
-    if (!collaborationId) return
+    if (!praxisId) return
     setInviteError('')
     setInviteQuery('')
     setShowInviteDropdown(false)
     try {
-      await inviteMember(collaborationId, character.id)
+      await inviteToPraxis(praxisId, character.id)
       await loadCollab()
-    } catch (err: any) {
-      setInviteError(err?.response?.data?.detail ?? 'Could not send invite.')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } }
+      setInviteError(axiosErr?.response?.data?.detail ?? 'Could not send invite.')
     }
   }
 
   const handleCastVote = async () => {
-    if (!collaborationId || !votingFor || !voteStars) return
+    if (!praxisId || !votingForMemberId || !voteStars) return
     setCastingVote(true)
     setVoteError('')
     try {
-      await castDuelVote(collaborationId, votingFor, voteStars)
+      await votePraxis(praxisId, { stars: voteStars, praxis_member_id: votingForMemberId })
       setVoteSuccess(true)
-      setVotingFor(null)
+      setVotingForMemberId(null)
       setVoteStars(0)
       await loadDuelVotes()
-    } catch (err: any) {
-      setVoteError(err?.response?.data?.detail ?? 'Could not cast vote.')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } }
+      setVoteError(axiosErr?.response?.data?.detail ?? 'Could not cast vote.')
     }
     setCastingVote(false)
   }
@@ -254,7 +256,7 @@ export default function CollaborationDetail() {
         <p className="eyebrow mb-3">{isDuel ? 'Competitors' : 'Members'} ({collab.members.length})</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {collab.members.map((member) => {
-            const color = factionColor(member.faction_slug)
+            const color = factionColor(null)
             const isMe = member.character_id === myCharacterId
             return (
               <div
@@ -279,12 +281,9 @@ export default function CollaborationDetail() {
                     className="font-body"
                     style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-primary)', textDecoration: 'none' }}
                   >
-                    {member.display_name}
+                    {member.character_display_name}
                     {isMe && <span className="eyebrow" style={{ marginLeft: 6, fontSize: 7 }}>(you)</span>}
                   </Link>
-                  <span className="eyebrow" style={{ display: 'block', fontSize: 7, marginTop: 1 }}>
-                    {factionName(member.faction_slug)}
-                  </span>
                 </div>
                 <span
                   style={{
@@ -301,7 +300,7 @@ export default function CollaborationDetail() {
                 {/* Kick button — any member can kick others (not themselves) */}
                 {isMember && !isMe && !isPublished && (
                   <button
-                    onClick={() => handleKick(member.character_id, member.display_name)}
+                    onClick={() => handleKick(member.id, member.character_display_name)}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       color: 'var(--color-text-tertiary)', fontSize: 10,
@@ -416,7 +415,7 @@ export default function CollaborationDetail() {
           <p className="eyebrow">Shared Document</p>
           {isMember && !editing && (
             <button
-              onClick={() => { setEditing(true); setDocDraft(collab.collab_body_text ?? '') }}
+              onClick={() => { setEditing(true); setDocDraft(collab.body_text ?? '') }}
               style={{
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
@@ -475,9 +474,9 @@ export default function CollaborationDetail() {
               </button>
             </div>
           </div>
-        ) : collab.collab_body_text ? (
+        ) : collab.body_text ? (
           <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--color-text-primary)' }}>
-            <ReactMarkdown>{collab.collab_body_text}</ReactMarkdown>
+            <ReactMarkdown>{collab.body_text}</ReactMarkdown>
           </div>
         ) : (
           <p className="font-body" style={{ fontSize: 12, color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
@@ -496,7 +495,7 @@ export default function CollaborationDetail() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {duelVotes.map((v) => (
                 <div
-                  key={v.character_id}
+                  key={v.member_id}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '8px 12px',
@@ -513,11 +512,11 @@ export default function CollaborationDetail() {
                     }}
                   />
                   <span className="font-body" style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>
-                    {v.display_name}
+                    {v.character_display_name}
                     {v.is_winning && <span style={{ marginLeft: 8, color: 'var(--color-danger)', fontSize: 10 }}>leading</span>}
                   </span>
                   <span className="eyebrow" style={{ fontSize: 9 }}>
-                    {v.total_stars} stars
+                    {v.total_stars} stars ({v.vote_count} votes)
                   </span>
                 </div>
               ))}
@@ -534,22 +533,22 @@ export default function CollaborationDetail() {
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {collab.members.map((member) => (
-                      <div key={member.character_id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <button
-                          onClick={() => setVotingFor(votingFor === member.character_id ? null : member.character_id)}
+                          onClick={() => setVotingForMemberId(votingForMemberId === member.id ? null : member.id)}
                           style={{
                             fontFamily: "'Courier Prime', monospace",
                             fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
                             padding: '4px 12px',
-                            background: votingFor === member.character_id ? 'var(--color-danger)' : 'transparent',
-                            color: votingFor === member.character_id ? '#fff' : 'var(--color-text-primary)',
-                            border: `1px solid ${votingFor === member.character_id ? 'var(--color-danger)' : 'var(--color-border)'}`,
+                            background: votingForMemberId === member.id ? 'var(--color-danger)' : 'transparent',
+                            color: votingForMemberId === member.id ? '#fff' : 'var(--color-text-primary)',
+                            border: `1px solid ${votingForMemberId === member.id ? 'var(--color-danger)' : 'var(--color-border)'}`,
                             cursor: 'pointer',
                           }}
                         >
-                          {member.display_name}
+                          {member.character_display_name}
                         </button>
-                        {votingFor === member.character_id && (
+                        {votingForMemberId === member.id && (
                           <div style={{ display: 'flex', gap: 2 }}>
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
@@ -572,7 +571,7 @@ export default function CollaborationDetail() {
                       </div>
                     ))}
                   </div>
-                  {votingFor !== null && voteStars > 0 && (
+                  {votingForMemberId !== null && voteStars > 0 && (
                     <button
                       onClick={handleCastVote}
                       disabled={castingVote}
@@ -592,58 +591,6 @@ export default function CollaborationDetail() {
                   )}
                 </>
               )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* My Proof — edit link for current member */}
-      {isMember && !isPublished && (
-        <div className="sidebar-card mb-4" style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <p className="eyebrow">My Proof</p>
-            <button
-              onClick={() => navigate(`/collaborations/${id}/edit`)}
-              style={{
-                fontFamily: "'Courier Prime', monospace",
-                fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
-                background: 'transparent', border: `1px solid ${modeColor}`,
-                padding: '3px 10px', cursor: 'pointer',
-                color: modeColor,
-              }}
-            >
-              Edit my proof
-            </button>
-          </div>
-          {myMember?.title ? (
-            <div>
-              <p className="font-display italic" style={{ fontSize: 16, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                {myMember.title}
-              </p>
-              {myMember.body_text && (
-                <p className="font-body" style={{ fontSize: 12, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>
-                  {myMember.body_text.length > 200 ? myMember.body_text.slice(0, 200) + '…' : myMember.body_text}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="font-body" style={{ fontSize: 12, color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
-              No proof written yet. Click "Edit my proof" to add your submission.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* My Proof — read-only view when published */}
-      {isMember && isPublished && myMember?.title && (
-        <div className="sidebar-card mb-4" style={{ padding: '16px 20px' }}>
-          <p className="eyebrow mb-3">My Proof</p>
-          <p className="font-display italic" style={{ fontSize: 16, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-            {myMember.title}
-          </p>
-          {myMember.body_text && (
-            <div className="markdown-preview font-display" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--color-text-primary)', marginTop: 8 }}>
-              <ReactMarkdown>{myMember.body_text}</ReactMarkdown>
             </div>
           )}
         </div>

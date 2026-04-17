@@ -42,8 +42,9 @@ class EraConfig:
     config_key: str                  # matched to Era.config_key in DB for historical record
 
     # Task rules
-    max_task_signups: int            # max active CharacterTask rows per character
+    max_task_signups: int            # max concurrent in_progress praxes per character
     task_submit_level_gap: int       # how many levels above your own you can submit praxis
+    max_duel_participants: int       # max members in a duel praxis
 
     # Vote budget: available = base + (multiplier x score)
     vote_budget_base: int

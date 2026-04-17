@@ -48,7 +48,7 @@ class Character(Base):
     )
     praxes: Mapped[List["Praxis"]] = relationship(
         "Praxis",
-        back_populates="character",
-        foreign_keys="Praxis.character_id",
+        back_populates="created_by",
+        foreign_keys="Praxis.created_by_id",
         lazy="raise",
     )

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
-import { getTask, getMyTasks, signupTask, dropTask, getTaskSignups, type TaskOut, type TaskSignupOut } from '../api/tasks'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
+import { getTask, getTaskSignups, type TaskOut, type TaskSignupOut } from '../api/tasks'
+import { listPraxes, createPraxis, withdrawPraxis, type PraxisCardOut } from '../api/praxis'
 import { listRelationships } from '../api/relationships'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import PraxisCard from '../components/PraxisCard'
@@ -23,7 +23,7 @@ export default function TaskDetail() {
   const location = useLocation()
   const { user } = useAuth()
   const [task, setTask] = useState<TaskOut | null>(null)
-  const [submissions, setSubmissions] = useState<SubmissionOut[]>([])
+  const [submissions, setSubmissions] = useState<PraxisCardOut[]>([])
   const [signups, setSignups] = useState<TaskSignupOut[]>([])
   const [metaTasks, setMetaTasks] = useState<MetaTaskOut[]>([])
   const [isInProgress, setIsInProgress] = useState(false)
@@ -51,12 +51,12 @@ export default function TaskDetail() {
 
     const fetches: Promise<unknown>[] = [
       getTask(taskId),
-      listSubmissions({ task_id: taskId }),
+      listPraxes({ task_id: taskId }),
       getTaskSignups(taskId),
       getMetaTasks(taskId).catch(() => []),
     ]
     if (user) {
-      fetches.push(getMyTasks('in_progress'))
+      fetches.push(listPraxes({ character_id: user.character?.id, status: 'in_progress' }))
       fetches.push(
         listRelationships({ type: 'friend' }).then((rels) =>
           new Set(rels.filter((r) => r.status === 'active').map((r) => r.to_character_id))
@@ -72,13 +72,13 @@ export default function TaskDetail() {
     Promise.all(fetches)
       .then(([t, s, sg, mt, myTasks, friendSet, foeSet]) => {
         setTask(t as TaskOut)
-        setSubmissions(s as PraxisOut[])
+        setSubmissions(s as PraxisCardOut[])
         setSignups(sg as TaskSignupOut[])
         setMetaTasks(mt as MetaTaskOut[])
         if (myTasks) {
-          const tasks = myTasks as { task: { id: number } }[]
-          setIsInProgress(tasks.some((ct) => ct.task.id === taskId))
-          setTaskSlotCount(tasks.length)
+          const praxes = myTasks as PraxisCardOut[]
+          setIsInProgress(praxes.some((p) => p.task_id === taskId && !p.is_withdrawn))
+          setTaskSlotCount(praxes.filter((p) => !p.is_withdrawn).length)
         }
         if (friendSet) setFriends(friendSet as Set<number>)
         if (foeSet) setFoes(foeSet as Set<number>)
@@ -90,32 +90,33 @@ export default function TaskDetail() {
   // Re-fetch submissions when sort changes
   useEffect(() => {
     if (!id) return
-    listSubmissions({ task_id: parseInt(id, 10) })
+    listPraxes({ task_id: parseInt(id, 10) })
       .then((s) => setSubmissions(s))
       .catch(() => {})
   }, [submissionSort, id])
 
   const mySubmission = user?.character
-    ? submissions.find((s) => s.character_id === user.character!.id)
+    ? submissions.find((s) => s.created_by_id === user.character!.id && !s.is_withdrawn)
     : undefined
 
   const handleSignup = async () => {
     if (!task) return
     setSignupError(null)
     try {
-      await signupTask(task.id)
-      navigate(`/tasks/${task.id}/submit`)
+      const praxis = await createPraxis({ task_id: task.id, type: 'solo' })
+      navigate(`/praxes/${praxis.id}/edit`)
     } catch (err) {
       setSignupError(extractError(err, 'Could not sign up for this task.'))
     }
   }
 
   const handleDrop = async () => {
-    if (!task || !window.confirm('Drop this task? You can sign up again later.')) return
+    if (!task || !mySubmission || !window.confirm('Drop this task? You can sign up again later.')) return
     setSignupError(null)
     try {
-      await dropTask(task.id)
+      await withdrawPraxis(mySubmission.id)
       setIsInProgress(false)
+      setSubmissions((prev) => prev.map((s) => s.id === mySubmission.id ? { ...s, is_withdrawn: true } : s))
     } catch (err) {
       setSignupError(extractError(err, 'Could not drop this task.'))
     }

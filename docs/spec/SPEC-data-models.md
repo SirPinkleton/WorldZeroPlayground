@@ -1,6 +1,6 @@
 # World Zero — Data Models
 
-> Last synced with code: 2026-04-15
+> Last synced with code: 2026-04-16
 
 ## 5. Data Models
 
@@ -65,7 +65,7 @@ updated_at
 id
 character_id         -- FK -> Character
 era_id               -- FK -> Era
-score                -- sum of non-flagged submission scores for this era (default 0)
+score                -- sum of non-flagged praxis scores for this era (default 0)
 all_time_score       -- cumulative, never resets (default 0)
 level                -- integer 0-8; derived from score (default 0)
 votes_available      -- spendable budget; formula from EraConfig (default 0)
@@ -94,11 +94,11 @@ id
 title
 description          -- rich text / markdown (default "")
 point_value          -- base point value
-level_required       -- players must be >= this level to sign up (default 0)
+level_required       -- players must be >= this level to create a praxis (default 0)
 status               -- enum: pending | active | retired (TaskStatus)
 created_by           -- FK -> Character (admin character)
 primary_faction_slug -- FK -> Faction.slug, default "na" (cross-faction sentinel)
-is_task_vision_eligible -- bool; Journeymen can sign up for these when pretired/retired
+is_task_vision_eligible -- bool; Journeymen can see these when pretired/retired
 created_at
 updated_at
 ```
@@ -110,78 +110,53 @@ faction_slug         -- PK, FK -> Faction.slug
 is_primary
 ```
 
-### CharacterTask
-```
-id
-character_id         -- FK -> Character
-task_id              -- FK -> Task
-signed_up_at
-status               -- enum: in_progress | submitted | abandoned (CharacterTaskStatus)
-updated_at
-```
-*Active rows capped at `EraConfig.max_task_signups` per character, enforced at API layer.*
-
-### Submission (STI — all submission types)
-Single-table inheritance. The `submission_type` discriminator column determines
-which nullable columns are active. All three types share the `id`, `task_id`,
-`moderation_status`, `is_withdrawn`, `admin_note`, `flagged_at`, `created_at`,
-and `updated_at` columns.
+### Praxis
+The canonical work-submission aggregate. Replaces the former Submission + Collaboration tables.
+All three praxis types (solo, collab, duel) share this table.
 
 ```
 id
 task_id              -- FK -> Task (NOT NULL)
-submission_type      -- enum: solo | collaboration | duel (SubmissionType); discriminator
-
--- Shared columns
-moderation_status    -- enum: visible | flagged | hidden | failed (ModerationStatus); default "visible"
+type                 -- enum: solo | collab | duel (PraxisType)
+status               -- enum: in_progress | submitted (PraxisStatus); default in_progress
+title                -- nullable text
+body_text            -- nullable text; rich text / markdown proof
 is_withdrawn         -- bool, default false
-admin_note           -- text, nullable (set by admin on failed/hidden)
+moderation_status    -- string (visible | flagged | hidden | failed); default "visible"
+admin_note           -- nullable text (set by admin on failed/hidden)
 flagged_at           -- nullable; NULL means "not yet flagged"
+created_by_id        -- FK -> Character (the player who initiated)
 created_at
 updated_at
-
--- Solo-only (NULL when type is collaboration or duel)
-character_id         -- FK -> Character (the submitting player)
-title                -- submission title
-body_text            -- rich text / markdown proof text
-
--- Collaboration/duel-only (NULL when type is solo)
-created_by_id        -- FK -> Character (the player who initiated)
-collab_mode          -- enum: collaboration | duel; mirrors submission_type for legacy compat
-collab_status        -- enum: in_progress | published
-collab_body_text     -- shared document; all members edit this (default "")
 ```
 *Score is computed on-the-fly from votes; not stored.*
-*Replaces the former `Praxis` (solo) and `Collaboration` (collab/duel) tables.*
+*Bank cap: at most `EraConfig.max_task_signups` in-progress praxes per character (enforced at service layer).*
 
-### SubmissionMember
+### PraxisMember
 ```
 id
-submission_id        -- FK -> Submission (collaboration/duel only)
+praxis_id            -- FK -> Praxis
 character_id         -- FK -> Character
-has_submitted        -- bool; whether this member has pressed Submit (resets on edit or kick)
-title                -- per-member title (nullable)
-body_text            -- per-member body text (nullable)
+has_submitted        -- bool; whether this member pressed Submit (resets on kick/reopen)
 joined_at
-CONSTRAINT: unique(submission_id, character_id)
+CONSTRAINT: unique(praxis_id, character_id)
 ```
 
-### SubmissionInvite
+### PraxisInvite
 ```
 id
-submission_id        -- FK -> Submission
+praxis_id            -- FK -> Praxis
 inviter_id           -- FK -> Character
 invitee_id           -- FK -> Character
-invite_type          -- enum: collaboration | duel
-status               -- enum: pending | accepted | declined (SubmissionInviteStatus)
+status               -- enum: pending | accepted | declined (PraxisInviteStatus)
 created_at
 ```
-*Only one pending invite per (submission_id, inviter_id, invitee_id) is allowed — enforced at service layer.*
+*Only one pending invite per (praxis_id, inviter_id, invitee_id) is allowed — enforced at service layer.*
 
 ### MediaItem
 ```
 id
-submission_id        -- FK -> Submission
+praxis_id            -- FK -> Praxis
 type                 -- enum: image | video | audio (MediaType)
 file_path            -- relative path (structured for S3 swap in v2)
 display_order        -- default 0
@@ -191,23 +166,23 @@ created_at
 ### Vote
 ```
 id
-submission_id        -- FK -> Submission (NOT NULL)
+praxis_id            -- FK -> Praxis (NOT NULL)
+praxis_member_id     -- FK -> PraxisMember (nullable; required for duel votes only)
 voter_character_id   -- FK -> Character
 voter_account_id     -- FK -> Account (denormalized for anti-self-vote check)
 stars                -- integer 1-5
-duel_vote_for        -- FK -> Character (nullable; Duels only — which player this vote is for)
 created_at
 updated_at           -- votes can be updated; update costs 0 additional budget
-CONSTRAINT: unique(submission_id, voter_character_id)             -- solo/collab votes
-CONSTRAINT: unique(submission_id, voter_character_id, duel_vote_for)  -- duel votes
+CONSTRAINT: unique(praxis_id, voter_character_id)                        -- solo/collab votes
+CONSTRAINT: unique(praxis_id, voter_character_id, praxis_member_id)      -- duel votes
 ```
-*For duel votes, duel_vote_for is required.*
-*Anti-self-vote: duel members cannot vote on their own submission.*
+*For duel votes, praxis_member_id is required.*
+*Anti-self-vote: duel members cannot vote on their own praxis; solo/collab uses account-level check.*
 
 ### Flag
 ```
 id
-submission_id        -- FK -> Submission
+praxis_id            -- FK -> Praxis
 flagged_by           -- FK -> Character
 reason               -- text (default "")
 created_at
@@ -243,7 +218,7 @@ id
 from_character_id    -- FK -> Character
 to_character_id      -- FK -> Character
 message              -- text
-trigger_type         -- enum: score_overtake | level_up | submission_complete (TauntTriggerType)
+trigger_type         -- enum: score_overtake | level_up | praxis_complete (TauntTriggerType)
 created_at
 ```
 *Auto-generated messages between foes triggered by game events. Templates live in game_config.py.*
@@ -272,9 +247,9 @@ created_at
 updated_at
 ```
 
-### SubmissionMetaTask
+### PraxisMetaTask
 ```
-submission_id        -- PK, FK -> Submission
+praxis_id            -- PK, FK -> Praxis
 meta_task_id         -- PK, FK -> MetaTask
 applied_at
 ```
@@ -300,14 +275,12 @@ created_at
 | CharacterStatus | active, paused, banned | Character.status |
 | FactionStatus | visible, hidden, deprecated | Faction.status |
 | TaskStatus | pending, active, retired | Task.status |
-| CharacterTaskStatus | in_progress, submitted, abandoned | CharacterTask.status |
+| PraxisType | solo, collab, duel | Praxis.type |
+| PraxisStatus | in_progress, submitted | Praxis.status |
+| PraxisInviteStatus | pending, accepted, declined | PraxisInvite.status |
 | MediaType | image, video, audio | MediaItem.type |
-| SubmissionType | solo, collaboration, duel | Submission.submission_type |
-| CollabModeEnum | collaboration, duel | Submission.collab_mode, SubmissionInvite.invite_type |
-| SubmissionStatus | in_progress, published | Submission.collab_status |
-| SubmissionInviteStatus | pending, accepted, declined | SubmissionInvite.status |
-| ModerationStatus | visible, flagged, hidden, failed | Submission.moderation_status |
+| ModerationStatus | visible, flagged, hidden, failed | Praxis.moderation_status |
 | RelationshipType | friend, foe | Relationship.type |
 | RelationshipStatus | active, blocked | Relationship.status |
 | BonusType | flat, percentage | MetaTask.bonus_type |
-| TauntTriggerType | score_overtake, level_up, submission_complete | TauntMessage.trigger_type |
+| TauntTriggerType | score_overtake, level_up, praxis_complete | TauntMessage.trigger_type |

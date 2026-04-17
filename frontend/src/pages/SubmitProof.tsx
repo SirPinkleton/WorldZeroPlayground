@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { createSoloSubmission, addMedia, createCollabSubmission, inviteMember } from '../api/submissions'
-import { getTask, dropTask, type TaskOut } from '../api/tasks'
+import { createPraxis, uploadPraxisMedia, inviteToPraxis } from '../api/praxis'
+import { getTask, type TaskOut } from '../api/tasks'
 import { listCharacters, type CharacterOut } from '../api/characters'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import LevelPill from '../components/ui/LevelPill'
@@ -71,16 +71,17 @@ export default function SubmitProof() {
     setError('')
     try {
       if (selectedMode !== 'solo') {
-        // Collaboration or duel: create a unified submission, send invites, redirect to collab page
-        const mode = selectedMode === 'duel' ? 'duel' : 'collaboration'
-        const collab = await createCollabSubmission(parseInt(id, 10), mode)
+        // Collaboration or duel: create a praxis, send invites, redirect to praxis page
+        const praxisType = selectedMode === 'duel' ? 'duel' : 'collab'
+        const collab = await createPraxis({ task_id: parseInt(id, 10), type: praxisType })
         // Send invites to all selected partners; collect any eligibility errors
         const inviteErrors: string[] = []
         for (const partner of invitedPartners) {
           try {
-            await inviteMember(collab.id, partner.id)
-          } catch (inviteErr: any) {
-            const detail: string = inviteErr?.response?.data?.detail ?? `Could not invite ${partner.name}.`
+            await inviteToPraxis(collab.id, partner.id)
+          } catch (inviteErr: unknown) {
+            const axiosErr = inviteErr as { response?: { data?: { detail?: string } } }
+            const detail: string = axiosErr?.response?.data?.detail ?? `Could not invite ${partner.name}.`
             inviteErrors.push(`${partner.name}: ${detail}`)
           }
         }
@@ -94,19 +95,19 @@ export default function SubmitProof() {
       } else {
         // Solo submission
         if (!title.trim()) { setError('Title is required.'); setSaving(false); return }
-        const submission = await createSoloSubmission({
+        const submission = await createPraxis({
           task_id: parseInt(id, 10),
+          type: 'solo',
           title,
           body_text: body || undefined,
-          meta_task_id: selectedMetaTaskId ?? undefined,
         })
         for (const file of files) {
-          await addMedia(submission.id, file)
+          await uploadPraxisMedia(submission.id, file)
         }
         void refetch()
         navigate(`/praxes/${submission.id}`)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(extractError(err, 'Could not submit. Please try again.'))
     } finally {
       setSaving(false)
@@ -160,13 +161,8 @@ export default function SubmitProof() {
   }
 
   const handleDrop = async () => {
-    if (!task || !window.confirm('Drop this task? You can sign up again later.')) return
-    try {
-      await dropTask(task.id)
-      navigate(`/tasks/${task.id}`)
-    } catch {
-      setError('Could not drop this task.')
-    }
+    if (!task) return
+    navigate(`/tasks/${task.id}`)
   }
 
   const color = factionCssVar(task?.primary_faction_slug)

@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getSubmission,
-  updateMemberContent,
-  type SubmissionOut,
-} from '../api/submissions'
+  getPraxis,
+  updatePraxis,
+  type PraxisOut,
+} from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
-import { factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
 const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)', 'var(--underline-1)', 'var(--underline-2)']
@@ -20,46 +19,45 @@ export default function EditCollaboration() {
   const { theme } = useTheme()
   const dark = theme === 'dark'
 
-  const [collab, setCollab] = useState<SubmissionOut | null>(null)
+  const [collab, setCollab] = useState<PraxisOut | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const collaborationId = id ? parseInt(id, 10) : null
+  const praxisId = id ? parseInt(id, 10) : null
 
   useEffect(() => {
-    if (!collaborationId) return
-    getSubmission(collaborationId)
+    if (!praxisId) return
+    getPraxis(praxisId)
       .then((data) => {
         const myCharacterId = user?.character?.id
-        const myMember = data.members.find((m) => m.character_id === myCharacterId)
-        if (!myMember) {
-          navigate(`/collaborations/${id}`, { replace: true })
+        const isMember = data.members.some((m) => m.character_id === myCharacterId)
+        if (!isMember) {
+          navigate(`/praxes/${id}`, { replace: true })
           return
         }
-        if (data.collab_status === 'published') {
-          navigate(`/collaborations/${id}`, { replace: true })
+        if (data.status === 'submitted') {
+          navigate(`/praxes/${id}`, { replace: true })
           return
         }
         setCollab(data)
-        setTitle(myMember.title ?? '')
-        setBody(myMember.body_text ?? '')
+        setTitle(data.title ?? '')
+        setBody(data.body_text ?? '')
       })
       .catch(() => setError("Couldn't load this collaboration."))
       .finally(() => setLoading(false))
-  }, [collaborationId, user])
+  }, [praxisId, user])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!collaborationId) return
-    if (!title.trim()) { setError('Title is required.'); return }
+    if (!praxisId) return
     setSaving(true)
     setError('')
     try {
-      await updateMemberContent(collaborationId, title, body || undefined)
-      navigate(`/collaborations/${id}`)
+      await updatePraxis(praxisId, { title: title || undefined, body_text: body || undefined })
+      navigate(`/praxes/${id}`)
     } catch (err) {
       setError(extractError(err, 'Could not save changes.'))
     } finally {
@@ -71,10 +69,9 @@ export default function EditCollaboration() {
   if (error && !collab) return <div className="py-8 font-body text-sm" style={{ color: '#dc2626' }}>{error}</div>
   if (!collab) return null
 
-  const isDuel = collab.collab_mode === 'duel'
+  const isDuel = collab.type === 'duel'
   const modeLabel = isDuel ? 'Duel' : 'Collaboration'
   const modeColor = isDuel ? '#dc2626' : '#15803d'
-  const partners = collab.members.filter((m) => m.character_id !== user?.character?.id)
   const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0
 
   return (
@@ -85,45 +82,32 @@ export default function EditCollaboration() {
         {' › '}
         <Link to={`/tasks/${collab.task_id}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>{collab.task_title}</Link>
         {' › '}
-        <Link to={`/collaborations/${id}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>{modeLabel}</Link>
+        <Link to={`/praxes/${id}`} style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>{modeLabel}</Link>
         {' › '}
-        <span style={{ color: 'var(--color-text-primary)' }}>Edit My Proof</span>
+        <span style={{ color: 'var(--color-text-primary)' }}>Edit</span>
       </nav>
 
       {/* Context header */}
       <div className="sidebar-card mb-5" style={{ padding: '16px 20px', borderLeft: `4px solid ${modeColor}` }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <span
-              style={{
-                fontFamily: "'Courier Prime', monospace",
-                fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', padding: '2px 8px',
-                background: modeColor, color: '#fff',
-                marginBottom: 6, display: 'inline-block',
-              }}
-            >
-              {modeLabel}
-            </span>
-            <Link
-              to={`/tasks/${collab.task_id}`}
-              className="font-display italic"
-              style={{ fontSize: 18, color: modeColor, textDecoration: 'none', display: 'block', marginBottom: 4 }}
-            >
-              {collab.task_title}
-            </Link>
-            {partners.length > 0 && (
-              <span className="eyebrow" style={{ fontSize: 8, color: 'var(--color-text-secondary)' }}>
-                {isDuel ? 'vs ' : 'with '}
-                {partners.map((p) => p.display_name).join(', ')}
-                {partners[0]?.faction_slug && (
-                  <span style={{ marginLeft: 4, color: 'var(--color-text-tertiary)' }}>
-                    · {factionName(partners[0].faction_slug)}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
+        <div style={{ flex: 1 }}>
+          <span
+            style={{
+              fontFamily: "'Courier Prime', monospace",
+              fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.1em', padding: '2px 8px',
+              background: modeColor, color: '#fff',
+              marginBottom: 6, display: 'inline-block',
+            }}
+          >
+            {modeLabel}
+          </span>
+          <Link
+            to={`/tasks/${collab.task_id}`}
+            className="font-display italic"
+            style={{ fontSize: 18, color: modeColor, textDecoration: 'none', display: 'block', marginBottom: 4 }}
+          >
+            {collab.task_title}
+          </Link>
         </div>
       </div>
 
@@ -132,13 +116,13 @@ export default function EditCollaboration() {
         <div className="sidebar-card" style={{ padding: '16px 18px', borderRadius: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
             <span className="eyebrow">Title</span>
-            <span className="font-body" style={{ fontSize: 8, fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}>required</span>
+            <span className="font-body" style={{ fontSize: 8, fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}>optional</span>
           </div>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="What did you do?"
+            placeholder="Give it a title..."
             maxLength={200}
             style={{
               width: '100%',
@@ -149,8 +133,6 @@ export default function EditCollaboration() {
               outline: 'none', paddingBottom: 6,
               transition: 'border-color 150ms',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderBottomColor = modeColor }}
-            onBlur={(e) => { if (!title) e.currentTarget.style.borderBottomColor = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)' }}
           />
           {title && (
             <div style={{ display: 'flex', height: 3, marginTop: 4, opacity: 0.6 }}>
@@ -168,7 +150,7 @@ export default function EditCollaboration() {
         {/* Body */}
         <div className="sidebar-card" style={{ padding: '16px 18px', borderRadius: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-            <span className="eyebrow">The proof</span>
+            <span className="eyebrow">Document / Notes</span>
             <span className="font-body" style={{ fontSize: 8, fontStyle: 'italic', color: 'var(--color-text-tertiary)' }}>supports markdown</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -218,11 +200,11 @@ export default function EditCollaboration() {
             }}
           >
             <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-            {saving ? 'Saving...' : 'Save proof'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/collaborations/${id}`)}
+            onClick={() => navigate(`/praxes/${id}`)}
             style={{
               background: 'transparent',
               fontFamily: "'Courier Prime', monospace",

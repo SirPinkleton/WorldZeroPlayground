@@ -71,10 +71,10 @@ through a service. Treat them as aggregates even without the ceremony.
 
 | Aggregate root | Owns |
 |---|---|
-| `Character` | `CharacterStats` (per-era), `CharacterTask` (signups), `Relationship` (as `from_character`) |
-| `Submission` | `SubmissionMember`, `SubmissionInvite`, `MediaItem`, `Vote`, `Flag`, `SubmissionMetaTask` |
+| `Character` | `CharacterStats` (per-era), `Relationship` (as `from_character`) |
+| `Praxis` | `PraxisMember`, `PraxisInvite`, `MediaItem`, `Vote`, `Flag`, `PraxisMetaTask` |
 | `Account` | `OAuthProvider`, `AccountRole` |
-| `Task` | `CharacterTask` (on the task side — shared with Character aggregate; services enforce consistency) |
+| `Task` | (referenced by Praxis; tasks themselves are admin-curated records) |
 
 `Era` is a **value object**, not an aggregate. The DB `Era` row is an
 immutable historical record of which `config_key` was active — the rules
@@ -139,8 +139,8 @@ Anything that needs to know about game state (level, faction, era) belongs in
 the service. Anything that only needs to know "is the caller logged in / is
 the caller admin" belongs in a FastAPI dependency.
 
-Do not scatter level-gate checks across route handlers. If `flag_submission`
-requires level 4, that check lives inside `services/submission.py::flag_submission`.
+Do not scatter level-gate checks across route handlers. If `flag_praxis`
+requires level 4, that check lives inside `services/praxis.py::flag_praxis`.
 
 ---
 
@@ -153,10 +153,12 @@ docs**:
 |---|---|---|
 | Private login identity | **Account** | Not "User". The word "User" does not appear in code. |
 | Public game persona | **Character** | |
-| Completed-task artifact (the noun) | **Submission** | A player *submits* a submission. "Submit" is the verb; "submission" is the noun. The STI `Submission` table covers solo praxes, collaborations, and duels. |
-| The act of posting a praxis (the verb) | **submit** | Use "submit" / "submitted" as the verb; never as the noun for the artifact. |
+| Completed-task artifact (the noun) | **Praxis** | The canonical noun for any proof-of-work submission. Covers solo, collab, and duel types. Table: `praxis`. |
+| The act of marking proof ready | **submit** | Use "submit" / "submitted" as the verb; `PraxisStatus.submitted` as the state. |
+| Multi-member proof-of-work | **collab praxis** (type=collab) | Both members must submit; praxis reaches `submitted` when all do. |
+| Head-to-head competition | **duel praxis** (type=duel) | Votes are per-member via `praxis_member_id`. Winner determined by star total. |
 | Activity unit players complete | **Task** | |
-| Community rating of a submission | **Vote** | |
+| Community rating of a praxis | **Vote** | |
 | Ruleset for a playing period | **Era** | |
 | Player group with a slug + modifiers | **Faction** | |
 | Star-rating granted by a voter | **stars** | 1–5 integer. |
@@ -176,12 +178,12 @@ use the canonical one.
   primitives + `EraConfig` with no DB. Example: `compute_faction_multiplier`.
 - **`build_*_out(orm, session)` helpers** for ORM → response conversion.
   Live in the service that owns the aggregate. Example:
-  `services/submission.py::build_submission_out` — the canonical helper for all
-  submission types (solo, collaboration, duel).
+  `services/praxis.py::build_praxis_out` — the canonical helper for all
+  praxis types (solo, collab, duel).
 - **Migrations are Alembic-only.** Never edit a model without generating a
   migration.
 - **Use Enums for domain values**, not string literals. Examples:
-  `ModerationStatus`, `SubmissionType`, `CollabModeEnum`, `CharacterTaskStatus`, `TaskStatus`.
+  `ModerationStatus`, `PraxisType`, `PraxisStatus`, `PraxisInviteStatus`, `TaskStatus`.
   When a column stores an enum, the `Mapped[...]` annotation should be the
   enum class, not `Optional[str]`.
 - **Separate `tests/unit/` from `tests/integration/`.** Unit tests import
@@ -225,11 +227,9 @@ Do not "fix" them — they are deliberately parked until v2. See
 
 **Already implemented — do not confuse with the above:** faction multipliers, MetaTask scoring,
 Collaboration, and Duel resolution are *all* live. `services/scoring.py::compute_praxis_score`
-applies meta-task bonuses and duel multipliers. `services/submission.py` handles the full
-lifecycle for all submission types (solo, collaboration, duel) via STI. The former
-`services/collaboration.py` and `services/praxis.py` are thin shims that re-export from
-`services/submission.py` for backward compatibility. Only the exotic cases in the table above
-remain deferred.
+applies meta-task bonuses and duel multipliers. `services/praxis.py` handles the full lifecycle
+for all praxis types (solo, collab, duel). `routers/praxes.py` is the unified router at `/praxes`.
+Only the exotic cases in the table above remain deferred.
 
 ---
 

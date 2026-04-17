@@ -2,15 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getSubmission,
-  updateSubmission,
-  addMedia,
-  deleteMedia,
+  getPraxis,
+  updatePraxis,
+  uploadPraxisMedia,
+  deletePraxisMedia,
   type MediaItemOut,
-} from '../api/submissions'
+} from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../hooks/useTheme'
-import { factionColor, factionName } from '../utils/factions'
+import { factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 import PageTitle from '../components/ui/PageTitle'
 
@@ -26,7 +26,6 @@ export default function EditPraxis() {
 
   const [taskId, setTaskId] = useState<number | null>(null)
   const [taskTitle, setTaskTitle] = useState<string>('')
-  const [taskFactionSlug, setTaskFactionSlug] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [media, setMedia] = useState<MediaItemOut[]>([])
@@ -57,18 +56,17 @@ export default function EditPraxis() {
 
   useEffect(() => {
     if (!id) return
-    getSubmission(parseInt(id, 10))
+    getPraxis(parseInt(id, 10))
       .then((praxis) => {
-        if (user?.character?.id !== praxis.character_id) {
+        if (user?.character?.id !== praxis.created_by_id) {
           navigate(`/praxes/${id}`, { replace: true })
           return
         }
         setTaskId(praxis.task_id)
         setTaskTitle(praxis.task_title)
-        setTaskFactionSlug(praxis.task_faction_slug)
         setTitle(praxis.title ?? '')
         setBody(praxis.body_text ?? '')
-        setMedia(praxis.media)
+        setMedia(praxis.media_items)
       })
       .catch(() => setError("Couldn't load this praxis."))
       .finally(() => setLoading(false))
@@ -77,7 +75,7 @@ export default function EditPraxis() {
   const handleRemoveMedia = async (mediaItem: MediaItemOut) => {
     if (!id) return
     try {
-      await deleteMedia(parseInt(id, 10), mediaItem.id)
+      await deletePraxisMedia(parseInt(id, 10), mediaItem.id)
       setMedia((previous) => previous.filter((item) => item.id !== mediaItem.id))
     } catch (err) {
       setError(extractError(err, 'Could not remove media item.'))
@@ -91,10 +89,10 @@ export default function EditPraxis() {
     setError('')
     try {
       const praxisId = parseInt(id, 10)
-      await updateSubmission(praxisId, { title, body_text: body || undefined })
+      await updatePraxis(praxisId, { title, body_text: body || undefined })
       if (newFiles) {
         for (const file of Array.from(newFiles)) {
-          const uploaded = await addMedia(praxisId, file)
+          const uploaded = await uploadPraxisMedia(praxisId, file)
           setMedia((previous) => [...previous, uploaded])
         }
       }
@@ -108,9 +106,9 @@ export default function EditPraxis() {
 
   if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
-  const color = factionColor(taskFactionSlug)
-  const fname = factionName(taskFactionSlug)
+  const fname = factionName(null)
   const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0
+  const color = 'var(--color-text-primary)'
 
   return (
     <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -133,12 +131,12 @@ export default function EditPraxis() {
 
       {/* Task context header */}
       {taskTitle && (
-        <div className="sidebar-card mb-5" style={{ borderLeft: `4px solid ${color}`, padding: '12px 16px' }}>
+        <div className="sidebar-card mb-5" style={{ borderLeft: `4px solid var(--color-border)`, padding: '12px 16px' }}>
           <span className="eyebrow" style={{ marginBottom: 4, display: 'block' }}>Editing proof of completion for</span>
           <Link
             to={`/tasks/${taskId}`}
             className="font-display italic"
-            style={{ fontSize: 18, color, textDecoration: 'none', display: 'block', marginBottom: 4 }}
+            style={{ fontSize: 18, color: 'var(--color-text-primary)', textDecoration: 'none', display: 'block', marginBottom: 4 }}
           >
             {taskTitle}
           </Link>
@@ -170,8 +168,6 @@ export default function EditPraxis() {
               outline: 'none', paddingBottom: 6,
               transition: 'border-color 150ms',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderBottomColor = color }}
-            onBlur={(e) => { if (!title) e.currentTarget.style.borderBottomColor = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)' }}
           />
           {title && (
             <div style={{ display: 'flex', height: 3, marginTop: 4, opacity: 0.6 }}>
@@ -291,7 +287,7 @@ export default function EditPraxis() {
             type="submit"
             disabled={saving}
             style={{
-              background: color, color: '#fff',
+              background: 'var(--color-text-primary)', color: 'var(--color-bg-page)',
               fontFamily: "'Courier Prime', monospace",
               fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.12em', padding: '10px 24px',

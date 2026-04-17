@@ -1,23 +1,21 @@
 import { Link } from 'react-router-dom'
-import type { SubmissionCardOut } from '../api/submissions'
+import type { PraxisCardOut } from '../api/praxis'
 import { factionCssVar } from '../utils/factions'
 
 interface Props {
-  collab: SubmissionCardOut
+  collab: PraxisCardOut
 }
 
 export default function CollaborationCard({ collab }: Props) {
-  const isDuel = collab.collab_mode === 'duel'
-  const separator = isDuel ? ' × ' : ', '
-  const memberNames = collab.members.map((m) => m.display_name).join(separator)
+  const isDuel = collab.type === 'duel'
 
   return (
     <div
       className="card p-4 flex flex-col gap-2 transition-all duration-150"
       style={{
-        background: factionCssVar(collab.task_faction_slug, 'card-bg'),
-        borderLeft: `4px solid ${factionCssVar(collab.task_faction_slug, 'card-accent')}`,
-        color: factionCssVar(collab.task_faction_slug, 'card-text'),
+        background: factionCssVar(null, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
+        color: factionCssVar(null, 'card-text'),
       }}
     >
       {/* Mode label */}
@@ -38,28 +36,22 @@ export default function CollaborationCard({ collab }: Props) {
         {collab.task_title}
       </Link>
 
-      {/* Members */}
-      <Link to={`/collaborations/${collab.id}`}>
+      {/* Title or member count */}
+      <Link to={`/praxes/${collab.id}`}>
         <h3 className="font-display text-lg font-semibold leading-tight hover:underline">
-          {memberNames}
+          {collab.title ?? `${collab.type === 'duel' ? 'Duel' : 'Collaboration'} · ${collab.member_count} players`}
         </h3>
       </Link>
 
-      {/* Score row */}
-      {collab.members.some((m) => m.score !== null) && (
-        <div className="flex gap-3 font-body text-xs text-muted">
-          {collab.members.map((m) => (
-            <span key={m.character_id}>
-              {m.display_name}: {m.score !== null ? `★ ${m.score.toFixed(1)}` : '—'}
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/40 font-body text-xs text-muted mt-auto">
-        <Link to={`/collaborations/${collab.id}`} className="hover:underline">
+        <Link to={`/praxes/${collab.id}`} className="hover:underline">
           View {isDuel ? 'duel' : 'collaboration'}
         </Link>
+        {collab.score !== null && collab.score > 0 && (
+          <span className="font-display text-sm font-bold text-ink">
+            ★ {collab.score.toFixed(1)}
+          </span>
+        )}
       </div>
     </div>
   )

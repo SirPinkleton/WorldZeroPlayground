@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
-  getSubmission,
-  flagSubmission,
-  withdrawSubmission,
-  resubmitSubmission,
-  type SubmissionOut,
-} from '../api/submissions'
+  getPraxis,
+  withdrawPraxis,
+  resubmitPraxis,
+  type PraxisOut,
+} from '../api/praxis'
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
 import { formatTimestamp } from '../utils/dates'
@@ -16,7 +15,6 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderatePraxis } from '../api/admin'
 import { extractError } from '../utils/errors'
-import { mediaUrl } from '../utils/media'
 import { factionCssVar } from '../utils/factions'
 
 /** Rainbow underline bar colors — 8 segments cycling (Style Guide §12.3) */
@@ -26,13 +24,10 @@ export default function PraxisDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { adminMode } = useAdminMode()
-  const [praxis, setPraxis] = useState<SubmissionOut | null>(null)
+  const [praxis, setPraxis] = useState<PraxisOut | null>(null)
   const [votes, setVotes] = useState<VoteSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const [flagging, setFlagging] = useState(false)
-  const [flagError, setFlagError] = useState<string | null>(null)
-  const [showFlagConfirm, setShowFlagConfirm] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
@@ -62,26 +57,11 @@ export default function PraxisDetail() {
   useEffect(() => {
     if (!id) return
     const pid = parseInt(id, 10)
-    Promise.all([getSubmission(pid), getVotes(pid)])
+    Promise.all([getPraxis(pid), getVotes(pid)])
       .then(([p, v]) => { setPraxis(p); setVotes(v) })
       .catch((err) => setFetchError(extractError(err, "Couldn't load this praxis.")))
       .finally(() => setLoading(false))
   }, [id])
-
-  const handleFlag = async () => {
-    if (!praxis) return
-    setFlagging(true)
-    setFlagError(null)
-    try {
-      const updated = await flagSubmission(praxis.id, 'Flagged by community member')
-      setPraxis(updated)
-      setShowFlagConfirm(false)
-    } catch (err) {
-      setFlagError(extractError(err, 'Could not flag this praxis.'))
-    } finally {
-      setFlagging(false)
-    }
-  }
 
   const { refetch } = useAuth()
 
@@ -90,7 +70,7 @@ export default function PraxisDetail() {
     setWithdrawing(true)
     setWithdrawError(null)
     try {
-      const updated = await withdrawSubmission(praxis.id)
+      const updated = await withdrawPraxis(praxis.id)
       setPraxis(updated)
       setShowWithdrawConfirm(false)
       void refetch()
@@ -106,7 +86,7 @@ export default function PraxisDetail() {
     setWithdrawing(true)
     setWithdrawError(null)
     try {
-      const updated = await resubmitSubmission(praxis.id)
+      const updated = await resubmitPraxis(praxis.id)
       setPraxis(updated)
       void refetch()
     } catch (err) {
@@ -127,7 +107,8 @@ export default function PraxisDetail() {
   )
   if (!praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
-  const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== praxis.character_id
+  const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== praxis.created_by_id
+  const isOwner = user?.character?.id === praxis.created_by_id
 
   return (
     <div className="py-8 max-w-2xl">
@@ -303,32 +284,23 @@ export default function PraxisDetail() {
         className="sidebar-card flex items-center gap-3 mb-4"
         style={{ padding: '10px 14px' }}
       >
-        <Link to={`/characters/${praxis.character_id}`}>
-          {praxis.character_avatar_url ? (
-            <img
-              src={mediaUrl(praxis.character_avatar_url)}
-              alt={praxis.character_display_name}
-              className="rounded-full shrink-0 object-cover border-2 border-border"
-              style={{ width: 42, height: 42 }}
-            />
-          ) : (
-            <div
-              className="rounded-full shrink-0"
-              style={{
-                width: 42,
-                height: 42,
-                background: `linear-gradient(135deg, ${factionCssVar(praxis.task_faction_slug, 'card-accent')}, ${factionCssVar(praxis.task_faction_slug, 'card-accent')})`,
-              }}
-            />
-          )}
+        <Link to={`/characters/${praxis.created_by_id}`}>
+          <div
+            className="rounded-full shrink-0"
+            style={{
+              width: 42,
+              height: 42,
+              background: `linear-gradient(135deg, ${factionCssVar(null, 'card-accent')}, ${factionCssVar(null, 'card-bg')})`,
+            }}
+          />
         </Link>
         <div className="flex-1 min-w-0">
           <Link
-            to={`/characters/${praxis.character_id}`}
+            to={`/characters/${praxis.created_by_id}`}
             className="font-display italic block truncate"
-            style={{ fontSize: 14, color: factionCssVar(praxis.task_faction_slug, 'card-accent'), textDecoration: 'none' }}
+            style={{ fontSize: 14, color: factionCssVar(null, 'card-accent'), textDecoration: 'none' }}
           >
-            {praxis.character_display_name || `#${praxis.character_id}`}
+            {praxis.created_by_display_name || `#${praxis.created_by_id}`}
           </Link>
           <span className="eyebrow">{formatTimestamp(praxis.created_at)}</span>
         </div>
@@ -358,7 +330,7 @@ export default function PraxisDetail() {
       </div>
 
       {/* Author actions */}
-      {user?.character?.id === praxis.character_id && (
+      {isOwner && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <Link
             to={`/praxes/${praxis.id}/edit`}
@@ -421,7 +393,7 @@ export default function PraxisDetail() {
       <div
         className="sidebar-card mb-5"
         style={{
-          borderLeft: `4px solid ${factionCssVar(praxis.task_faction_slug, 'card-accent')}`,
+          borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
           borderRadius: '0 8px 8px 0',
           padding: '8px 14px',
           display: 'flex',
@@ -443,9 +415,9 @@ export default function PraxisDetail() {
       </div>
 
       {/* ── Media Gallery (§12.5) ── */}
-      {praxis.media.length > 0 && (
+      {praxis.media_items.length > 0 && (
         <div className="mb-5">
-          <MediaGallery media={praxis.media} />
+          <MediaGallery media={praxis.media_items} />
         </div>
       )}
 
@@ -488,7 +460,7 @@ export default function PraxisDetail() {
       </div>
 
       {/* ── Flag Block (§13.3) ── */}
-      {canFlag && !praxis.moderation_status === 'flagged' && (
+      {canFlag && praxis.moderation_status !== 'flagged' && (
         <div
           className="sidebar-card flex items-center gap-3"
           style={{ padding: '10px 14px' }}
@@ -515,67 +487,7 @@ export default function PraxisDetail() {
               If this content is inappropriate or violates the rules, flag it for admin review.
             </p>
           </div>
-          {!showFlagConfirm ? (
-            <button
-              onClick={() => setShowFlagConfirm(true)}
-              style={{
-                background: 'none',
-                border: '1.5px solid rgba(220,38,38,0.25)',
-                color: 'rgba(220,38,38,0.6)',
-                fontFamily: "'Courier Prime', monospace",
-                fontSize: 9,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                padding: '4px 10px',
-                cursor: 'pointer',
-                borderRadius: 0,
-                transition: 'all 120ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--color-danger)'
-                e.currentTarget.style.borderColor = 'rgba(220,38,38,0.5)'
-                e.currentTarget.style.background = 'rgba(220,38,38,0.05)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(220,38,38,0.6)'
-                e.currentTarget.style.borderColor = 'rgba(220,38,38,0.25)'
-                e.currentTarget.style.background = 'none'
-              }}
-            >
-              Flag
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleFlag}
-                disabled={flagging}
-                style={{
-                  background: 'rgba(220,38,38,0.1)',
-                  border: '1.5px solid var(--color-danger)',
-                  color: 'var(--color-danger)',
-                  fontFamily: "'Courier Prime', monospace",
-                  fontSize: 9,
-                  textTransform: 'uppercase',
-                  padding: '4px 10px',
-                  cursor: 'pointer',
-                  borderRadius: 0,
-                }}
-              >
-                {flagging ? '...' : 'Confirm'}
-              </button>
-              <button
-                onClick={() => setShowFlagConfirm(false)}
-                className="btn-outline"
-                style={{ fontSize: 9, padding: '4px 10px' }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
         </div>
-      )}
-      {flagError && (
-        <p className="font-body text-xs mt-2" style={{ color: 'var(--color-danger)' }}>{flagError}</p>
       )}
     </div>
   )
