@@ -13,9 +13,9 @@ export default function Praxes() {
 
   useEffect(() => {
     Promise.all([
-      listPraxes({ type: 'solo' }),
-      listPraxes({ type: 'collab' }),
-      listPraxes({ type: 'duel' }),
+      listPraxes({ type: 'solo', status: 'submitted' }),
+      listPraxes({ type: 'collab', status: 'submitted' }),
+      listPraxes({ type: 'duel', status: 'submitted' }),
     ])
       .then(([solo, collab, duel]) => {
         setSoloItems(solo)

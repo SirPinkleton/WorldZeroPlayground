@@ -21,7 +21,7 @@ const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--under
 export default function EditPraxis() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, refetch } = useAuth()
   const { theme } = useTheme()
   const dark = theme === 'dark'
 
@@ -108,6 +108,7 @@ export default function EditPraxis() {
 
   const handlePublish = async () => {
     if (!id || !title.trim()) { setError('Title is required.'); return }
+    if (title.length > 200) { setError('Title must be 200 characters or fewer.'); return }
     setSubmitting(true)
     setError('')
     try {
@@ -120,6 +121,7 @@ export default function EditPraxis() {
         }
       }
       await submitPraxis(praxisId)
+      await refetch()
       navigate(`/praxes/${id}`)
     } catch (err) {
       setError(extractError(err, 'Could not publish proof.'))
@@ -204,6 +206,11 @@ export default function EditPraxis() {
           >
             {title.length}/200
           </span>
+          {title.length >= 200 && (
+            <span className="font-body" style={{ fontSize: 10, color: '#dc2626', display: 'block', marginTop: 2 }}>
+              Title must be 200 characters or fewer.
+            </span>
+          )}
         </div>
 
         {/* Body */}
