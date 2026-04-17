@@ -8,7 +8,7 @@ import PageTitle from '../components/ui/PageTitle'
 import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
-import { factionColor, factionName } from '../utils/factions'
+import { factionCssVar, factionName } from '../utils/factions'
 import { mediaUrl } from '../utils/media'
 
 /** Level thresholds — must match backend game_config.py CURRENT_ERA.level_thresholds */
@@ -108,7 +108,6 @@ export default function CharacterProfile() {
   )
   if (!character) return <div className="py-8 font-body text-muted">Character not found.</div>
 
-  const charFactionColor = factionColor(character.faction_slug)
   const charFactionName = factionName(character.faction_slug)
   const isOwn = user?.character?.id === character.id
   const nextLevel = Math.min(character.level + 1, 8)
@@ -123,7 +122,7 @@ export default function CharacterProfile() {
       {/* ── Profile Header — Faction-Framed (§14.2) ── */}
       <div
         className="sidebar-card mb-5"
-        style={{ borderLeft: `4px solid ${charFactionColor}`, padding: '16px 20px' }}
+        style={{ borderLeft: `4px solid ${factionCssVar(character.faction_slug, 'border')}`, padding: '16px 20px' }}
       >
         <div className="flex gap-5 items-start">
           {/* Avatar orb */}
@@ -135,16 +134,16 @@ export default function CharacterProfile() {
                 style={{
                   width: 80, height: 80, borderRadius: '50%', objectFit: 'cover',
                   border: `3px solid white`,
-                  boxShadow: `0 0 0 3px ${charFactionColor}`,
+                  boxShadow: `0 0 0 3px ${factionCssVar(character.faction_slug)}`,
                 }}
               />
             ) : (
               <div
                 style={{
                   width: 80, height: 80, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${charFactionColor}, ${charFactionColor}88)`,
+                  background: `linear-gradient(135deg, ${factionCssVar(character.faction_slug, 'light')}, ${factionCssVar(character.faction_slug)})`,
                   border: '3px solid white',
-                  boxShadow: `0 0 0 3px ${charFactionColor}`,
+                  boxShadow: `0 0 0 3px ${factionCssVar(character.faction_slug)}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 28, color: 'white',
                 }}
@@ -155,7 +154,7 @@ export default function CharacterProfile() {
             {/* Level badge */}
             <span
               style={{
-                background: charFactionColor, color: 'white',
+                background: factionCssVar(character.faction_slug), color: 'white',
                 fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
                 padding: '2px 10px', borderRadius: 10,
                 fontFamily: "'Courier Prime', monospace",
@@ -203,7 +202,7 @@ export default function CharacterProfile() {
                       onClick={() => handleAddRelationship('friend')}
                       disabled={relationshipLoading}
                       style={{
-                        background: charFactionColor, color: 'white',
+                        background: factionCssVar(character.faction_slug), color: 'white',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
                         padding: '4px 0', border: 'none', cursor: 'pointer', borderRadius: 2,
@@ -238,7 +237,7 @@ export default function CharacterProfile() {
           <div className="flex-1 min-w-0">
             <h1
               className="font-display italic"
-              style={{ fontSize: 26, color: charFactionColor, marginBottom: 2 }}
+              style={{ fontSize: 26, color: factionCssVar(character.faction_slug), marginBottom: 2 }}
             >
               {character.display_name}
             </h1>
@@ -248,10 +247,10 @@ export default function CharacterProfile() {
 
             {/* Faction pennant */}
             <span
+              className="pennant-shape"
               style={{
                 display: 'inline-block',
-                clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
-                background: charFactionColor, color: 'white',
+                background: factionCssVar(character.faction_slug), color: 'white',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.07em', padding: '3px 14px',
@@ -268,7 +267,7 @@ export default function CharacterProfile() {
                 className="font-body"
                 style={{
                   fontSize: 11, lineHeight: 1.6,
-                  borderLeft: `3px solid ${charFactionColor}30`,
+                  borderLeft: `3px solid ${factionCssVar(character.faction_slug, 'border')}`,
                   paddingLeft: 10, marginTop: 6, marginBottom: 8,
                   color: 'var(--color-text-secondary)',
                   fontFamily: "'Special Elite', serif",
@@ -316,7 +315,7 @@ export default function CharacterProfile() {
                 {level > 0 && (
                   <div style={{
                     width: 16, height: 3,
-                    background: completed ? charFactionColor : 'rgba(0,0,0,0.1)',
+                    background: completed ? factionCssVar(character.faction_slug) : 'rgba(0,0,0,0.1)',
                     transition: 'background 200ms',
                   }} />
                 )}
@@ -324,10 +323,10 @@ export default function CharacterProfile() {
                   style={{
                     width: current ? 32 : 26, height: current ? 32 : 26,
                     borderRadius: '50%',
-                    background: completed ? charFactionColor : current ? `${charFactionColor}20` : 'var(--level-node-incomplete)',
-                    border: current ? `3px solid ${charFactionColor}` : `2px solid ${completed ? charFactionColor : 'rgba(0,0,0,0.12)'}`,
-                    boxShadow: current ? `0 0 0 3px ${charFactionColor}33` : 'none',
-                    color: completed ? 'white' : current ? charFactionColor : 'var(--color-level-inactive)',
+                    background: completed ? factionCssVar(character.faction_slug) : current ? `${factionCssVar(character.faction_slug)}20` : 'var(--level-node-incomplete)',
+                    border: current ? `3px solid ${factionCssVar(character.faction_slug)}` : `2px solid ${completed ? factionCssVar(character.faction_slug) : 'rgba(0,0,0,0.12)'}`,
+                    boxShadow: current ? `0 0 0 3px ${factionCssVar(character.faction_slug)}33` : 'none',
+                    color: completed ? 'white' : current ? factionCssVar(character.faction_slug) : 'var(--color-level-inactive)',
                     fontFamily: "'Courier Prime', monospace",
                     fontSize: current ? 10 : 8, fontWeight: 700,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -347,9 +346,9 @@ export default function CharacterProfile() {
             Lvl {character.level} → {nextLevel}
           </span>
           <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--color-bg-surface-alt)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progressPercent}%`, background: charFactionColor, borderRadius: 3, transition: 'width 300ms' }} />
+            <div style={{ height: '100%', width: `${progressPercent}%`, background: factionCssVar(character.faction_slug), borderRadius: 3, transition: 'width 300ms' }} />
           </div>
-          <span className="font-body" style={{ fontSize: 9, fontWeight: 700, color: charFactionColor, whiteSpace: 'nowrap' }}>
+          <span className="font-body" style={{ fontSize: 9, fontWeight: 700, color: factionCssVar(character.faction_slug), whiteSpace: 'nowrap' }}>
             {character.score} / {nextThreshold} pts
           </span>
         </div>

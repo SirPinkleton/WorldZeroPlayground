@@ -7,7 +7,7 @@ import { listCharacters, type CharacterOut } from '../api/characters'
 import { getMetaTasks, type MetaTaskOut } from '../api/metaTasks'
 import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
-import { factionColor, factionName } from '../utils/factions'
+import { factionCssVar, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
 const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)', 'var(--underline-1)', 'var(--underline-2)']
@@ -169,7 +169,7 @@ export default function SubmitProof() {
     }
   }
 
-  const color = factionColor(task?.primary_faction_slug)
+  const color = factionCssVar(task?.primary_faction_slug)
   const fname = factionName(task?.primary_faction_slug)
   const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0
 
@@ -192,20 +192,20 @@ export default function SubmitProof() {
       {task && (
         <div
           className="sidebar-card mb-5"
-          style={{ borderLeft: `4px solid ${color}`, padding: '12px 16px' }}
+          style={{ borderLeft: `4px solid ${factionCssVar(task?.primary_faction_slug, 'border')}`, padding: '12px 16px' }}
         >
           <span className="eyebrow" style={{ marginBottom: 4, display: 'block' }}>Proving completion of</span>
           <Link
             to={`/tasks/${task.id}`}
             className="font-display italic"
-            style={{ fontSize: 18, color, textDecoration: 'none', display: 'block', marginBottom: 6 }}
+            style={{ fontSize: 18, color: factionCssVar(task?.primary_faction_slug), textDecoration: 'none', display: 'block', marginBottom: 6 }}
           >
             {task.title}
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
+              className="pennant-shape"
               style={{
-                clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
                 background: color, color: 'white',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
@@ -345,7 +345,7 @@ export default function SubmitProof() {
                       <div
                         style={{
                           width: 20, height: 20, borderRadius: '50%',
-                          background: `linear-gradient(135deg, ${factionColor(character.faction_slug)}, ${factionColor(character.faction_slug)}88)`,
+                          background: `linear-gradient(135deg, ${factionCssVar(character.faction_slug, 'light')}, ${factionCssVar(character.faction_slug)})`,
                           flexShrink: 0,
                         }}
                       />
@@ -377,7 +377,7 @@ export default function SubmitProof() {
                       fontSize: 9,
                     }}
                   >
-                    <span style={{ width: 6, height: 6, background: factionColor(partner.faction_slug), display: 'inline-block' }} />
+                    <span style={{ width: 6, height: 6, background: factionCssVar(partner.faction_slug), display: 'inline-block' }} />
                     {partner.name}
                     <button
                       type="button"
@@ -400,7 +400,6 @@ export default function SubmitProof() {
           <p className="eyebrow mb-3">Optional meta task bonus</p>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {metaTasks.map((mt, index) => {
-              const mtColor = factionColor(mt.faction_slug)
               const selected = selectedMetaTaskId === mt.id
               return (
                 <button
@@ -411,8 +410,8 @@ export default function SubmitProof() {
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '10px 12px',
                     borderTop: index === 0 ? 'none' : '1px dashed var(--color-border)',
-                    background: selected ? `${mtColor}12` : 'transparent',
-                    border: selected ? `1.5px solid ${mtColor}60` : 'none',
+                    background: selected ? factionCssVar(mt.faction_slug, 'light') : 'transparent',
+                    border: selected ? `1.5px solid ${factionCssVar(mt.faction_slug, 'border')}` : 'none',
                     borderRadius: selected ? 4 : 0,
                     cursor: 'pointer', textAlign: 'left', width: '100%',
                     marginBottom: selected ? 2 : 0,
@@ -420,7 +419,7 @@ export default function SubmitProof() {
                 >
                   <span style={{
                     width: 10, height: 10, borderRadius: '50%',
-                    background: selected ? mtColor : 'var(--color-border)',
+                    background: selected ? factionCssVar(mt.faction_slug) : 'var(--color-border)',
                     flexShrink: 0, transition: 'background 120ms',
                   }} />
                   <div style={{ flex: 1, minWidth: 0 }}>

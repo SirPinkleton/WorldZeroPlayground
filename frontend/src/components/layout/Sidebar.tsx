@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { getActivityFeed, type ActivityFeedItem } from '../../api/activityFeed'
 import { relativeTime } from '../../utils/dates'
-import { factionColor, factionName } from '../../utils/factions'
+import { factionCssVar, factionName } from '../../utils/factions'
 import { mediaUrl } from '../../utils/media'
 import FeedBadge from '../feed/FeedBadge'
 import { useMyActiveTasks } from '../../hooks/useMyActiveTasks'
@@ -61,7 +61,7 @@ export default function Sidebar() {
                 style={{
                   width: 40,
                   height: 40,
-                  background: `linear-gradient(135deg, ${factionColor(character.faction_slug)}, ${factionColor(character.faction_slug)}88)`,
+                  background: `linear-gradient(135deg, ${factionCssVar(character.faction_slug, 'light')}, ${factionCssVar(character.faction_slug)})`,
                 }}
               />
             )}
@@ -78,7 +78,7 @@ export default function Sidebar() {
                 style={{
                   fontSize: 9,
                   letterSpacing: '0.12em',
-                  color: factionColor(character.faction_slug),
+                  color: factionCssVar(character.faction_slug),
                 }}
               >
                 {factionName(character.faction_slug)} · Level {character.level}
@@ -121,7 +121,6 @@ export default function Sidebar() {
           </p>
           <div className="flex flex-col gap-1.5">
             {pendingRequests.map((item, index) => {
-              const actorColor = factionColor(item.actor_faction_slug)
               const isCollab = item.type === 'collab_invite'
               return (
                 <div
@@ -136,7 +135,7 @@ export default function Sidebar() {
                     style={{
                       width: 24,
                       height: 24,
-                      background: `linear-gradient(135deg, ${actorColor}, ${actorColor}88)`,
+                      background: `linear-gradient(135deg, ${factionCssVar(item.actor_faction_slug, 'light')}, ${factionCssVar(item.actor_faction_slug)})`,
                     }}
                   />
                   <div className="flex-1 min-w-0">
@@ -165,14 +164,13 @@ export default function Sidebar() {
         ) : (
           <div className="flex flex-col gap-1.5">
             {activeTasks.map((characterTask) => {
-              const taskFactionColor = factionColor(characterTask.task.primary_faction_slug)
               const taskFactionName = factionName(characterTask.task.primary_faction_slug)
               return (
                 <div
                   key={characterTask.id}
                   className="flex items-start justify-between"
                   style={{
-                    borderLeft: `3px solid ${taskFactionColor}`,
+                    borderLeft: `3px solid ${factionCssVar(characterTask.task.primary_faction_slug, 'border')}`,
                     paddingLeft: 8,
                   }}
                 >

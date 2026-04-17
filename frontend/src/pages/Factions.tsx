@@ -3,7 +3,7 @@ import { getFactions, getFactionStatus, getInvitations, chooseFaction } from '..
 import type { FactionOut, FactionPageOut, InvitationLetterOut } from '../api/factions'
 import PageTitle from '../components/ui/PageTitle'
 import { extractError } from '../utils/errors'
-import { factionColor, factionName } from '../utils/factions'
+import { factionCssVar, factionName } from '../utils/factions'
 import { relativeTime } from '../utils/dates'
 import { useAuth } from '../auth/AuthContext'
 
@@ -141,7 +141,6 @@ export default function Factions() {
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {invitations.map((inv) => {
-              const color = factionColor(inv.faction_slug)
               return (
                 <div
                   key={inv.faction_slug}
@@ -150,14 +149,14 @@ export default function Factions() {
                     alignItems: 'center',
                     gap: 8,
                     padding: '8px 12px',
-                    background: `linear-gradient(135deg, ${color}10, transparent)`,
-                    borderLeft: `3px solid ${color}`,
+                    background: `linear-gradient(135deg, ${factionCssVar(inv.faction_slug, 'light')}, transparent)`,
+                    borderLeft: `3px solid ${factionCssVar(inv.faction_slug, 'border')}`,
                   }}
                 >
                   <span className="eyebrow">INVITE</span>
                   <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)', flex: 1 }}>
                     You've been invited to join{' '}
-                    <span style={{ fontWeight: 700, color }}>{inv.faction_name}</span>
+                    <span style={{ fontWeight: 700, color: factionCssVar(inv.faction_slug) }}>{inv.faction_name}</span>
                   </span>
                   <span className="eyebrow" style={{ color: 'var(--color-text-tertiary)', fontSize: 8 }}>
                     {relativeTime(inv.delivered_at)}
@@ -179,7 +178,6 @@ export default function Factions() {
       {/* Faction grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {sortedFactions.map((f) => {
-          const color = factionColor(f.slug)
           const status = statusFor(f.slug)
           const isMember = status === STATUS_MEMBER
           const isInvited = status === STATUS_INVITED
@@ -193,16 +191,16 @@ export default function Factions() {
               key={f.slug}
               className="sidebar-card relative overflow-hidden"
               style={{
-                borderLeft: `3px solid ${color}`,
+                borderLeft: `3px solid ${factionCssVar(f.slug, 'border')}`,
                 opacity: isDefected ? 0.5 : 1,
               }}
             >
               {/* Header row: name + status badge */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span
-                  style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }}
+                  style={{ width: 10, height: 10, borderRadius: '50%', background: factionCssVar(f.slug), flexShrink: 0 }}
                 />
-                <h2 className="font-display italic" style={{ fontSize: 18, color, flex: 1 }}>
+                <h2 className="font-display italic" style={{ fontSize: 18, color: factionCssVar(f.slug), flex: 1 }}>
                   {f.name}
                 </h2>
 
@@ -226,7 +224,7 @@ export default function Factions() {
                     className="eyebrow"
                     style={{
                       fontSize: 8,
-                      background: color,
+                      background: factionCssVar(f.slug),
                       color: '#fff',
                       padding: '2px 8px',
                       letterSpacing: '0.1em',
@@ -255,7 +253,7 @@ export default function Factions() {
                     className="eyebrow"
                     style={{
                       fontSize: 8,
-                      background: color,
+                      background: factionCssVar(f.slug),
                       color: '#fff',
                       padding: '2px 8px',
                       letterSpacing: '0.1em',
@@ -296,7 +294,7 @@ export default function Factions() {
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
-                    background: color,
+                    background: factionCssVar(f.slug),
                     color: '#fff',
                     border: 'none',
                     padding: '6px 16px',

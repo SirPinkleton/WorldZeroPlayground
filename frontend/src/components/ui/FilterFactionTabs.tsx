@@ -1,9 +1,9 @@
 import type { FactionOut } from '../../api/factions'
-import { factionColor } from '../../utils/factions'
+import { factionCssVar } from '../../utils/factions'
 
 /**
  * Faction filter — Diagonal Banner Tabs (Style Guide §5.3).
- * Pennant shape via clip-path, faction-colored, inactive: desaturated + low opacity.
+ * Pennant shape via .pennant-shape class, faction-colored, inactive: desaturated + low opacity.
  */
 
 interface Props {
@@ -18,14 +18,13 @@ export default function FilterFactionTabs({ factions, value, onChange }: Props) 
       <span className="eyebrow">faction:</span>
       {factions.map((faction) => {
         const active = value === faction.slug
-        const color = factionColor(faction.slug)
         return (
           <button
             key={faction.slug}
             onClick={() => onChange(value === faction.slug ? '' : faction.slug)}
+            className="pennant-shape"
             style={{
-              clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
-              background: color,
+              background: factionCssVar(faction.slug),
               color: 'white',
               fontFamily: "'Courier Prime', monospace",
               fontSize: 9,

@@ -6,7 +6,7 @@ import { getFactions, type FactionOut } from '../api/factions'
 import PageTitle from '../components/ui/PageTitle'
 import FilterLevelNodes from '../components/ui/FilterLevelNodes'
 import { useAuth } from '../auth/AuthContext'
-import { factionColor, factionName, getAllFactions } from '../utils/factions'
+import { factionCssVar, factionName, getAllFactions } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
 const LEVEL_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -37,7 +37,7 @@ export default function ProposeTask() {
   }, [])
 
   const characterLevel = user?.character?.level ?? 0
-  const color = factionColor(factionSlug)
+  const color = factionCssVar(factionSlug)
   const fname = factionName(factionSlug)
 
   if (!user) {
@@ -139,15 +139,14 @@ export default function ProposeTask() {
               {(factions.length > 0 ? factions : getAllFactions()).map((f) => {
                 const slug = 'slug' in f ? f.slug : (f as { slug: string }).slug
                 const active = factionSlug === slug
-                const fc = factionColor(slug)
                 return (
                   <button
                     key={slug}
                     type="button"
                     onClick={() => setFactionSlug(slug)}
                     style={{
-                      border: `2px solid ${active ? fc : 'var(--color-border)'}`,
-                      background: active ? `${fc}15` : 'var(--color-bg-surface)',
+                      border: `2px solid ${active ? factionCssVar(slug, 'border') : 'var(--color-border)'}`,
+                      background: active ? factionCssVar(slug, 'light') : 'var(--color-bg-surface)',
                       borderRadius: 6, padding: '8px 14px',
                       cursor: 'pointer', textAlign: 'center',
                       transition: 'all 120ms',
@@ -155,10 +154,10 @@ export default function ProposeTask() {
                     }}
                   >
                     <span
+                      className="pennant-shape"
                       style={{
                         display: 'block',
-                        clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)',
-                        background: fc, color: 'white',
+                        background: factionCssVar(slug), color: 'white',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.07em', padding: '2px 10px',
@@ -340,7 +339,7 @@ export default function ProposeTask() {
             {title && (
               <div
                 style={{
-                  background: `${color}10`, border: `1.5px solid ${color}30`,
+                  background: factionCssVar(factionSlug, 'light'), border: `1.5px solid ${factionCssVar(factionSlug, 'border')}`,
                   borderRadius: 8, padding: '10px 14px', marginBottom: 16,
                 }}
               >
