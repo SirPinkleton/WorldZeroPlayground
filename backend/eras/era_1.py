@@ -489,6 +489,7 @@ ERA_1 = EraConfig(
     config_key="era_1",
     max_task_signups=20,
     task_submit_level_gap=2,
+    max_duel_participants=2,
     vote_budget_base=100,
     vote_budget_multiplier=2.0,
     level_thresholds=(0, 10, 70, 170, 330, 610, 1090, 1840, 3040),

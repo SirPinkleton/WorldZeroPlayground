@@ -190,6 +190,19 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `backend/schemas/submission.py` — SubmissionVoteIn.target_character_id made Optional (solo votes don't require it) ✅
   - `backend/services/praxis.py` — Fixed shim: removed praxis.votes access (relationship removed); score returns 0 for legacy Praxis rows ✅
   - 105 unit tests passing ✅
+- **SESSION P.4 — Praxis service layer rewritten ✅ 2026-04-16**
+  - `backend/services/praxis.py` — Full canonical service: create_praxis, get_praxis, list_praxes, update_praxis, withdraw_praxis, resubmit_praxis, delete_praxis, flag_praxis, invite_to_praxis, respond_to_invite, kick_member, submit_praxis, reopen_praxis, moderate_praxis, compute_praxis_score_from_db, build_praxis_out, build_praxis_card_out ✅
+  - `backend/services/character_stats.py` — Updated to query Praxis + PraxisMember instead of Submission; duel totals now keyed by praxis_member_id ✅
+  - `backend/services/vote.py` — Updated: praxis_id replaces submission_id; praxis_member_id replaces duel_vote_for; imports Praxis model ✅
+  - `backend/services/admin_service.py` — Updated: game_overview counts Praxis rows; moderate_praxis operates on Praxis model directly ✅
+  - `backend/services/activity_feed.py` — Updated: CollaborationInvite → PraxisInvite; collaboration_id → praxis_id; CollaborationMode → PraxisType ✅
+  - `backend/services/submission.py` — Deleted (was broken since P.2; routers will be updated in U.3) ✅
+  - `backend/services/collaboration.py` — Deleted (was broken since P.2) ✅
+  - `backend/game_config.py` — Added max_duel_participants field to EraConfig ✅
+  - `backend/eras/era_1.py` — Set max_duel_participants=2 on ERA_1 ✅
+  - `backend/eras/_template.py` — Added max_duel_participants=2 to template ✅
+  - `backend/tests/unit/test_scoring.py` — Fixed: added max_duel_participants to inline EraConfig construction ✅
+  - 105 unit tests passing ✅
 - **SESSION P.1 — Migration 0004_praxis_unification validated ✅ 2026-04-16**
   - `backend/alembic/versions/0004_praxis_unification.py` — upgrade (0001→0004) and downgrade (-1) both run cleanly against a fresh PostgreSQL DB; no changes to migration file required ✅
 - **SESSION U.1 — Submission STI model + migration ✅ 2026-04-15**
