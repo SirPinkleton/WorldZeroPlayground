@@ -60,4 +60,4 @@ databases:
   - name: worldzero-db
     databaseName: worldzero
     user: worldzero
-    plan: starter
+    plan: pro
