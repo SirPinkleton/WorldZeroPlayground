@@ -8,6 +8,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 revision: str = "0003_submission_unified"
 down_revision: Union[str, None] = "0002_collab_member_content"
@@ -17,11 +18,26 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # ── 1. New enum types ─────────────────────────────────────────────────────
-
-    op.execute("CREATE TYPE submissiontype AS ENUM ('solo', 'collaboration', 'duel')")
-    op.execute("CREATE TYPE submissioninvitestatus AS ENUM ('pending', 'accepted', 'declined')")
-    op.execute("CREATE TYPE submissionstatus AS ENUM ('in_progress', 'published')")
-    op.execute("CREATE TYPE collabmodeenum AS ENUM ('collaboration', 'duel')")
+    #
+    # Do NOT use sa.Enum(...).create() here — it registers the Enum in
+    # SQLAlchemy's type cache with create_type=True and op.create_table() will
+    # try to CREATE TYPE again, ignoring create_type=False on the inline column.
+    #
+    # Use a PL/pgSQL DO block so the duplicate-object exception is caught inside
+    # Postgres itself. A prior pg_type SELECT check is unreliable in the
+    # asyncpg + run_sync bridge because the SELECT and CREATE TYPE execute on
+    # different protocol paths and the type can appear between them.
+    for typname, values in [
+        ("submissiontype", ["solo", "collaboration", "duel"]),
+        ("submissioninvitestatus", ["pending", "accepted", "declined"]),
+        ("submissionstatus", ["in_progress", "published"]),
+        ("collabmodeenum", ["collaboration", "duel"]),
+    ]:
+        vals = ", ".join(f"'{v}'" for v in values)
+        op.execute(sa.text(
+            f"DO $$ BEGIN CREATE TYPE {typname} AS ENUM ({vals});"
+            f" EXCEPTION WHEN duplicate_object THEN NULL; END; $$;"
+        ))
 
     # ── 2. Create submission table ────────────────────────────────────────────
 
@@ -32,7 +48,7 @@ def upgrade() -> None:
         sa.Column("task_id", sa.Integer(), sa.ForeignKey("task.id"), nullable=False),
         sa.Column(
             "submission_type",
-            sa.Enum("solo", "collaboration", "duel", name="submissiontype", create_type=False),
+            PgEnum("solo", "collaboration", "duel", name="submissiontype", create_type=False),
             nullable=False,
         ),
         sa.Column("moderation_status", sa.String(), nullable=False, server_default="visible"),
@@ -48,12 +64,12 @@ def upgrade() -> None:
         # Collaboration/duel-only (nullable when type == solo)
         sa.Column(
             "collab_mode",
-            sa.Enum("collaboration", "duel", name="collabmodeenum", create_type=False),
+            PgEnum("collaboration", "duel", name="collabmodeenum", create_type=False),
             nullable=True,
         ),
         sa.Column(
             "collab_status",
-            sa.Enum("in_progress", "published", name="submissionstatus", create_type=False),
+            PgEnum("in_progress", "published", name="submissionstatus", create_type=False),
             nullable=True,
         ),
         sa.Column("created_by_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=True),
@@ -84,12 +100,12 @@ def upgrade() -> None:
         sa.Column("invitee_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column(
             "invite_type",
-            sa.Enum("collaboration", "duel", name="collabmodeenum", create_type=False),
+            PgEnum("collaboration", "duel", name="collabmodeenum", create_type=False),
             nullable=False,
         ),
         sa.Column(
             "status",
-            sa.Enum("pending", "accepted", "declined", name="submissioninvitestatus", create_type=False),
+            PgEnum("pending", "accepted", "declined", name="submissioninvitestatus", create_type=False),
             nullable=False,
             server_default="pending",
         ),
