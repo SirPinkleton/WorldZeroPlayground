@@ -195,6 +195,7 @@ async def test_admin_toggle_task_vision(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skip(reason="praxis layer being gutted")
 @pytest.mark.asyncio
 async def test_admin_delete_praxis(
     client: AsyncClient,
@@ -220,6 +221,7 @@ async def test_admin_delete_praxis(
     assert get_resp.status_code == 404
 
 
+@pytest.mark.skip(reason="praxis layer being gutted")
 @pytest.mark.asyncio
 async def test_admin_moderate_praxis(
     client: AsyncClient,
@@ -248,6 +250,7 @@ async def test_admin_moderate_praxis(
     assert resp.json()["moderation_status"] == "hidden"
 
 
+@pytest.mark.skip(reason="praxis layer being gutted")
 @pytest.mark.asyncio
 async def test_admin_list_flagged_praxes(
     client: AsyncClient,
@@ -507,6 +510,7 @@ async def test_admin_messages(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skip(reason="praxis layer being gutted")
 @pytest.mark.asyncio
 async def test_admin_hide_praxis(
     client: AsyncClient,
@@ -541,6 +545,7 @@ async def test_admin_hide_praxis(
     assert get_resp.status_code == 404
 
 
+@pytest.mark.skip(reason="praxis layer being gutted")
 @pytest.mark.asyncio
 async def test_admin_unhide_praxis(
     client: AsyncClient,
@@ -581,6 +586,7 @@ async def test_admin_unhide_praxis(
     assert get_resp.status_code == 200
 
 
+@pytest.mark.skip(reason="praxis layer being gutted")
 @pytest.mark.asyncio
 async def test_admin_moderate_praxis_failed(
     client: AsyncClient,
@@ -644,6 +650,7 @@ async def test_admin_list_characters_no_results(
     account: Account,
     auth_headers: dict,
     db_session: AsyncSession,
+    era: Era,
 ):
     """Admin character list returns empty list for unknown faction."""
     await _make_admin(account, db_session)

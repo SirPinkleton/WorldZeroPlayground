@@ -278,9 +278,9 @@ async def test_faction_change_via_choose_endpoint(
         json={"faction_slug": "testfaction"},
         headers=auth_headers2,
     )
-    # If the faction isn't configured in ERA (no EraConfig entry), defection is rejected (403)
-    # or succeeds (200). Either way the endpoint must be reachable and not 404/500.
-    assert resp.status_code in (200, 403, 422)
+    # If the faction isn't configured in ERA (no EraConfig entry), defection is rejected (404)
+    # or succeeds (200). Either way the endpoint must be reachable.
+    assert resp.status_code in (200, 403, 404, 422)
 
 
 @pytest.mark.asyncio

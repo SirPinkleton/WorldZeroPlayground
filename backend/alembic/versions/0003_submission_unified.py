@@ -8,6 +8,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 revision: str = "0003_submission_unified"
 down_revision: Union[str, None] = "0002_collab_member_content"
@@ -47,7 +48,7 @@ def upgrade() -> None:
         sa.Column("task_id", sa.Integer(), sa.ForeignKey("task.id"), nullable=False),
         sa.Column(
             "submission_type",
-            sa.Enum("solo", "collaboration", "duel", name="submissiontype", create_type=False),
+            PgEnum("solo", "collaboration", "duel", name="submissiontype", create_type=False),
             nullable=False,
         ),
         sa.Column("moderation_status", sa.String(), nullable=False, server_default="visible"),
@@ -63,12 +64,12 @@ def upgrade() -> None:
         # Collaboration/duel-only (nullable when type == solo)
         sa.Column(
             "collab_mode",
-            sa.Enum("collaboration", "duel", name="collabmodeenum", create_type=False),
+            PgEnum("collaboration", "duel", name="collabmodeenum", create_type=False),
             nullable=True,
         ),
         sa.Column(
             "collab_status",
-            sa.Enum("in_progress", "published", name="submissionstatus", create_type=False),
+            PgEnum("in_progress", "published", name="submissionstatus", create_type=False),
             nullable=True,
         ),
         sa.Column("created_by_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=True),
@@ -99,12 +100,12 @@ def upgrade() -> None:
         sa.Column("invitee_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
         sa.Column(
             "invite_type",
-            sa.Enum("collaboration", "duel", name="collabmodeenum", create_type=False),
+            PgEnum("collaboration", "duel", name="collabmodeenum", create_type=False),
             nullable=False,
         ),
         sa.Column(
             "status",
-            sa.Enum("pending", "accepted", "declined", name="submissioninvitestatus", create_type=False),
+            PgEnum("pending", "accepted", "declined", name="submissioninvitestatus", create_type=False),
             nullable=False,
             server_default="pending",
         ),

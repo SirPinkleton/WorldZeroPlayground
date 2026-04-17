@@ -67,12 +67,6 @@ class Collaboration(Base):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
-    votes: Mapped[List["Vote"]] = relationship(
-        "Vote",
-        foreign_keys="Vote.collaboration_id",
-        back_populates="collaboration",
-        lazy="selectin",
-    )
 
 
 class CollaborationMember(Base):
