@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import {
   getPraxis,
   updatePraxis,
+  submitPraxis,
   uploadPraxisMedia,
   deletePraxisMedia,
   type MediaItemOut,
@@ -32,6 +33,7 @@ export default function EditPraxis() {
   const [newFiles, setNewFiles] = useState<FileList | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [fileError, setFileError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -101,6 +103,28 @@ export default function EditPraxis() {
       setError(extractError(err, 'Could not save changes.'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!id || !title.trim()) { setError('Title is required.'); return }
+    setSubmitting(true)
+    setError('')
+    try {
+      const praxisId = parseInt(id, 10)
+      await updatePraxis(praxisId, { title, body_text: body || undefined })
+      if (newFiles) {
+        for (const file of Array.from(newFiles)) {
+          const uploaded = await uploadPraxisMedia(praxisId, file)
+          setMedia((previous) => [...previous, uploaded])
+        }
+      }
+      await submitPraxis(praxisId)
+      navigate(`/praxes/${id}`)
+    } catch (err) {
+      setError(extractError(err, 'Could not publish proof.'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -285,18 +309,33 @@ export default function EditPraxis() {
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || submitting}
+            style={{
+              background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)',
+              fontFamily: "'Courier Prime', monospace",
+              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.12em', padding: '10px 24px',
+              border: '1px solid var(--color-border)', cursor: (saving || submitting) ? 'wait' : 'pointer',
+              position: 'relative',
+            }}
+          >
+            {saving ? 'Saving...' : 'Save draft'}
+          </button>
+          <button
+            type="button"
+            onClick={handlePublish}
+            disabled={saving || submitting}
             style={{
               background: 'var(--color-text-primary)', color: 'var(--color-bg-page)',
               fontFamily: "'Courier Prime', monospace",
               fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.12em', padding: '10px 24px',
-              border: 'none', cursor: saving ? 'wait' : 'pointer',
+              border: 'none', cursor: (saving || submitting) ? 'wait' : 'pointer',
               position: 'relative',
             }}
           >
             <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-            {saving ? 'Saving...' : 'Save proof'}
+            {submitting ? 'Publishing...' : 'Publish proof'}
           </button>
           <button
             type="button"
