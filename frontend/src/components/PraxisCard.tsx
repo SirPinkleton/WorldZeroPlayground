@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { SubmissionOut } from '../api/submissions'
+import type { PraxisCardOut } from '../api/praxis'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderatePraxis } from '../api/admin'
@@ -8,7 +8,7 @@ import { factionCssVar } from '../utils/factions'
 import { extractError } from '../utils/errors'
 
 interface Props {
-  praxis: SubmissionOut
+  praxis: PraxisCardOut
   onModerated?: () => void
 }
 
@@ -25,7 +25,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
     setModerateError(null)
     try {
       const updated = await moderatePraxis(localPraxis.id, 'hidden')
-      setLocalPraxis(updated)
+      setLocalPraxis(updated as unknown as PraxisCardOut)
       onModerated?.()
     } catch (err) {
       setModerateError(extractError(err, 'Failed to hide.'))
@@ -38,7 +38,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
     setModerateError(null)
     try {
       const updated = await moderatePraxis(localPraxis.id, 'failed')
-      setLocalPraxis(updated)
+      setLocalPraxis(updated as unknown as PraxisCardOut)
       onModerated?.()
     } catch (err) {
       setModerateError(extractError(err, 'Failed to fail.'))
@@ -49,9 +49,9 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
     <div
       className="card p-4 flex flex-col gap-2 transition-all duration-150 relative"
       style={{
-        background: factionCssVar(localPraxis.task_faction_slug, 'card-bg'),
-        borderLeft: `4px solid ${factionCssVar(localPraxis.task_faction_slug, 'card-accent')}`,
-        color: factionCssVar(localPraxis.task_faction_slug, 'card-text'),
+        background: factionCssVar(null, 'card-bg'),
+        borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
+        color: factionCssVar(null, 'card-text'),
       }}
     >
       {/* Moderation status badges */}
@@ -151,8 +151,8 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
       </Link>
 
       <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/40 font-body text-xs text-muted mt-auto">
-        <Link to={`/characters/${localPraxis.character_id}`} className="hover:underline">
-          {localPraxis.character_display_name || `#${localPraxis.character_id}`}
+        <Link to={`/characters/${localPraxis.created_by_id}`} className="hover:underline">
+          {localPraxis.created_by_display_name || `#${localPraxis.created_by_id}`}
         </Link>
         {localPraxis.score !== null && (
           <span className="font-display text-sm font-bold text-ink">

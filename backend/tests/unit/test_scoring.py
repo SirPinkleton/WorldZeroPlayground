@@ -29,6 +29,7 @@ def test_vote_budget_floors_fractional():
         config_key="test",
         max_task_signups=20,
         task_submit_level_gap=2,
+        max_duel_participants=2,
         vote_budget_base=10,
         vote_budget_multiplier=1.5,
         level_thresholds=ERA_1.level_thresholds,

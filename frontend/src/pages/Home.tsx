@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { listSubmissions, type SubmissionOut } from '../api/submissions'
+import { listPraxes, type PraxisCardOut } from '../api/praxis'
 import { loginWithGoogle, devLogin } from '../api/auth'
 import PraxisCard from '../components/PraxisCard'
 import PageTitle from '../components/ui/PageTitle'
@@ -10,11 +10,11 @@ export default function Home() {
   const { user, refetch } = useAuth()
   const [searchParams] = useSearchParams()
   const loginRequired = searchParams.get('login') === 'required'
-  const [feed, setFeed] = useState<SubmissionOut[]>([])
+  const [feed, setFeed] = useState<PraxisCardOut[]>([])
 
   useEffect(() => {
     if (user) {
-      listSubmissions().then(setFeed).catch(() => setFeed([]))
+      listPraxes().then(setFeed).catch(() => setFeed([]))
     }
   }, [user])
 

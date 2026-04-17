@@ -1,41 +1,124 @@
 import api from './axios'
 
+// ---------------------------------------------------------------------------
+// Types — match backend schemas/praxis.py exactly
+// ---------------------------------------------------------------------------
+
+export type PraxisType = 'solo' | 'collab' | 'duel'
+export type PraxisStatus = 'in_progress' | 'submitted'
+export type PraxisInviteStatus = 'pending' | 'accepted' | 'declined'
+export type ModerationStatus = 'visible' | 'flagged' | 'hidden' | 'failed'
+export type MediaType = 'image' | 'video' | 'audio'
+
 export interface MediaItemOut {
   id: number
-  type: string
+  praxis_id: number
+  type: MediaType
   file_path: string
   display_order: number
+  created_at: string
+}
+
+export interface PraxisMemberOut {
+  id: number
+  praxis_id: number
+  character_id: number
+  character_display_name: string
+  has_submitted: boolean
+  joined_at: string
+}
+
+export interface PraxisInviteOut {
+  id: number
+  praxis_id: number
+  inviter_id: number
+  invitee_id: number
+  inviter_display_name: string
+  invitee_display_name: string
+  status: PraxisInviteStatus
+  created_at: string
+}
+
+export interface DuelVoteSummary {
+  member_id: number
+  character_id: number
+  character_display_name: string
+  total_stars: number
+  vote_count: number
 }
 
 export interface PraxisOut {
   id: number
   task_id: number
-  character_id: number
-  character_display_name: string
-  character_avatar_url: string | null
   task_title: string
   task_point_value: number
-  task_faction_slug: string | null
-  title: string
+  type: PraxisType
+  status: PraxisStatus
+  title: string | null
   body_text: string | null
-  moderation_status: string
   is_withdrawn: boolean
+  moderation_status: ModerationStatus
   admin_note: string | null
+  flagged_at: string | null
+  created_by_id: number
+  created_by_display_name: string
   created_at: string
   updated_at: string
-  media: MediaItemOut[]
-  score: number | null
+  members: PraxisMemberOut[]
+  invites: PraxisInviteOut[]
+  media_items: MediaItemOut[]
+  score: number
+  duel_vote_summary: DuelVoteSummary[] | null
+}
+
+export interface PraxisCardOut {
+  id: number
+  task_id: number
+  task_title: string
+  task_point_value: number
+  type: PraxisType
+  status: PraxisStatus
+  title: string | null
+  is_withdrawn: boolean
+  moderation_status: ModerationStatus
+  created_by_id: number
+  created_by_display_name: string
+  created_at: string
+  updated_at: string
+  member_count: number
+  score: number
 }
 
 export interface PraxisCreate {
   task_id: number
-  title: string
+  type?: PraxisType
+  title?: string
   body_text?: string
-  meta_task_id?: number
 }
 
-export async function listPraxes(params?: { task_id?: number; character_id?: number }): Promise<PraxisOut[]> {
-  const { data } = await api.get<PraxisOut[]>('/praxes', { params })
+export interface PraxisUpdate {
+  title?: string
+  body_text?: string
+}
+
+export interface PraxisVoteIn {
+  stars: number
+  praxis_member_id?: number
+}
+
+// ---------------------------------------------------------------------------
+// List / detail
+// ---------------------------------------------------------------------------
+
+export async function listPraxes(filters?: {
+  task_id?: number
+  character_id?: number
+  type?: PraxisType
+  status?: PraxisStatus
+  limit?: number
+  offset?: number
+}): Promise<PraxisCardOut[]> {
+  const { data } = await api.get<PraxisCardOut[]>('/praxes', { params: filters })
   return data
 }
 
@@ -44,39 +127,99 @@ export async function getPraxis(id: number): Promise<PraxisOut> {
   return data
 }
 
-export async function createPraxis(body: PraxisCreate): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>('/praxes', body)
+// ---------------------------------------------------------------------------
+// Create / update / delete
+// ---------------------------------------------------------------------------
+
+export async function createPraxis(data: PraxisCreate): Promise<PraxisOut> {
+  const { data: result } = await api.post<PraxisOut>('/praxes', data)
+  return result
+}
+
+export async function updatePraxis(id: number, data: PraxisUpdate): Promise<PraxisOut> {
+  const { data: result } = await api.put<PraxisOut>(`/praxes/${id}`, data)
+  return result
+}
+
+export async function deletePraxis(id: number): Promise<void> {
+  await api.delete(`/praxes/${id}`)
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle transitions
+// ---------------------------------------------------------------------------
+
+export async function withdrawPraxis(id: number): Promise<PraxisOut> {
+  const { data } = await api.post<PraxisOut>(`/praxes/${id}/withdraw`)
   return data
 }
 
-export async function editPraxis(id: number, body: Partial<PraxisCreate>): Promise<PraxisOut> {
-  const { data } = await api.put<PraxisOut>(`/praxes/${id}`, body)
+export async function resubmitPraxis(id: number): Promise<PraxisOut> {
+  const { data } = await api.post<PraxisOut>(`/praxes/${id}/resubmit`)
   return data
 }
 
-export async function uploadMedia(praxisId: number, file: File): Promise<MediaItemOut> {
+export async function submitPraxis(id: number): Promise<PraxisOut> {
+  const { data } = await api.post<PraxisOut>(`/praxes/${id}/submit`)
+  return data
+}
+
+export async function reopenPraxis(id: number): Promise<PraxisOut> {
+  const { data } = await api.post<PraxisOut>(`/praxes/${id}/reopen`)
+  return data
+}
+
+// ---------------------------------------------------------------------------
+// Media
+// ---------------------------------------------------------------------------
+
+export async function uploadPraxisMedia(id: number, file: File): Promise<MediaItemOut> {
   const form = new FormData()
   form.append('file', file)
-  const { data } = await api.post<MediaItemOut>(`/praxes/${praxisId}/media`, form)
+  const { data } = await api.post<MediaItemOut>(`/praxes/${id}/media`, form)
   return data
 }
 
-export async function flagPraxis(praxisId: number, reason: string): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>(`/praxes/${praxisId}/flag`, { reason })
+export async function deletePraxisMedia(id: number, mediaId: number): Promise<void> {
+  await api.delete(`/praxes/${id}/media/${mediaId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Collaboration / invite management
+// ---------------------------------------------------------------------------
+
+export async function inviteToPraxis(id: number, inviteeId: number): Promise<PraxisInviteOut> {
+  const { data } = await api.post<PraxisInviteOut>(`/praxes/${id}/invite`, {
+    invitee_id: inviteeId,
+  })
   return data
 }
 
-export async function deleteMedia(praxisId: number, mediaId: number): Promise<void> {
-  await api.delete(`/praxes/${praxisId}/media/${mediaId}`)
-}
-
-export async function withdrawPraxis(praxisId: number): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>(`/praxes/${praxisId}/withdraw`)
+export async function respondToInvite(
+  praxisId: number,
+  inviteId: number,
+  accept: boolean,
+): Promise<PraxisInviteOut> {
+  const { data } = await api.post<PraxisInviteOut>(
+    `/praxes/${praxisId}/invite/${inviteId}/respond`,
+    { accept },
+  )
   return data
 }
 
-export async function resubmitPraxis(praxisId: number): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>(`/praxes/${praxisId}/resubmit`)
-  return data
+export async function kickMember(praxisId: number, memberId: number): Promise<void> {
+  await api.post(`/praxes/${praxisId}/kick/${memberId}`)
 }
 
+// ---------------------------------------------------------------------------
+// Voting
+// ---------------------------------------------------------------------------
+
+export async function votePraxis(id: number, data: PraxisVoteIn): Promise<void> {
+  await api.post(`/praxes/${id}/vote`, data)
+}
+
+export async function getPraxisVotes(id: number): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data } = await api.get<any[]>(`/praxes/${id}/votes`) // eslint-disable-line @typescript-eslint/no-explicit-any
+  return data
+}

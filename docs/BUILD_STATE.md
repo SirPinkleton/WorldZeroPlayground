@@ -1,7 +1,7 @@
 # World Zero — Build State
 
-> Last updated: 2026-04-15
-> Updated by: Claude Code — U.5 Documentation updated for STI submission refactor
+> Last updated: 2026-04-16
+> Updated by: Claude Code — P.1 Migration 0004_praxis_unification validated
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -190,6 +190,30 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `backend/schemas/submission.py` — SubmissionVoteIn.target_character_id made Optional (solo votes don't require it) ✅
   - `backend/services/praxis.py` — Fixed shim: removed praxis.votes access (relationship removed); score returns 0 for legacy Praxis rows ✅
   - 105 unit tests passing ✅
+- **SESSION P.4 — Praxis service layer rewritten ✅ 2026-04-16**
+  - `backend/services/praxis.py` — Full canonical service: create_praxis, get_praxis, list_praxes, update_praxis, withdraw_praxis, resubmit_praxis, delete_praxis, flag_praxis, invite_to_praxis, respond_to_invite, kick_member, submit_praxis, reopen_praxis, moderate_praxis, compute_praxis_score_from_db, build_praxis_out, build_praxis_card_out ✅
+  - `backend/services/character_stats.py` — Updated to query Praxis + PraxisMember instead of Submission; duel totals now keyed by praxis_member_id ✅
+  - `backend/services/vote.py` — Updated: praxis_id replaces submission_id; praxis_member_id replaces duel_vote_for; imports Praxis model ✅
+  - `backend/services/admin_service.py` — Updated: game_overview counts Praxis rows; moderate_praxis operates on Praxis model directly ✅
+  - `backend/services/activity_feed.py` — Updated: CollaborationInvite → PraxisInvite; collaboration_id → praxis_id; CollaborationMode → PraxisType ✅
+  - `backend/services/submission.py` — Deleted (was broken since P.2; routers will be updated in U.3) ✅
+  - `backend/services/collaboration.py` — Deleted (was broken since P.2) ✅
+  - `backend/game_config.py` — Added max_duel_participants field to EraConfig ✅
+  - `backend/eras/era_1.py` — Set max_duel_participants=2 on ERA_1 ✅
+  - `backend/eras/_template.py` — Added max_duel_participants=2 to template ✅
+  - `backend/tests/unit/test_scoring.py` — Fixed: added max_duel_participants to inline EraConfig construction ✅
+  - 105 unit tests passing ✅
+- **SESSION P — Praxis Unification ✅ 2026-04-16**
+  - P.1: migration 0004_praxis_unification validated ✅
+  - P.2: models rewritten (Praxis, PraxisMember, PraxisInvite) ✅
+  - P.3: schemas rewritten ✅
+  - P.4: services rewritten ✅
+  - P.5: routes unified at /praxes ✅
+  - P.6: frontend API client rewritten ✅
+  - P.7: frontend pages updated ✅
+  - P.8: integration tests + spec docs updated ✅
+- **SESSION P.1 — Migration 0004_praxis_unification validated ✅ 2026-04-16**
+  - `backend/alembic/versions/0004_praxis_unification.py` — upgrade (0001→0004) and downgrade (-1) both run cleanly against a fresh PostgreSQL DB; no changes to migration file required ✅
 - **SESSION U.1 — Submission STI model + migration ✅ 2026-04-15**
   - `backend/models/submission.py` — New `Submission` STI table with `submission_type` discriminator (`solo | collaboration | duel`); `SubmissionMember`; `SubmissionInvite` ✅
   - `backend/alembic/versions/0003_submission_unified.py` — Creates `submission`, `submission_member`, `submission_invite` tables; migrates data from legacy `praxis` + `collaboration` tables ✅

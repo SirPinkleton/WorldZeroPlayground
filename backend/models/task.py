@@ -8,7 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base
 
 if TYPE_CHECKING:
-    from models.character import Character
     from models.praxis import Praxis
 
 
@@ -16,12 +15,6 @@ class TaskStatus(enum.Enum):
     pending = "pending"
     active = "active"
     retired = "retired"
-
-
-class CharacterTaskStatus(enum.Enum):
-    in_progress = "in_progress"
-    submitted = "submitted"
-    abandoned = "abandoned"
 
 
 class Task(Base):
@@ -65,29 +58,3 @@ class TaskFaction(Base):
         ForeignKey("faction.slug"), primary_key=True
     )
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-
-
-class CharacterTask(Base):
-    __tablename__ = "character_task"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
-    task_id: Mapped[int] = mapped_column(ForeignKey("task.id"), nullable=False)
-    signed_up_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    status: Mapped[CharacterTaskStatus] = mapped_column(
-        Enum(CharacterTaskStatus, create_type=False),
-        default=CharacterTaskStatus.in_progress,
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
-    )
-
-    character: Mapped["Character"] = relationship(
-        "Character", lazy="selectin"
-    )
-    task: Mapped["Task"] = relationship(
-        "Task", lazy="selectin"
-    )

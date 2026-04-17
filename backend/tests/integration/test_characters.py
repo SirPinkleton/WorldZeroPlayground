@@ -202,9 +202,11 @@ async def test_get_character_praxes_returns_list(
     active_task: Task,
 ):
     """GET /characters/{id}/praxes returns seeded praxis entries."""
+    from models.praxis import PraxisType
     praxis = Praxis(
         task_id=active_task.id,
-        character_id=character.id,
+        created_by_id=character.id,
+        type=PraxisType.solo,
         title="My Praxis",
         body_text="Proof here",
     )
@@ -226,10 +228,12 @@ async def test_get_character_praxes_pagination(
     active_task: Task,
 ):
     """GET /characters/{id}/praxes respects limit and offset."""
+    from models.praxis import PraxisType
     for index in range(3):
         praxis = Praxis(
             task_id=active_task.id,
-            character_id=character.id,
+            created_by_id=character.id,
+            type=PraxisType.solo,
             title=f"Praxis {index}",
             body_text="proof",
         )

@@ -22,7 +22,17 @@
       "Bash(Set-Location \"C:\\\\Users\\\\MollyShove\\\\Documents\\\\GitHub\\\\WorldZeroPlayground\")",
       "Bash(Remove-Item commit_msg.txt)",
       "Bash(gh repo *)",
-      "Skill(schedule)"
+      "Skill(schedule)",
+      "Bash(alembic current *)",
+      "Bash(python -m alembic current)",
+      "Bash(DATABASE_URL=\"postgresql+asyncpg://worldzero:worldzero@localhost/worldzero\" python -m alembic current)",
+      "Bash(set DATABASE_URL=postgresql+asyncpg://worldzero:worldzero@localhost/worldzero)",
+      "Bash(python -m alembic upgrade head)",
+      "Bash(DATABASE_URL=postgresql+asyncpg://worldzero:worldzero@localhost/worldzero python -m alembic upgrade head)",
+      "Bash(export DATABASE_URL=postgresql+asyncpg://worldzero:worldzero@localhost/worldzero)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
