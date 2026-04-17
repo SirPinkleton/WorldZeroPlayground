@@ -1,7 +1,7 @@
 # World Zero — Build State
 
-> Last updated: 2026-04-15
-> Updated by: Claude Code — U.5 Documentation updated for STI submission refactor
+> Last updated: 2026-04-16
+> Updated by: Claude Code — P.1 Migration 0004_praxis_unification validated
 
 This file is the source of truth for what has been built, what is in progress, and what hasn't been started yet. Claude Code agents should read this before beginning any session and update it when tasks are complete.
 
@@ -190,6 +190,8 @@ All migrations use `create_type=False` on `sa.Enum()` in `add_column`/`create_ta
   - `backend/schemas/submission.py` — SubmissionVoteIn.target_character_id made Optional (solo votes don't require it) ✅
   - `backend/services/praxis.py` — Fixed shim: removed praxis.votes access (relationship removed); score returns 0 for legacy Praxis rows ✅
   - 105 unit tests passing ✅
+- **SESSION P.1 — Migration 0004_praxis_unification validated ✅ 2026-04-16**
+  - `backend/alembic/versions/0004_praxis_unification.py` — upgrade (0001→0004) and downgrade (-1) both run cleanly against a fresh PostgreSQL DB; no changes to migration file required ✅
 - **SESSION U.1 — Submission STI model + migration ✅ 2026-04-15**
   - `backend/models/submission.py` — New `Submission` STI table with `submission_type` discriminator (`solo | collaboration | duel`); `SubmissionMember`; `SubmissionInvite` ✅
   - `backend/alembic/versions/0003_submission_unified.py` — Creates `submission`, `submission_member`, `submission_invite` tables; migrates data from legacy `praxis` + `collaboration` tables ✅
