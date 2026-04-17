@@ -90,6 +90,7 @@ class PraxisCardOut(BaseModel):
     updated_at: datetime
     member_count: int
     score: float
+    task_faction_slug: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
