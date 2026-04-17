@@ -111,9 +111,9 @@ export default function Tasks() {
               fontFamily: "'Courier Prime', monospace",
               fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.1em', padding: '4px 12px',
-              background: showMetaTasks ? '#15803d' : 'transparent',
+              background: showMetaTasks ? 'var(--color-success)' : 'transparent',
               color: showMetaTasks ? '#fff' : 'var(--color-text-tertiary)',
-              border: `1.5px solid ${showMetaTasks ? '#15803d' : 'var(--color-border)'}`,
+              border: `1.5px solid ${showMetaTasks ? 'var(--color-success)' : 'var(--color-border)'}`,
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >
@@ -171,7 +171,7 @@ export default function Tasks() {
                   <span
                     style={{
                       fontFamily: "'Courier Prime', monospace",
-                      fontSize: 11, fontWeight: 700, color: '#15803d',
+                      fontSize: 11, fontWeight: 700, color: 'var(--color-success)',
                     }}
                   >
                     +{mt.bonus_value} pts bonus

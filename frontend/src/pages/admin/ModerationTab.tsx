@@ -88,14 +88,14 @@ export default function ModerationTab() {
                     <button
                       onClick={() => void handleModerate(s.id, 'hidden')}
                       className="btn-outline text-xs"
-                      style={{ borderColor: 'rgba(220,38,38,0.5)', color: '#dc2626' }}
+                      style={{ borderColor: 'rgba(220,38,38,0.5)', color: 'var(--color-danger)' }}
                     >
                       hide
                     </button>
                     <button
                       onClick={() => setFailNoteTarget(failNoteTarget === s.id ? null : s.id)}
                       className="btn-outline text-xs"
-                      style={{ borderColor: 'rgba(245,158,11,0.5)', color: '#d97706' }}
+                      style={{ borderColor: 'rgba(245,158,11,0.5)', color: 'var(--color-warning)' }}
                     >
                       fail
                     </button>
@@ -113,7 +113,7 @@ export default function ModerationTab() {
                     <button
                       onClick={() => void handleModerate(s.id, 'failed', failNote)}
                       className="btn-primary text-xs"
-                      style={{ background: '#d97706', borderColor: '#92400e' }}
+                      style={{ background: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}
                     >
                       confirm fail
                     </button>

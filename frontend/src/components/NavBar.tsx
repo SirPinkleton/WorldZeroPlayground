@@ -105,7 +105,7 @@ export default function NavBar() {
               borderRadius: 2,
             }}
           >
-            {adminMode ? '\u26A1 mod' : '\u2694 mod'}
+            MOD
           </button>
         )}
 

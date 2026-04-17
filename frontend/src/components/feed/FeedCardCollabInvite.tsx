@@ -149,7 +149,7 @@ export default function FeedCardCollabInvite({ item }: Props) {
               Decline
             </button>
             {dropError && (
-              <span className="eyebrow" style={{ color: '#dc2626' }}>{dropError}</span>
+              <span className="eyebrow" style={{ color: 'var(--color-danger)' }}>{dropError}</span>
             )}
           </div>
         )}

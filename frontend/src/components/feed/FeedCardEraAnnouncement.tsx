@@ -22,7 +22,7 @@ export default function FeedCardEraAnnouncement({ item }: Props) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 20 }}>&#x1F310;</span>
+        <span className="eyebrow">ERA</span>
         <span className="eyebrow" style={{ color: 'var(--rank-silver)', fontSize: 8 }}>
           Era Announcement
         </span>

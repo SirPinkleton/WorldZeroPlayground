@@ -357,7 +357,7 @@ export default function ProposeTask() {
                 )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                   {isMetaTask
-                    ? <span className="eyebrow" style={{ color: '#15803d' }}>+{metaBonusValue || '?'} bonus pts</span>
+                    ? <span className="eyebrow" style={{ color: 'var(--color-success)' }}>+{metaBonusValue || '?'} bonus pts</span>
                     : <span className="eyebrow">{pointValue || '?'} pts</span>
                   }
                   <span className="eyebrow">lvl {levelRequired === '' ? 0 : levelRequired}+</span>
@@ -367,7 +367,7 @@ export default function ProposeTask() {
             )}
 
             {error && (
-              <p className="font-body" style={{ fontSize: 10, color: '#dc2626', marginBottom: 12 }}>{error}</p>
+              <p className="font-body" style={{ fontSize: 10, color: 'var(--color-danger)', marginBottom: 12 }}>{error}</p>
             )}
 
             {/* Submit Row (§20.7) */}
@@ -401,7 +401,7 @@ export default function ProposeTask() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="sidebar-card" style={{ padding: '14px 16px' }}>
             <p className="eyebrow mb-2">What makes a good task</p>
-            <ul className="font-body" style={{ fontSize: 9, color: '#4a3f30', lineHeight: 1.6, paddingLeft: 14, listStyleType: 'disc' }}>
+            <ul className="font-body" style={{ fontSize: 9, color: 'var(--color-text-primary)', lineHeight: 1.6, paddingLeft: 14, listStyleType: 'disc' }}>
               <li>It should be doable by someone with no money and no special skills.</li>
               <li>The proof post should be interesting to read even if you didn't do the task.</li>
               <li>It should have a clear pass/fail.</li>

@@ -154,7 +154,7 @@ export default function Factions() {
                     borderLeft: `3px solid ${color}`,
                   }}
                 >
-                  <span style={{ fontSize: 12 }}>&#x2709;&#xFE0F;</span>
+                  <span className="eyebrow">INVITE</span>
                   <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)', flex: 1 }}>
                     You've been invited to join{' '}
                     <span style={{ fontWeight: 700, color }}>{inv.faction_name}</span>
@@ -212,7 +212,7 @@ export default function Factions() {
                     className="eyebrow"
                     style={{
                       fontSize: 8,
-                      background: '#14532d',
+                      background: 'var(--color-success)',
                       color: '#fff',
                       padding: '2px 8px',
                       letterSpacing: '0.1em',
@@ -232,7 +232,7 @@ export default function Factions() {
                       letterSpacing: '0.1em',
                     }}
                   >
-                    &#x2709; INVITED
+                    <span className="eyebrow">INVITE</span>
                   </span>
                 )}
                 {isDefected && (
@@ -334,7 +334,7 @@ export default function Factions() {
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         letterSpacing: '0.1em',
-                        background: '#14532d',
+                        background: 'var(--color-success)',
                         color: '#fff',
                         border: 'none',
                         padding: '5px 14px',
