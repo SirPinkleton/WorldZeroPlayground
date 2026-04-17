@@ -618,6 +618,226 @@ async def test_admin_moderate_praxis_failed(
 
 
 # ---------------------------------------------------------------------------
+# Hide / unhide praxis via DELETE and moderate endpoints (direct DB seed)
+# ---------------------------------------------------------------------------
+
+
+async def _seed_praxis(
+    db_session: AsyncSession,
+    character: Character,
+    active_task: Task,
+    title: str = "Seeded Praxis",
+) -> Praxis:
+    """Insert a minimal visible Praxis row directly for moderation tests."""
+    from models.praxis import PraxisMember, PraxisType
+    praxis = Praxis(
+        task_id=active_task.id,
+        type=PraxisType.solo,
+        title=title,
+        moderation_status=ModerationStatus.visible.value,
+        created_by_id=character.id,
+    )
+    db_session.add(praxis)
+    await db_session.flush()
+
+    member = PraxisMember(
+        praxis_id=praxis.id,
+        character_id=character.id,
+    )
+    db_session.add(member)
+    await db_session.commit()
+    await db_session.refresh(praxis)
+    return praxis
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_praxis_hides_it(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """DELETE /admin/praxes/{id} sets moderation_status to hidden (soft-delete)."""
+    await _make_admin(account, db_session)
+    praxis = await _seed_praxis(db_session, character, active_task, "To Delete via Admin")
+
+    resp = await client.delete(f"/admin/praxes/{praxis.id}", headers=auth_headers)
+    assert resp.status_code == 204
+
+    # Verify the row is still in the DB but now hidden
+    result = await db_session.execute(select(Praxis).where(Praxis.id == praxis.id))
+    updated = result.scalar_one()
+    assert updated.moderation_status == ModerationStatus.hidden.value
+
+
+@pytest.mark.asyncio
+async def test_admin_moderate_praxis_hide(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """PATCH /admin/praxes/{id}/moderate with status=hidden hides a visible praxis."""
+    await _make_admin(account, db_session)
+    praxis = await _seed_praxis(db_session, character, active_task, "To Hide via Moderate")
+
+    resp = await client.patch(
+        f"/admin/praxes/{praxis.id}/moderate",
+        json={"status": "hidden"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["moderation_status"] == "hidden"
+
+
+@pytest.mark.asyncio
+async def test_admin_moderate_praxis_unhide(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """PATCH /admin/praxes/{id}/moderate with status=visible restores a hidden praxis."""
+    await _make_admin(account, db_session)
+    praxis = await _seed_praxis(db_session, character, active_task, "To Unhide")
+
+    # First hide it
+    await client.patch(
+        f"/admin/praxes/{praxis.id}/moderate",
+        json={"status": "hidden"},
+        headers=auth_headers,
+    )
+
+    # Now restore it
+    resp = await client.patch(
+        f"/admin/praxes/{praxis.id}/moderate",
+        json={"status": "visible"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["moderation_status"] == "visible"
+
+
+@pytest.mark.asyncio
+async def test_admin_moderate_praxis_failed_direct(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """PATCH /admin/praxes/{id}/moderate with status=failed stores the admin note."""
+    await _make_admin(account, db_session)
+    praxis = await _seed_praxis(db_session, character, active_task, "Substandard Praxis")
+
+    resp = await client.patch(
+        f"/admin/praxes/{praxis.id}/moderate",
+        json={"status": "failed", "admin_note": "Does not meet requirements."},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["moderation_status"] == "failed"
+    assert data["admin_note"] == "Does not meet requirements."
+
+
+@pytest.mark.asyncio
+async def test_admin_moderate_nonexistent_praxis_returns_404(
+    client: AsyncClient,
+    account: Account,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Moderating a praxis that does not exist returns 404."""
+    await _make_admin(account, db_session)
+
+    resp = await client.patch(
+        "/admin/praxes/999999/moderate",
+        json={"status": "hidden"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_nonexistent_praxis_returns_404(
+    client: AsyncClient,
+    account: Account,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """DELETE on a praxis that does not exist returns 404."""
+    await _make_admin(account, db_session)
+
+    resp = await client.delete("/admin/praxes/999999", headers=auth_headers)
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Additional 403 coverage — multiple admin endpoints
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_access_characters(
+    client: AsyncClient,
+    auth_headers: dict,
+):
+    """Non-admin account receives 403 on GET /admin/characters."""
+    resp = await client.get("/admin/characters", headers=auth_headers)
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_patch_character_stats(
+    client: AsyncClient,
+    character: Character,
+    auth_headers: dict,
+):
+    """Non-admin account receives 403 on PATCH /admin/characters/{id}/stats."""
+    resp = await client.patch(
+        f"/admin/characters/{character.id}/stats",
+        json={"score": 9999},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_patch_task(
+    client: AsyncClient,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """Non-admin account receives 403 on PATCH /admin/tasks/{id}."""
+    resp = await client.patch(
+        f"/admin/tasks/{active_task.id}",
+        json={"title": "Hacked"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_delete_praxis(
+    client: AsyncClient,
+    auth_headers: dict,
+):
+    """Non-admin account receives 403 on DELETE /admin/praxes/{id}."""
+    resp = await client.delete("/admin/praxes/1", headers=auth_headers)
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
 # Admin character list with filters
 # ---------------------------------------------------------------------------
 

@@ -332,3 +332,225 @@ async def test_get_character_praxes_for_nonexistent_character(client: AsyncClien
     resp = await client.get("/characters/99999/praxes")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+# ---------------------------------------------------------------------------
+# Relationships endpoint
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Avatar upload endpoint
+# ---------------------------------------------------------------------------
+
+
+def _make_jpeg_bytes(width: int = 100, height: int = 100) -> bytes:
+    """Return a minimal valid JPEG image as bytes."""
+    from PIL import Image
+    import io as _io
+
+    img = Image.new("RGB", (width, height), color=(128, 64, 32))
+    buf = _io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_success(
+    client: AsyncClient,
+    character: Character,
+    auth_headers: dict,
+    tmp_path,
+    monkeypatch,
+):
+    """POST /characters/{id}/avatar with a valid image saves and returns updated character."""
+    from config import settings as _settings
+
+    # Point MEDIA_ROOT to a temp dir so the test doesn't write to the real filesystem
+    monkeypatch.setattr(_settings, "MEDIA_ROOT", str(tmp_path))
+
+    jpeg_bytes = _make_jpeg_bytes()
+    resp = await client.post(
+        f"/characters/{character.id}/avatar",
+        files={"file": ("avatar.jpg", jpeg_bytes, "image/jpeg")},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == character.id
+    assert data["avatar_url"] is not None
+    assert "avatar" in data["avatar_url"]
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_wrong_owner(
+    client: AsyncClient,
+    character: Character,
+    auth_headers2: dict,
+):
+    """Uploading an avatar for another character's id returns 403."""
+    jpeg_bytes = _make_jpeg_bytes()
+    resp = await client.post(
+        f"/characters/{character.id}/avatar",
+        files={"file": ("avatar.jpg", jpeg_bytes, "image/jpeg")},
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_not_found(
+    client: AsyncClient,
+    auth_headers: dict,
+):
+    """Uploading an avatar for a nonexistent character returns 404."""
+    jpeg_bytes = _make_jpeg_bytes()
+    resp = await client.post(
+        "/characters/99999/avatar",
+        files={"file": ("avatar.jpg", jpeg_bytes, "image/jpeg")},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_non_image_rejected(
+    client: AsyncClient,
+    character: Character,
+    auth_headers: dict,
+):
+    """Uploading a non-image file returns 422."""
+    resp = await client.post(
+        f"/characters/{character.id}/avatar",
+        files={"file": ("data.txt", b"not an image", "text/plain")},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_unauthenticated(client: AsyncClient, character: Character):
+    """Uploading an avatar without authentication returns 401."""
+    jpeg_bytes = _make_jpeg_bytes()
+    resp = await client.post(
+        f"/characters/{character.id}/avatar",
+        files={"file": ("avatar.jpg", jpeg_bytes, "image/jpeg")},
+    )
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# DELETE wrong owner
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_character_wrong_owner(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers2: dict,
+):
+    """Character owned by account2 cannot delete character owned by account1."""
+    resp = await client.delete(f"/characters/{character.id}", headers=auth_headers2)
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Relationships endpoint
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_character_relationships_empty(
+    client: AsyncClient, character: Character
+):
+    """GET /characters/{id}/relationships returns empty list when none exist."""
+    resp = await client.get(f"/characters/{character.id}/relationships")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+@pytest.mark.asyncio
+async def test_get_character_relationships_with_data(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+):
+    """GET /characters/{id}/relationships returns seeded relationships."""
+    from models.relationship import Relationship, RelationshipStatus, RelationshipType
+
+    rel = Relationship(
+        from_character_id=character.id,
+        to_character_id=character2.id,
+        type=RelationshipType.friend,
+        status=RelationshipStatus.active,
+    )
+    db_session.add(rel)
+    await db_session.commit()
+
+    resp = await client.get(f"/characters/{character.id}/relationships")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["from_character_id"] == character.id
+    assert data[0]["to_character_id"] == character2.id
+
+    # Also visible from the other side
+    resp2 = await client.get(f"/characters/{character2.id}/relationships")
+    assert resp2.status_code == 200
+    assert len(resp2.json()) == 1
+
+
+# ---------------------------------------------------------------------------
+# Votes-received stats endpoint
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_votes_received_zero(client: AsyncClient, character: Character):
+    """GET /characters/{id}/stats/votes-received returns 0 when no votes exist."""
+    resp = await client.get(f"/characters/{character.id}/stats/votes-received")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["character_id"] == character.id
+    assert data["votes_received"] == 0
+
+
+@pytest.mark.asyncio
+async def test_votes_received_with_votes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+):
+    """GET /characters/{id}/stats/votes-received counts votes on that character's praxes."""
+    from models.praxis import PraxisType
+    from models.vote import Vote
+
+    praxis = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.solo,
+        title="Voted Praxis",
+        body_text="proof",
+    )
+    db_session.add(praxis)
+    await db_session.flush()
+
+    vote = Vote(
+        praxis_id=praxis.id,
+        voter_character_id=character2.id,
+        voter_account_id=character2.account_id,
+        stars=4,
+    )
+    db_session.add(vote)
+    await db_session.commit()
+
+    resp = await client.get(f"/characters/{character.id}/stats/votes-received")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["character_id"] == character.id
+    assert data["votes_received"] == 1

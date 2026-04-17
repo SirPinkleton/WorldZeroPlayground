@@ -39,7 +39,18 @@
       "Bash(grep -n \"submissiontype\\\\|SubmissionType\\\\|CREATE TYPE\\\\|DO \\\\$\\\\$\\\\|checkfirst\" /c/Users/MollyShove/Desktop/WorldZeroPlayground/backend/alembic/versions/0003_submission_unified.py)",
       "Bash(python *)",
       "Bash(npx tsc *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -E \"\\\\.\\(tsx|jsx|ts|js\\)$\")",
+      "Bash(claude mcp *)",
+      "Skill(update-config)",
+      "Bash(uv run *)",
+      "Bash(uv *)",
+      "Bash(WZ_API_URL=\"https://api.worldzero.org\" WZ_CLI_SECRET=\"test\" uv run \"C:\\\\Users\\\\MollyShove\\\\Desktop\\\\WorldZeroPlayground\\\\mcp\\\\worldzero-admin\\\\server.py\")",
+      "Bash(docker-compose up *)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "MCP_DOCKER"
+  ]
 }
