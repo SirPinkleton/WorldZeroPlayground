@@ -21,13 +21,18 @@ async def cast_vote(
     voter: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    praxis = await session.get(Praxis, praxis_id)
-    if praxis is None:
+    result = await session.execute(
+        select(Praxis, Character)
+        .outerjoin(Character, Character.id == Praxis.created_by_id)
+        .where(Praxis.id == praxis_id)
+    )
+    row = result.first()
+    if row is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
+    praxis, author = row
 
-    # Proper account-level anti-self-vote check
-    author_result = await session.get(Character, praxis.created_by_id)
-    if author_result and author_result.account_id == voter.account_id:
+    # Account-level anti-self-vote check
+    if author and author.account_id == voter.account_id:
         raise HTTPException(status_code=403, detail="Cannot vote on your own praxis.")
 
     vote = await cast_or_update_vote(voter, praxis, data.stars, session)

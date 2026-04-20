@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import re
 from typing import Optional
 
 from PIL import Image
@@ -27,47 +26,15 @@ from schemas.praxis import PraxisOut
 from services.auth import get_current_account
 from services.character import (
     CharacterCreationResult,
+    build_character_out,
     create_character,
     soft_delete_character,
     update_character,
 )
-from services.era import get_current_era_row
+from services.era import get_current_era_row_safe, load_current_era_stats
 from services.praxis import build_praxis_out
-from services.scoring import compute_votes_available
 
 router = APIRouter()
-
-
-def _build_character_out(character: Character, stats: Optional[CharacterStats]) -> CharacterOut:
-    """Build a flat CharacterOut from a Character row and its optional CharacterStats.
-
-    votes_available is computed on-read from stats (see R.5).
-    """
-    return CharacterOut(
-        id=character.id,
-        username=character.username,
-        display_name=character.display_name,
-        bio=character.bio,
-        avatar_url=character.avatar_url,
-        location=character.location,
-        faction_slug=character.faction_slug,
-        status=character.status.value,
-        created_at=character.created_at,
-        score=stats.score if stats else 0,
-        all_time_score=stats.all_time_score if stats else 0,
-        level=stats.level if stats else 0,
-        votes_available=compute_votes_available(stats) if stats else 0,
-    )
-
-
-async def _load_stats(character_id: int, era_id: int, session: AsyncSession) -> Optional[CharacterStats]:
-    result = await session.execute(
-        select(CharacterStats).where(
-            CharacterStats.character_id == character_id,
-            CharacterStats.era_id == era_id,
-        )
-    )
-    return result.scalar_one_or_none()
 
 
 @router.get("", response_model=list[CharacterOut])
@@ -79,11 +46,8 @@ async def list_characters(
     session: AsyncSession = Depends(get_db),
 ):
     """List all active characters. Optionally filter by name or faction."""
-    try:
-        era_row = await get_current_era_row(session)
-        era_id = era_row.id
-    except HTTPException:
-        era_id = None
+    era_row = await get_current_era_row_safe(session)
+    era_id = era_row.id if era_row else None
 
     query = (
         select(Character, CharacterStats)
@@ -104,7 +68,7 @@ async def list_characters(
 
     result = await session.execute(query)
     rows = result.all()
-    return [_build_character_out(c, s) for c, s in rows]
+    return [build_character_out(c, s) for c, s in rows]
 
 
 @router.get("/{character_id}", response_model=CharacterOut)
@@ -122,13 +86,8 @@ async def get_character(
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
 
-    try:
-        era_row = await get_current_era_row(session)
-        stats = await _load_stats(character_id, era_row.id, session)
-    except HTTPException:
-        stats = None
-
-    return _build_character_out(character, stats)
+    stats = await load_current_era_stats(character_id, session)
+    return build_character_out(character, stats)
 
 
 @router.post("", response_model=CharacterOut, status_code=201)
@@ -138,7 +97,7 @@ async def create_character_route(
     session: AsyncSession = Depends(get_db),
 ):
     result: CharacterCreationResult = await create_character(account.id, data, session)
-    return _build_character_out(result.character, result.stats)
+    return build_character_out(result.character, result.stats)
 
 
 @router.put("/{character_id}", response_model=CharacterOut)
@@ -151,14 +110,8 @@ async def update_character_route(
     if current_character.id != character_id:
         raise HTTPException(status_code=403, detail="Cannot edit another character.")
     character = await update_character(character_id, data, session)
-
-    try:
-        era_row = await get_current_era_row(session)
-        stats = await _load_stats(character_id, era_row.id, session)
-    except HTTPException:
-        stats = None
-
-    return _build_character_out(character, stats)
+    stats = await load_current_era_stats(character_id, session)
+    return build_character_out(character, stats)
 
 
 @router.delete("/{character_id}", status_code=204)
@@ -248,13 +201,8 @@ async def upload_avatar(
     await session.commit()
     await session.refresh(character)
 
-    try:
-        era_row = await get_current_era_row(session)
-        stats = await _load_stats(character_id, era_row.id, session)
-    except HTTPException:
-        stats = None
-
-    return _build_character_out(character, stats)
+    stats = await load_current_era_stats(character_id, session)
+    return build_character_out(character, stats)
 
 
 @router.get("/{character_id}/relationships", response_model=list[RelationshipOut])

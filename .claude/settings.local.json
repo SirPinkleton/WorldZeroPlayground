@@ -46,7 +46,12 @@
       "Bash(uv run *)",
       "Bash(uv *)",
       "Bash(WZ_API_URL=\"https://api.worldzero.org\" WZ_CLI_SECRET=\"test\" uv run \"C:\\\\Users\\\\MollyShove\\\\Desktop\\\\WorldZeroPlayground\\\\mcp\\\\worldzero-admin\\\\server.py\")",
-      "Bash(docker-compose up *)"
+      "Bash(docker-compose up *)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: SECRET_KEY=x GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=x GOOGLE_REDIRECT_URI=x MEDIA_BASE_URL=x python -c \"import routers.praxes, routers.tasks, routers.characters, routers.auth, routers.leaderboard, routers.admin, routers.votes, services.activity_feed, services.character, services.character_stats, services.era, dependencies; print\\('ok'\\)\")",
+      "Bash(DATABASE_URL=postgresql+asyncpg://x/x SECRET_KEY=x GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=x GOOGLE_REDIRECT_URI=x MEDIA_BASE_URL=x python -c \"import routers.praxes, routers.tasks, routers.characters, routers.auth, routers.leaderboard, routers.admin, routers.votes, services.activity_feed, services.character, services.character_stats, services.era, dependencies; print\\('ok'\\)\")",
+      "Bash(DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/worldzero_test SECRET_KEY=test GOOGLE_CLIENT_ID=test GOOGLE_CLIENT_SECRET=test GOOGLE_REDIRECT_URI=http://localhost MEDIA_BASE_URL=http://localhost ENVIRONMENT=test python -m pytest tests/integration/test_admin.py -x --no-cov -q)",
+      "Bash(DATABASE_URL=postgresql+asyncpg://x/x SECRET_KEY=test GOOGLE_CLIENT_ID=test GOOGLE_CLIENT_SECRET=test GOOGLE_REDIRECT_URI=http://localhost MEDIA_BASE_URL=http://localhost ENVIRONMENT=test python -m pytest tests/unit -x --no-cov -q)",
+      "Bash(DATABASE_URL=postgresql+asyncpg://x/x SECRET_KEY=test GOOGLE_CLIENT_ID=test GOOGLE_CLIENT_SECRET=test GOOGLE_REDIRECT_URI=http://localhost MEDIA_BASE_URL=http://localhost ENVIRONMENT=test python -m pyflakes routers/ services/ dependencies.py)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -139,7 +139,7 @@ class AdminTaskPatch(BaseModel):
 
 
 class TaskStatusAction(BaseModel):
-    status: Literal["active", "retired"]
+    status: Literal["pending", "active", "retired"]
 
 
 class RoleAction(BaseModel):

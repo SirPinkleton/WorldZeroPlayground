@@ -28,19 +28,45 @@ async def get_current_era_row(session: AsyncSession) -> Era:
     Raises 500 if the era has not been seeded yet. Run the initial seed or
     migration before creating characters.
     """
-    result = await session.execute(
-        select(Era)
-        .where(Era.config_key == CURRENT_ERA.config_key)
-        .order_by(Era.id.desc())
-        .limit(1)
-    )
-    era_row = result.scalar_one_or_none()
+    era_row = await get_current_era_row_safe(session)
     if era_row is None:
         raise HTTPException(
             status_code=500,
             detail="No active era configured. Run the initial seed before creating characters.",
         )
     return era_row
+
+
+async def get_current_era_row_safe(session: AsyncSession) -> Era | None:
+    """Like ``get_current_era_row`` but returns None on missing era instead of raising."""
+    result = await session.execute(
+        select(Era)
+        .where(Era.config_key == CURRENT_ERA.config_key)
+        .order_by(Era.id.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def load_current_era_stats(
+    character_id: int,
+    session: AsyncSession,
+) -> CharacterStats | None:
+    """Look up a character's CharacterStats for the current era.
+
+    Returns None when the era is unseeded or the character has no stats row,
+    so callers can fall back to zero stats without try/except.
+    """
+    era_row = await get_current_era_row_safe(session)
+    if era_row is None:
+        return None
+    result = await session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character_id,
+            CharacterStats.era_id == era_row.id,
+        )
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_or_create_stats(
