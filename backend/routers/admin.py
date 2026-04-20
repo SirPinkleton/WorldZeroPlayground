@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from config import settings
 from db import get_db
@@ -11,9 +12,7 @@ from dependencies import require_admin
 from game_config import CURRENT_ERA
 from models.account import Account
 from models.character import Character, CharacterStatus
-from models.contact import ContactMessage
 from models.era import Era
-from models.roles import AccountRole, Role
 from models.praxis import ModerationStatus, Praxis
 from models.task import Task, TaskStatus, TaskType
 from schemas.admin import (
@@ -22,11 +21,11 @@ from schemas.admin import (
     AdminCharacterCreate,
     AdminTaskPatch,
     CharacterStatsPatch,
+    AdminFactionOut,
     CharacterStatsOut,
     CharacterSummary,
     CliTokenResponse,
     FactionCreate,
-    FactionOut,
     ModerationAction,
     OverviewStats,
     RoleAction,
@@ -43,10 +42,13 @@ from services.admin_service import (
     archive_message,
     assign_or_revoke_role,
     create_faction,
+    find_admin_accounts,
     game_overview,
     get_account_detail,
     list_accounts,
+    list_active_characters,
     list_characters,
+    list_contact_messages,
     list_pending_tasks_with_proposer,
     reactivate_task,
     set_character_stats,
@@ -95,11 +97,8 @@ async def admin_list_messages(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> list[ContactMessageOut]:
-    query = select(ContactMessage).where(
-        ContactMessage.is_archived == archived
-    ).order_by(ContactMessage.created_at.desc())
-    result = await session.execute(query)
-    return [ContactMessageOut.model_validate(m) for m in result.scalars().all()]
+    messages = await list_contact_messages(session, archived=archived)
+    return [ContactMessageOut.model_validate(message) for message in messages]
 
 
 @router.patch("/messages/{message_id}/archive", response_model=ContactMessageOut)
@@ -145,14 +144,14 @@ async def admin_list_characters(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/factions", response_model=FactionOut, status_code=201)
+@router.post("/factions", response_model=AdminFactionOut, status_code=201)
 async def admin_create_faction(
     data: FactionCreate,
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> FactionOut:
+) -> AdminFactionOut:
     faction = await create_faction(data, session)
-    return FactionOut(
+    return AdminFactionOut(
         slug=faction.slug,
         name=faction.name,
         description=faction.description,
@@ -208,15 +207,8 @@ async def backfill_all_character_stats(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Recompute CharacterStats for every character using current vote data.
-
-    Safe to call repeatedly. Use after a scoring formula change to bring all
-    persisted scores in sync.
-    """
-    result = await session.execute(
-        select(Character).where(Character.status != CharacterStatus.banned)
-    )
-    characters = result.scalars().all()
+    """Recompute CharacterStats for every character using current vote data."""
+    characters = await list_active_characters(session)
     era_row = await get_current_era_row(session)
     for character in characters:
         await recalculate_character_stats(character.id, session, era_row=era_row)
@@ -229,24 +221,12 @@ async def admin_era_reset(
     admin: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Trigger an era reset: create a new Era row and reset all character stats.
-
-    Behaviour controlled by EraConfig reset flags (reset_score, reset_level,
-    reset_faction, reset_vote_budget, reset_all_time_score).
-    """
-    new_era_row = Era(
-        name=CURRENT_ERA.name,
-        config_key=CURRENT_ERA.config_key,
-        started_by=admin.id,
-    )
+    """Trigger an era reset: new Era row + reset stats per EraConfig flags."""
+    new_era_row = Era(name=CURRENT_ERA.name, config_key=CURRENT_ERA.config_key, started_by=admin.id)
     session.add(new_era_row)
     await session.flush()
-
-    result = await session.execute(select(Character).where(Character.status != CharacterStatus.banned))
-    characters = result.scalars().all()
-
+    characters = await list_active_characters(session)
     await apply_era_reset(characters, new_era_row, session)
-
     return {"era_id": new_era_row.id, "characters_reset": len(characters)}
 
 
@@ -303,31 +283,16 @@ async def admin_cli_token(
     x_admin_cli_secret: str = Header(..., alias="X-Admin-Cli-Secret"),
     session: AsyncSession = Depends(get_db),
 ) -> CliTokenResponse:
-    """Return a JWT for the admin account using a static secret.
-
-    Requires ADMIN_CLI_SECRET to be set in the environment. Returns 403 if
-    the secret is blank (disabled) or does not match.
-    """
+    """Return a JWT for the first admin account when the CLI secret matches."""
     if not settings.ADMIN_CLI_SECRET:
         raise HTTPException(status_code=403, detail="CLI token endpoint is disabled.")
     if x_admin_cli_secret != settings.ADMIN_CLI_SECRET:
         raise HTTPException(status_code=403, detail="Invalid CLI secret.")
 
-    # Find the admin account (first account with the admin role)
-    result = await session.execute(
-        select(Account)
-        .join(AccountRole, AccountRole.account_id == Account.id)
-        .join(Role, Role.id == AccountRole.role_id)
-        .where(Role.name == "admin")
-        .limit(1)
-    )
-    admin_account = result.scalar_one_or_none()
-
-    if admin_account is None:
+    admins = await find_admin_accounts(session)
+    if not admins:
         raise HTTPException(status_code=500, detail="No admin account found. Run seed first.")
-
-    token = create_jwt(admin_account.id)
-    return CliTokenResponse(access_token=token)
+    return CliTokenResponse(access_token=create_jwt(admins[0].id))
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +308,8 @@ async def admin_list_flagged_praxes(
     """Return praxes with moderation_status == flagged."""
     result = await session.execute(
         select(Praxis)
-        .where(Praxis.moderation_status == ModerationStatus.flagged.value)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.moderation_status == ModerationStatus.flagged)
         .order_by(Praxis.created_at.desc())
     )
     praxis_list = result.scalars().all()
@@ -406,8 +372,8 @@ async def list_pending_tasks(
             description=task.description,
             point_value=task.point_value,
             level_required=task.level_required,
-            status=task.status.value,
-            task_type=task.task_type.value,
+            status=task.status,
+            task_type=task.task_type,
             created_by=task.created_by,
             primary_faction_slug=task.primary_faction_slug,
             metatask_faction_slug=task.metatask_faction_slug,
@@ -469,7 +435,7 @@ async def admin_delete_praxis(
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    praxis.moderation_status = ModerationStatus.hidden.value
+    praxis.moderation_status = ModerationStatus.hidden
     await session.commit()
 
 

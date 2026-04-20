@@ -11,6 +11,11 @@ from models.praxis import Praxis, PraxisMember, PraxisStatus
 from models.task import Task, TaskStatus, TaskType
 from schemas.task import TaskCreate, TaskOut
 from services.era import get_current_era_row, get_or_create_stats
+from services.praxis import (
+    allowed_praxis_modes,
+    can_submit_praxis_for_task,
+    is_task_eligible_for_character,
+)
 
 
 async def propose_task(
@@ -91,8 +96,8 @@ def build_task_out(task: Task) -> TaskOut:
         description=task.description,
         point_value=task.point_value,
         level_required=task.level_required,
-        status=task.status.value,
-        task_type=task.task_type.value,
+        status=task.status,
+        task_type=task.task_type,
         created_by=task.created_by,
         primary_faction_slug=task.primary_faction_slug,
         metatask_faction_slug=task.metatask_faction_slug,
@@ -114,12 +119,6 @@ async def build_task_out_for_viewer(
     (``None`` for anonymous callers). All three flags default to the same
     safe values as :func:`build_task_out` when ``viewer`` is ``None``.
     """
-    from services.praxis import (
-        allowed_praxis_modes,
-        can_submit_praxis_for_task,
-        is_task_eligible_for_character,
-    )
-
     base = build_task_out(task)
 
     if viewer is None:
@@ -134,6 +133,32 @@ async def build_task_out_for_viewer(
         viewer, task, stats.level
     )
     return base
+
+
+async def list_signups_for_task(
+    task_id: int,
+    session: AsyncSession,
+) -> list[tuple[PraxisMember, Character, Praxis]]:
+    """List in-progress praxis members for a task (characters currently working on it).
+
+    Raises 404 if the task does not exist.
+    """
+    task = await session.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    result = await session.execute(
+        select(PraxisMember, Character, Praxis)
+        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+        .join(Character, PraxisMember.character_id == Character.id)
+        .where(
+            Praxis.task_id == task_id,
+            Praxis.status == PraxisStatus.in_progress,
+            Praxis.is_withdrawn == False,  # noqa: E712
+        )
+        .order_by(PraxisMember.joined_at.asc())
+    )
+    return list(result.all())
 
 
 async def list_tasks(

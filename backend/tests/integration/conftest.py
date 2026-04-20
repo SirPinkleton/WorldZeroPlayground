@@ -36,9 +36,9 @@ from models.character import Character
 from models.character_stats import CharacterStats
 from models.era import Era
 from models.faction import Faction
-from models.praxis import Praxis  # noqa: F401
+from models.praxis import Praxis, PraxisMember, PraxisType
 from models.task import Task
-from models.vote import Vote  # noqa: F401
+from models.vote import Vote
 from services.auth import create_jwt
 
 # ---------------------------------------------------------------------------
@@ -273,3 +273,71 @@ async def signed_up_task2(
     Kept for test compatibility; simply returns the active_task.
     """
     return active_task
+
+
+# ---------------------------------------------------------------------------
+# Praxis / Vote fixtures
+# ---------------------------------------------------------------------------
+
+@pytest_asyncio.fixture
+async def praxis_solo(
+    db_session: AsyncSession, active_task: Task, character: Character
+) -> Praxis:
+    """Minimal solo Praxis authored by ``character`` on ``active_task``."""
+    praxis = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.solo,
+        title="Solo Praxis",
+        body_text="proof",
+    )
+    db_session.add(praxis)
+    await db_session.commit()
+    await db_session.refresh(praxis)
+    return praxis
+
+
+@pytest_asyncio.fixture
+async def praxis_collab(
+    db_session: AsyncSession,
+    active_task: Task,
+    character: Character,
+    character2: Character,
+) -> Praxis:
+    """Collab Praxis with two members (``character`` and ``character2``)."""
+    praxis = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.collab,
+        title="Collab Praxis",
+        body_text="proof",
+    )
+    db_session.add(praxis)
+    await db_session.flush()
+
+    db_session.add_all(
+        [
+            PraxisMember(praxis_id=praxis.id, character_id=character.id),
+            PraxisMember(praxis_id=praxis.id, character_id=character2.id),
+        ]
+    )
+    await db_session.commit()
+    await db_session.refresh(praxis)
+    return praxis
+
+
+@pytest_asyncio.fixture
+async def vote(
+    db_session: AsyncSession, praxis_solo: Praxis, character2: Character
+) -> Vote:
+    """A single four-star Vote cast by ``character2`` on ``praxis_solo``."""
+    vote_row = Vote(
+        praxis_id=praxis_solo.id,
+        voter_character_id=character2.id,
+        voter_account_id=character2.account_id,
+        stars=4,
+    )
+    db_session.add(vote_row)
+    await db_session.commit()
+    await db_session.refresh(vote_row)
+    return vote_row

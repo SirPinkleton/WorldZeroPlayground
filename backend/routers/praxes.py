@@ -10,7 +10,9 @@ import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from config import settings
 from db import get_db
@@ -57,7 +59,7 @@ from services.praxis import (
     update_praxis,
     withdraw_praxis,
 )
-from services.vote import cast_or_update_duel_vote, cast_or_update_vote
+from services.vote import cast_vote_on_praxis
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +117,13 @@ async def get_praxis_route(
     session: AsyncSession = Depends(get_db),
     viewer: Optional[Character] = Depends(get_current_character_optional),
 ):
-    praxis = await session.get(Praxis, praxis_id)
-    if praxis is None or praxis.moderation_status == ModerationStatus.hidden.value:
+    result = await session.execute(
+        select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.id == praxis_id)
+    )
+    praxis = result.scalar_one_or_none()
+    if praxis is None or praxis.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Praxis not found.")
     return await build_praxis_out(praxis, session, viewer=viewer)
 
@@ -367,7 +374,12 @@ async def respond_to_invite_route(
         session=session,
         era=CURRENT_ERA,
     )
-    praxis = await session.get(Praxis, invite.praxis_id)
+    result = await session.execute(
+        select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.id == invite.praxis_id)
+    )
+    praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
     return await build_praxis_out(praxis, session, viewer=character)
@@ -386,7 +398,12 @@ async def kick_member_route(
         requester_id=character.id,
         session=session,
     )
-    praxis = await session.get(Praxis, praxis_id)
+    result = await session.execute(
+        select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.id == praxis_id)
+    )
+    praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
     return await build_praxis_out(praxis, session, viewer=character)
@@ -425,40 +442,11 @@ async def cast_vote_route(
     character: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    """Cast a vote on a praxis.
-
-    - Solo/collab: omit ``praxis_member_id``. Uses ``cast_or_update_vote``.
-    - Duel: ``praxis_member_id`` must be set to a duel member's row id.
-    """
-    from models.praxis import PraxisType
-    praxis = await session.get(Praxis, praxis_id)
-    if praxis is None or praxis.moderation_status == ModerationStatus.hidden.value:
-        raise HTTPException(status_code=404, detail="Praxis not found.")
-
-    if praxis.type == PraxisType.duel:
-        if data.praxis_member_id is None:
-            raise HTTPException(status_code=422, detail="praxis_member_id is required for duel votes.")
-        vote = await cast_or_update_duel_vote(
-            voter=character,
-            praxis_id=praxis_id,
-            praxis_member_id=data.praxis_member_id,
-            stars=data.stars,
-            session=session,
-            era=CURRENT_ERA,
-        )
-    else:
-        # Solo or collaboration — anti-self-vote at account level
-        if praxis.created_by_id is not None:
-            author = await session.get(Character, praxis.created_by_id)
-            if author and author.account_id == character.account_id:
-                raise HTTPException(status_code=403, detail="Cannot vote on your own praxis.")
-        vote = await cast_or_update_vote(
-            voter=character,
-            praxis=praxis,
-            stars=data.stars,
-            session=session,
-            era=CURRENT_ERA,
-        )
+    """Cast a vote. Solo/collab: omit praxis_member_id. Duel: set it."""
+    vote = await cast_vote_on_praxis(
+        character, praxis_id, data.stars, session,
+        praxis_member_id=data.praxis_member_id, era=CURRENT_ERA,
+    )
     return VoteOut.model_validate(vote)
 
 

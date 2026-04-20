@@ -1,11 +1,11 @@
 import enum
-from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+from models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from models.praxis import Praxis
@@ -29,7 +29,7 @@ class TaskType(enum.Enum):
     metatask = "metatask"
 
 
-class Task(Base):
+class Task(TimestampMixin, Base):
     __tablename__ = "task"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -59,25 +59,7 @@ class Task(Base):
     is_task_vision_eligible: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
-    )
 
     praxes: Mapped[List["Praxis"]] = relationship(
         "Praxis", back_populates="task", lazy="raise"
     )
-
-
-class TaskFaction(Base):
-    """Join table for future multi-faction task support."""
-
-    __tablename__ = "task_faction"
-
-    task_id: Mapped[int] = mapped_column(ForeignKey("task.id"), primary_key=True)
-    faction_slug: Mapped[str] = mapped_column(
-        ForeignKey("faction.slug"), primary_key=True
-    )
-    is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

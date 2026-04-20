@@ -5,7 +5,7 @@ from models.roles import Role, AccountRole
 from models.character import Character
 from models.era import Era
 from models.character_stats import CharacterStats
-from models.task import Task, TaskFaction, TaskStatus, TaskType
+from models.task import Task, TaskStatus, TaskType
 from models.praxis import (
     Praxis,
     PraxisMember,
@@ -38,7 +38,6 @@ __all__ = [
     "Era",
     "CharacterStats",
     "Task",
-    "TaskFaction",
     "TaskStatus",
     "TaskType",
     "Praxis",

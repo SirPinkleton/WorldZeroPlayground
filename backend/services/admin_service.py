@@ -3,6 +3,7 @@
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from game_config import CURRENT_ERA, EraConfig
 from models.account import Account, AccountStatus
@@ -128,6 +129,40 @@ async def list_characters(
     ]
 
 
+async def list_active_characters(session: AsyncSession) -> list[Character]:
+    """Return every non-banned character — shared by era-reset and stats-backfill."""
+    result = await session.execute(
+        select(Character).where(Character.status != CharacterStatus.banned)
+    )
+    return list(result.scalars().all())
+
+
+async def find_admin_accounts(session: AsyncSession) -> list[Account]:
+    """Return accounts holding the ``admin`` role, ordered by account id."""
+    result = await session.execute(
+        select(Account)
+        .join(AccountRole, AccountRole.account_id == Account.id)
+        .join(Role, Role.id == AccountRole.role_id)
+        .where(Role.name == "admin")
+        .order_by(Account.id.asc())
+    )
+    return list(result.scalars().all())
+
+
+async def list_contact_messages(
+    session: AsyncSession,
+    *,
+    archived: bool = False,
+) -> list[ContactMessage]:
+    """Return contact messages filtered by archived flag, newest first."""
+    result = await session.execute(
+        select(ContactMessage)
+        .where(ContactMessage.is_archived == archived)
+        .order_by(ContactMessage.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
 async def game_overview(session: AsyncSession) -> OverviewStats:
     account_count_result = await session.execute(select(func.count()).select_from(Account))
     character_count_result = await session.execute(select(func.count()).select_from(Character))
@@ -138,7 +173,7 @@ async def game_overview(session: AsyncSession) -> OverviewStats:
     vote_count_result = await session.execute(select(func.count()).select_from(Vote))
     flagged_count_result = await session.execute(
         select(func.count()).select_from(Praxis).where(
-            Praxis.moderation_status == ModerationStatus.flagged.value
+            Praxis.moderation_status == ModerationStatus.flagged
         )
     )
     suspended_count_result = await session.execute(
@@ -357,12 +392,21 @@ async def moderate_praxis(
     admin_note: str | None,
     session: AsyncSession,
 ) -> Praxis:
-    """Set the moderation status of a praxis. Admin can override any state."""
-    praxis = await session.get(Praxis, praxis_id)
+    """Set the moderation status of a praxis. Admin can override any state.
+
+    Loads ``invites`` and ``media_items`` because the admin router pipes the
+    returned praxis into ``build_praxis_out`` for the response body.
+    """
+    result = await session.execute(
+        select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.id == praxis_id)
+    )
+    praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
 
-    praxis.moderation_status = new_status.value
+    praxis.moderation_status = new_status
 
     if new_status == ModerationStatus.failed:
         praxis.admin_note = admin_note or ""
@@ -370,8 +414,13 @@ async def moderate_praxis(
         praxis.admin_note = None
 
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    # Re-fetch with detail eager-loads for the router's build_praxis_out.
+    result = await session.execute(
+        select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.id == praxis_id)
+    )
+    return result.scalar_one()
 
 
 async def archive_message(

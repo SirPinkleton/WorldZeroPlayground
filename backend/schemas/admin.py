@@ -75,7 +75,7 @@ class FactionCreate(BaseModel):
     hidden: bool = False
 
 
-class FactionOut(BaseModel):
+class AdminFactionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     slug: str

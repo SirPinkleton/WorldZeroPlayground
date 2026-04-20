@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Tex
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+from models.mixins import CreatedAtMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -44,7 +45,7 @@ class PraxisInviteStatus(enum.Enum):
     declined = "declined"
 
 
-class Praxis(Base):
+class Praxis(TimestampMixin, Base):
     __tablename__ = "praxis"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -63,8 +64,11 @@ class Praxis(Base):
     is_withdrawn: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
-    moderation_status: Mapped[str] = mapped_column(
-        String, nullable=False, server_default="visible"
+    moderation_status: Mapped[ModerationStatus] = mapped_column(
+        Enum(ModerationStatus, create_type=False),
+        nullable=False,
+        default=ModerationStatus.visible,
+        server_default="visible",
     )
     admin_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # flagged_at is nullable: NULL means "not yet flagged" — semantic NULL, not missing data
@@ -72,12 +76,6 @@ class Praxis(Base):
         DateTime(timezone=True), nullable=True
     )
     created_by_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
-    )
 
     task: Mapped["Task"] = relationship(
         "Task", back_populates="praxes", lazy="selectin"
@@ -94,30 +92,35 @@ class Praxis(Base):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
+    # invites, votes, media_items, and flags are load-on-demand. Only the
+    # praxis detail view and admin-moderation flows read them, so the list
+    # view (and most service-layer reads) do not pay for the joins. Call
+    # sites that need them must use ``.options(selectinload(Praxis.foo))``;
+    # accessing these attributes on an un-loaded Praxis raises.
     invites: Mapped[List["PraxisInvite"]] = relationship(
         "PraxisInvite",
         back_populates="praxis",
-        lazy="selectin",
+        lazy="raise",
         cascade="all, delete-orphan",
     )
     votes: Mapped[List["Vote"]] = relationship(
         "Vote",
         foreign_keys="Vote.praxis_id",
         back_populates="praxis",
-        lazy="selectin",
+        lazy="raise",
     )
     media_items: Mapped[List["MediaItem"]] = relationship(
         "MediaItem",
         foreign_keys="MediaItem.praxis_id",
         back_populates="praxis",
         order_by="MediaItem.display_order",
-        lazy="selectin",
+        lazy="raise",
     )
     flags: Mapped[List["Flag"]] = relationship(
         "Flag",
         foreign_keys="Flag.praxis_id",
         back_populates="praxis",
-        lazy="selectin",
+        lazy="raise",
     )
 
 
@@ -145,7 +148,7 @@ class PraxisMember(Base):
     )
 
 
-class MediaItem(Base):
+class MediaItem(CreatedAtMixin, Base):
     __tablename__ = "media_item"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -155,16 +158,13 @@ class MediaItem(Base):
     )
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
 
     praxis: Mapped["Praxis"] = relationship(
         "Praxis", foreign_keys=[praxis_id], back_populates="media_items", lazy="raise"
     )
 
 
-class PraxisInvite(Base):
+class PraxisInvite(CreatedAtMixin, Base):
     __tablename__ = "praxis_invite"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -175,9 +175,6 @@ class PraxisInvite(Base):
         Enum(PraxisInviteStatus, create_type=False),
         nullable=False,
         server_default="pending",
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
     praxis: Mapped["Praxis"] = relationship(

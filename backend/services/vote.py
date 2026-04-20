@@ -1,14 +1,43 @@
+from typing import Optional
+
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.praxis import Praxis, PraxisMember, PraxisType
+from models.praxis import ModerationStatus, Praxis, PraxisMember, PraxisType
 from models.vote import Vote
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
 from services.scoring import compute_votes_available
+
+
+async def cast_vote_on_praxis(
+    voter: Character,
+    praxis_id: int,
+    stars: int,
+    session: AsyncSession,
+    *,
+    praxis_member_id: Optional[int] = None,
+    era: EraConfig = CURRENT_ERA,
+) -> Vote:
+    """Dispatch a vote to the solo/collab or duel handler based on praxis type.
+
+    Raises 404 if the praxis is missing or hidden, 422 if a duel vote omits
+    ``praxis_member_id``. Solo/collab votes additionally enforce account-level
+    anti-self-vote inside :func:`cast_or_update_vote`.
+    """
+    praxis = await session.get(Praxis, praxis_id)
+    if praxis is None or praxis.moderation_status == ModerationStatus.hidden:
+        raise HTTPException(status_code=404, detail="Praxis not found.")
+    if praxis.type == PraxisType.duel:
+        if praxis_member_id is None:
+            raise HTTPException(status_code=422, detail="praxis_member_id is required for duel votes.")
+        return await cast_or_update_duel_vote(
+            voter, praxis_id, praxis_member_id, stars, session, era
+        )
+    return await cast_or_update_vote(voter, praxis, stars, session, era)
 
 
 async def cast_or_update_vote(
@@ -18,9 +47,21 @@ async def cast_or_update_vote(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Vote:
-    """Cast or update a vote on a solo or collab praxis."""
+    """Cast or update a vote on a solo or collab praxis.
+
+    Enforces account-level anti-self-vote so alt characters on the same account
+    cannot vote on each other's praxes.
+    """
     if not 1 <= stars <= 5:
         raise HTTPException(status_code=422, detail="Stars must be between 1 and 5.")
+
+    # Account-level anti-self-vote. Praxis.created_by is selectin-loaded,
+    # but fall back to an explicit lookup if it isn't populated.
+    author = praxis.created_by
+    if author is None and praxis.created_by_id is not None:
+        author = await session.get(Character, praxis.created_by_id)
+    if author is not None and author.account_id == voter.account_id:
+        raise HTTPException(status_code=403, detail="Cannot vote on your own praxis.")
 
     result = await session.execute(
         select(Vote).where(

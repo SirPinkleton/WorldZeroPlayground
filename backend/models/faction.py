@@ -1,10 +1,10 @@
 import enum
-from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy import Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+from models.mixins import TimestampMixin
 
 
 class FactionStatus(enum.Enum):
@@ -13,7 +13,7 @@ class FactionStatus(enum.Enum):
     deprecated = "deprecated"
 
 
-class Faction(Base):
+class Faction(TimestampMixin, Base):
     __tablename__ = "faction"
 
     slug: Mapped[str] = mapped_column(String, primary_key=True)
@@ -24,9 +24,3 @@ class Faction(Base):
     )
     # No multiplier columns: faction rules live in game_config.py, not the DB.
     # This table exists for FK references and UI display only.
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
-    )

@@ -10,10 +10,12 @@ from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.flag import Flag
+from models.meta_task import PraxisMetaTask
 from models.praxis import (
     MediaItem,
     ModerationStatus,
@@ -35,7 +37,9 @@ from schemas.praxis import (
     PraxisOut,
     PraxisUpdate,
 )
+from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
+from services.meta_task import get_meta_task_points
 from services.scoring import (
     COLLABORATION_MODE_COLLAB,
     COLLABORATION_MODE_DUEL,
@@ -86,34 +90,6 @@ def _build_invite_out(invite: PraxisInvite) -> PraxisInviteOut:
     )
 
 
-async def _get_meta_task_points(
-    praxis_id: int, character_level: int, session: AsyncSession
-) -> int:
-    """Return flat bonus points from metatask tasks attached to a praxis.
-
-    A metatask is a Task row with ``task_type == TaskType.metatask``. Its flat
-    bonus is ``task.point_value``. Applied only when the viewing character
-    meets the metatask's own ``level_required``. Sums across every attached
-    metatask; standard tasks should never be linked here (service guards
-    prevent that) but are defensively skipped if encountered.
-    """
-    from models.meta_task import PraxisMetaTask
-
-    result = await session.execute(
-        select(Task)
-        .join(PraxisMetaTask, PraxisMetaTask.task_id == Task.id)
-        .where(PraxisMetaTask.praxis_id == praxis_id)
-    )
-    total = 0
-    for task in result.scalars().all():
-        if task.task_type != TaskType.metatask:
-            continue
-        if character_level < task.level_required:
-            continue
-        total += int(task.point_value)
-    return total
-
-
 async def _count_in_progress_praxes(character_id: int, session: AsyncSession) -> int:
     """Count in-progress praxis memberships for bank capacity enforcement."""
     result = await session.execute(
@@ -160,8 +136,11 @@ async def compute_praxis_score_from_db(
             creator_level = creator_stats.level
         else:
             creator_level = 0
-        meta_task_points = await _get_meta_task_points(praxis.id, creator_level, session)
-        total_stars = int(sum(vote.stars for vote in praxis.votes))
+        meta_task_points = await get_meta_task_points(praxis.id, creator_level, session)
+        sum_result = await session.execute(
+            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
+        )
+        total_stars = int(sum_result.scalar_one_or_none() or 0)
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars, meta_task_points)
 
     elif praxis.type == PraxisType.collab:
@@ -240,10 +219,6 @@ async def build_praxis_out(
 
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
-    moderation_status_val = praxis.moderation_status
-    if isinstance(moderation_status_val, str):
-        moderation_status_val = ModerationStatus(moderation_status_val)
-
     return PraxisOut(
         id=praxis.id,
         task_id=praxis.task_id,
@@ -254,7 +229,7 @@ async def build_praxis_out(
         title=praxis.title,
         body_text=praxis.body_text,
         is_withdrawn=praxis.is_withdrawn,
-        moderation_status=moderation_status_val,
+        moderation_status=praxis.moderation_status,
         admin_note=praxis.admin_note,
         flagged_at=praxis.flagged_at,
         created_by_id=praxis.created_by_id,
@@ -282,10 +257,6 @@ async def build_praxis_card_out(
     score = await compute_praxis_score_from_db(praxis, session, era)
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
-    moderation_status_val = praxis.moderation_status
-    if isinstance(moderation_status_val, str):
-        moderation_status_val = ModerationStatus(moderation_status_val)
-
     return PraxisCardOut(
         id=praxis.id,
         task_id=praxis.task_id,
@@ -295,7 +266,7 @@ async def build_praxis_card_out(
         status=praxis.status,
         title=praxis.title,
         is_withdrawn=praxis.is_withdrawn,
-        moderation_status=moderation_status_val,
+        moderation_status=praxis.moderation_status,
         created_by_id=praxis.created_by_id,
         created_by_display_name=created_by_display_name,
         created_at=praxis.created_at,
@@ -345,8 +316,19 @@ async def _build_duel_vote_summary(
 
 
 async def get_praxis(praxis_id: int, session: AsyncSession) -> Praxis:
-    """Get a praxis by id. Raises 404 if not found."""
-    praxis = await session.get(Praxis, praxis_id)
+    """Get a praxis by id with detail-view relationships eager-loaded.
+
+    Loads ``invites`` and ``media_items`` (in addition to the always-loaded
+    ``task``/``created_by``/``members``) because every service consumer of
+    this helper ultimately feeds a ``build_praxis_out`` caller. The list
+    endpoint uses :func:`list_praxes` which loads only what the card needs.
+    """
+    result = await session.execute(
+        select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
+        .where(Praxis.id == praxis_id)
+    )
+    praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
     return praxis
@@ -372,11 +354,11 @@ async def list_praxes(
     if moderation_status is not None:
         try:
             mod_enum = ModerationStatus(moderation_status)
-            query = query.where(Praxis.moderation_status == mod_enum.value)
+            query = query.where(Praxis.moderation_status == mod_enum)
         except ValueError:
             pass
     else:
-        query = query.where(Praxis.moderation_status != ModerationStatus.hidden.value)
+        query = query.where(Praxis.moderation_status != ModerationStatus.hidden)
 
     if task_id is not None:
         query = query.where(Praxis.task_id == task_id)
@@ -462,7 +444,7 @@ async def create_praxis(
         title=title,
         body_text=body_text or "",
         is_withdrawn=False,
-        moderation_status=ModerationStatus.visible.value,
+        moderation_status=ModerationStatus.visible,
         created_by_id=character_id,
     )
     session.add(praxis)
@@ -475,8 +457,9 @@ async def create_praxis(
     )
     session.add(member)
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    # Reload with detail-view options so ``build_praxis_out`` can read invites
+    # and media_items without tripping lazy='raise'.
+    return await get_praxis(praxis.id, session)
 
 
 async def update_praxis(
@@ -494,8 +477,9 @@ async def update_praxis(
     if data.body_text is not None:
         praxis.body_text = data.body_text
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    # Re-fetch rather than session.refresh(praxis): refresh expires the
+    # lazy='raise' relationships and breaks the subsequent build_praxis_out.
+    return await get_praxis(praxis_id, session)
 
 
 async def withdraw_praxis(
@@ -515,11 +499,9 @@ async def withdraw_praxis(
     praxis.status = PraxisStatus.in_progress
     await session.commit()
 
-    from services.character_stats import recalculate_character_stats
     await recalculate_character_stats(character_id, session, era)
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 async def resubmit_praxis(
@@ -538,11 +520,9 @@ async def resubmit_praxis(
     praxis.is_withdrawn = False
     await session.commit()
 
-    from services.character_stats import recalculate_character_stats
     await recalculate_character_stats(character_id, session, era)
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 async def delete_praxis(
@@ -662,7 +642,8 @@ def is_task_eligible_for_character(
     (``task.metatask_faction_slug``). Anonymous viewers are never eligible.
 
     Note this mirrors the metatask scoring gate in
-    :func:`_get_meta_task_points` (``character_level >= task.level_required``)
+    :func:`services.meta_task.get_meta_task_points`
+    (``character_level >= task.level_required``)
     rather than the stricter :func:`apply_metatask` service gate. The flag is
     intended for UI affordances such as "metatasks this character could use
     if they had one" — apply time still runs the full guard.
@@ -699,7 +680,7 @@ async def flag_praxis(
             detail=f"Must be level {FLAG_LEVEL_REQUIRED} or above to flag a praxis.",
         )
 
-    praxis.moderation_status = ModerationStatus.flagged.value
+    praxis.moderation_status = ModerationStatus.flagged
     praxis.flagged_at = datetime.now(timezone.utc)
 
     flag = Flag(
@@ -709,8 +690,7 @@ async def flag_praxis(
     )
     session.add(flag)
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 # ---------------------------------------------------------------------------
@@ -942,13 +922,11 @@ async def submit_praxis(
     if all(m.has_submitted for m in praxis.members):
         praxis.status = PraxisStatus.submitted
         await session.flush()
-        from services.character_stats import recalculate_character_stats
         for member in praxis.members:
             await recalculate_character_stats(member.character_id, session, era)
 
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 async def reopen_praxis(
@@ -967,8 +945,7 @@ async def reopen_praxis(
         member.has_submitted = False
 
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 async def moderate_praxis(
@@ -985,7 +962,7 @@ async def moderate_praxis(
     except ValueError:
         raise HTTPException(status_code=422, detail=f"Invalid moderation status: {new_status}")
 
-    praxis.moderation_status = mod_enum.value
+    praxis.moderation_status = mod_enum
 
     if mod_enum == ModerationStatus.flagged:
         praxis.flagged_at = datetime.now(timezone.utc)
@@ -995,8 +972,7 @@ async def moderate_praxis(
         praxis.admin_note = None
 
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 # ---------------------------------------------------------------------------
@@ -1022,8 +998,6 @@ async def apply_metatask(
         * Otherwise the character must be at least ``METATASK_APPLY_LEVEL``
           AND their ``faction_slug`` must match ``task.metatask_faction_slug``.
     """
-    from models.meta_task import PraxisMetaTask
-
     praxis = await get_praxis(praxis_id, session)
     task = await session.get(Task, task_id)
     if task is None:
@@ -1089,12 +1063,10 @@ async def apply_metatask(
     session.add(PraxisMetaTask(praxis_id=praxis_id, task_id=task_id))
     await session.commit()
 
-    from services.character_stats import recalculate_character_stats
     for member in praxis.members:
         await recalculate_character_stats(member.character_id, session, era)
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 async def remove_metatask(
@@ -1105,8 +1077,6 @@ async def remove_metatask(
     era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
     """Remove a metatask from a praxis. Any praxis member can remove."""
-    from models.meta_task import PraxisMetaTask
-
     praxis = await get_praxis(praxis_id, session)
 
     member_ids = {member.character_id for member in praxis.members}
@@ -1129,12 +1099,10 @@ async def remove_metatask(
     await session.delete(link)
     await session.commit()
 
-    from services.character_stats import recalculate_character_stats
     for member in praxis.members:
         await recalculate_character_stats(member.character_id, session, era)
     await session.commit()
-    await session.refresh(praxis)
-    return praxis
+    return await get_praxis(praxis_id, session)
 
 
 __all__ = [

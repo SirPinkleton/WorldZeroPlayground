@@ -1,11 +1,11 @@
 import enum
-from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+from models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from models.account import Account
@@ -18,7 +18,7 @@ class CharacterStatus(enum.Enum):
     banned = "banned"
 
 
-class Character(Base):
+class Character(TimestampMixin, Base):
     __tablename__ = "character"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -34,12 +34,6 @@ class Character(Base):
     )
     status: Mapped[CharacterStatus] = mapped_column(
         Enum(CharacterStatus, create_type=False), nullable=False, default=CharacterStatus.active
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
     # score, level, votes_spent_this_era, all_time_score live in CharacterStats (star schema split)
     # votes_available is computed on read: services.scoring.compute_votes_available

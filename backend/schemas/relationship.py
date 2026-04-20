@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -8,6 +8,18 @@ from pydantic import BaseModel, ConfigDict
 class RelationshipTypeEnum(str, enum.Enum):
     friend = "friend"
     foe = "foe"
+
+
+RelationshipDisplayStatus = Literal[
+    "Mutual Friends",
+    "Rivals",
+    "Tsundere",
+    "One-sided Friend",
+    "One-sided Foe",
+    "Secret Admirer",
+    "Targeted",
+    "Unknown",
+]
 
 
 class RelationshipOut(BaseModel):
@@ -54,4 +66,4 @@ class RelationshipListItem(BaseModel):
     to_avatar_url: str
     to_faction_slug: str
     reverse_type: Optional[str] = None
-    display_status: str
+    display_status: RelationshipDisplayStatus

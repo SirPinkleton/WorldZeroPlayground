@@ -663,7 +663,7 @@ async def test_get_hidden_praxis_returns_404(
     praxis_id = create_resp.json()["id"]
 
     praxis = await db_session.get(Praxis, praxis_id)
-    praxis.moderation_status = ModerationStatus.hidden.value
+    praxis.moderation_status = ModerationStatus.hidden
     await db_session.commit()
 
     resp = await client.get(f"/praxes/{praxis_id}")
@@ -688,7 +688,7 @@ async def test_list_praxes_excludes_hidden(
     praxis_id = create_resp.json()["id"]
 
     praxis = await db_session.get(Praxis, praxis_id)
-    praxis.moderation_status = ModerationStatus.hidden.value
+    praxis.moderation_status = ModerationStatus.hidden
     await db_session.commit()
 
     resp = await client.get("/praxes", params={"character_id": character.id})

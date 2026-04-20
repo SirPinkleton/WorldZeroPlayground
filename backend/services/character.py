@@ -1,14 +1,16 @@
 import dataclasses
+from typing import Optional
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
+from sqlalchemy.sql import Select, false as sa_false
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character, CharacterStatus
 from models.character_stats import CharacterStats
 from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
-from services.era import get_current_era_row, get_or_create_stats
+from services.era import get_current_era_row, get_current_era_row_safe, get_or_create_stats
 from services.scoring import compute_level, compute_vote_budget, compute_votes_available
 
 
@@ -216,6 +218,78 @@ async def soft_delete_character(character_id: int, session: AsyncSession) -> Non
         raise HTTPException(status_code=404, detail="Character not found.")
     character.status = CharacterStatus.banned
     await session.commit()
+
+
+def _character_stats_era_join(era_id: int | None) -> Select:
+    """Return a ``select(Character, CharacterStats)`` outer-joined on the given era.
+
+    When ``era_id`` is None (era unseeded), the join evaluates to false so every
+    ``CharacterStats`` column is NULL — the caller still gets a row per Character
+    and ``build_character_out`` substitutes zero stats.
+    """
+    if era_id is None:
+        join_condition = (CharacterStats.character_id == Character.id) & sa_false()
+    else:
+        join_condition = (
+            (CharacterStats.character_id == Character.id)
+            & (CharacterStats.era_id == era_id)
+        )
+    return (
+        select(Character, CharacterStats)
+        .outerjoin(CharacterStats, join_condition)
+        .where(Character.status == CharacterStatus.active)
+    )
+
+
+async def list_characters_for_viewer(
+    session: AsyncSession,
+    *,
+    search: Optional[str] = None,
+    faction_slug: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[tuple[Character, CharacterStats | None]]:
+    """List active characters with current-era stats. Optional name/faction filters."""
+    era_row = await get_current_era_row_safe(session)
+    era_id = era_row.id if era_row else None
+
+    query = _character_stats_era_join(era_id)
+    if search:
+        query = query.where(Character.username.ilike(f"%{search}%"))
+    if faction_slug:
+        query = query.where(Character.faction_slug == faction_slug)
+    query = (
+        query.order_by(CharacterStats.score.desc().nulls_last())
+        .limit(limit)
+        .offset(offset)
+    )
+
+    result = await session.execute(query)
+    return list(result.all())
+
+
+async def list_leaderboard(
+    session: AsyncSession,
+    *,
+    faction_slug: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[tuple[Character, CharacterStats | None]]:
+    """Top active characters by current-era score, optionally faction-filtered."""
+    era_row = await get_current_era_row_safe(session)
+    era_id = era_row.id if era_row else None
+
+    query = _character_stats_era_join(era_id)
+    if faction_slug:
+        query = query.where(Character.faction_slug == faction_slug)
+    query = (
+        query.order_by(CharacterStats.score.desc().nulls_last())
+        .limit(limit)
+        .offset(offset)
+    )
+
+    result = await session.execute(query)
+    return list(result.all())
 
 
 def check_faction_graduation(
