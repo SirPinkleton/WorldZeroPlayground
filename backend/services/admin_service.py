@@ -414,13 +414,14 @@ async def moderate_praxis(
         praxis.admin_note = None
 
     await session.commit()
-    # Re-fetch with detail eager-loads for the router's build_praxis_out.
-    result = await session.execute(
-        select(Praxis)
-        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
-        .where(Praxis.id == praxis_id)
+    # Scalar-only refresh leaves the already-loaded relationships intact,
+    # so we don't trip ``lazy="raise"`` on invites/media_items when the
+    # router pipes this praxis into ``build_praxis_out``. This avoids the
+    # second full SELECT + selectinload round-trip the old code issued.
+    await session.refresh(
+        praxis, attribute_names=["moderation_status", "admin_note", "flagged_at"]
     )
-    return result.scalar_one()
+    return praxis
 
 
 async def archive_message(
