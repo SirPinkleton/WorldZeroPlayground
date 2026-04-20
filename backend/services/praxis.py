@@ -381,23 +381,14 @@ async def list_praxes(
     return list(result.scalars().all())
 
 
-async def create_praxis(
+async def _check_create_preconditions(
     task_id: int,
     praxis_type: PraxisType,
     character_id: int,
     session: AsyncSession,
-    era: EraConfig = CURRENT_ERA,
-    title: Optional[str] = None,
-    body_text: Optional[str] = None,
-) -> Praxis:
-    """Create a new praxis + praxis_member for the creator.
-
-    Enforces:
-    - Task must exist and be active
-    - Character level meets task.level_required
-    - Bank cap: era.max_task_signups = max concurrent in_progress praxes per character
-    - Duel/collab type requires minimum level
-    """
+    era: EraConfig,
+) -> Task:
+    """Raise HTTPException unless this character may create ``praxis_type`` for ``task_id``."""
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
@@ -405,7 +396,6 @@ async def create_praxis(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character_id, era_row.id)
 
-    # Level gate for the task
     if stats.level < task.level_required:
         raise HTTPException(
             status_code=403,
@@ -424,7 +414,6 @@ async def create_praxis(
             detail="You have already submitted a praxis for this task.",
         )
 
-    # Level gate for duel/collab types
     if praxis_type == PraxisType.duel and stats.level < DUEL_LEVEL_REQUIRED:
         raise HTTPException(
             status_code=403,
@@ -436,13 +425,33 @@ async def create_praxis(
             detail=f"Collaborations require level {COLLABORATION_LEVEL_REQUIRED}.",
         )
 
-    # Bank cap: count how many in-progress praxes this character is a member of
     in_progress_count = await _count_in_progress_praxes(character_id, session)
     if in_progress_count >= era.max_task_signups:
         raise HTTPException(
             status_code=400,
             detail=f"Task bank is full ({era.max_task_signups} in-progress praxes). Complete or withdraw one first.",
         )
+    return task
+
+
+async def create_praxis(
+    task_id: int,
+    praxis_type: PraxisType,
+    character_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+    title: Optional[str] = None,
+    body_text: Optional[str] = None,
+) -> Praxis:
+    """Create a new praxis + praxis_member for the creator.
+
+    Enforces:
+    - Task must exist and be active
+    - Character level meets task.level_required
+    - Bank cap: era.max_task_signups = max concurrent in_progress praxes per character
+    - Duel/collab type requires minimum level
+    """
+    await _check_create_preconditions(task_id, praxis_type, character_id, session, era)
 
     praxis = Praxis(
         task_id=task_id,
@@ -705,6 +714,60 @@ async def flag_praxis(
 # ---------------------------------------------------------------------------
 
 
+def _check_duel_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
+    """Raise 400 when a duel praxis is already at its max_duel_participants cap."""
+    if len(praxis.members) >= era.max_duel_participants:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Duels can only have {era.max_duel_participants} participants.",
+        )
+
+
+def _check_collab_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
+    """Raise 400 when a collab praxis is already at its max_collab_participants cap."""
+    if len(praxis.members) >= era.max_collab_participants:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Collaboration is full (max {era.max_collab_participants} participants).",
+        )
+
+
+async def _check_invitee_task_eligibility(
+    invitee_id: int,
+    task_id: int,
+    session: AsyncSession,
+) -> None:
+    """Reject invites to players who already did this task (non-Analog only)."""
+    existing_praxis_result = await session.execute(
+        select(Praxis).where(
+            Praxis.type == PraxisType.solo,
+            Praxis.created_by_id == invitee_id,
+            Praxis.task_id == task_id,
+            Praxis.is_withdrawn == False,  # noqa: E712
+        )
+    )
+    if existing_praxis_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This player has already submitted proof for this task and is not eligible to be invited.",
+        )
+
+    existing_collab_result = await session.execute(
+        select(PraxisMember)
+        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+        .where(
+            PraxisMember.character_id == invitee_id,
+            Praxis.task_id == task_id,
+            Praxis.status == PraxisStatus.submitted,
+        )
+    )
+    if existing_collab_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This player has already completed this task in a collaboration and is not eligible to be invited.",
+        )
+
+
 async def invite_to_praxis(
     praxis_id: int,
     invitee_id: int,
@@ -717,7 +780,6 @@ async def invite_to_praxis(
 
     if praxis.type == PraxisType.solo:
         raise HTTPException(status_code=400, detail="Cannot invite to a solo praxis.")
-
     if praxis.status == PraxisStatus.submitted:
         raise HTTPException(status_code=400, detail="Cannot invite to a submitted praxis.")
 
@@ -725,23 +787,13 @@ async def invite_to_praxis(
     if inviter_id not in member_ids:
         raise HTTPException(status_code=403, detail="Only members can send invites.")
 
-    # Duels: max participants from era config
-    if praxis.type == PraxisType.duel and len(praxis.members) >= era.max_duel_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Duels can only have {era.max_duel_participants} participants.",
-        )
-
-    # Collaborations: max capacity from era config
-    if praxis.type == PraxisType.collab and len(praxis.members) >= era.max_collab_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Collaboration is full (max {era.max_collab_participants} participants).",
-        )
+    if praxis.type == PraxisType.duel:
+        _check_duel_invite_eligibility(praxis, era)
+    elif praxis.type == PraxisType.collab:
+        _check_collab_invite_eligibility(praxis, era)
 
     if invitee_id == inviter_id:
         raise HTTPException(status_code=400, detail="Cannot invite yourself.")
-
     if invitee_id in member_ids:
         raise HTTPException(status_code=409, detail="Player is already a member.")
 
@@ -766,34 +818,7 @@ async def invite_to_praxis(
 
     # Eligibility check: skip for Analog faction (Double Dipper perk)
     if invitee.faction_slug != ANALOG_FACTION_SLUG:
-        existing_praxis_result = await session.execute(
-            select(Praxis).where(
-                Praxis.type == PraxisType.solo,
-                Praxis.created_by_id == invitee_id,
-                Praxis.task_id == praxis.task_id,
-                Praxis.is_withdrawn == False,  # noqa: E712
-            )
-        )
-        if existing_praxis_result.scalar_one_or_none() is not None:
-            raise HTTPException(
-                status_code=409,
-                detail="This player has already submitted proof for this task and is not eligible to be invited.",
-            )
-
-        existing_collab_result = await session.execute(
-            select(PraxisMember)
-            .join(Praxis, PraxisMember.praxis_id == Praxis.id)
-            .where(
-                PraxisMember.character_id == invitee_id,
-                Praxis.task_id == praxis.task_id,
-                Praxis.status == PraxisStatus.submitted,
-            )
-        )
-        if existing_collab_result.scalar_one_or_none() is not None:
-            raise HTTPException(
-                status_code=409,
-                detail="This player has already completed this task in a collaboration and is not eligible to be invited.",
-            )
+        await _check_invitee_task_eligibility(invitee_id, praxis.task_id, session)
 
     invite = PraxisInvite(
         praxis_id=praxis_id,
@@ -987,6 +1012,27 @@ async def moderate_praxis(
 # ---------------------------------------------------------------------------
 
 
+def _check_metatask_eligibility(
+    character: Character,
+    task: Task,
+    character_level: int,
+) -> Optional[str]:
+    """Return a 403 reason string if this character can't apply ``task``, else None."""
+    if character.faction_slug == ALBESCENT_FACTION_SLUG:
+        return None
+    if character_level < METATASK_APPLY_LEVEL:
+        return (
+            f"Must be level {METATASK_APPLY_LEVEL} or above "
+            "to apply metatasks."
+        )
+    if character.faction_slug != task.metatask_faction_slug:
+        return (
+            "This metatask belongs to a different faction. "
+            "Only Albescent characters can apply any faction's metatask."
+        )
+    return None
+
+
 async def apply_metatask(
     praxis_id: int,
     task_id: int,
@@ -1035,23 +1081,9 @@ async def apply_metatask(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character_id, era_row.id)
 
-    if character.faction_slug != ALBESCENT_FACTION_SLUG:
-        if stats.level < METATASK_APPLY_LEVEL:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"Must be level {METATASK_APPLY_LEVEL} or above "
-                    "to apply metatasks."
-                ),
-            )
-        if character.faction_slug != task.metatask_faction_slug:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "This metatask belongs to a different faction. "
-                    "Only Albescent characters can apply any faction's metatask."
-                ),
-            )
+    eligibility_error = _check_metatask_eligibility(character, task, stats.level)
+    if eligibility_error is not None:
+        raise HTTPException(status_code=403, detail=eligibility_error)
 
     # Reject duplicate links up front — a metatask can only be applied once
     # to the same praxis.
