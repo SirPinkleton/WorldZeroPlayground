@@ -1,4 +1,5 @@
 """Router for the unified activity feed."""
+from dataclasses import asdict
 from datetime import datetime
 from typing import Optional
 
@@ -31,10 +32,11 @@ async def activity_feed(
     if before:
         before_cursor = datetime.fromisoformat(before)
 
-    return await get_activity_feed(
+    dc_response = await get_activity_feed(
         character_id=character.id,
         session=session,
         feed_filter=feed_filter,
         before_cursor=before_cursor,
         limit=limit,
     )
+    return ActivityFeedResponse.model_validate(asdict(dc_response))

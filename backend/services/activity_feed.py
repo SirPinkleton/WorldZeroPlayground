@@ -2,9 +2,13 @@
 
 Aggregates multiple activity sources into a single reverse-chronological
 timeline with cursor-based pagination.
+
+Per SPEC-backend-architecture.md, this service returns dataclasses. The
+router owns the Pydantic schema conversion.
 """
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,8 +23,38 @@ from models.praxis import Praxis, PraxisInvite, PraxisInviteStatus, PraxisMember
 from models.task import Task, TaskStatus
 from models.taunt_message import TauntMessage
 from models.vote import Vote
-from schemas.activity_feed import ActivityFeedItem, ActivityFeedResponse, FeedCounts
 from services.era import get_current_era_row
+
+
+@dataclass(frozen=True)
+class ActivityFeedItemDC:
+    """Frozen dataclass mirror of schemas.activity_feed.ActivityFeedItem."""
+    type: str
+    timestamp: datetime
+    payload: dict[str, Any]
+    actor_display_name: Optional[str] = None
+    actor_faction_slug: Optional[str] = None
+    actor_avatar_url: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class FeedCountsDC:
+    """Frozen dataclass mirror of schemas.activity_feed.FeedCounts."""
+    all: int = 0
+    friends: int = 0
+    foes: int = 0
+    your_stuff: int = 0
+    global_count: int = 0
+    requests: int = 0
+
+
+@dataclass(frozen=True)
+class ActivityFeedResponseDC:
+    """Frozen dataclass mirror of schemas.activity_feed.ActivityFeedResponse."""
+    items: list[ActivityFeedItemDC]
+    counts: FeedCountsDC
+    next_cursor: Optional[str] = None
+
 
 FEED_ITEM_TYPE_VOTE_ON_MINE = "vote_on_mine"
 FEED_ITEM_TYPE_FRIEND_COMPLETION = "friend_completion"
@@ -119,7 +153,7 @@ async def _fetch_votes_on_mine(
     character_id: int,
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Votes cast on the current character's praxis."""
     voter_char = Character.__table__.alias("voter_char")
 
@@ -145,9 +179,9 @@ async def _fetch_votes_on_mine(
     query = query.order_by(Vote.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_VOTE_ON_MINE,
             timestamp=row.created_at,
             actor_display_name=row.voter_display_name,
@@ -169,7 +203,7 @@ async def _fetch_friend_completions(
     friend_ids: list[int],
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Recent praxis (completions) from friends."""
     if not friend_ids:
         return []
@@ -200,9 +234,9 @@ async def _fetch_friend_completions(
     query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_FRIEND_COMPLETION,
             timestamp=row.created_at,
             actor_display_name=row.author_display_name,
@@ -224,7 +258,7 @@ async def _fetch_foe_taunts(
     character_id: int,
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Taunts received from foes."""
     query = (
         select(
@@ -241,9 +275,9 @@ async def _fetch_foe_taunts(
     query = query.order_by(TauntMessage.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for taunt, display_name, faction_slug, avatar_url in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_FOE_TAUNT,
             timestamp=taunt.created_at,
             actor_display_name=display_name,
@@ -263,7 +297,7 @@ async def _fetch_foe_completions(
     foe_ids: list[int],
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Recent praxis (completions) from foes."""
     if not foe_ids:
         return []
@@ -294,9 +328,9 @@ async def _fetch_foe_completions(
     query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_FOE_COMPLETION,
             timestamp=row.created_at,
             actor_display_name=row.author_display_name,
@@ -317,7 +351,7 @@ async def _fetch_foe_completions(
 async def _fetch_global_tasks(
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Recently activated tasks (global events)."""
     query = (
         select(
@@ -335,9 +369,9 @@ async def _fetch_global_tasks(
     query = query.order_by(Task.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_GLOBAL_TASK,
             timestamp=row.created_at,
             actor_display_name="Admin",
@@ -357,7 +391,7 @@ async def _fetch_global_tasks(
 async def _fetch_era_announcements(
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Era start announcements."""
     query = select(Era)
     if before is not None:
@@ -365,9 +399,9 @@ async def _fetch_era_announcements(
     query = query.order_by(Era.started_at.desc()).limit(5)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for era in result.scalars().all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_ERA_ANNOUNCEMENT,
             timestamp=era.started_at,
             actor_display_name="Admin",
@@ -388,7 +422,7 @@ async def _fetch_collab_invites(
     session: AsyncSession,
     before: Optional[datetime],
     pending_only: bool = False,
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Collab invites sent to the current character."""
     query = (
         select(
@@ -420,9 +454,9 @@ async def _fetch_collab_invites(
     query = query.order_by(PraxisInvite.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_COLLAB_INVITE,
             timestamp=row.created_at,
             actor_display_name=row.inviter_display_name,
@@ -447,7 +481,7 @@ async def _fetch_duel_challenges(
     session: AsyncSession,
     before: Optional[datetime],
     pending_only: bool = False,
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Duel challenges sent to the current character."""
     query = (
         select(
@@ -478,9 +512,9 @@ async def _fetch_duel_challenges(
     query = query.order_by(PraxisInvite.created_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_DUEL_CHALLENGE,
             timestamp=row.created_at,
             actor_display_name=row.challenger_display_name,
@@ -504,7 +538,7 @@ async def _fetch_friend_signups(
     my_task_ids: list[int],
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Friends who joined praxes on tasks the current character is also doing."""
     if not friend_ids or not my_task_ids:
         return []
@@ -536,9 +570,9 @@ async def _fetch_friend_signups(
     query = query.order_by(PraxisMember.joined_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_FRIEND_SIGNUP,
             timestamp=row.joined_at,
             actor_display_name=row.display_name,
@@ -560,7 +594,7 @@ async def _fetch_invitation_letters(
     character_id: int,
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Faction invitation letters delivered to the current character."""
     era_row = await get_current_era_row(session)
 
@@ -576,7 +610,7 @@ async def _fetch_invitation_letters(
     query = query.order_by(InvitationLetter.delivered_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for letter in result.scalars().all():
         faction_name = (
             CURRENT_ERA.factions[letter.faction_slug].name
@@ -588,7 +622,7 @@ async def _fetch_invitation_letters(
             if letter.faction_slug in CURRENT_ERA.factions
             else None
         )
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_INVITATION_LETTER,
             timestamp=letter.delivered_at,
             actor_display_name=faction_name,
@@ -608,7 +642,7 @@ async def _fetch_friend_defections(
     friend_ids: list[int],
     session: AsyncSession,
     before: Optional[datetime],
-) -> list[ActivityFeedItem]:
+) -> list[ActivityFeedItemDC]:
     """Friends who recently changed factions (defected)."""
     if not friend_ids:
         return []
@@ -636,7 +670,7 @@ async def _fetch_friend_defections(
     query = query.order_by(FactionDefectionHistory.defected_at.desc()).limit(SUB_QUERY_LIMIT)
 
     result = await session.execute(query)
-    items: list[ActivityFeedItem] = []
+    items: list[ActivityFeedItemDC] = []
     for row in result.all():
         old_faction_name = (
             CURRENT_ERA.factions[row.faction_slug].name
@@ -648,7 +682,7 @@ async def _fetch_friend_defections(
             if row.current_faction_slug in CURRENT_ERA.factions
             else row.current_faction_slug
         )
-        items.append(ActivityFeedItem(
+        items.append(ActivityFeedItemDC(
             type=FEED_ITEM_TYPE_FRIEND_DEFECTION,
             timestamp=row.defected_at,
             actor_display_name=row.display_name,
@@ -670,7 +704,7 @@ async def _compute_counts(
     friend_ids: list[int],
     my_task_ids: list[int],
     session: AsyncSession,
-) -> FeedCounts:
+) -> FeedCountsDC:
     """Compute badge counts for each filter tab using lightweight COUNT queries."""
 
     async def count_votes_on_mine() -> int:
@@ -804,7 +838,7 @@ async def _compute_counts(
 
     all_count = friends_count + foes_count + your_stuff_count + global_count
 
-    return FeedCounts(
+    return FeedCountsDC(
         all=all_count,
         friends=friends_count,
         foes=foes_count,
@@ -820,7 +854,7 @@ async def get_activity_feed(
     feed_filter: Optional[str] = None,
     before_cursor: Optional[datetime] = None,
     limit: int = 20,
-) -> ActivityFeedResponse:
+) -> ActivityFeedResponseDC:
     """Fetch a unified activity feed for the given character.
 
     Args:
@@ -901,7 +935,7 @@ async def get_activity_feed(
 
     # Run all sub-queries (they share the same session, so sequential is safer
     # with SQLAlchemy async — asyncio.gather can cause issues with shared session)
-    all_items: list[ActivityFeedItem] = []
+    all_items: list[ActivityFeedItemDC] = []
     for task in fetch_tasks:
         items = await task
         all_items.extend(items)
@@ -918,7 +952,7 @@ async def get_activity_feed(
     # Compute badge counts (separate from pagination)
     counts = await _compute_counts(character_id, friend_ids, my_task_ids, session)
 
-    return ActivityFeedResponse(
+    return ActivityFeedResponseDC(
         items=paginated,
         counts=counts,
         next_cursor=next_cursor,
