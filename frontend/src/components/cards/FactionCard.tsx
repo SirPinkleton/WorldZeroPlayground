@@ -17,6 +17,8 @@ export interface FactionCardProps {
   onDecline?: () => void
   confirmPending?: boolean
   leavePending?: boolean
+  /** When set, renders a "NEW INVITATION" eyebrow above the card content. */
+  invitationNote?: string | null
 }
 
 // ─── Status badge ────────────────────────────────────────────────────────────
@@ -38,7 +40,17 @@ function StatusBadge({ status, slug }: { status: string; slug: string }) {
   }
   if (status === 'burned' || status === 'defected') {
     return (
-      <span className="eyebrow" style={{ fontSize: 8, color: 'var(--color-danger)', letterSpacing: '0.1em', textDecoration: 'line-through' }}>
+      <span
+        className="eyebrow"
+        style={{
+          fontSize: 8,
+          color: factionCssVar(slug, 'card-muted'),
+          background: factionCssVar(slug, 'light'),
+          border: `1px solid ${factionCssVar(slug, 'border')}`,
+          letterSpacing: '0.1em',
+          padding: '2px 6px',
+        }}
+      >
         BURNED
       </span>
     )
@@ -56,6 +68,7 @@ function StatusBadge({ status, slug }: { status: string; slug: string }) {
 // ─── Action footer ────────────────────────────────────────────────────────────
 
 function ActionRow({
+  faction,
   status,
   onJoin,
   onLeave,
@@ -63,7 +76,7 @@ function ActionRow({
   onDecline,
   confirmPending,
   leavePending,
-}: Pick<FactionCardProps, 'status' | 'onJoin' | 'onLeave' | 'onConfirm' | 'onDecline' | 'confirmPending' | 'leavePending'>) {
+}: Pick<FactionCardProps, 'faction' | 'status' | 'onJoin' | 'onLeave' | 'onConfirm' | 'onDecline' | 'confirmPending' | 'leavePending'>) {
   if (status === 'member') {
     if (!onLeave) return null
     return (
@@ -87,59 +100,110 @@ function ActionRow({
     )
   }
   if (status === 'invited') {
-    return (
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {onConfirm && (
-          <button onClick={onConfirm} disabled={confirmPending} className="btn-primary" style={{ fontSize: 9, padding: '3px 10px' }}>
-            {confirmPending ? 'Joining...' : 'Accept'}
-          </button>
-        )}
-        {onDecline && (
-          <button
-            onClick={onDecline}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: 9,
-              color: 'var(--color-text-tertiary)',
-              cursor: 'pointer',
-              padding: 0,
-              fontFamily: "'Courier Prime', monospace",
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}
-          >
-            Decline
-          </button>
-        )}
-      </div>
-    )
+    // Explicit Accept/Decline mode (when Factions.tsx wires onConfirm/onDecline)
+    if (onConfirm || onDecline) {
+      return (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {onConfirm && (
+            <button onClick={onConfirm} disabled={confirmPending} className="btn-primary" style={{ fontSize: 9, padding: '3px 10px' }}>
+              {confirmPending ? 'Joining...' : 'Accept'}
+            </button>
+          )}
+          {onDecline && (
+            <button
+              onClick={onDecline}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: 9,
+                color: 'var(--color-text-tertiary)',
+                cursor: 'pointer',
+                padding: 0,
+                fontFamily: "'Courier Prime', monospace",
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              Decline
+            </button>
+          )}
+        </div>
+      )
+    }
+    // Simple single-button mode (confirmation dialog lives outside the card)
+    if (onJoin) {
+      return (
+        <button onClick={onJoin} className="btn-primary" style={{ fontSize: 9, padding: '3px 10px' }}>
+          Join {faction.name}
+        </button>
+      )
+    }
+    return null
   }
   if (status === 'eligible' || status === 'can_return' || status === 'welcome_back') {
     if (!onJoin) return null
     return (
       <button onClick={onJoin} className="btn-primary" style={{ fontSize: 9, padding: '3px 10px' }}>
-        {status === 'can_return' || status === 'welcome_back' ? 'Rejoin' : 'Join'}
+        {status === 'can_return' || status === 'welcome_back' ? `Rejoin ${faction.name}` : `Join ${faction.name}`}
       </button>
     )
   }
-  if (status === 'burned' || status === 'defected') return null
+  if (status === 'burned' || status === 'defected') {
+    return (
+      <div
+        className="font-body"
+        style={{
+          fontSize: 10,
+          lineHeight: 1.45,
+          color: factionCssVar(faction.slug, 'card-muted'),
+          fontStyle: 'italic',
+        }}
+      >
+        You defected from {faction.name}. They won't take you back.
+      </div>
+    )
+  }
   // For not_invited with onJoin provided (e.g. needsFactionChoice)
   if (onJoin) {
     return (
       <button onClick={onJoin} className="btn-primary" style={{ fontSize: 9, padding: '3px 10px' }}>
-        Join
+        Join {faction.name}
       </button>
     )
   }
   return null
 }
 
+// ─── Invitation note ──────────────────────────────────────────────────────────
+
+function InvitationNote({ slug, note }: { slug: string; note: string }) {
+  return (
+    <div
+      className="eyebrow"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 8,
+        color: factionCssVar(slug),
+        background: factionCssVar(slug, 'light'),
+        border: `1px solid ${factionCssVar(slug, 'border')}`,
+        padding: '2px 6px',
+        letterSpacing: '0.12em',
+        marginBottom: 6,
+      }}
+    >
+      <span style={{ fontWeight: 700 }}>NEW INVITATION</span>
+      <span style={{ opacity: 0.75 }}>· {note}</span>
+    </div>
+  )
+}
+
 // ─── Per-faction archetypes ───────────────────────────────────────────────────
 
 const ROTATIONS = [-2, 1.5, -1, 2.5]
 
-function UACard({ faction, status, ...actions }: FactionCardProps) {
+function UACard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const rotation = ROTATIONS[faction.slug.length % ROTATIONS.length]
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   return (
@@ -171,6 +235,7 @@ function UACard({ faction, status, ...actions }: FactionCardProps) {
           border: '2px solid rgba(0,0,0,0.25)',
         }}
       />
+      {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
       <div className="card-meta" style={{ color: factionCssVar('ua', 'card-accent'), marginBottom: 6 }}>
         <StatusBadge status={status} slug="ua" />
       </div>
@@ -182,12 +247,12 @@ function UACard({ faction, status, ...actions }: FactionCardProps) {
           {desc}
         </div>
       )}
-      <ActionRow status={status} {...actions} />
+      <ActionRow faction={faction} status={status} {...actions} />
     </div>
   )
 }
 
-function AnalogCard({ faction, status, ...actions }: FactionCardProps) {
+function AnalogCard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   return (
     <div
@@ -207,6 +272,7 @@ function AnalogCard({ faction, status, ...actions }: FactionCardProps) {
     >
       {/* Red margin line */}
       <div style={{ position: 'absolute', left: 22, top: 0, bottom: 0, width: 1, background: 'rgba(220,80,80,0.2)' }} />
+      {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
       <div className="card-meta" style={{ color: factionCssVar('analog', 'card-accent'), fontFamily: "'Courier Prime', monospace", marginBottom: 6 }}>
         <StatusBadge status={status} slug="analog" />
       </div>
@@ -218,12 +284,12 @@ function AnalogCard({ faction, status, ...actions }: FactionCardProps) {
           {desc}
         </div>
       )}
-      <ActionRow status={status} {...actions} />
+      <ActionRow faction={faction} status={status} {...actions} />
     </div>
   )
 }
 
-function GestaltCard({ faction, status, ...actions }: FactionCardProps) {
+function GestaltCard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: 140 }}>
@@ -248,6 +314,7 @@ function GestaltCard({ faction, status, ...actions }: FactionCardProps) {
       >
         {/* Scotch tape strip */}
         <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%) rotate(-1deg)', width: 48, height: 14, background: 'var(--faction-gestalt-tape)', borderRadius: 1 }} />
+        {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
         <div className="card-meta" style={{ color: factionCssVar('gestalt', 'card-accent'), marginBottom: 6 }}>
           <StatusBadge status={status} slug="gestalt" />
         </div>
@@ -259,7 +326,7 @@ function GestaltCard({ faction, status, ...actions }: FactionCardProps) {
             {desc}
           </div>
         )}
-        <ActionRow status={status} {...actions} />
+        <ActionRow faction={faction} status={status} {...actions} />
       </div>
     </div>
   )
@@ -267,7 +334,7 @@ function GestaltCard({ faction, status, ...actions }: FactionCardProps) {
 
 const SNIDE_TORN_CLIP = 'polygon(0% 0%, 4% 100%, 8% 20%, 12% 90%, 16% 10%, 20% 80%, 24% 0%, 28% 100%, 32% 15%, 36% 85%, 40% 5%, 44% 95%, 48% 20%, 52% 80%, 56% 0%, 60% 100%, 64% 15%, 68% 90%, 72% 5%, 76% 85%, 80% 0%, 84% 100%, 88% 20%, 92% 80%, 96% 10%, 100% 0%)'
 
-function SnideCard({ faction, status, ...actions }: FactionCardProps) {
+function SnideCard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   const words = desc.split(' ')
   const mid = Math.ceil(words.length / 2)
@@ -291,6 +358,7 @@ function SnideCard({ faction, status, ...actions }: FactionCardProps) {
       <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.25em', color: factionCssVar('snide', 'card-muted'), borderBottom: `1.5px solid ${factionCssVar('snide', 'card-accent')}`, paddingBottom: 3, marginBottom: 6 }}>
         The Daily Snide Gazette
       </div>
+      {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <div style={{ fontSize: 'var(--text-lg)', lineHeight: 1.2 }}>{faction.name}</div>
         <StatusBadge status={status} slug="snide" />
@@ -302,12 +370,12 @@ function SnideCard({ faction, status, ...actions }: FactionCardProps) {
           <div style={{ fontSize: 8, color: factionCssVar('snide', 'card-muted'), lineHeight: 1.5 }}>{col2}</div>
         </div>
       )}
-      <ActionRow status={status} {...actions} />
+      <ActionRow faction={faction} status={status} {...actions} />
     </div>
   )
 }
 
-function JourneymenCard({ faction, status, ...actions }: FactionCardProps) {
+function JourneymenCard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   return (
     <div style={{ paddingTop: 26, position: 'relative', width: '100%', boxSizing: 'border-box' }}>
@@ -329,6 +397,7 @@ function JourneymenCard({ faction, status, ...actions }: FactionCardProps) {
         {/* Hazard stripe */}
         <div style={{ height: 4, backgroundImage: `repeating-linear-gradient(90deg, var(--faction-journeymen-stripe-red) 0, var(--faction-journeymen-stripe-red) 8px, ${factionCssVar('journeymen', 'card-bg')} 8px, ${factionCssVar('journeymen', 'card-bg')} 16px, var(--faction-journeymen-stripe-amber) 16px, var(--faction-journeymen-stripe-amber) 24px, ${factionCssVar('journeymen', 'card-bg')} 24px, ${factionCssVar('journeymen', 'card-bg')} 32px)` }} />
         <div style={{ padding: '10px 14px 14px' }}>
+          {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
           <div className="card-meta" style={{ color: factionCssVar('journeymen', 'card-accent'), marginBottom: 4 }}>
             <StatusBadge status={status} slug="journeymen" />
           </div>
@@ -340,7 +409,7 @@ function JourneymenCard({ faction, status, ...actions }: FactionCardProps) {
               {desc}
             </div>
           )}
-          <ActionRow status={status} {...actions} />
+          <ActionRow faction={faction} status={status} {...actions} />
         </div>
       </div>
     </div>
@@ -366,7 +435,7 @@ function SingularityHoles() {
   )
 }
 
-function SingularityCard({ faction, status, ...actions }: FactionCardProps) {
+function SingularityCard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   return (
     <div
@@ -398,6 +467,7 @@ function SingularityCard({ faction, status, ...actions }: FactionCardProps) {
       <div style={{ position: 'absolute', bottom: 3, right: 3, width: 10, height: 10, borderBottom: '1px solid var(--faction-singularity-card-text)', borderRight: '1px solid var(--faction-singularity-card-text)' }} />
       <SingularityHoles />
       <div style={{ padding: '6px 16px 12px', position: 'relative', zIndex: 2 }}>
+        {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
         <div style={{ fontSize: 8, color: 'var(--faction-singularity-card-muted)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8 }}>
           singularity protocol
           <span
@@ -424,7 +494,7 @@ function SingularityCard({ faction, status, ...actions }: FactionCardProps) {
           </div>
         )}
         <div style={{ borderTop: '1px solid var(--faction-singularity-border-hard)', paddingTop: 8 }}>
-          <ActionRow status={status} {...actions} />
+          <ActionRow faction={faction} status={status} {...actions} />
         </div>
       </div>
       <SingularityHoles />
@@ -433,7 +503,7 @@ function SingularityCard({ faction, status, ...actions }: FactionCardProps) {
   )
 }
 
-function UAMastersCard({ faction, status, ...actions }: FactionCardProps) {
+function UAMastersCard({ faction, status, invitationNote, ...actions }: FactionCardProps) {
   const desc = faction.description ? faction.description.slice(0, 100) + (faction.description.length > 100 ? '…' : '') : ''
   const words = desc.split(' ')
   const mid = Math.ceil(words.length / 2)
@@ -457,6 +527,7 @@ function UAMastersCard({ faction, status, ...actions }: FactionCardProps) {
       <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.2em', color: factionCssVar('ua_masters', 'card-muted'), borderBottom: `2px solid ${factionCssVar('ua_masters', 'card-accent')}`, paddingBottom: 4, marginBottom: 6 }}>
         The UA Masters Gazette
       </div>
+      {invitationNote && <InvitationNote slug={faction.slug} note={invitationNote} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
         <div style={{ fontSize: 'var(--text-lg)', lineHeight: 1.2 }}>{faction.name}</div>
         <StatusBadge status={status} slug="ua_masters" />
@@ -471,7 +542,7 @@ function UAMastersCard({ faction, status, ...actions }: FactionCardProps) {
           <div style={{ fontSize: 8, color: factionCssVar('ua_masters', 'card-muted'), lineHeight: 1.5 }}>{col2}</div>
         </div>
       )}
-      <ActionRow status={status} {...actions} />
+      <ActionRow faction={faction} status={status} {...actions} />
     </div>
   )
 }
@@ -508,6 +579,7 @@ export default function FactionCard(props: FactionCardProps) {
             boxSizing: 'border-box',
           }}
         >
+          {props.invitationNote && <InvitationNote slug={props.faction.slug} note={props.invitationNote} />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: factionCssVar(props.faction.slug) }}>
               {props.faction.name}
@@ -519,7 +591,7 @@ export default function FactionCard(props: FactionCardProps) {
               {props.faction.description.slice(0, 100)}
             </div>
           )}
-          <ActionRow status={props.status} onJoin={props.onJoin} onLeave={props.onLeave} onConfirm={props.onConfirm} onDecline={props.onDecline} confirmPending={props.confirmPending} leavePending={props.leavePending} />
+          <ActionRow faction={props.faction} status={props.status} onJoin={props.onJoin} onLeave={props.onLeave} onConfirm={props.onConfirm} onDecline={props.onDecline} confirmPending={props.confirmPending} leavePending={props.leavePending} />
         </div>
       )
   }

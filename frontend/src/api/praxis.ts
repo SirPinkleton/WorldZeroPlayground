@@ -69,6 +69,7 @@ export interface PraxisOut {
   media_items: MediaItemOut[]
   score: number
   duel_vote_summary: DuelVoteSummary[] | null
+  can_flag: boolean
 }
 
 export interface PraxisCardOut {
@@ -239,4 +240,13 @@ export async function votePraxis(id: number, data: PraxisVoteIn): Promise<void> 
 export async function getPraxisVotes(id: number): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data } = await api.get<any[]>(`/praxes/${id}/votes`) // eslint-disable-line @typescript-eslint/no-explicit-any
   return data
+}
+
+// ---------------------------------------------------------------------------
+// Flagging — backend expects ``reason`` as a query parameter, not a JSON body
+// (see backend/routers/praxes.py :: flag_praxis_route).
+// ---------------------------------------------------------------------------
+
+export async function flagPraxis(praxisId: number, reason: string): Promise<void> {
+  await api.post(`/praxes/${praxisId}/flag`, null, { params: { reason } })
 }

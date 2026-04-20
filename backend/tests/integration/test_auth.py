@@ -282,3 +282,116 @@ async def test_auth_me_exposes_votes_available(
     updated_char = resp2.json()["character"]
     # The computed value must reflect the admin patch
     assert updated_char["votes_available"] == 42
+
+
+# ---------------------------------------------------------------------------
+# Bug 2: eligibility flags for additional characters / Albescent start
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_me_can_create_additional_character_true_when_level_5_plus(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+    era,
+):
+    """Account with a level-5 character: can_create_additional_character=True,
+    can_start_as_albescent=False."""
+    from sqlalchemy import select
+
+    from models.character_stats import CharacterStats
+
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = result.scalar_one()
+    stats.level = 5
+    await db_session.commit()
+
+    resp = await client.get("/auth/me", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_create_additional_character"] is True
+    assert data["can_start_as_albescent"] is False
+
+
+@pytest.mark.asyncio
+async def test_me_can_create_additional_character_false_when_below_level_5(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+    era,
+):
+    """Account whose highest character is level-3: both flags false."""
+    from sqlalchemy import select
+
+    from models.character_stats import CharacterStats
+
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = result.scalar_one()
+    stats.level = 3
+    await db_session.commit()
+
+    resp = await client.get("/auth/me", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_create_additional_character"] is False
+    assert data["can_start_as_albescent"] is False
+
+
+@pytest.mark.asyncio
+async def test_me_can_start_as_albescent_true_when_level_8_plus(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+    era,
+):
+    """Account with a level-8 character: both flags true (level 8 is above 5 too)."""
+    from sqlalchemy import select
+
+    from models.character_stats import CharacterStats
+
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = result.scalar_one()
+    stats.level = 8
+    await db_session.commit()
+
+    resp = await client.get("/auth/me", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_create_additional_character"] is True
+    assert data["can_start_as_albescent"] is True
+
+
+@pytest.mark.asyncio
+async def test_me_can_create_additional_character_false_with_no_characters(
+    client: AsyncClient,
+    account: Account,
+    auth_headers: dict,
+):
+    """Brand-new account with no characters: both flags false."""
+    resp = await client.get("/auth/me", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_create_additional_character"] is False
+    assert data["can_start_as_albescent"] is False

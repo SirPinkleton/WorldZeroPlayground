@@ -37,6 +37,7 @@ export default function Leaderboard() {
   const rest = sorted.slice(3)
   const myCharId = user?.character?.id
   const myRank = sorted.findIndex((c) => c.id === myCharId)
+  const isSoloMe = sorted.length === 1 && sorted[0].id === myCharId
 
   return (
     <div className="py-8">
@@ -53,6 +54,188 @@ export default function Leaderboard() {
         <p className="font-body text-muted">No players yet.</p>
       ) : (
         <>
+          {/* ── Early-era hero note: only you have joined so far ── */}
+          {isSoloMe && (
+            <div
+              className="sidebar-card"
+              style={{
+                padding: '14px 18px',
+                marginBottom: 16,
+                borderLeft: `3px solid ${factionCssVar(sorted[0].faction_slug, 'border')}`,
+              }}
+            >
+              <span className="eyebrow" style={{ fontSize: 8, display: 'block', marginBottom: 4 }}>
+                Era I · Roll call
+              </span>
+              <p className="font-body" style={{ fontSize: 14, margin: 0, color: 'var(--color-text-primary)' }}>
+                You're the first player on World Zero. The rankings will fill in as others arrive —
+                until then, the board is yours alone.
+              </p>
+            </div>
+          )}
+
+          {/* ── Solo card (one player, not the viewer — edge case) ── */}
+          {sorted.length === 1 && !isSoloMe && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              {(() => {
+                const player = sorted[0]
+                return (
+                  <div
+                    className="sidebar-card"
+                    style={{
+                      width: 180,
+                      borderLeft: `3px solid ${factionCssVar(player.faction_slug, 'border')}`,
+                      padding: '14px 12px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span
+                      className="pennant-shape"
+                      style={{
+                        display: 'inline-block',
+                        background: factionCssVar(player.faction_slug), color: 'white',
+                        fontFamily: "'Courier Prime', monospace",
+                        fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
+                        letterSpacing: '0.07em', padding: '2px 10px',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                        marginBottom: 8,
+                      }}
+                    >
+                      {factionName(player.faction_slug)}
+                    </span>
+                    {player.avatar_url ? (
+                      <img
+                        src={mediaUrl(player.avatar_url)}
+                        alt={player.display_name}
+                        style={{
+                          width: 64, height: 64, borderRadius: '50%',
+                          objectFit: 'cover', margin: '0 auto 6px',
+                          border: `2px solid ${factionCssVar(player.faction_slug, 'border')}`,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 64, height: 64, borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${factionCssVar(player.faction_slug, 'light')}, ${factionCssVar(player.faction_slug)})`,
+                          margin: '0 auto 6px',
+                          border: `2px solid ${factionCssVar(player.faction_slug, 'border')}`,
+                        }}
+                      />
+                    )}
+                    <Link
+                      to={`/characters/${player.id}`}
+                      className="font-display italic block truncate"
+                      style={{ fontSize: 13, color: factionCssVar(player.faction_slug), textDecoration: 'none', marginBottom: 4 }}
+                    >
+                      {player.display_name}
+                    </Link>
+                    <div
+                      className="font-display italic"
+                      style={{ fontSize: 28, fontWeight: 700, color: factionCssVar(player.faction_slug) }}
+                    >
+                      {scoreMode === 'era' ? player.score : player.all_time_score}
+                    </div>
+                    <span className="eyebrow" style={{ fontSize: 7 }}>
+                      {scoreMode === 'era' ? 'era pts' : 'all-time pts'}
+                    </span>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* ── Two-player rankings-so-far (no podium platforms) ── */}
+          {sorted.length === 2 && (
+            <>
+              <span className="eyebrow" style={{ fontSize: 8, display: 'block', marginBottom: 8, textAlign: 'center' }}>
+                Rankings so far
+              </span>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
+                {sorted.map((player, index) => {
+                  const rank = index
+                  return (
+                    <div
+                      key={player.id}
+                      className="sidebar-card"
+                      style={{
+                        width: 160,
+                        borderLeft: `${rank === 0 ? 3 : 2}px solid ${rank === 0 ? 'var(--rank-gold)' : factionCssVar(player.faction_slug, 'border')}`,
+                        padding: '12px 10px',
+                        textAlign: 'center',
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute', top: -8, right: -8,
+                          width: 22, height: 22, borderRadius: '50%',
+                          background: RANK_STYLES[rank].color,
+                          color: 'white', fontFamily: "'Courier Prime', monospace",
+                          fontSize: 10, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '2px solid var(--color-bg-page)',
+                        }}
+                      >
+                        {rank + 1}
+                      </div>
+                      <span
+                        className="pennant-shape"
+                        style={{
+                          display: 'inline-block',
+                          background: factionCssVar(player.faction_slug), color: 'white',
+                          fontFamily: "'Courier Prime', monospace",
+                          fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
+                          letterSpacing: '0.07em', padding: '2px 10px',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                          marginBottom: 8,
+                        }}
+                      >
+                        {factionName(player.faction_slug)}
+                      </span>
+                      {player.avatar_url ? (
+                        <img
+                          src={mediaUrl(player.avatar_url)}
+                          alt={player.display_name}
+                          style={{
+                            width: 56, height: 56, borderRadius: '50%',
+                            objectFit: 'cover', margin: '0 auto 6px',
+                            border: `2px solid ${factionCssVar(player.faction_slug, 'border')}`,
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 56, height: 56, borderRadius: '50%',
+                            background: `linear-gradient(135deg, ${factionCssVar(player.faction_slug, 'light')}, ${factionCssVar(player.faction_slug)})`,
+                            margin: '0 auto 6px',
+                            border: `2px solid ${factionCssVar(player.faction_slug, 'border')}`,
+                          }}
+                        />
+                      )}
+                      <Link
+                        to={`/characters/${player.id}`}
+                        className="font-display italic block truncate"
+                        style={{ fontSize: 12, color: factionCssVar(player.faction_slug), textDecoration: 'none', marginBottom: 4 }}
+                      >
+                        {player.display_name}
+                      </Link>
+                      <div
+                        className="font-display italic"
+                        style={{ fontSize: 24, fontWeight: 700, color: factionCssVar(player.faction_slug) }}
+                      >
+                        {scoreMode === 'era' ? player.score : player.all_time_score}
+                      </div>
+                      <span className="eyebrow" style={{ fontSize: 7 }}>
+                        {scoreMode === 'era' ? 'era pts' : 'all-time pts'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
           {/* ── Podium — Top 3 (§16.3) ── */}
           {top3.length >= 3 && (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 12, marginBottom: 24 }}>

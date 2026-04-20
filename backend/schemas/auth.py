@@ -17,3 +17,7 @@ class CurrentUser(BaseModel):
     account_id: int
     character: Optional[CharacterOut] = None
     is_admin: bool = False
+    # Eligibility flags computed server-side from existing character levels so the
+    # frontend can hide controls it cannot use (per WORLD_ZERO_STYLE validation pattern).
+    can_create_additional_character: bool = False
+    can_start_as_albescent: bool = False

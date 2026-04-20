@@ -51,6 +51,10 @@ COLLABORATION_LEVEL_REQUIRED = 1
 ANALOG_FACTION_SLUG = "analog"
 ALBESCENT_FACTION_SLUG = "albescent"
 METATASK_APPLY_LEVEL = 7
+# Minimum character level required to flag a praxis for moderator review.
+# EraConfig does not currently expose this value, so it lives here until a
+# dedicated era field is added (see flag_praxis).
+FLAG_LEVEL_REQUIRED = 4
 
 
 # ---------------------------------------------------------------------------
@@ -203,16 +207,24 @@ async def build_praxis_out(
     session: AsyncSession,
     viewer_character_id: Optional[int] = None,
     era: EraConfig = CURRENT_ERA,
+    viewer: Optional[Character] = None,
 ) -> PraxisOut:
-    """Build a PraxisOut for any praxis type."""
+    """Build a PraxisOut for any praxis type.
+
+    ``viewer`` is the authenticated viewer's character, used to compute
+    viewer-relative flags such as ``can_flag``. ``viewer_character_id`` is
+    retained for backward compatibility (invite visibility check). When
+    ``viewer`` is given, its id wins for the invite visibility check too.
+    """
     task_title = praxis.task.title if praxis.task else ""
     task_point_value = praxis.task.point_value if praxis.task else 0
 
     members = [_build_member_out(m) for m in praxis.members]
 
     # Invites only visible to members
+    effective_viewer_id = viewer.id if viewer is not None else viewer_character_id
     member_ids = {m.character_id for m in praxis.members}
-    include_invites = viewer_character_id in member_ids if viewer_character_id else False
+    include_invites = effective_viewer_id in member_ids if effective_viewer_id else False
     invites = [_build_invite_out(i) for i in praxis.invites] if include_invites else []
 
     media_items = [MediaItemOut.model_validate(item) for item in praxis.media_items]
@@ -223,6 +235,8 @@ async def build_praxis_out(
     duel_vote_summary: Optional[list[DuelVoteSummary]] = None
     if praxis.type == PraxisType.duel:
         duel_vote_summary = await _build_duel_vote_summary(praxis, session)
+
+    can_flag = await can_flag_praxis(viewer, praxis, session, era)
 
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
@@ -252,6 +266,7 @@ async def build_praxis_out(
         media_items=media_items,
         score=score,
         duel_vote_summary=duel_vote_summary,
+        can_flag=can_flag,
     )
 
 
@@ -408,6 +423,18 @@ async def create_praxis(
             detail=f"This task requires level {task.level_required}.",
         )
 
+    # One-praxis-per-task gate (with Analog Double Dipper carve-out).
+    # Uses the same helper that powers the ``can_submit_praxis`` flag on the
+    # task detail response so the rule is single-sourced.
+    character = await session.get(Character, character_id)
+    if character is None:
+        raise HTTPException(status_code=404, detail="Character not found.")
+    if not await can_submit_praxis_for_task(character, task, session):
+        raise HTTPException(
+            status_code=409,
+            detail="You have already submitted a praxis for this task.",
+        )
+
     # Level gate for duel/collab types
     if praxis_type == PraxisType.duel and stats.level < DUEL_LEVEL_REQUIRED:
         raise HTTPException(
@@ -536,6 +563,122 @@ async def delete_praxis(
     await session.commit()
 
 
+async def can_flag_praxis(
+    viewer: Optional[Character],
+    praxis: Praxis,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> bool:
+    """Return True if ``viewer`` may flag ``praxis``.
+
+    Mirrors the rules enforced in :func:`flag_praxis`:
+    - Viewer must be authenticated (anonymous viewers cannot flag).
+    - Viewer must be at or above :data:`FLAG_LEVEL_REQUIRED` in the current era.
+    - Viewer cannot flag a praxis they authored (character-level check).
+
+    ``era`` is accepted for signature parity with other service helpers even
+    though :data:`FLAG_LEVEL_REQUIRED` is not yet an EraConfig field.
+    """
+    if viewer is None:
+        return False
+    if viewer.id == praxis.created_by_id:
+        return False
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, viewer.id, era_row.id)
+    return stats.level >= FLAG_LEVEL_REQUIRED
+
+
+async def can_submit_praxis_for_task(
+    character: Optional[Character],
+    task: Task,
+    session: AsyncSession,
+) -> bool:
+    """Return True if ``character`` may create a new praxis for ``task``.
+
+    Mirrors the duplicate-submission rule enforced in :func:`create_praxis`:
+    - Anonymous viewers never see the submit affordance (False).
+    - A character that already authors a non-withdrawn ``Praxis`` for this
+      ``task`` cannot submit again, except for the Analog faction (Double
+      Dipper perk). Withdrawn prior praxes do not block a fresh submission.
+
+    This helper intentionally stays focused on the one-praxis-per-task rule.
+    Level gates, bank-cap checks, and faction-visibility are handled by the
+    caller or :func:`create_praxis` itself.
+    """
+    if character is None:
+        return False
+
+    if character.faction_slug == ANALOG_FACTION_SLUG:
+        return True
+
+    result = await session.execute(
+        select(Praxis.id).where(
+            Praxis.created_by_id == character.id,
+            Praxis.task_id == task.id,
+            Praxis.is_withdrawn == False,  # noqa: E712
+        )
+    )
+    return result.scalar_one_or_none() is None
+
+
+def allowed_praxis_modes(
+    character: Optional[Character],
+    task: Task,
+    character_level: int,
+    era: EraConfig = CURRENT_ERA,
+) -> list[str]:
+    """Return the praxis mode values a character may pick for ``task``.
+
+    Mirrors the level gates enforced in :func:`create_praxis`:
+    - Solo: always allowed once a viewer is authenticated.
+    - Collab: requires ``character_level >= COLLABORATION_LEVEL_REQUIRED``.
+    - Duel: requires ``character_level >= DUEL_LEVEL_REQUIRED``.
+
+    Anonymous viewers (``character is None``) receive an empty list so the
+    UI can hide the mode picker entirely.
+
+    ``era`` is accepted for signature parity; the thresholds are module-level
+    constants today but the signature leaves room for era-specific gates.
+    """
+    if character is None:
+        return []
+    modes: list[str] = [PraxisType.solo.value]
+    if character_level >= COLLABORATION_LEVEL_REQUIRED:
+        modes.append(PraxisType.collab.value)
+    if character_level >= DUEL_LEVEL_REQUIRED:
+        modes.append(PraxisType.duel.value)
+    return modes
+
+
+def is_task_eligible_for_character(
+    character: Optional[Character],
+    task: Task,
+    character_level: int,
+) -> bool:
+    """Return True if ``character`` is eligible to act on ``task``.
+
+    For standard tasks the gate is only ``task.level_required``. For metatask
+    rows the character must also belong to the same faction as the metatask
+    (``task.metatask_faction_slug``). Anonymous viewers are never eligible.
+
+    Note this mirrors the metatask scoring gate in
+    :func:`_get_meta_task_points` (``character_level >= task.level_required``)
+    rather than the stricter :func:`apply_metatask` service gate. The flag is
+    intended for UI affordances such as "metatasks this character could use
+    if they had one" — apply time still runs the full guard.
+    """
+    if character is None:
+        return False
+    if character_level < task.level_required:
+        return False
+    if task.task_type == TaskType.metatask:
+        if task.metatask_faction_slug is None:
+            return False
+        if character.faction_slug != task.metatask_faction_slug:
+            return False
+    return True
+
+
 async def flag_praxis(
     praxis_id: int,
     flagged_by: Character,
@@ -545,17 +688,16 @@ async def flag_praxis(
     """Flag a praxis for moderation review. Requires level 4 or above."""
     praxis = await get_praxis(praxis_id, session)
 
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, flagged_by.id, era_row.id)
-
-    if stats.level < 4:
-        raise HTTPException(
-            status_code=403,
-            detail="Must be level 4 or above to flag a praxis.",
-        )
-
+    # Self-flag is always rejected with its own error message so the caller
+    # sees a clearer reason than a generic level failure.
     if flagged_by.id == praxis.created_by_id:
         raise HTTPException(status_code=403, detail="Cannot flag your own praxis.")
+
+    if not await can_flag_praxis(flagged_by, praxis, session):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Must be level {FLAG_LEVEL_REQUIRED} or above to flag a praxis.",
+        )
 
     praxis.moderation_status = ModerationStatus.flagged.value
     praxis.flagged_at = datetime.now(timezone.utc)
@@ -996,15 +1138,19 @@ async def remove_metatask(
 
 
 __all__ = [
+    "allowed_praxis_modes",
     "apply_metatask",
     "build_praxis_out",
     "build_praxis_card_out",
+    "can_flag_praxis",
+    "can_submit_praxis_for_task",
     "compute_praxis_score_from_db",
     "create_praxis",
     "delete_praxis",
     "flag_praxis",
     "get_praxis",
     "invite_to_praxis",
+    "is_task_eligible_for_character",
     "kick_member",
     "list_praxes",
     "moderate_praxis",

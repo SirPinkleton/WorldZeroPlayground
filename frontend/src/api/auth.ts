@@ -18,6 +18,10 @@ export interface CurrentUser {
   account_id: number
   character: CharacterOut | null
   is_admin: boolean
+  /** Server-computed: this account meets the rules to create another character. */
+  can_create_additional_character: boolean
+  /** Server-computed: this account meets the rules to start a new character in /Albescent. */
+  can_start_as_albescent: boolean
 }
 
 export async function getMe(): Promise<CurrentUser> {

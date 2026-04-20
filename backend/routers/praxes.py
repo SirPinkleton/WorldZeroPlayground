@@ -16,8 +16,63 @@ from config import settings
 from db import get_db
 from dependencies import get_current_character
 from game_config import CURRENT_ERA
-from models.character import Character
+from models.account import Account, AccountStatus
+from models.character import Character, CharacterStatus
 from models.praxis import MediaItem, MediaType, ModerationStatus, Praxis, PraxisType
+from services.auth import decode_jwt
+from fastapi import Cookie
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+
+_OPTIONAL_BEARER = HTTPBearer(auto_error=False)
+
+
+async def get_current_character_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_OPTIONAL_BEARER),
+    access_token: Optional[str] = Cookie(default=None),
+    session: AsyncSession = Depends(get_db),
+) -> Optional[Character]:
+    """Return the authenticated viewer's active character, or None if anonymous.
+
+    Mirrors :func:`dependencies.get_current_character` but never raises — used by
+    public detail endpoints that want to compute viewer-relative fields (such as
+    ``PraxisOut.can_flag``) when a token is present.
+    """
+    token = None
+    if credentials:
+        token = credentials.credentials
+    elif access_token:
+        token = access_token
+    if not token:
+        return None
+
+    try:
+        payload = decode_jwt(token)
+    except Exception:  # invalid/expired token — treat as anonymous
+        return None
+
+    try:
+        account_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    account_result = await session.execute(
+        select(Account).where(Account.id == account_id)
+    )
+    account = account_result.scalar_one_or_none()
+    if account is None or account.status != AccountStatus.active:
+        return None
+
+    char_result = await session.execute(
+        select(Character)
+        .where(
+            Character.account_id == account.id,
+            Character.status == CharacterStatus.active,
+        )
+        .order_by(Character.created_at)
+        .limit(1)
+    )
+    return char_result.scalar_one_or_none()
 from pydantic import BaseModel
 from schemas.praxis import (
     DuelVoteSummary,
@@ -113,11 +168,12 @@ async def list_praxes_route(
 async def get_praxis_route(
     praxis_id: int,
     session: AsyncSession = Depends(get_db),
+    viewer: Optional[Character] = Depends(get_current_character_optional),
 ):
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None or praxis.moderation_status == ModerationStatus.hidden.value:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    return await build_praxis_out(praxis, session)
+    return await build_praxis_out(praxis, session, viewer=viewer)
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +196,7 @@ async def create_praxis_route(
         title=data.title,
         body_text=data.body_text,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.put("/{praxis_id}", response_model=PraxisOut)
@@ -156,7 +212,7 @@ async def update_praxis_route(
         character_id=character.id,
         session=session,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.delete("/{praxis_id}", status_code=204)
@@ -190,7 +246,7 @@ async def withdraw_praxis_route(
         session=session,
         era=CURRENT_ERA,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.post("/{praxis_id}/resubmit", response_model=PraxisOut)
@@ -205,7 +261,7 @@ async def resubmit_praxis_route(
         session=session,
         era=CURRENT_ERA,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.post("/{praxis_id}/submit", response_model=PraxisOut)
@@ -220,7 +276,7 @@ async def submit_praxis_route(
         session=session,
         era=CURRENT_ERA,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.post("/{praxis_id}/reopen", response_model=PraxisOut)
@@ -234,7 +290,7 @@ async def reopen_praxis_route(
         character_id=character.id,
         session=session,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +425,7 @@ async def respond_to_invite_route(
     praxis = await session.get(Praxis, invite.praxis_id)
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.post("/{praxis_id}/kick/{member_id}", response_model=PraxisOut)
@@ -388,7 +444,7 @@ async def kick_member_route(
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +465,7 @@ async def flag_praxis_route(
         reason=reason,
         session=session,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 # ---------------------------------------------------------------------------
@@ -497,7 +553,7 @@ async def apply_metatask_route(
         session=session,
         era=CURRENT_ERA,
     )
-    return await build_praxis_out(praxis, session, viewer_character_id=character.id)
+    return await build_praxis_out(praxis, session, viewer=character)
 
 
 @router.delete("/{praxis_id}/metatasks/{task_id}", status_code=204)

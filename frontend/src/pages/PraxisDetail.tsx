@@ -5,6 +5,7 @@ import {
   getPraxis,
   withdrawPraxis,
   resubmitPraxis,
+  flagPraxis,
   type PraxisOut,
 } from '../api/praxis'
 import { getVotes, type VoteSummary } from '../api/votes'
@@ -35,6 +36,11 @@ export default function PraxisDetail() {
   const [showFailInput, setShowFailInput] = useState(false)
   const [moderating, setModerating] = useState(false)
   const [moderateError, setModerateError] = useState<string | null>(null)
+  const [showFlagForm, setShowFlagForm] = useState(false)
+  const [flagReason, setFlagReason] = useState('')
+  const [flagging, setFlagging] = useState(false)
+  const [flagError, setFlagError] = useState<string | null>(null)
+  const [flagSubmitted, setFlagSubmitted] = useState(false)
 
   const showAdminBar = user?.is_admin && adminMode && praxis
 
@@ -96,6 +102,27 @@ export default function PraxisDetail() {
     }
   }
 
+  const handleFlag = async () => {
+    if (!praxis) return
+    const trimmed = flagReason.trim()
+    if (trimmed.length < 10) {
+      setFlagError('Please describe the issue in at least 10 characters.')
+      return
+    }
+    setFlagging(true)
+    setFlagError(null)
+    try {
+      await flagPraxis(praxis.id, trimmed)
+      setFlagSubmitted(true)
+      setShowFlagForm(false)
+      setFlagReason('')
+    } catch (err) {
+      setFlagError(extractError(err, 'Could not flag this praxis.'))
+    } finally {
+      setFlagging(false)
+    }
+  }
+
   if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
   if (fetchError) return (
     <div className="py-8">
@@ -107,7 +134,6 @@ export default function PraxisDetail() {
   )
   if (!praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
-  const canFlag = (user?.character?.level ?? 0) >= 4 && user?.character?.id !== praxis.created_by_id
   const isOwner = user?.character?.id === praxis.created_by_id
 
   return (
@@ -459,8 +485,10 @@ export default function PraxisDetail() {
         )}
       </div>
 
-      {/* ── Flag Block (§13.3) ── */}
-      {canFlag && praxis.moderation_status !== 'flagged' && (
+      {/* ── Flag Block (§13.3) ──
+          Hidden entirely when the viewer can't flag (not level 4+, own praxis,
+          anonymous) or after the viewer successfully flagged it this session. */}
+      {flagSubmitted ? (
         <div
           className="sidebar-card flex items-center gap-3"
           style={{ padding: '10px 14px' }}
@@ -470,23 +498,114 @@ export default function PraxisDetail() {
               width: 32,
               height: 32,
               borderRadius: '50%',
-              border: '1.5px solid rgba(220,38,38,0.25)',
+              border: '1.5px solid var(--color-success)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <span className="eyebrow">FLAG</span>
+            <span className="eyebrow" style={{ color: 'var(--color-success)' }}>OK</span>
           </div>
           <div className="flex-1">
             <p className="font-body" style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-              Flag this praxis
+              Flagged for admin review
             </p>
             <p className="font-body" style={{ fontSize: 8, color: 'var(--color-text-tertiary)' }}>
-              If this content is inappropriate or violates the rules, flag it for admin review.
+              Thanks — an admin will take a look shortly.
             </p>
           </div>
+        </div>
+      ) : praxis.can_flag && praxis.moderation_status !== 'flagged' && (
+        <div
+          className="sidebar-card"
+          style={{ padding: '10px 14px' }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: '1.5px solid rgba(220,38,38,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <span className="eyebrow">FLAG</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-body" style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+                Flag this praxis
+              </p>
+              <p className="font-body" style={{ fontSize: 8, color: 'var(--color-text-tertiary)' }}>
+                If this content is inappropriate or violates the rules, flag it for admin review.
+              </p>
+            </div>
+            {!showFlagForm && (
+              <button
+                onClick={() => {
+                  setShowFlagForm(true)
+                  setFlagError(null)
+                }}
+                className="btn-outline"
+                style={{
+                  fontSize: 9,
+                  padding: '4px 12px',
+                  borderColor: 'rgba(220,38,38,0.5)',
+                  color: 'var(--color-danger)',
+                }}
+              >
+                Flag
+              </button>
+            )}
+          </div>
+          {showFlagForm && (
+            <div style={{ marginTop: 10 }}>
+              <textarea
+                className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink w-full resize-none"
+                rows={3}
+                placeholder="Describe the issue (at least 10 characters)..."
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                disabled={flagging}
+              />
+              <div className="flex items-center gap-2" style={{ marginTop: 6 }}>
+                <button
+                  onClick={() => void handleFlag()}
+                  disabled={flagging}
+                  className="btn-primary"
+                  style={{
+                    fontSize: 9,
+                    padding: '4px 12px',
+                    background: 'var(--color-danger)',
+                    borderColor: 'var(--color-danger)',
+                  }}
+                >
+                  {flagging ? '...' : 'Submit flag'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowFlagForm(false)
+                    setFlagReason('')
+                    setFlagError(null)
+                  }}
+                  disabled={flagging}
+                  className="btn-outline"
+                  style={{ fontSize: 9, padding: '4px 12px' }}
+                >
+                  Cancel
+                </button>
+              </div>
+              {flagError && (
+                <p className="font-body text-xs" style={{ color: 'var(--color-danger)', marginTop: 6 }}>
+                  {flagError}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

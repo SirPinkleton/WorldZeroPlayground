@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.faction import Faction, FactionStatus
 from models.praxis import Praxis, PraxisMember, PraxisStatus
@@ -81,7 +82,13 @@ async def propose_task(
 
 
 def build_task_out(task: Task) -> TaskOut:
-    """Convert a Task ORM instance to a TaskOut schema."""
+    """Convert a Task ORM instance to a TaskOut schema.
+
+    This builder does not compute any viewer-relative fields; flags such as
+    ``can_submit_praxis``, ``allowed_modes``, and ``eligible_for_current_user``
+    are left at their safe defaults. Use :func:`build_task_out_for_viewer`
+    from a route that has an authenticated viewer available.
+    """
     return TaskOut(
         id=task.id,
         title=task.title,
@@ -98,6 +105,41 @@ def build_task_out(task: Task) -> TaskOut:
     )
 
 
+async def build_task_out_for_viewer(
+    task: Task,
+    viewer: Optional[Character],
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> TaskOut:
+    """Build a :class:`TaskOut` with viewer-relative capability flags.
+
+    Populates ``can_submit_praxis``, ``allowed_modes``, and
+    ``eligible_for_current_user`` using the authenticated viewer's character
+    (``None`` for anonymous callers). All three flags default to the same
+    safe values as :func:`build_task_out` when ``viewer`` is ``None``.
+    """
+    from services.praxis import (
+        allowed_praxis_modes,
+        can_submit_praxis_for_task,
+        is_task_eligible_for_character,
+    )
+
+    base = build_task_out(task)
+
+    if viewer is None:
+        return base
+
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, viewer.id, era_row.id)
+
+    base.can_submit_praxis = await can_submit_praxis_for_task(viewer, task, session)
+    base.allowed_modes = allowed_praxis_modes(viewer, task, stats.level, era)
+    base.eligible_for_current_user = is_task_eligible_for_character(
+        viewer, task, stats.level
+    )
+    return base
+
+
 async def list_tasks(
     session: AsyncSession,
     *,
@@ -111,7 +153,11 @@ async def list_tasks(
     limit: int = 50,
     offset: int = 0,
 ) -> list[Task]:
-    """Query tasks with optional filters, excluding hidden-faction tasks."""
+    """Query tasks with optional filters, excluding hidden-faction tasks.
+
+    If ``task_type`` is None or 'all', both standard and metatask rows are
+    returned. Pass 'standard' or 'metatask' to filter.
+    """
     # Collect hidden faction slugs to exclude their tasks
     hidden_result = await session.execute(
         select(Faction.slug).where(Faction.status != FactionStatus.visible)
@@ -129,12 +175,9 @@ async def list_tasks(
         query = query.where(Task.status == TaskStatus.active)
     # status == "all" -> no status filter, return tasks of every status
 
-    # Task type filter — default to "standard" so /tasks (no filter) continues
-    # to behave as before (standard tasks only). Callers who want metatasks
-    # must pass task_type=metatask explicitly; task_type=all returns both.
-    if task_type is None:
-        query = query.where(Task.task_type == TaskType.standard)
-    elif task_type != "all":
+    # Task type filter — default (None) and "all" both return every task type.
+    # Pass task_type="standard" or task_type="metatask" to filter.
+    if task_type is not None and task_type != "all":
         try:
             query = query.where(Task.task_type == TaskType(task_type))
         except ValueError:

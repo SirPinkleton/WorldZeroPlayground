@@ -1,26 +1,79 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Cookie, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from dependencies import get_current_character
-from models.account import Account
-from models.character import Character
+from models.account import Account, AccountStatus
+from models.character import Character, CharacterStatus
 from models.faction import Faction, FactionStatus
 from models.praxis import Praxis, PraxisMember, PraxisStatus, PraxisType
 from models.roles import AccountRole, Role
 from models.task import Task, TaskStatus, TaskType
 from schemas.task import TaskCreate, TaskOut
-from services.auth import get_current_account
+from services.auth import decode_jwt, get_current_account
 from services.task import (
     build_task_out,
+    build_task_out_for_viewer,
     list_tasks as service_list_tasks,
     propose_task,
 )
 
 router = APIRouter()
+
+
+_OPTIONAL_BEARER = HTTPBearer(auto_error=False)
+
+
+async def get_current_character_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_OPTIONAL_BEARER),
+    access_token: Optional[str] = Cookie(default=None),
+    session: AsyncSession = Depends(get_db),
+) -> Optional[Character]:
+    """Return the authenticated viewer's active character, or None if anonymous.
+
+    Mirrors :func:`dependencies.get_current_character` but never raises — used
+    by public task endpoints that want to compute viewer-relative fields such
+    as ``TaskOut.can_submit_praxis`` when a token is present.
+    """
+    token = None
+    if credentials:
+        token = credentials.credentials
+    elif access_token:
+        token = access_token
+    if not token:
+        return None
+
+    try:
+        payload = decode_jwt(token)
+    except Exception:  # invalid/expired token — treat as anonymous
+        return None
+
+    try:
+        account_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    account_result = await session.execute(
+        select(Account).where(Account.id == account_id)
+    )
+    account = account_result.scalar_one_or_none()
+    if account is None or account.status != AccountStatus.active:
+        return None
+
+    char_result = await session.execute(
+        select(Character)
+        .where(
+            Character.account_id == account.id,
+            Character.status == CharacterStatus.active,
+        )
+        .order_by(Character.created_at)
+        .limit(1)
+    )
+    return char_result.scalar_one_or_none()
 
 
 @router.get("", response_model=list[TaskOut])
@@ -35,6 +88,7 @@ async def list_tasks(
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
+    viewer: Optional[Character] = Depends(get_current_character_optional),
 ):
     tasks = await service_list_tasks(
         session,
@@ -48,7 +102,9 @@ async def list_tasks(
         limit=limit,
         offset=offset,
     )
-    return [build_task_out(task) for task in tasks]
+    return [
+        await build_task_out_for_viewer(task, viewer, session) for task in tasks
+    ]
 
 
 @router.get("/{task_id}/signups", response_model=list[dict])
@@ -87,11 +143,15 @@ async def list_task_signups(
 
 
 @router.get("/{task_id}", response_model=TaskOut)
-async def get_task(task_id: int, session: AsyncSession = Depends(get_db)):
+async def get_task(
+    task_id: int,
+    session: AsyncSession = Depends(get_db),
+    viewer: Optional[Character] = Depends(get_current_character_optional),
+):
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
-    return build_task_out(task)
+    return await build_task_out_for_viewer(task, viewer, session)
 
 
 @router.post("", response_model=TaskOut, status_code=201)

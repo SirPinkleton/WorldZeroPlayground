@@ -22,6 +22,7 @@ export default function FilterLevelNodes({ levels, value, onChange }: Props) {
               <div style={{ width: 12, height: 2, background: 'var(--color-border-strong)' }} />
             )}
             <button
+              type="button"
               onClick={() => onChange(value === level ? '' : level)}
               style={{
                 width: 30,
