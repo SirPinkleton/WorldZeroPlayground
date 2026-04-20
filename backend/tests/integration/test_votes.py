@@ -577,3 +577,102 @@ async def test_duel_vote_end_to_end_does_not_raise_statement_error(
     vote_data = vote_resp.json()
     assert vote_data["stars"] == 4
     assert vote_data["praxis_member_id"] == target_member_id
+
+
+# ---------------------------------------------------------------------------
+# S.3 SESSION S — anti-self-vote fallback when praxis.created_by is unloaded
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_anti_self_vote_fallback_blocks_when_created_by_unloaded(
+    db_session: AsyncSession,
+    character: Character,
+    active_task: Task,
+):
+    """S.3: When ``praxis.created_by`` is not selectin-loaded, the service
+    falls back to ``session.get(Character, praxis.created_by_id)`` to enforce
+    account-level anti-self-vote. The existing route-level tests always hit
+    the selectin path via ``get_praxis``; this covers the fallback branch.
+
+    The voter's account owns the praxis, so the service must raise 403 with
+    the canonical anti-self-vote detail string even when ``created_by`` is
+    None on the passed praxis.
+    """
+    from fastapi import HTTPException
+    from sqlalchemy.orm import noload
+
+    from models.praxis import Praxis, PraxisMember, PraxisType
+    from services.vote import cast_or_update_vote
+
+    # Seed a solo praxis authored by ``character``
+    praxis = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.solo,
+        title="Self-vote fallback",
+        body_text="",
+    )
+    db_session.add(praxis)
+    await db_session.flush()
+    db_session.add(PraxisMember(praxis_id=praxis.id, character_id=character.id))
+    await db_session.commit()
+
+    # Evict from identity map so the next select actually runs a SELECT
+    db_session.expunge(praxis)
+
+    # Re-fetch with noload on created_by so the relationship is unpopulated.
+    # This is the state the fallback branch guards against.
+    result = await db_session.execute(
+        select(Praxis).options(noload(Praxis.created_by)).where(Praxis.id == praxis.id)
+    )
+    praxis_unloaded = result.scalar_one()
+    assert praxis_unloaded.created_by is None
+    assert praxis_unloaded.created_by_id == character.id
+
+    # character's account owns the praxis — the fallback must detect this
+    with pytest.raises(HTTPException) as exc_info:
+        await cast_or_update_vote(character, praxis_unloaded, 5, db_session)
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Cannot vote on your own praxis."
+
+
+@pytest.mark.asyncio
+async def test_anti_self_vote_fallback_allows_unrelated_voter(
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+):
+    """S.3: The fallback must not over-block — an unrelated voter (different
+    account) must be able to vote when ``praxis.created_by`` is not loaded.
+    """
+    from sqlalchemy.orm import noload
+
+    from models.praxis import Praxis, PraxisMember, PraxisType
+    from services.vote import cast_or_update_vote
+
+    praxis = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.solo,
+        title="Fallback allow",
+        body_text="",
+    )
+    db_session.add(praxis)
+    await db_session.flush()
+    db_session.add(PraxisMember(praxis_id=praxis.id, character_id=character.id))
+    await db_session.commit()
+
+    db_session.expunge(praxis)
+    result = await db_session.execute(
+        select(Praxis).options(noload(Praxis.created_by)).where(Praxis.id == praxis.id)
+    )
+    praxis_unloaded = result.scalar_one()
+    assert praxis_unloaded.created_by is None
+
+    # character2 (different account) casts a vote — must succeed
+    vote = await cast_or_update_vote(character2, praxis_unloaded, 3, db_session)
+    assert vote.stars == 3
+    assert vote.voter_character_id == character2.id
+    assert vote.praxis_id == praxis.id
