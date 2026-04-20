@@ -11,6 +11,7 @@ import { useAuth } from '../auth/AuthContext'
 import { factionCssVar, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
 import { mediaUrl } from '../utils/media'
+import { computeDisplayPoints } from '../utils/points'
 import { useGameConfig } from '../hooks/useGameConfig'
 
 const DEFAULT_MAX_TASK_SLOTS = 20
@@ -86,14 +87,6 @@ export default function TaskDetail() {
       .finally(() => setLoading(false))
   }, [id, location.key])
 
-  // Re-fetch submissions when sort changes
-  useEffect(() => {
-    if (!id) return
-    listPraxes({ task_id: parseInt(id, 10) })
-      .then((s) => setSubmissions(s))
-      .catch(() => {})
-  }, [submissionSort, id])
-
   const mySubmission = user?.character
     ? submissions.find((s) => s.created_by_id === user.character!.id && !s.is_withdrawn)
     : undefined
@@ -149,17 +142,19 @@ export default function TaskDetail() {
     ? (submissions.reduce((sum, s) => sum + (s.score ?? 0), 0) / submissions.length).toFixed(1)
     : '—'
 
-  // Compute faction modifier for the current user
   const myFaction = user?.character?.faction_slug
   const taskFaction = task.primary_faction_slug
   const factionConfig = myFaction && gameConfig
     ? gameConfig.factions.find((f) => f.slug === myFaction)
     : null
-  const isOwnFaction = factionConfig && (taskFaction === myFaction || taskFaction === 'na' || !taskFaction)
   const factionMultiplier = factionConfig
-    ? (isOwnFaction ? factionConfig.own_task_modifier : factionConfig.other_task_modifier)
+    ? (!taskFaction || taskFaction === myFaction || taskFaction === 'na'
+        ? factionConfig.own_task_modifier
+        : factionConfig.other_task_modifier)
     : 1.0
-  const modifiedPoints = Math.round(task.point_value * factionMultiplier)
+  const modifiedPoints = gameConfig
+    ? computeDisplayPoints(task.point_value, myFaction, taskFaction, gameConfig.factions)
+    : task.point_value
 
   const sortedSubmissions = [...submissions].sort((a, b) => {
     if (submissionSort === 'score') return (b.score ?? 0) - (a.score ?? 0)
@@ -171,7 +166,7 @@ export default function TaskDetail() {
       {/* ── Breadcrumb ── */}
       <PageTitle title="Task" eyebrow="Tasks · Detail" />
       <nav className="font-body mb-4" style={{ fontSize: 9, letterSpacing: '0.1em', color: 'var(--color-text-tertiary)' }}>
-        <Link to="/tasks" style={{ color: '#c49a3a', textDecoration: 'none' }}>Tasks</Link>
+        <Link to="/tasks" style={{ color: 'var(--faction-journeymen)', textDecoration: 'none' }}>Tasks</Link>
         {' › '}
         <span style={{ color: 'var(--color-text-primary)' }}>{task.title}</span>
       </nav>
@@ -192,7 +187,7 @@ export default function TaskDetail() {
                 className="pennant-shape"
                 style={{
                   display: 'inline-block',
-                  background: color, color: 'white',
+                  background: color, color: 'var(--color-text-on-accent)',
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.07em', padding: '3px 14px',
@@ -219,7 +214,7 @@ export default function TaskDetail() {
                     fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.15em',
                     padding: '2px 8px', borderRadius: 4,
                     background: factionCssVar(task.metatask_faction_slug),
-                    color: 'white',
+                    color: 'var(--color-text-on-accent)',
                     fontWeight: 700,
                     textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                   }}
@@ -291,7 +286,7 @@ export default function TaskDetail() {
                 onClick={handleSignup}
                 style={{
                   width: '100%',
-                  background: color, color: 'white',
+                  background: color, color: 'var(--color-text-on-accent)',
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.15em', padding: '10px 20px',
@@ -360,7 +355,7 @@ export default function TaskDetail() {
               <Link
                 to={`/praxes/${inProgressPraxisId}/edit`}
                 style={{
-                  background: color, color: 'white',
+                  background: color, color: 'var(--color-text-on-accent)',
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.12em', padding: '8px 18px',
@@ -415,7 +410,7 @@ export default function TaskDetail() {
                       style={{
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                        letterSpacing: '0.1em', color: '#c49a3a',
+                        letterSpacing: '0.1em', color: 'var(--faction-journeymen)',
                         textDecoration: 'none',
                       }}
                     >

@@ -93,7 +93,7 @@ export default function Leaderboard() {
                       className="pennant-shape"
                       style={{
                         display: 'inline-block',
-                        background: factionCssVar(player.faction_slug), color: 'white',
+                        background: factionCssVar(player.faction_slug), color: 'var(--color-text-on-accent)',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.07em', padding: '2px 10px',
@@ -171,7 +171,7 @@ export default function Leaderboard() {
                           position: 'absolute', top: -8, right: -8,
                           width: 22, height: 22, borderRadius: '50%',
                           background: RANK_STYLES[rank].color,
-                          color: 'white', fontFamily: "'Courier Prime', monospace",
+                          color: 'var(--color-text-on-accent)', fontFamily: "'Courier Prime', monospace",
                           fontSize: 10, fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           border: '2px solid var(--color-bg-page)',
@@ -183,7 +183,7 @@ export default function Leaderboard() {
                         className="pennant-shape"
                         style={{
                           display: 'inline-block',
-                          background: factionCssVar(player.faction_slug), color: 'white',
+                          background: factionCssVar(player.faction_slug), color: 'var(--color-text-on-accent)',
                           fontFamily: "'Courier Prime', monospace",
                           fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
                           letterSpacing: '0.07em', padding: '2px 10px',
@@ -268,7 +268,7 @@ export default function Leaderboard() {
                           position: 'absolute', top: -8, right: -8,
                           width: 22, height: 22, borderRadius: '50%',
                           background: RANK_STYLES[rank].color,
-                          color: 'white', fontFamily: "'Courier Prime', monospace",
+                          color: 'var(--color-text-on-accent)', fontFamily: "'Courier Prime', monospace",
                           fontSize: 10, fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           border: '2px solid var(--color-bg-page)',
@@ -282,7 +282,7 @@ export default function Leaderboard() {
                         className="pennant-shape"
                         style={{
                           display: 'inline-block',
-                          background: factionCssVar(player.faction_slug), color: 'white',
+                          background: factionCssVar(player.faction_slug), color: 'var(--color-text-on-accent)',
                           fontFamily: "'Courier Prime', monospace",
                           fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
                           letterSpacing: '0.07em', padding: '2px 10px',

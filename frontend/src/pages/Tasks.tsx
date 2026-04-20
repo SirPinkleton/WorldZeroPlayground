@@ -30,7 +30,6 @@ export default function Tasks() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [signupMsg, setSignupMsg] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
 
-  // Fetch factions (filter tabs) and game config (faction modifiers) once
   useEffect(() => {
     getFactions().then(setFactions).catch(() => {})
     getGameConfig()
@@ -70,7 +69,7 @@ export default function Tasks() {
     <div className="py-8">
       <PageTitle title="Tasks" eyebrow={`${tasks.length} shown`} />
 
-      {/* Filters — three distinct visual types (Style Guide §5.3) */}
+      {/* Filters (Style Guide §5.3) */}
       <div className="flex flex-col gap-2.5 mb-6">
         <FilterStamps options={statusFilters} value={status} onChange={setStatus} />
         <FilterFactionTabs factions={factions} value={faction} onChange={setFaction} />

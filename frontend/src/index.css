@@ -33,6 +33,13 @@
   --color-warning:        #b45309;
   --color-warning-light:  #fef3c7;
 
+  /* ── Shared neutrals ── */
+  --color-text-on-accent: #ffffff;
+  --color-overlay-weak:   rgba(0, 0, 0, 0.08);
+  --color-overlay-medium: rgba(0, 0, 0, 0.15);
+  --color-overlay-strong: rgba(0, 0, 0, 0.25);
+  --color-surface-scrim:  rgba(255, 255, 255, 0.9);
+
   /* ── Faction primary colors ── */
   --faction-ua:           #6b6a7a;
   --faction-analog:       #15803d;
@@ -198,6 +205,9 @@
   --color-danger:         #f87171;
   --color-warning:        #fbbf24;
   --color-warning-light:  #1c0a00;
+
+  /* ── Shared neutrals (dark) ── */
+  --color-surface-scrim:  rgba(19, 18, 26, 0.85);
 
   /* ── Faction primary colors (dark) ── */
   --faction-ua:           #a78bfa;
@@ -419,6 +429,40 @@
     background: var(--color-text-primary);
     color: var(--color-bg-page);
     border-color: var(--color-text-primary);
+  }
+
+  /* ── Vote stamps (1–5 rating buttons) ── */
+
+  .vote-stamp {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border: 2.5px solid var(--stamp-color);
+    border-radius: 0;
+    background: var(--stamp-inactive-bg);
+    color: var(--stamp-color);
+    font-family: 'Courier Prime', monospace;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 120ms;
+  }
+  .vote-stamp:hover:not(.vote-stamp-active):not(:disabled) {
+    background: color-mix(in srgb, var(--stamp-color) 10%, transparent);
+  }
+  .vote-stamp-active {
+    background: var(--stamp-color);
+    color: var(--color-text-on-accent);
+  }
+  .vote-stamp:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  [data-theme="dark"] .vote-stamp:not(.vote-stamp-active) {
+    color: var(--color-text-primary);
   }
 
   /* ── Eyebrow / label text ── */

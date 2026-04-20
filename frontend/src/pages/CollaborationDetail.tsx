@@ -217,7 +217,7 @@ export default function CollaborationDetail() {
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.1em', padding: '2px 8px',
-                background: modeColor, color: '#fff',
+                background: modeColor, color: 'var(--color-text-on-accent)',
                 marginBottom: 6, display: 'inline-block',
               }}
             >
@@ -238,7 +238,7 @@ export default function CollaborationDetail() {
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.1em', padding: '3px 10px',
                 background: isPublished ? 'var(--color-success)' : 'var(--color-bg-surface-alt)',
-                color: isPublished ? '#fff' : 'var(--color-text-secondary)',
+                color: isPublished ? 'var(--color-text-on-accent)' : 'var(--color-text-secondary)',
                 border: isPublished ? 'none' : '1px solid var(--color-border)',
               }}
             >
@@ -291,7 +291,7 @@ export default function CollaborationDetail() {
                     fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                     padding: '2px 8px',
                     background: member.has_submitted ? 'var(--color-success)' : 'transparent',
-                    color: member.has_submitted ? '#fff' : 'var(--color-text-tertiary)',
+                    color: member.has_submitted ? 'var(--color-text-on-accent)' : 'var(--color-text-tertiary)',
                     border: member.has_submitted ? 'none' : '1px solid var(--color-border)',
                   }}
                 >
@@ -454,7 +454,7 @@ export default function CollaborationDetail() {
                 style={{
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                  background: modeColor, color: '#fff', border: 'none',
+                  background: modeColor, color: 'var(--color-text-on-accent)', border: 'none',
                   padding: '6px 16px', cursor: saving ? 'wait' : 'pointer',
                 }}
               >
@@ -541,7 +541,7 @@ export default function CollaborationDetail() {
                             fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
                             padding: '4px 12px',
                             background: votingForMemberId === member.id ? 'var(--color-danger)' : 'transparent',
-                            color: votingForMemberId === member.id ? '#fff' : 'var(--color-text-primary)',
+                            color: votingForMemberId === member.id ? 'var(--color-text-on-accent)' : 'var(--color-text-primary)',
                             border: `1px solid ${votingForMemberId === member.id ? 'var(--color-danger)' : 'var(--color-border)'}`,
                             cursor: 'pointer',
                           }}
@@ -579,7 +579,7 @@ export default function CollaborationDetail() {
                         marginTop: 10,
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                        background: 'var(--color-danger)', color: '#fff', border: 'none',
+                        background: 'var(--color-danger)', color: 'var(--color-text-on-accent)', border: 'none',
                         padding: '6px 18px', cursor: castingVote ? 'wait' : 'pointer',
                       }}
                     >
@@ -628,7 +628,7 @@ export default function CollaborationDetail() {
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.1em',
-                background: modeColor, color: '#fff', border: 'none',
+                background: modeColor, color: 'var(--color-text-on-accent)', border: 'none',
                 padding: '8px 20px', cursor: 'pointer',
                 position: 'relative',
               }}

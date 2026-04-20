@@ -7,16 +7,15 @@ import PraxisCard from '../components/PraxisCard'
 import PageTitle from '../components/ui/PageTitle'
 import LevelPill from '../components/ui/LevelPill'
 import { useAuth } from '../auth/AuthContext'
+import { useGameConfig } from '../hooks/useGameConfig'
 import { extractError } from '../utils/errors'
 import { factionCssVar, factionName } from '../utils/factions'
 import { mediaUrl } from '../utils/media'
 
-/** Level thresholds — must match backend game_config.py CURRENT_ERA.level_thresholds */
-const LEVEL_THRESHOLDS = [0, 10, 70, 170, 330, 610, 1090, 1840, 3040]
-
 export default function CharacterProfile() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const gameConfig = useGameConfig()
   const [character, setCharacter] = useState<CharacterOut | null>(null)
   const [submissions, setSubmissions] = useState<PraxisCardOut[]>([])
   const [relationship, setRelationship] = useState<RelationshipListItem | null>(null)
@@ -33,7 +32,6 @@ export default function CharacterProfile() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Fetch relationship with this character (if logged in and not own profile)
   useEffect(() => {
     if (!id || !user?.character) return
     const cid = parseInt(id, 10)
@@ -110,9 +108,11 @@ export default function CharacterProfile() {
 
   const charFactionName = factionName(character.faction_slug)
   const isOwn = user?.character?.id === character.id
-  const nextLevel = Math.min(character.level + 1, 8)
-  const nextThreshold = LEVEL_THRESHOLDS[nextLevel] ?? 999
-  const currentThreshold = LEVEL_THRESHOLDS[character.level] ?? 0
+  const levelThresholds = gameConfig?.level_thresholds ?? []
+  const maxLevel = Math.max(levelThresholds.length - 1, 0)
+  const nextLevel = Math.min(character.level + 1, maxLevel)
+  const nextThreshold = levelThresholds[nextLevel] ?? 999
+  const currentThreshold = levelThresholds[character.level] ?? 0
   const progressPercent = nextThreshold > currentThreshold
     ? Math.min(((character.score - currentThreshold) / (nextThreshold - currentThreshold)) * 100, 100)
     : 100
@@ -145,7 +145,7 @@ export default function CharacterProfile() {
                   border: '3px solid white',
                   boxShadow: `0 0 0 3px ${factionCssVar(character.faction_slug)}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 28, color: 'white',
+                  fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 28, color: 'var(--color-text-on-accent)',
                 }}
               >
                 {character.username[0]?.toUpperCase()}
@@ -154,7 +154,7 @@ export default function CharacterProfile() {
             {/* Level badge */}
             <span
               style={{
-                background: factionCssVar(character.faction_slug), color: 'white',
+                background: factionCssVar(character.faction_slug), color: 'var(--color-text-on-accent)',
                 fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
                 padding: '2px 10px', borderRadius: 10,
                 fontFamily: "'Courier Prime', monospace",
@@ -190,7 +190,7 @@ export default function CharacterProfile() {
                     <div
                       style={{
                         background: relationship.type === 'friend' ? 'var(--badge-friend)' : 'var(--color-danger)',
-                        color: 'white',
+                        color: 'var(--color-text-on-accent)',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
                         padding: '4px 0', textAlign: 'center', borderRadius: 2,
@@ -213,7 +213,7 @@ export default function CharacterProfile() {
                       onClick={() => handleAddRelationship('friend')}
                       disabled={relationshipLoading}
                       style={{
-                        background: factionCssVar(character.faction_slug), color: 'white',
+                        background: factionCssVar(character.faction_slug), color: 'var(--color-text-on-accent)',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
                         padding: '4px 0', border: 'none', cursor: 'pointer', borderRadius: 2,
@@ -261,7 +261,7 @@ export default function CharacterProfile() {
               className="pennant-shape"
               style={{
                 display: 'inline-block',
-                background: factionCssVar(character.faction_slug), color: 'white',
+                background: factionCssVar(character.faction_slug), color: 'var(--color-text-on-accent)',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.07em', padding: '3px 14px',
@@ -312,13 +312,14 @@ export default function CharacterProfile() {
       </div>
 
       {/* ── Level Track (§14.3) ── */}
+      {gameConfig && (
       <div
         className="sidebar-card mb-5"
         style={{ padding: '14px 18px' }}
       >
         {/* Node track */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
-          {LEVEL_THRESHOLDS.map((threshold, level) => {
+          {levelThresholds.map((_threshold, level) => {
             const completed = character.level > level
             const current = character.level === level
             return (
@@ -337,7 +338,7 @@ export default function CharacterProfile() {
                     background: completed ? factionCssVar(character.faction_slug) : current ? `${factionCssVar(character.faction_slug)}20` : 'var(--level-node-incomplete)',
                     border: current ? `3px solid ${factionCssVar(character.faction_slug)}` : `2px solid ${completed ? factionCssVar(character.faction_slug) : 'rgba(0,0,0,0.12)'}`,
                     boxShadow: current ? `0 0 0 3px ${factionCssVar(character.faction_slug)}33` : 'none',
-                    color: completed ? 'white' : current ? factionCssVar(character.faction_slug) : 'var(--color-level-inactive)',
+                    color: completed ? 'var(--color-text-on-accent)' : current ? factionCssVar(character.faction_slug) : 'var(--color-level-inactive)',
                     fontFamily: "'Courier Prime', monospace",
                     fontSize: current ? 10 : 8, fontWeight: 700,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -364,6 +365,7 @@ export default function CharacterProfile() {
           </span>
         </div>
       </div>
+      )}
 
       {/* ── Praxis Grid (§14.4) ── */}
       <div className="mb-5">

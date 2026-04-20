@@ -117,7 +117,7 @@ export default function FeedCardCollabInvite({ item }: Props) {
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
                 background: 'var(--badge-collab)',
-                color: '#fff',
+                color: 'var(--color-text-on-accent)',
                 border: 'none',
                 padding: '5px 14px',
                 cursor: loading ? 'not-allowed' : 'pointer',

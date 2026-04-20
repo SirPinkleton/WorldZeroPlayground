@@ -331,7 +331,7 @@ export default function EditPraxis() {
             <span
               className="pennant-shape"
               style={{
-                background: color, color: 'white',
+                background: color, color: 'var(--color-text-on-accent)',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.07em', padding: '2px 10px',
@@ -350,7 +350,7 @@ export default function EditPraxis() {
                 fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                 padding: '2px 8px', borderRadius: 3,
                 background: praxis.type === 'duel' ? 'var(--color-danger)' : 'var(--color-success)',
-                color: '#fff',
+                color: 'var(--color-text-on-accent)',
               }}
             >
               {praxis.type === 'duel' ? 'Duel' : 'Collab'}
@@ -499,14 +499,14 @@ export default function EditPraxis() {
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   background: 'var(--color-success)',
                   border: '1px solid var(--color-success)',
-                  color: '#fff',
+                  color: 'var(--color-text-on-accent)',
                   padding: '2px 8px',
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 9,
                 }}
               >
                 {member.character_display_name}
-                <span className="eyebrow" style={{ color: '#fff', fontSize: 7 }}>joined</span>
+                <span className="eyebrow" style={{ color: 'var(--color-text-on-accent)', fontSize: 7 }}>joined</span>
               </span>
             ))}
             {praxis.invites.filter((inv) => inv.status === 'pending').map((invite) => (
@@ -816,7 +816,7 @@ export default function EditPraxis() {
               onClick={handlePublish}
               disabled={saving || submitting || switchingMode !== null}
               style={{
-                background: color, color: 'white',
+                background: color, color: 'var(--color-text-on-accent)',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.12em', padding: '10px 24px',

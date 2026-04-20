@@ -1,3 +1,5 @@
+import { formatDate } from '../../utils/dates'
+
 /** Date divider for the activity feed (TODAY, YESTERDAY, or formatted date). */
 
 export function getDateLabel(iso: string): string {
@@ -9,7 +11,7 @@ export function getDateLabel(iso: string): string {
 
   if (itemDate.getTime() === today.getTime()) return 'Today'
   if (itemDate.getTime() === yesterday.getTime()) return 'Yesterday'
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return formatDate(iso)
 }
 
 interface FeedDateDividerProps {

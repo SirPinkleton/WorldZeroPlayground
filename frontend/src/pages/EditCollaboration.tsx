@@ -95,7 +95,7 @@ export default function EditCollaboration() {
               fontFamily: "'Courier Prime', monospace",
               fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.1em', padding: '2px 8px',
-              background: modeColor, color: '#fff',
+              background: modeColor, color: 'var(--color-text-on-accent)',
               marginBottom: 6, display: 'inline-block',
             }}
           >
@@ -191,7 +191,7 @@ export default function EditCollaboration() {
             type="submit"
             disabled={saving}
             style={{
-              background: modeColor, color: '#fff',
+              background: modeColor, color: 'var(--color-text-on-accent)',
               fontFamily: "'Courier Prime', monospace",
               fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.12em', padding: '10px 24px',

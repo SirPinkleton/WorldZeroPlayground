@@ -25,7 +25,7 @@ export default function FilterFactionTabs({ factions, value, onChange }: Props) 
             className="pennant-shape"
             style={{
               background: factionCssVar(faction.slug),
-              color: 'white',
+              color: 'var(--color-text-on-accent)',
               fontFamily: "'Courier Prime', monospace",
               fontSize: 9,
               fontWeight: 700,

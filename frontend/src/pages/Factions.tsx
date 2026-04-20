@@ -283,7 +283,7 @@ export default function Factions() {
                           textTransform: 'uppercase',
                           letterSpacing: '0.1em',
                           background: 'var(--color-success)',
-                          color: '#fff',
+                          color: 'var(--color-text-on-accent)',
                           border: 'none',
                           padding: '5px 14px',
                           cursor: joining ? 'not-allowed' : 'pointer',

@@ -23,9 +23,13 @@ export default function CollaborationCard({ collab }: Props) {
         className="eyebrow self-start"
         style={{
           fontSize: 7, padding: '1px 6px',
-          background: isDuel ? 'rgba(220,38,38,0.12)' : 'rgba(21,128,61,0.12)',
-          color: isDuel ? '#dc2626' : '#15803d',
-          border: `1px solid ${isDuel ? 'rgba(220,38,38,0.3)' : 'rgba(21,128,61,0.3)'}`,
+          background: isDuel
+            ? 'color-mix(in srgb, var(--color-danger) 12%, transparent)'
+            : 'color-mix(in srgb, var(--color-success) 12%, transparent)',
+          color: isDuel ? 'var(--color-danger)' : 'var(--color-success)',
+          border: `1px solid ${isDuel
+            ? 'color-mix(in srgb, var(--color-danger) 30%, transparent)'
+            : 'color-mix(in srgb, var(--color-success) 30%, transparent)'}`,
         }}
       >
         {isDuel ? 'Duel' : 'Collaboration'}
