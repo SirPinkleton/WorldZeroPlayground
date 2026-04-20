@@ -4,7 +4,6 @@ import ProtectedRoute from './auth/ProtectedRoute'
 import Home from './pages/Home'
 import Tasks from './pages/Tasks'
 import TaskDetail from './pages/TaskDetail'
-import SubmitProof from './pages/SubmitProof'
 import PraxisDetail from './pages/PraxisDetail'
 import EditPraxis from './pages/EditPraxis'
 import CharacterProfile from './pages/CharacterProfile'
@@ -31,14 +30,6 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/tasks/:id" element={<TaskDetail />} />
-        <Route
-          path="/tasks/:id/submit"
-          element={
-            <ProtectedRoute>
-              <SubmitProof />
-            </ProtectedRoute>
-          }
-        />
         <Route path="/collaborations/:id" element={<CollaborationDetail />} />
         <Route
           path="/collaborations/:id/edit"

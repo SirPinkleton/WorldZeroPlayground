@@ -3,6 +3,7 @@ import { getActivityFeed, type ActivityFeedItem, type FeedCounts } from '../api/
 import PageTitle from '../components/ui/PageTitle'
 import FeedCardRouter from '../components/feed/FeedCardRouter'
 import FeedDateDivider, { getDateLabel } from '../components/feed/FeedDateDivider'
+import { extractError } from '../utils/errors'
 
 type FeedFilter = 'All' | 'Friends' | 'Foes' | 'Your Stuff' | 'Global' | 'Requests'
 
@@ -38,6 +39,8 @@ export default function Updates() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
 
   const fetchFeed = useCallback(async (feedFilter: FeedFilter, cursor?: string) => {
     const response = await getActivityFeed({
@@ -52,14 +55,18 @@ export default function Updates() {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setFetchError(null)
+    setLoadMoreError(null)
     fetchFeed(filter).then((response) => {
       if (cancelled) return
       setItems(response.items)
       setCounts(response.counts)
       setNextCursor(response.next_cursor)
       setLoading(false)
-    }).catch(() => {
-      if (!cancelled) setLoading(false)
+    }).catch((err) => {
+      if (cancelled) return
+      setFetchError(extractError(err, "Couldn't load the activity feed."))
+      setLoading(false)
     })
     return () => { cancelled = true }
   }, [filter, fetchFeed])
@@ -67,11 +74,14 @@ export default function Updates() {
   const loadMore = async () => {
     if (!nextCursor || loadingMore) return
     setLoadingMore(true)
+    setLoadMoreError(null)
     try {
       const response = await fetchFeed(filter, nextCursor)
       setItems((prev) => [...prev, ...response.items])
       setNextCursor(response.next_cursor)
-    } catch { /* swallow */ }
+    } catch (err) {
+      setLoadMoreError(extractError(err, "Couldn't load more updates."))
+    }
     setLoadingMore(false)
   }
 
@@ -153,6 +163,11 @@ export default function Updates() {
       {/* ── Feed ── */}
       {loading ? (
         <div className="py-8 font-body text-muted">Loading...</div>
+      ) : fetchError ? (
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+          {fetchError}{' '}
+          <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
+        </p>
       ) : items.length === 0 ? (
         <div className="sidebar-card" style={{ padding: 20, textAlign: 'center' }}>
           <p className="font-body" style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
@@ -165,8 +180,15 @@ export default function Updates() {
         </div>
       )}
 
+      {/* ── Load More error (inline) ── */}
+      {loadMoreError && !loading && !fetchError && (
+        <p className="font-body text-sm text-red-600" style={{ textAlign: 'center', marginTop: 12 }}>
+          {loadMoreError}
+        </p>
+      )}
+
       {/* ── Load More ── */}
-      {nextCursor && !loading && (
+      {nextCursor && !loading && !fetchError && (
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <button
             onClick={loadMore}

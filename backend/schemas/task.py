@@ -19,6 +19,12 @@ class TaskOut(BaseModel):
     metatask_faction_slug: Optional[str] = None
     is_task_vision_eligible: bool
     created_at: datetime
+    # Viewer-relative capability flags — populated by the task router using
+    # the authenticated viewer's character. Defaults keep the flags safe for
+    # unauthenticated callers (empty modes, cannot submit, not eligible).
+    can_submit_praxis: bool = False
+    allowed_modes: list[str] = []
+    eligible_for_current_user: bool = False
 
 
 class TaskCreate(BaseModel):

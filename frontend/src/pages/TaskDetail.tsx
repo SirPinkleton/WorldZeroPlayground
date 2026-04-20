@@ -25,6 +25,7 @@ export default function TaskDetail() {
   const [submissions, setSubmissions] = useState<PraxisCardOut[]>([])
   const [signups, setSignups] = useState<TaskSignupOut[]>([])
   const [isInProgress, setIsInProgress] = useState(false)
+  const [inProgressPraxisId, setInProgressPraxisId] = useState<number | null>(null)
   const [taskSlotCount, setTaskSlotCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -73,7 +74,9 @@ export default function TaskDetail() {
         setSignups(sg as TaskSignupOut[])
         if (myTasks) {
           const praxes = myTasks as PraxisCardOut[]
-          setIsInProgress(praxes.some((p) => p.task_id === taskId && !p.is_withdrawn))
+          const activeForThisTask = praxes.find((p) => p.task_id === taskId && !p.is_withdrawn)
+          setIsInProgress(activeForThisTask !== undefined)
+          setInProgressPraxisId(activeForThisTask?.id ?? null)
           setTaskSlotCount(praxes.filter((p) => !p.is_withdrawn).length)
         }
         if (friendSet) setFriends(friendSet as Set<number>)
@@ -107,12 +110,17 @@ export default function TaskDetail() {
   }
 
   const handleDrop = async () => {
-    if (!task || !mySubmission || !window.confirm('Drop this task? You can sign up again later.')) return
+    if (!task) return
+    // Drop either the submitted praxis (if any) or the in-progress draft.
+    const targetPraxisId = mySubmission?.id ?? inProgressPraxisId
+    if (!targetPraxisId) return
+    if (!window.confirm('Drop this task? You can sign up again later.')) return
     setSignupError(null)
     try {
-      await withdrawPraxis(mySubmission.id)
+      await withdrawPraxis(targetPraxisId)
       setIsInProgress(false)
-      setSubmissions((prev) => prev.map((s) => s.id === mySubmission.id ? { ...s, is_withdrawn: true } : s))
+      setInProgressPraxisId(null)
+      setSubmissions((prev) => prev.map((s) => s.id === targetPraxisId ? { ...s, is_withdrawn: true } : s))
     } catch (err) {
       setSignupError(extractError(err, 'Could not drop this task.'))
     }
@@ -131,8 +139,11 @@ export default function TaskDetail() {
 
   const color = factionCssVar(task.primary_faction_slug)
   const fname = factionName(task.primary_faction_slug)
-  const canSignUp = user && !mySubmission && !isInProgress && (user.character?.level ?? 0) >= task.level_required
-  const meetsLevel = (user?.character?.level ?? 0) >= task.level_required
+  // Backend-authoritative: `can_submit_praxis` covers level, faction gate,
+  // one-per-task rule, and Analog carve-out. Keep local `mySubmission`/
+  // `isInProgress` checks so we show the right UI state (edit / in-progress)
+  // instead of the sign-up button.
+  const canSignUp = !!user && !mySubmission && !isInProgress && task.can_submit_praxis
   const slotsOpen = maxTaskSlots - taskSlotCount
   const avgVote = submissions.length > 0
     ? (submissions.reduce((sum, s) => sum + (s.score ?? 0), 0) / submissions.length).toFixed(1)
@@ -201,16 +212,44 @@ export default function TaskDetail() {
               >
                 {task.status}
               </span>
+              {task.task_type === 'metatask' && (
+                <span
+                  className="font-body"
+                  style={{
+                    fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.15em',
+                    padding: '2px 8px', borderRadius: 4,
+                    background: factionCssVar(task.metatask_faction_slug),
+                    color: 'white',
+                    fontWeight: 700,
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  META
+                </span>
+              )}
               <LevelPill level={task.level_required} />
             </div>
 
             {/* Title */}
             <h1
               className="font-display italic font-medium"
-              style={{ fontSize: 28, color: 'var(--color-text-primary)', lineHeight: 1.2, marginBottom: 12 }}
+              style={{ fontSize: 28, color: 'var(--color-text-primary)', lineHeight: 1.2, marginBottom: task.task_type === 'metatask' ? 4 : 12 }}
             >
               {task.title}
             </h1>
+
+            {/* Metatask-for line */}
+            {task.task_type === 'metatask' && (
+              <p
+                className="eyebrow"
+                style={{
+                  marginBottom: 12,
+                  color: factionCssVar(task.metatask_faction_slug),
+                }}
+              >
+                Metatask for {factionName(task.metatask_faction_slug)}
+              </p>
+            )}
 
             {/* Stats row */}
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${user && factionMultiplier !== 1.0 ? 5 : 4}, 1fr)`, gap: 8, marginBottom: 16 }}>
@@ -265,7 +304,7 @@ export default function TaskDetail() {
 
               <div className="eyebrow" style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
                 <span>You have {slotsOpen} of {maxTaskSlots} task slots open</span>
-                <span>Level {task.level_required} required {meetsLevel ? <span className="eyebrow">MET</span> : ''}</span>
+                <span>Level {task.level_required} required <span className="eyebrow">MET</span></span>
               </div>
 
               {signupError && (
@@ -306,7 +345,7 @@ export default function TaskDetail() {
             </div>
           )}
 
-          {user && !mySubmission && isInProgress && (
+          {user && !mySubmission && isInProgress && inProgressPraxisId !== null && (
             <div className="sidebar-card mb-5" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
@@ -319,7 +358,7 @@ export default function TaskDetail() {
                 <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)' }}>You're on this task</span>
               </div>
               <Link
-                to={`/tasks/${task.id}/submit`}
+                to={`/praxes/${inProgressPraxisId}/edit`}
                 style={{
                   background: color, color: 'white',
                   fontFamily: "'Courier Prime', monospace",
@@ -329,7 +368,7 @@ export default function TaskDetail() {
                 }}
               >
                 <span style={{ position: 'absolute', inset: 3, border: '1px dashed rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-                Submit proof
+                Continue editing
               </Link>
               <button onClick={handleDrop} className="eyebrow" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}>
                 drop

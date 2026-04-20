@@ -885,3 +885,340 @@ async def test_collab_invite_accept_at_cap_returns_400(
         )
     )
     assert count_result2.scalar_one() == 0
+
+
+# ---------------------------------------------------------------------------
+# Bug 6 — can_flag on PraxisOut (viewer-relative)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_praxis_can_flag_true_for_level_4_non_author(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+    era: Era,
+):
+    """Level-4 non-author fetching a praxis sees ``can_flag == True``.
+
+    character (level 0 by default) authors the praxis. character2 is seeded at
+    level 5 by the fixture; we bump it to exactly 4 to pin the boundary.
+    """
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Flag Me"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    # Force character2's level to exactly FLAG_LEVEL_REQUIRED (4)
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character2.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = result.scalar_one()
+    stats.level = 4
+    await db_session.commit()
+
+    resp = await client.get(f"/praxes/{praxis_id}", headers=auth_headers2)
+    assert resp.status_code == 200
+    assert resp.json()["can_flag"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_praxis_can_flag_false_for_level_3_non_author(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+    era: Era,
+):
+    """Level-3 non-author sees ``can_flag == False`` — just below threshold."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Below Flag Level"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    # Force character2's level to 3 (one below FLAG_LEVEL_REQUIRED)
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character2.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = result.scalar_one()
+    stats.level = 3
+    await db_session.commit()
+
+    resp = await client.get(f"/praxes/{praxis_id}", headers=auth_headers2)
+    assert resp.status_code == 200
+    assert resp.json()["can_flag"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_praxis_can_flag_false_for_author(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+    era: Era,
+):
+    """Author fetching their own praxis sees ``can_flag == False`` even at high level."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "My Own"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    # Bump the author well above FLAG_LEVEL_REQUIRED to prove the self-author
+    # gate (not the level gate) is what blocks can_flag.
+    result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = result.scalar_one()
+    stats.level = 7
+    await db_session.commit()
+
+    resp = await client.get(f"/praxes/{praxis_id}", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["can_flag"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_praxis_can_flag_false_for_anonymous(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """Anonymous viewer (no character) sees ``can_flag == False``."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Public View"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    # Hit the detail endpoint without auth headers
+    resp = await client.get(f"/praxes/{praxis_id}")
+    assert resp.status_code == 200
+    assert resp.json()["can_flag"] is False
+
+
+# ---------------------------------------------------------------------------
+# Bug 7 — one-praxis-per-task guard in create_praxis (Analog carve-out)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_praxis_duplicate_blocked_non_analog(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """Non-Analog characters cannot create a second praxis for the same task."""
+    first_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "First"},
+        headers=auth_headers,
+    )
+    assert first_resp.status_code == 201
+
+    second_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Second"},
+        headers=auth_headers,
+    )
+    assert second_resp.status_code == 409
+    assert "already submitted" in second_resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_create_praxis_duplicate_allowed_for_analog(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Analog characters may create multiple praxes for the same task (Double Dipper)."""
+    from models.faction import Faction, FactionStatus
+    from sqlalchemy import select as sa_select
+
+    # Ensure the analog faction row exists for the FK constraint
+    existing = await db_session.execute(
+        sa_select(Faction).where(Faction.slug == "analog")
+    )
+    if existing.scalar_one_or_none() is None:
+        db_session.add(
+            Faction(
+                slug="analog",
+                name="Analog",
+                description="Double Dipper perk",
+                status=FactionStatus.visible,
+            )
+        )
+        await db_session.commit()
+
+    # Flip character's faction to analog
+    character.faction_slug = "analog"
+    await db_session.commit()
+
+    first_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Analog First"},
+        headers=auth_headers,
+    )
+    assert first_resp.status_code == 201
+
+    second_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Analog Second"},
+        headers=auth_headers,
+    )
+    assert second_resp.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_create_praxis_after_withdraw_allowed(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """A withdrawn prior praxis does not block a fresh submission for the same task."""
+    first_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "First"},
+        headers=auth_headers,
+    )
+    assert first_resp.status_code == 201
+    praxis_id = first_resp.json()["id"]
+
+    withdraw_resp = await client.post(
+        f"/praxes/{praxis_id}/withdraw", headers=auth_headers
+    )
+    assert withdraw_resp.status_code == 200
+
+    second_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Retry"},
+        headers=auth_headers,
+    )
+    assert second_resp.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# Bug 3 — draft praxis creation (minimal body)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_praxis_minimal_body_starts_as_draft(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """POST /praxes with only task_id succeeds and returns an in-progress draft.
+
+    The frontend relies on this to jump a user directly into an editor after
+    they click "sign up" on a task — no title, body, or mode required up front.
+    """
+    resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["task_id"] == active_task.id
+    # Defaults: solo mode, in-progress status, empty content
+    assert data["type"] == "solo"
+    assert data["status"] == "in_progress"
+    assert data["title"] is None
+    # Service stores empty string for body_text when caller omits it
+    assert data["body_text"] == ""
+    assert data["is_withdrawn"] is False
+    assert data["moderation_status"] == "visible"
+    # Creator was added as the sole member and has not submitted yet
+    assert len(data["members"]) == 1
+    assert data["members"][0]["character_id"] == character.id
+    assert data["members"][0]["has_submitted"] is False
+    # No media attached yet
+    assert data["media_items"] == []
+
+
+@pytest.mark.asyncio
+async def test_edit_minimal_draft_adds_content(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """A praxis created with a minimal body can be filled in later via PUT."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    edit_resp = await client.put(
+        f"/praxes/{praxis_id}",
+        json={"title": "Finally a title", "body_text": "Here is what I did."},
+        headers=auth_headers,
+    )
+    assert edit_resp.status_code == 200
+    data = edit_resp.json()
+    assert data["title"] == "Finally a title"
+    assert data["body_text"] == "Here is what I did."
+    # Status stays in_progress — editing does not submit
+    assert data["status"] == "in_progress"
+
+
+@pytest.mark.asyncio
+async def test_create_minimal_draft_blocks_duplicate_non_analog(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """Duplicate-submission guard still fires for minimal-body drafts."""
+    first_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id},
+        headers=auth_headers,
+    )
+    assert first_resp.status_code == 201
+
+    # A second minimal-body draft for the same task is blocked with 409.
+    second_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id},
+        headers=auth_headers,
+    )
+    assert second_resp.status_code == 409
+    assert "already submitted" in second_resp.json()["detail"].lower()

@@ -4,26 +4,23 @@ import { useAuth } from '../auth/AuthContext'
 import { createCharacter, uploadCharacterAvatar } from '../api/characters'
 import { extractError } from '../utils/errors'
 
-// Rules gates (mirrors backend enforcement — backend is authoritative).
-// See docs/TASKS.md R.7: second character requires a level-5 character on the
-// account; Albescent as a starting faction additionally requires level-8.
-const SECOND_CHARACTER_LEVEL = 5
-const ALBESCENT_LEVEL = 8
-
 export default function CreateCharacter() {
   const { user, refetch } = useAuth()
   const navigate = useNavigate()
 
-  // The auth context exposes only the account's oldest active character, which
-  // IS the account's only existing character when a second character is being
-  // created (brand-new accounts have at most one). That character's level
-  // drives the gates here.
-  const existingCharacter = user?.character ?? null
-  const isSecondCharacter = existingCharacter !== null
-  const existingLevel = existingCharacter?.level ?? 0
-  const belowSecondCharacterGate =
-    isSecondCharacter && existingLevel < SECOND_CHARACTER_LEVEL
-  const canChooseAlbescent = existingLevel >= ALBESCENT_LEVEL
+  // Backend is authoritative on eligibility (see WORLD_ZERO_STYLE: validation
+  // belongs in business logic). /auth/me exposes flags computed server-side.
+  // - can_create_additional_character: this account may create another character
+  // - can_start_as_albescent: this account may start a new character in /Albescent
+  //
+  // For a brand-new account with no characters, the create form should render
+  // freely; the account hasn't run into any second-character rules yet. The
+  // gate screen only applies once they already have a character but do not
+  // yet qualify for another.
+  const hasExistingCharacter = user?.character != null
+  const canCreateAnother = user?.can_create_additional_character ?? false
+  const canChooseAlbescent = user?.can_start_as_albescent ?? false
+  const blockedFromAdditionalCharacter = hasExistingCharacter && !canCreateAnother
 
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -109,14 +106,14 @@ export default function CreateCharacter() {
     }
   }
 
-  if (belowSecondCharacterGate) {
+  if (blockedFromAdditionalCharacter) {
     return (
       <div className="py-8 max-w-xl mx-auto py-10">
         <h1 className="font-display text-4xl font-bold mb-6">Create your character</h1>
         <div className="border-2 border-border p-4 bg-card font-body text-sm leading-relaxed">
           <p>
-            You need a character at level {SECOND_CHARACTER_LEVEL} before you can create
-            another one. Your current character is level {existingLevel}.
+            You'll be able to create another character once your existing
+            character levels up further. Keep playing.
           </p>
         </div>
       </div>
@@ -272,10 +269,10 @@ export default function CreateCharacter() {
         </div>
 
         {/* Starting faction — only surfaced when Albescent is an option.
-            Per convention, hide controls the user cannot use: if the account
-            doesn't qualify for Albescent, we don't show a picker at all and
-            the backend defaults the new character into UA. */}
-        {isSecondCharacter && canChooseAlbescent && (
+            Per convention, hide controls the user cannot use: if the backend
+            says the account doesn't qualify for Albescent, we don't show a
+            picker at all and the backend defaults the new character into UA. */}
+        {canChooseAlbescent && (
           <div className="flex flex-col gap-1">
             <label className="font-body text-sm font-semibold">
               Starting faction <span className="text-muted font-normal text-xs">optional</span>
@@ -289,8 +286,7 @@ export default function CreateCharacter() {
               <option value="albescent">/Albescent</option>
             </select>
             <p className="font-body text-xs text-muted">
-              Albescent is only available because one of your characters has reached
-              level {ALBESCENT_LEVEL}.
+              Albescent is available thanks to your other character's progress.
             </p>
           </div>
         )}

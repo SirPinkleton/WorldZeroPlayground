@@ -164,13 +164,24 @@ export default function CharacterProfile() {
             </span>
             {/* Action buttons */}
             {isOwn ? (
-              <Link
-                to={`/characters/${character.id}/edit`}
-                className="btn-outline"
-                style={{ fontSize: 8, padding: '3px 12px', width: '100%', textAlign: 'center' }}
-              >
-                Edit Profile
-              </Link>
+              <>
+                <Link
+                  to={`/characters/${character.id}/edit`}
+                  className="btn-outline"
+                  style={{ fontSize: 8, padding: '3px 12px', width: '100%', textAlign: 'center' }}
+                >
+                  Edit Profile
+                </Link>
+                {user?.can_create_additional_character && (
+                  <Link
+                    to="/characters/create"
+                    className="btn-outline"
+                    style={{ fontSize: 8, padding: '3px 12px', width: '100%', textAlign: 'center' }}
+                  >
+                    + New Character
+                  </Link>
+                )}
+              </>
             ) : user?.character ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
                 {relationship ? (

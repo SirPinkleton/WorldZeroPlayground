@@ -33,6 +33,61 @@ ALBESCENT_FACTION_SLUG = "albescent"
 ALBESCENT_LEVEL_REQUIRED = 8
 
 
+async def _account_has_character_at_level(
+    account_id: int,
+    min_level: int,
+    session: AsyncSession,
+) -> bool:
+    """True when the account has at least one active character with stats.level >= min_level
+    in the current era."""
+    era_row = await get_current_era_row(session)
+    result = await session.execute(
+        select(Character.id)
+        .join(
+            CharacterStats,
+            (CharacterStats.character_id == Character.id)
+            & (CharacterStats.era_id == era_row.id),
+        )
+        .where(
+            Character.account_id == account_id,
+            Character.status == CharacterStatus.active,
+            CharacterStats.level >= min_level,
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def can_create_additional_character(
+    account_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> bool:
+    """True when this account may create another character.
+
+    Requires at least one existing active character at level
+    ``SECOND_CHARACTER_LEVEL_REQUIRED`` or above in the current era.
+    """
+    return await _account_has_character_at_level(
+        account_id, SECOND_CHARACTER_LEVEL_REQUIRED, session
+    )
+
+
+async def can_start_as_albescent(
+    account_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> bool:
+    """True when this account may create a new character in the Albescent faction.
+
+    Requires at least one existing active character at level
+    ``ALBESCENT_LEVEL_REQUIRED`` or above in the current era.
+    """
+    return await _account_has_character_at_level(
+        account_id, ALBESCENT_LEVEL_REQUIRED, session
+    )
+
+
 async def create_character(
     account_id: int,
     data: CharacterCreate,
@@ -54,21 +109,8 @@ async def create_character(
 
     if existing_count > 0:
         # Need level >= SECOND_CHARACTER_LEVEL_REQUIRED on at least one
-        # character to create another. Check via CharacterStats join.
-        level_check = await session.execute(
-            select(Character)
-            .join(
-                CharacterStats,
-                (CharacterStats.character_id == Character.id)
-                & (CharacterStats.era_id == era_row.id),
-            )
-            .where(
-                Character.account_id == account_id,
-                Character.status == CharacterStatus.active,
-                CharacterStats.level >= SECOND_CHARACTER_LEVEL_REQUIRED,
-            )
-        )
-        if level_check.scalar_one_or_none() is None:
+        # character to create another.
+        if not await can_create_additional_character(account_id, session, era):
             raise HTTPException(
                 status_code=403,
                 detail=(
@@ -79,20 +121,7 @@ async def create_character(
 
     # Albescent unlock gate: requires at least one level-8 character on the account.
     if requested_faction_slug == ALBESCENT_FACTION_SLUG:
-        albescent_check = await session.execute(
-            select(Character)
-            .join(
-                CharacterStats,
-                (CharacterStats.character_id == Character.id)
-                & (CharacterStats.era_id == era_row.id),
-            )
-            .where(
-                Character.account_id == account_id,
-                Character.status == CharacterStatus.active,
-                CharacterStats.level >= ALBESCENT_LEVEL_REQUIRED,
-            )
-        )
-        if albescent_check.scalar_one_or_none() is None:
+        if not await can_start_as_albescent(account_id, session, era):
             raise HTTPException(
                 status_code=403,
                 detail=(

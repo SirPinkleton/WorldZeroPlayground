@@ -87,13 +87,8 @@ export default function ProposeTask() {
     e.preventDefault()
     if (title.length > 200) { setError('Task name must be 200 characters or fewer.'); return }
     if (description.length > 5000) { setError('Description must be 5000 characters or fewer.'); return }
-    // Metatask proposals require level 6 (admin bypass). Standard proposals
-    // only require the page-level gate of 3. Check here so the error surfaces
-    // inline before hitting the wire.
-    if (isMetaTask && !user?.is_admin && characterLevel < 6) {
-      setError(`Meta tasks require level 6 or higher. You are level ${characterLevel}.`)
-      return
-    }
+    // Backend authoritatively enforces metatask proposal gating (level 6 or
+    // admin). If the viewer isn't eligible the 403 surfaces via extractError.
     if (isMetaTask && (!factionSlug || factionSlug === 'na' || factionSlug === 'ua')) {
       setError('Meta tasks must belong to a specific faction.')
       return

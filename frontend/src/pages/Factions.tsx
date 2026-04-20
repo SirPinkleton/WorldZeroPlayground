@@ -35,6 +35,9 @@ export default function Factions() {
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
 
+  // Invitations panel (collapsed by default once each card surfaces its own prompt)
+  const [invitationsExpanded, setInvitationsExpanded] = useState(false)
+
   const fetchAll = async () => {
     setLoading(true)
     setError(null)
@@ -86,6 +89,12 @@ export default function Factions() {
 
   if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
 
+  // Index invitations by slug for quick per-card lookup
+  const invitationBySlug: Record<string, InvitationLetterOut> = {}
+  for (const letter of invitations) {
+    invitationBySlug[letter.faction_slug] = letter
+  }
+
   // Build the visible faction list (exclude hidden system factions)
   const visibleFactions = factions.filter((f) => !HIDDEN_SLUGS.has(f.slug))
 
@@ -131,41 +140,59 @@ export default function Factions() {
         </div>
       )}
 
-      {/* Invitation letters panel */}
+      {/* Invitation letters — collapsible; each card also surfaces its own prompt below */}
       {character && invitations.length > 0 && (
         <div className="mb-6">
-          <h3
-            className="eyebrow mb-3"
-            style={{ color: 'var(--color-text-tertiary)', fontSize: 9 }}
+          <button
+            onClick={() => setInvitationsExpanded((v) => !v)}
+            className="eyebrow"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              color: 'var(--color-text-tertiary)',
+              fontSize: 9,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: invitationsExpanded ? 8 : 0,
+            }}
+            aria-expanded={invitationsExpanded}
           >
-            Recent Invitations
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {invitations.map((inv) => {
-              return (
-                <div
-                  key={inv.faction_slug}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 12px',
-                    background: `linear-gradient(135deg, ${factionCssVar(inv.faction_slug, 'light')}, transparent)`,
-                    borderLeft: `3px solid ${factionCssVar(inv.faction_slug, 'border')}`,
-                  }}
-                >
-                  <span className="eyebrow">INVITE</span>
-                  <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)', flex: 1 }}>
-                    You've been invited to join{' '}
-                    <span style={{ fontWeight: 700, color: factionCssVar(inv.faction_slug) }}>{inv.faction_name}</span>
-                  </span>
-                  <span className="eyebrow" style={{ color: 'var(--color-text-tertiary)', fontSize: 8 }}>
-                    {relativeTime(inv.delivered_at)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
+            <span>{invitationsExpanded ? '▾' : '▸'}</span>
+            <span>
+              Recent Invitations ({invitations.length})
+            </span>
+          </button>
+          {invitationsExpanded && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {invitations.map((inv) => {
+                return (
+                  <div
+                    key={inv.faction_slug}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 12px',
+                      background: `linear-gradient(135deg, ${factionCssVar(inv.faction_slug, 'light')}, transparent)`,
+                      borderLeft: `3px solid ${factionCssVar(inv.faction_slug, 'border')}`,
+                    }}
+                  >
+                    <span className="eyebrow">INVITE</span>
+                    <span className="font-body" style={{ fontSize: 11, color: 'var(--color-text-primary)', flex: 1 }}>
+                      You've been invited to join{' '}
+                      <span style={{ fontWeight: 700, color: factionCssVar(inv.faction_slug) }}>{inv.faction_name}</span>
+                    </span>
+                    <span className="eyebrow" style={{ color: 'var(--color-text-tertiary)', fontSize: 8 }}>
+                      {relativeTime(inv.delivered_at)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -182,7 +209,14 @@ export default function Factions() {
           const status = statusFor(f.slug)
           const isDefected = status === STATUS_DEFECTED
           const canReturn = status === STATUS_CAN_RETURN
-          const canJoin = status === STATUS_INVITED || canReturn || (needsFactionChoice && status !== STATUS_DEFECTED)
+          const hasInvitationLetter = Boolean(invitationBySlug[f.slug])
+          // Any signal that the player is welcome here: explicit status,
+          // an open invitation letter, or the graduation moment.
+          const canJoin =
+            status === STATUS_INVITED ||
+            canReturn ||
+            hasInvitationLetter ||
+            (needsFactionChoice && status !== STATUS_DEFECTED && status !== STATUS_MEMBER)
           const isConfirming = confirmSlug === f.slug
 
           // Derive card-level props from page state
@@ -192,6 +226,14 @@ export default function Factions() {
             : status === STATUS_CAN_RETURN
             ? 'welcome_back'
             : status
+
+          // Compact per-card invitation marker (when an open letter exists).
+          // Skip for current-member / defected states where it would be noise.
+          const invitation = invitationBySlug[f.slug]
+          const invitationNote =
+            invitation && status !== STATUS_MEMBER && status !== STATUS_DEFECTED
+              ? relativeTime(invitation.delivered_at)
+              : null
 
           return (
             <div
@@ -209,6 +251,7 @@ export default function Factions() {
                   <FactionCard
                     faction={f}
                     status={cardStatus}
+                    invitationNote={invitationNote}
                   />
                   <div
                     style={{
@@ -273,6 +316,7 @@ export default function Factions() {
                 <FactionCard
                   faction={f}
                   status={cardStatus}
+                  invitationNote={invitationNote}
                   onJoin={character && canJoin ? () => setConfirmSlug(f.slug) : undefined}
                 />
               )}

@@ -27,7 +27,7 @@ export default function CollaborationDetail() {
   const { user } = useAuth()
   const myCharacterId = user?.character?.id
 
-  // Invite errors passed from SubmitProof when some invites failed on collab creation
+  // Invite errors passed via navigation state when some invites failed on collab creation
   const locationState = location.state as { inviteErrors?: string[] } | null
   const [startupInviteErrors] = useState<string[]>(locationState?.inviteErrors ?? [])
 

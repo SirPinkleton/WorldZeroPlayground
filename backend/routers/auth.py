@@ -13,6 +13,10 @@ from routers.characters import _build_character_out, _load_stats
 from schemas.auth import CurrentUser
 from schemas.character import CharacterOut
 from services.auth import create_jwt, create_or_get_account, get_current_account
+from services.character import (
+    can_create_additional_character,
+    can_start_as_albescent,
+)
 from services.era import get_current_era_row
 
 router = APIRouter()
@@ -106,7 +110,23 @@ async def auth_me(
     )
     is_admin = admin_result.scalar_one_or_none() is not None
 
-    return CurrentUser(account_id=account.id, character=char_out, is_admin=is_admin)
+    # Eligibility flags depend on the current era row. If the era isn't seeded
+    # (edge case in tests / fresh environments) fall back to False — matches the
+    # behaviour of the stats lookup above.
+    try:
+        can_create_more = await can_create_additional_character(account.id, session)
+        can_albescent = await can_start_as_albescent(account.id, session)
+    except Exception:
+        can_create_more = False
+        can_albescent = False
+
+    return CurrentUser(
+        account_id=account.id,
+        character=char_out,
+        is_admin=is_admin,
+        can_create_additional_character=can_create_more,
+        can_start_as_albescent=can_albescent,
+    )
 
 
 @router.post("/logout")
