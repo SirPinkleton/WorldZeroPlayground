@@ -47,6 +47,7 @@ from services.admin_service import (
     get_account_detail,
     list_accounts,
     list_characters,
+    list_pending_tasks_with_proposer,
     reactivate_task,
     set_character_stats,
     suspend_account,
@@ -216,8 +217,9 @@ async def backfill_all_character_stats(
         select(Character).where(Character.status != CharacterStatus.banned)
     )
     characters = result.scalars().all()
+    era_row = await get_current_era_row(session)
     for character in characters:
-        await recalculate_character_stats(character.id, session)
+        await recalculate_character_stats(character.id, session, era_row=era_row)
     await session.commit()
     return {"recalculated": len(characters)}
 
@@ -396,13 +398,7 @@ async def list_pending_tasks(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):
-    result = await session.execute(
-        select(Task, Character.display_name)
-        .outerjoin(Character, Character.id == Task.created_by)
-        .where(Task.status == TaskStatus.pending)
-        .order_by(Task.created_at)
-    )
-    rows = result.all()
+    rows = await list_pending_tasks_with_proposer(session)
     return [
         PendingTaskOut(
             id=task.id,
@@ -429,14 +425,7 @@ async def approve_task(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):
-    task = await session.get(Task, task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
-    if task.status != TaskStatus.pending:
-        raise HTTPException(status_code=422, detail="Only pending tasks can be approved.")
-    task.status = TaskStatus.active
-    await session.commit()
-    await session.refresh(task)
+    task = await update_task_status(task_id, TaskStatus.active, session)
     return build_task_out(task)
 
 
@@ -446,14 +435,7 @@ async def retire_task(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):
-    task = await session.get(Task, task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
-    if task.status != TaskStatus.active:
-        raise HTTPException(status_code=422, detail="Only active tasks can be retired.")
-    task.status = TaskStatus.retired
-    await session.commit()
-    await session.refresh(task)
+    task = await update_task_status(task_id, TaskStatus.retired, session)
     return build_task_out(task)
 
 

@@ -7,9 +7,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character, CharacterStatus
 from models.character_stats import CharacterStats
-from schemas.character import CharacterCreate, CharacterUpdate
+from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
 from services.era import get_current_era_row, get_or_create_stats
-from services.scoring import compute_level, compute_vote_budget
+from services.scoring import compute_level, compute_vote_budget, compute_votes_available
+
+
+def build_character_out(
+    character: Character,
+    stats: CharacterStats | None,
+) -> CharacterOut:
+    """Flatten a Character row plus its (optional) CharacterStats into CharacterOut.
+
+    votes_available is computed on read from stats.score and votes_spent_this_era.
+    """
+    return CharacterOut(
+        id=character.id,
+        username=character.username,
+        display_name=character.display_name,
+        bio=character.bio,
+        avatar_url=character.avatar_url,
+        location=character.location,
+        faction_slug=character.faction_slug,
+        status=character.status.value,
+        created_at=character.created_at,
+        score=stats.score if stats else 0,
+        all_time_score=stats.all_time_score if stats else 0,
+        level=stats.level if stats else 0,
+        votes_available=compute_votes_available(stats) if stats else 0,
+    )
 
 
 @dataclasses.dataclass(frozen=True)

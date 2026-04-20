@@ -388,6 +388,19 @@ async def archive_message(
     return message
 
 
+async def list_pending_tasks_with_proposer(
+    session: AsyncSession,
+) -> list[tuple[Task, str | None]]:
+    """Return pending tasks paired with their proposer's display name (or None)."""
+    result = await session.execute(
+        select(Task, Character.display_name)
+        .outerjoin(Character, Character.id == Task.created_by)
+        .where(Task.status == TaskStatus.pending)
+        .order_by(Task.created_at)
+    )
+    return list(result.all())
+
+
 async def update_task_status(
     task_id: int,
     new_status: TaskStatus,

@@ -1,20 +1,21 @@
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
-from dependencies import get_current_character
-from models.account import Account, AccountStatus
-from models.character import Character, CharacterStatus
-from models.faction import Faction, FactionStatus
-from models.praxis import Praxis, PraxisMember, PraxisStatus, PraxisType
-from models.roles import AccountRole, Role
+from dependencies import (
+    account_has_admin_role,
+    get_current_character,
+    get_current_character_optional,
+)
+from models.account import Account
+from models.character import Character
+from models.praxis import Praxis, PraxisMember, PraxisStatus
 from models.task import Task, TaskStatus, TaskType
 from schemas.task import TaskCreate, TaskOut
-from services.auth import decode_jwt, get_current_account
+from services.auth import get_current_account
 from services.task import (
     build_task_out,
     build_task_out_for_viewer,
@@ -23,57 +24,6 @@ from services.task import (
 )
 
 router = APIRouter()
-
-
-_OPTIONAL_BEARER = HTTPBearer(auto_error=False)
-
-
-async def get_current_character_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_OPTIONAL_BEARER),
-    access_token: Optional[str] = Cookie(default=None),
-    session: AsyncSession = Depends(get_db),
-) -> Optional[Character]:
-    """Return the authenticated viewer's active character, or None if anonymous.
-
-    Mirrors :func:`dependencies.get_current_character` but never raises — used
-    by public task endpoints that want to compute viewer-relative fields such
-    as ``TaskOut.can_submit_praxis`` when a token is present.
-    """
-    token = None
-    if credentials:
-        token = credentials.credentials
-    elif access_token:
-        token = access_token
-    if not token:
-        return None
-
-    try:
-        payload = decode_jwt(token)
-    except Exception:  # invalid/expired token — treat as anonymous
-        return None
-
-    try:
-        account_id = int(payload["sub"])
-    except (KeyError, TypeError, ValueError):
-        return None
-
-    account_result = await session.execute(
-        select(Account).where(Account.id == account_id)
-    )
-    account = account_result.scalar_one_or_none()
-    if account is None or account.status != AccountStatus.active:
-        return None
-
-    char_result = await session.execute(
-        select(Character)
-        .where(
-            Character.account_id == account.id,
-            Character.status == CharacterStatus.active,
-        )
-        .order_by(Character.created_at)
-        .limit(1)
-    )
-    return char_result.scalar_one_or_none()
 
 
 @router.get("", response_model=list[TaskOut])
@@ -161,12 +111,7 @@ async def propose_task_route(
     account: Account = Depends(get_current_account),
     session: AsyncSession = Depends(get_db),
 ):
-    admin_result = await session.execute(
-        select(AccountRole)
-        .join(Role, AccountRole.role_id == Role.id)
-        .where(AccountRole.account_id == account.id, Role.name == "admin")
-    )
-    is_admin = admin_result.scalar_one_or_none() is not None
+    is_admin = await account_has_admin_role(account.id, session)
     task = await propose_task(character, data, session, skip_level_check=is_admin)
     return build_task_out(task)
 

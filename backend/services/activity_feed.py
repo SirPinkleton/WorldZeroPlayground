@@ -719,8 +719,9 @@ async def _compute_counts(
         )
         return result.scalar_one()
 
+    era_row = await get_current_era_row(session)
+
     async def count_invitation_letters() -> int:
-        era_row = await get_current_era_row(session)
         result = await session.execute(
             select(func.count())
             .select_from(InvitationLetter)
@@ -734,7 +735,6 @@ async def _compute_counts(
     async def count_friend_defections() -> int:
         if not friend_ids:
             return 0
-        era_row = await get_current_era_row(session)
         result = await session.execute(
             select(func.count())
             .select_from(FactionDefectionHistory)

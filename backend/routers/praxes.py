@@ -14,65 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from db import get_db
-from dependencies import get_current_character
+from dependencies import get_current_character, get_current_character_optional
 from game_config import CURRENT_ERA
-from models.account import Account, AccountStatus
-from models.character import Character, CharacterStatus
+from models.character import Character
 from models.praxis import MediaItem, MediaType, ModerationStatus, Praxis, PraxisType
-from services.auth import decode_jwt
-from fastapi import Cookie
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
-
-_OPTIONAL_BEARER = HTTPBearer(auto_error=False)
-
-
-async def get_current_character_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_OPTIONAL_BEARER),
-    access_token: Optional[str] = Cookie(default=None),
-    session: AsyncSession = Depends(get_db),
-) -> Optional[Character]:
-    """Return the authenticated viewer's active character, or None if anonymous.
-
-    Mirrors :func:`dependencies.get_current_character` but never raises — used by
-    public detail endpoints that want to compute viewer-relative fields (such as
-    ``PraxisOut.can_flag``) when a token is present.
-    """
-    token = None
-    if credentials:
-        token = credentials.credentials
-    elif access_token:
-        token = access_token
-    if not token:
-        return None
-
-    try:
-        payload = decode_jwt(token)
-    except Exception:  # invalid/expired token — treat as anonymous
-        return None
-
-    try:
-        account_id = int(payload["sub"])
-    except (KeyError, TypeError, ValueError):
-        return None
-
-    account_result = await session.execute(
-        select(Account).where(Account.id == account_id)
-    )
-    account = account_result.scalar_one_or_none()
-    if account is None or account.status != AccountStatus.active:
-        return None
-
-    char_result = await session.execute(
-        select(Character)
-        .where(
-            Character.account_id == account.id,
-            Character.status == CharacterStatus.active,
-        )
-        .order_by(Character.created_at)
-        .limit(1)
-    )
-    return char_result.scalar_one_or_none()
 from pydantic import BaseModel
 from schemas.praxis import (
     DuelVoteSummary,
