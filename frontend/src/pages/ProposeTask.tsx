@@ -36,7 +36,6 @@ export default function ProposeTask() {
     getFactions().then(setFactions).catch(() => {})
   }, [])
 
-  const characterLevel = user?.character?.level ?? 0
   const color = factionCssVar(factionSlug)
   const fname = factionName(factionSlug)
 
@@ -49,12 +48,12 @@ export default function ProposeTask() {
     )
   }
 
-  if (!user?.is_admin && characterLevel < 3) {
+  if (!user.can_propose_task) {
     return (
       <div className="py-8" style={{ maxWidth: 720, margin: '0 auto' }}>
         <PageTitle title="Propose a Task" />
         <p className="font-body" style={{ color: 'var(--color-text-secondary)' }}>
-          You must be level 3 or higher to propose tasks. You are currently level {characterLevel}.
+          You must be level 3 or higher to propose tasks. You are currently level {user.character?.level ?? 0}.
         </p>
       </div>
     )
@@ -296,8 +295,7 @@ export default function ProposeTask() {
                 </div>
               </div>
 
-              {/* Meta Task Toggle — level 6+ or admin only */}
-              {(characterLevel >= 6 || user?.is_admin) && (
+              {user.can_propose_metatask && (
                 <div style={{
                   borderTop: '1px dashed var(--color-border)',
                   paddingTop: 12, marginTop: 4,

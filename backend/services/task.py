@@ -13,23 +13,19 @@ from schemas.task import TaskCreate, TaskOut
 from services.era import get_current_era_row, get_or_create_stats
 
 
-# Level gates for task proposal.
-PROPOSE_STANDARD_LEVEL = 3
-PROPOSE_METATASK_LEVEL = 6
-
-
 async def propose_task(
     character: Character,
     data: TaskCreate,
     session: AsyncSession,
     skip_level_check: bool = False,
+    era: EraConfig = CURRENT_ERA,
 ) -> Task:
     """Propose a new task. Returns the pending Task.
 
     ``task_type`` on the incoming payload selects the gate:
-    - ``standard`` (default): level 3 unless ``skip_level_check`` (admin).
-    - ``metatask``: level 6 unless ``skip_level_check`` (admin). Additionally
-      requires ``metatask_faction_slug`` to be set.
+    - ``standard`` (default): ``era.level_to_propose_task`` unless ``skip_level_check`` (admin).
+    - ``metatask``: ``era.level_to_propose_metatask`` unless ``skip_level_check`` (admin).
+      Additionally requires ``metatask_faction_slug`` to be set.
     """
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character.id, era_row.id)
@@ -45,10 +41,10 @@ async def propose_task(
             )
 
     if task_type == TaskType.metatask:
-        if not skip_level_check and stats.level < PROPOSE_METATASK_LEVEL:
+        if not skip_level_check and stats.level < era.level_to_propose_metatask:
             raise HTTPException(
                 status_code=403,
-                detail=f"Must be level {PROPOSE_METATASK_LEVEL} or above to propose metatasks.",
+                detail=f"Must be level {era.level_to_propose_metatask} or above to propose metatasks.",
             )
         if not data.metatask_faction_slug:
             raise HTTPException(
@@ -56,10 +52,10 @@ async def propose_task(
                 detail="metatask_faction_slug is required for metatask proposals.",
             )
     else:
-        if not skip_level_check and stats.level < PROPOSE_STANDARD_LEVEL:
+        if not skip_level_check and stats.level < era.level_to_propose_task:
             raise HTTPException(
                 status_code=403,
-                detail=f"Must be level {PROPOSE_STANDARD_LEVEL} or above to propose tasks.",
+                detail=f"Must be level {era.level_to_propose_task} or above to propose tasks.",
             )
 
     task = Task(
