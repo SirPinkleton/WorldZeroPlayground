@@ -471,3 +471,109 @@ async def test_vote_budget_reflects_votes_spent(
         - 2
     )
     assert compute_votes_available(stats) == expected
+
+
+# ---------------------------------------------------------------------------
+# S.2 SESSION S — guard cast_or_update_duel_vote against lazy="raise" drift
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_duel_vote_end_to_end_does_not_raise_statement_error(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    era: Era,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """S.2 regression guard: a successful duel vote through the HTTP route.
+
+    ``cast_or_update_duel_vote`` re-fetches the Praxis via bare
+    ``session.get(Praxis, ...)`` and iterates ``praxis.members`` plus
+    ``member.character.account_id``. After PR #115 the sibling Praxis
+    relationships (``votes``, ``invites``, ``media_items``, ``flags``) are
+    ``lazy="raise"`` — accessing any of them without a matching
+    ``selectinload`` throws ``StatementError``. If a future refactor flips
+    ``members`` or ``PraxisMember.character`` to ``raise``, or the service
+    starts touching one of the raised relationships, this end-to-end happy
+    path will blow up. Thin wrapper around the route so the test is cheap
+    but the assertion scope (no StatementError, vote recorded) is tight.
+    """
+    from models.account import Account as AccountModel
+    from models.character import Character as CharacterModel
+    from models.character_stats import CharacterStats
+    from services.auth import create_jwt
+
+    # character (A1) needs level 2 to accept a duel invite
+    a1_stats_result = await db_session.execute(
+        select(CharacterStats).where(CharacterStats.character_id == character.id)
+    )
+    a1_stats = a1_stats_result.scalar_one()
+    a1_stats.level = 2
+    await db_session.commit()
+
+    # character2 creates a duel, invites character, character accepts
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "duel", "title": "S2 Duel"},
+        headers=auth_headers2,
+    )
+    assert create_resp.status_code == 201
+    duel_id = create_resp.json()["id"]
+
+    invite_resp = await client.post(
+        f"/praxes/{duel_id}/invite",
+        json={"invitee_id": character.id},
+        headers=auth_headers2,
+    )
+    assert invite_resp.status_code == 200
+    invite_id = invite_resp.json()["id"]
+
+    accept_resp = await client.post(
+        f"/praxes/{duel_id}/invite/{invite_id}/respond",
+        json={"accept": True},
+        headers=auth_headers,
+    )
+    assert accept_resp.status_code == 200
+    members = accept_resp.json()["members"]
+    target_member_id = next(m["id"] for m in members if m["character_id"] == character.id)
+
+    # Unrelated third-account voter — required by account-level anti-self-vote
+    account_c = AccountModel(email="s2_voter@example.com")
+    db_session.add(account_c)
+    await db_session.flush()
+    voter_c = CharacterModel(
+        account_id=account_c.id,
+        username="s2_voter_c",
+        display_name="S2 Voter",
+        faction_slug="ua",
+    )
+    db_session.add(voter_c)
+    await db_session.flush()
+    db_session.add(
+        CharacterStats(
+            character_id=voter_c.id,
+            era_id=era.id,
+            score=100,
+            all_time_score=100,
+            level=3,
+            votes_spent_this_era=0,
+        )
+    )
+    await db_session.commit()
+    c_headers = {"Authorization": f"Bearer {create_jwt(account_c.id)}"}
+
+    # Cast the duel vote. Must not raise StatementError — exercises the full
+    # duel-vote service path under the current lazy-load configuration.
+    vote_resp = await client.post(
+        f"/praxes/{duel_id}/vote",
+        json={"stars": 4, "praxis_member_id": target_member_id},
+        headers=c_headers,
+    )
+    assert vote_resp.status_code == 200
+    vote_data = vote_resp.json()
+    assert vote_data["stars"] == 4
+    assert vote_data["praxis_member_id"] == target_member_id
