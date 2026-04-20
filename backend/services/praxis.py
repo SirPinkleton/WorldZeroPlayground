@@ -322,6 +322,13 @@ async def get_praxis(praxis_id: int, session: AsyncSession) -> Praxis:
     ``task``/``created_by``/``members``) because every service consumer of
     this helper ultimately feeds a ``build_praxis_out`` caller. The list
     endpoint uses :func:`list_praxes` which loads only what the card needs.
+
+    INVARIANT: must eagerly load every Praxis relationship with
+    ``cascade='all, delete-orphan'`` — currently just ``invites`` — because
+    :func:`delete_praxis` does ``session.delete(praxis)`` which needs those
+    collections loaded in the session for the cascade to fire. The other
+    relationships are ``lazy='raise'`` (see ``models/praxis.py``); dropping a
+    ``selectinload`` here silently breaks delete.
     """
     result = await session.execute(
         select(Praxis)
