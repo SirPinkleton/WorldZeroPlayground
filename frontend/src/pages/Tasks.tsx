@@ -18,7 +18,6 @@ const LEVEL_FILTERS = [0, 1, 2, 3, 4, 5]
 export default function Tasks() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const characterLevel = user?.character?.level ?? 0
   const characterId = user?.character?.id
 
   const [tasks, setTasks] = useState<TaskOut[]>([])
@@ -62,10 +61,9 @@ export default function Tasks() {
     }
   }
 
-  // Build status filters based on character level
   const statusFilters = ['All', 'active']
-  if (characterLevel >= 2) statusFilters.push('retired')
-  if (characterLevel >= 3) statusFilters.push('pending')
+  if (user?.can_see_retired_tasks) statusFilters.push('retired')
+  if (user?.can_see_pending_tasks) statusFilters.push('pending')
 
   return (
     <div className="py-8">

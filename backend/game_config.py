@@ -63,6 +63,14 @@ class EraConfig:
     # level_thresholds[1] = 10 (reach level 1 at 10 points), etc.
     level_thresholds: tuple
 
+    # Capability level gates. Surface as boolean flags on /auth/me
+    # (services.character_capabilities) so the frontend gates UI off flags
+    # instead of hardcoding integers.
+    level_to_propose_task: int
+    level_to_propose_metatask: int
+    level_to_see_retired_tasks: int
+    level_to_see_pending_tasks: int
+
     # Era reset behaviour -- what happens to characters when a new era begins
     reset_score: bool
     reset_level: bool

@@ -17,7 +17,12 @@ class CurrentUser(BaseModel):
     account_id: int
     character: Optional[CharacterOut] = None
     is_admin: bool = False
-    # Eligibility flags computed server-side from existing character levels so the
-    # frontend can hide controls it cannot use (per WORLD_ZERO_STYLE validation pattern).
+    # Capability flags computed server-side so the frontend can hide controls it
+    # cannot use (per WORLD_ZERO_STYLE validation pattern). Admin short-circuits
+    # the propose/see flags to True; the eligibility flags have their own rules.
     can_create_additional_character: bool = False
     can_start_as_albescent: bool = False
+    can_propose_task: bool = False
+    can_propose_metatask: bool = False
+    can_see_retired_tasks: bool = False
+    can_see_pending_tasks: bool = False

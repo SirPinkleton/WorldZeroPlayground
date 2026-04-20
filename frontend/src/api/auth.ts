@@ -18,10 +18,14 @@ export interface CurrentUser {
   account_id: number
   character: CharacterOut | null
   is_admin: boolean
-  /** Server-computed: this account meets the rules to create another character. */
+  // Server-computed capability flags. Admin short-circuits the propose/see
+  // flags to true. Drive UI off these instead of comparing character.level.
   can_create_additional_character: boolean
-  /** Server-computed: this account meets the rules to start a new character in /Albescent. */
   can_start_as_albescent: boolean
+  can_propose_task: boolean
+  can_propose_metatask: boolean
+  can_see_retired_tasks: boolean
+  can_see_pending_tasks: boolean
 }
 
 export async function getMe(): Promise<CurrentUser> {
