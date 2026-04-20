@@ -916,7 +916,7 @@ async def test_get_praxis_can_flag_true_for_level_4_non_author(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    # Force character2's level to exactly FLAG_LEVEL_REQUIRED (4)
+    # Force character2's level to exactly era.flag_level_required (4)
     result = await db_session.execute(
         select(CharacterStats).where(
             CharacterStats.character_id == character2.id,
@@ -952,7 +952,7 @@ async def test_get_praxis_can_flag_false_for_level_3_non_author(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    # Force character2's level to 3 (one below FLAG_LEVEL_REQUIRED)
+    # Force character2's level to 3 (one below era.flag_level_required)
     result = await db_session.execute(
         select(CharacterStats).where(
             CharacterStats.character_id == character2.id,
@@ -986,7 +986,7 @@ async def test_get_praxis_can_flag_false_for_author(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    # Bump the author well above FLAG_LEVEL_REQUIRED to prove the self-author
+    # Bump the author well above era.flag_level_required to prove the self-author
     # gate (not the level gate) is what blocks can_flag.
     result = await db_session.execute(
         select(CharacterStats).where(

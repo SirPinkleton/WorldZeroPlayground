@@ -202,6 +202,18 @@ ERA_N = EraConfig(
     level_to_see_retired_tasks=2,
     level_to_see_pending_tasks=3,
 
+    # Praxis / moderation / metatask gates
+    duel_level_required=2,
+    collaboration_level_required=1,
+    metatask_apply_level=7,
+    flag_level_required=4,
+
+    # Character account / faction gates
+    second_character_level_required=5,
+    albescent_level_required=8,
+    faction_graduation_level=3,
+    invitation_point_threshold=20,
+
     reset_score=True,
     reset_level=True,
     reset_faction=True,

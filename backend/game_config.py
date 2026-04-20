@@ -71,6 +71,18 @@ class EraConfig:
     level_to_see_retired_tasks: int
     level_to_see_pending_tasks: int
 
+    # Praxis / moderation / metatask gates (enforced in services/praxis.py)
+    duel_level_required: int              # min level to create a duel praxis
+    collaboration_level_required: int     # min level to create a collab praxis
+    metatask_apply_level: int             # min level to apply a metatask (non-Albescent)
+    flag_level_required: int              # min level to flag a praxis for moderation
+
+    # Character account / faction gates (enforced in services/character.py and faction_service.py)
+    second_character_level_required: int  # min level on an existing char to create another
+    albescent_level_required: int         # min level on an existing char to start a new Albescent
+    faction_graduation_level: int         # level at which invitation letters may be delivered
+    invitation_point_threshold: int       # min score at which invitation letters may be delivered
+
     # Era reset behaviour -- what happens to characters when a new era begins
     reset_score: bool
     reset_level: bool

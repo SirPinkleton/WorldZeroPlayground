@@ -50,15 +50,8 @@ from services.scoring import (
 )
 
 
-DUEL_LEVEL_REQUIRED = 2
-COLLABORATION_LEVEL_REQUIRED = 1
 ANALOG_FACTION_SLUG = "analog"
 ALBESCENT_FACTION_SLUG = "albescent"
-METATASK_APPLY_LEVEL = 7
-# Minimum character level required to flag a praxis for moderator review.
-# EraConfig does not currently expose this value, so it lives here until a
-# dedicated era field is added (see flag_praxis).
-FLAG_LEVEL_REQUIRED = 4
 
 
 # ---------------------------------------------------------------------------
@@ -414,15 +407,15 @@ async def _check_create_preconditions(
             detail="You have already submitted a praxis for this task.",
         )
 
-    if praxis_type == PraxisType.duel and stats.level < DUEL_LEVEL_REQUIRED:
+    if praxis_type == PraxisType.duel and stats.level < era.duel_level_required:
         raise HTTPException(
             status_code=403,
-            detail=f"Duels require level {DUEL_LEVEL_REQUIRED}.",
+            detail=f"Duels require level {era.duel_level_required}.",
         )
-    if praxis_type == PraxisType.collab and stats.level < COLLABORATION_LEVEL_REQUIRED:
+    if praxis_type == PraxisType.collab and stats.level < era.collaboration_level_required:
         raise HTTPException(
             status_code=403,
-            detail=f"Collaborations require level {COLLABORATION_LEVEL_REQUIRED}.",
+            detail=f"Collaborations require level {era.collaboration_level_required}.",
         )
 
     in_progress_count = await _count_in_progress_praxes(character_id, session)
@@ -569,11 +562,8 @@ async def can_flag_praxis(
 
     Mirrors the rules enforced in :func:`flag_praxis`:
     - Viewer must be authenticated (anonymous viewers cannot flag).
-    - Viewer must be at or above :data:`FLAG_LEVEL_REQUIRED` in the current era.
+    - Viewer must be at or above ``era.flag_level_required`` in the current era.
     - Viewer cannot flag a praxis they authored (character-level check).
-
-    ``era`` is accepted for signature parity with other service helpers even
-    though :data:`FLAG_LEVEL_REQUIRED` is not yet an EraConfig field.
     """
     if viewer is None:
         return False
@@ -581,7 +571,7 @@ async def can_flag_praxis(
         return False
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, viewer.id, era_row.id)
-    return stats.level >= FLAG_LEVEL_REQUIRED
+    return stats.level >= era.flag_level_required
 
 
 async def can_submit_praxis_for_task(
@@ -627,21 +617,18 @@ def allowed_praxis_modes(
 
     Mirrors the level gates enforced in :func:`create_praxis`:
     - Solo: always allowed once a viewer is authenticated.
-    - Collab: requires ``character_level >= COLLABORATION_LEVEL_REQUIRED``.
-    - Duel: requires ``character_level >= DUEL_LEVEL_REQUIRED``.
+    - Collab: requires ``character_level >= era.collaboration_level_required``.
+    - Duel: requires ``character_level >= era.duel_level_required``.
 
     Anonymous viewers (``character is None``) receive an empty list so the
     UI can hide the mode picker entirely.
-
-    ``era`` is accepted for signature parity; the thresholds are module-level
-    constants today but the signature leaves room for era-specific gates.
     """
     if character is None:
         return []
     modes: list[str] = [PraxisType.solo.value]
-    if character_level >= COLLABORATION_LEVEL_REQUIRED:
+    if character_level >= era.collaboration_level_required:
         modes.append(PraxisType.collab.value)
-    if character_level >= DUEL_LEVEL_REQUIRED:
+    if character_level >= era.duel_level_required:
         modes.append(PraxisType.duel.value)
     return modes
 
@@ -681,8 +668,9 @@ async def flag_praxis(
     flagged_by: Character,
     reason: str,
     session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
-    """Flag a praxis for moderation review. Requires level 4 or above."""
+    """Flag a praxis for moderation review. Requires ``era.flag_level_required`` or above."""
     praxis = await get_praxis(praxis_id, session)
 
     # Self-flag is always rejected with its own error message so the caller
@@ -690,10 +678,10 @@ async def flag_praxis(
     if flagged_by.id == praxis.created_by_id:
         raise HTTPException(status_code=403, detail="Cannot flag your own praxis.")
 
-    if not await can_flag_praxis(flagged_by, praxis, session):
+    if not await can_flag_praxis(flagged_by, praxis, session, era):
         raise HTTPException(
             status_code=403,
-            detail=f"Must be level {FLAG_LEVEL_REQUIRED} or above to flag a praxis.",
+            detail=f"Must be level {era.flag_level_required} or above to flag a praxis.",
         )
 
     praxis.moderation_status = ModerationStatus.flagged
@@ -1016,13 +1004,14 @@ def _check_metatask_eligibility(
     character: Character,
     task: Task,
     character_level: int,
+    era: EraConfig,
 ) -> Optional[str]:
     """Return a 403 reason string if this character can't apply ``task``, else None."""
     if character.faction_slug == ALBESCENT_FACTION_SLUG:
         return None
-    if character_level < METATASK_APPLY_LEVEL:
+    if character_level < era.metatask_apply_level:
         return (
-            f"Must be level {METATASK_APPLY_LEVEL} or above "
+            f"Must be level {era.metatask_apply_level} or above "
             "to apply metatasks."
         )
     if character.faction_slug != task.metatask_faction_slug:
@@ -1048,7 +1037,7 @@ async def apply_metatask(
     - The praxis must be ``in_progress`` (else 422).
     - Faction gate:
         * Albescent characters may apply any faction's metatask.
-        * Otherwise the character must be at least ``METATASK_APPLY_LEVEL``
+        * Otherwise the character must be at least ``era.metatask_apply_level``
           AND their ``faction_slug`` must match ``task.metatask_faction_slug``.
     """
     praxis = await get_praxis(praxis_id, session)
@@ -1081,7 +1070,7 @@ async def apply_metatask(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character_id, era_row.id)
 
-    eligibility_error = _check_metatask_eligibility(character, task, stats.level)
+    eligibility_error = _check_metatask_eligibility(character, task, stats.level, era)
     if eligibility_error is not None:
         raise HTTPException(status_code=403, detail=eligibility_error)
 
