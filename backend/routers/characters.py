@@ -1,9 +1,5 @@
-import io
 import logging
-import os
 from typing import Optional
-
-from PIL import Image
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
@@ -12,7 +8,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from config import settings
 from db import get_db
 from dependencies import get_current_character
 from models.account import Account
@@ -33,6 +28,7 @@ from services.character import (
     update_character,
 )
 from services.era import load_current_era_stats
+from services.media import process_and_save_avatar
 from services.praxis import build_praxis_out
 
 router = APIRouter()
@@ -133,57 +129,19 @@ async def upload_avatar(
     account: Account = Depends(get_current_account),
     session: AsyncSession = Depends(get_db),
 ):
-    result = await session.execute(
+    character = await session.scalar(
         select(Character).where(
             Character.id == character_id,
             Character.status == CharacterStatus.active,
         )
     )
-    character = result.scalar_one_or_none()
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
     if character.account_id != account.id:
         raise HTTPException(status_code=403, detail="Cannot update another character's avatar.")
-
-    content_type = file.content_type or ""
-    if not content_type.startswith("image/"):
-        raise HTTPException(status_code=422, detail="Avatar must be an image file.")
-
-    rel_dir = os.path.join(str(character_id), "avatar")
-    abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
-    filename = "avatar.jpg"
-    abs_path = os.path.join(abs_dir, filename)
-    rel_path = os.path.join(rel_dir, filename)
-
-    AVATAR_MAX_SIZE = 512
-    AVATAR_JPEG_QUALITY = 85
-
-    try:
-        os.makedirs(abs_dir, exist_ok=True)
-        contents = await file.read()
-        if len(contents) > 10 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="Avatar too large (max 10 MB).")
-
-        img = Image.open(io.BytesIO(contents))
-        img = img.convert("RGB")
-        img.thumbnail((AVATAR_MAX_SIZE, AVATAR_MAX_SIZE), Image.LANCZOS)
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=AVATAR_JPEG_QUALITY, optimize=True)
-        with open(abs_path, "wb") as f:
-            f.write(buffer.getvalue())
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Failed to save avatar for character %s", character_id)
-        raise HTTPException(
-            status_code=500,
-            detail="We couldn't save your avatar. Please try again or paste a URL instead.",
-        )
-
-    character.avatar_url = rel_path
+    character.avatar_url = await process_and_save_avatar(file, character_id)
     await session.commit()
     await session.refresh(character)
-
     stats = await load_current_era_stats(character_id, session)
     return build_character_out(character, stats)
 
