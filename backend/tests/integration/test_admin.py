@@ -667,56 +667,26 @@ async def test_admin_moderate_praxis_failed(
 
 
 # ---------------------------------------------------------------------------
-# Hide / unhide praxis via DELETE and moderate endpoints (direct DB seed)
+# Hide / unhide praxis via DELETE and moderate endpoints
 # ---------------------------------------------------------------------------
-
-
-async def _seed_praxis(
-    db_session: AsyncSession,
-    character: Character,
-    active_task: Task,
-    title: str = "Seeded Praxis",
-) -> Praxis:
-    """Insert a minimal visible Praxis row directly for moderation tests."""
-    from models.praxis import PraxisMember, PraxisType
-    praxis = Praxis(
-        task_id=active_task.id,
-        type=PraxisType.solo,
-        title=title,
-        moderation_status=ModerationStatus.visible,
-        created_by_id=character.id,
-    )
-    db_session.add(praxis)
-    await db_session.flush()
-
-    member = PraxisMember(
-        praxis_id=praxis.id,
-        character_id=character.id,
-    )
-    db_session.add(member)
-    await db_session.commit()
-    await db_session.refresh(praxis)
-    return praxis
 
 
 @pytest.mark.asyncio
 async def test_admin_delete_praxis_hides_it(
     client: AsyncClient,
     account: Account,
-    character: Character,
-    active_task: Task,
     auth_headers: dict,
     db_session: AsyncSession,
+    praxis_solo: Praxis,
 ):
     """DELETE /admin/praxes/{id} sets moderation_status to hidden (soft-delete)."""
     await _make_admin(account, db_session)
-    praxis = await _seed_praxis(db_session, character, active_task, "To Delete via Admin")
 
-    resp = await client.delete(f"/admin/praxes/{praxis.id}", headers=auth_headers)
+    resp = await client.delete(f"/admin/praxes/{praxis_solo.id}", headers=auth_headers)
     assert resp.status_code == 204
 
     # Verify the row is still in the DB but now hidden
-    result = await db_session.execute(select(Praxis).where(Praxis.id == praxis.id))
+    result = await db_session.execute(select(Praxis).where(Praxis.id == praxis_solo.id))
     updated = result.scalar_one()
     assert updated.moderation_status == ModerationStatus.hidden
 
@@ -725,17 +695,15 @@ async def test_admin_delete_praxis_hides_it(
 async def test_admin_moderate_praxis_hide(
     client: AsyncClient,
     account: Account,
-    character: Character,
-    active_task: Task,
     auth_headers: dict,
     db_session: AsyncSession,
+    praxis_solo: Praxis,
 ):
     """PATCH /admin/praxes/{id}/moderate with status=hidden hides a visible praxis."""
     await _make_admin(account, db_session)
-    praxis = await _seed_praxis(db_session, character, active_task, "To Hide via Moderate")
 
     resp = await client.patch(
-        f"/admin/praxes/{praxis.id}/moderate",
+        f"/admin/praxes/{praxis_solo.id}/moderate",
         json={"status": "hidden"},
         headers=auth_headers,
     )
@@ -748,25 +716,23 @@ async def test_admin_moderate_praxis_hide(
 async def test_admin_moderate_praxis_unhide(
     client: AsyncClient,
     account: Account,
-    character: Character,
-    active_task: Task,
     auth_headers: dict,
     db_session: AsyncSession,
+    praxis_solo: Praxis,
 ):
     """PATCH /admin/praxes/{id}/moderate with status=visible restores a hidden praxis."""
     await _make_admin(account, db_session)
-    praxis = await _seed_praxis(db_session, character, active_task, "To Unhide")
 
     # First hide it
     await client.patch(
-        f"/admin/praxes/{praxis.id}/moderate",
+        f"/admin/praxes/{praxis_solo.id}/moderate",
         json={"status": "hidden"},
         headers=auth_headers,
     )
 
     # Now restore it
     resp = await client.patch(
-        f"/admin/praxes/{praxis.id}/moderate",
+        f"/admin/praxes/{praxis_solo.id}/moderate",
         json={"status": "visible"},
         headers=auth_headers,
     )
@@ -779,17 +745,15 @@ async def test_admin_moderate_praxis_unhide(
 async def test_admin_moderate_praxis_failed_direct(
     client: AsyncClient,
     account: Account,
-    character: Character,
-    active_task: Task,
     auth_headers: dict,
     db_session: AsyncSession,
+    praxis_solo: Praxis,
 ):
     """PATCH /admin/praxes/{id}/moderate with status=failed stores the admin note."""
     await _make_admin(account, db_session)
-    praxis = await _seed_praxis(db_session, character, active_task, "Substandard Praxis")
 
     resp = await client.patch(
-        f"/admin/praxes/{praxis.id}/moderate",
+        f"/admin/praxes/{praxis_solo.id}/moderate",
         json={"status": "failed", "admin_note": "Does not meet requirements."},
         headers=auth_headers,
     )
