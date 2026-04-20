@@ -13,6 +13,7 @@ from models.praxis import (
 )
 from models.task import Task
 from models.vote import Vote
+from models.era import Era
 from services.era import get_current_era_row, get_or_create_stats
 from services.scoring import (
     COLLABORATION_MODE_COLLAB,
@@ -68,6 +69,7 @@ async def recalculate_character_stats(
     character_id: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
+    era_row: Era | None = None,
 ) -> None:
     """Recompute and persist score, level, and vote budget for a character.
 
@@ -76,8 +78,11 @@ async def recalculate_character_stats(
     - All submitted collaborations/duels the character is a member of
 
     Safe to call on praxis creation (0 votes → base points only) or after any vote change.
+
+    Pass ``era_row`` when calling in a loop to avoid an extra query per iteration.
     """
-    era_row = await get_current_era_row(session)
+    if era_row is None:
+        era_row = await get_current_era_row(session)
 
     author = await session.get(Character, character_id)
     character_faction_slug = author.faction_slug if author else "na"

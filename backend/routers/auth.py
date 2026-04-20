@@ -8,19 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from db import get_db
+from dependencies import account_has_admin_role
 from models.account import Account
 from models.character import Character, CharacterStatus
-from models.roles import AccountRole, Role
-from routers.characters import _build_character_out, _load_stats
 from schemas.auth import CurrentUser
-from schemas.character import CharacterOut
 from services.auth import create_jwt, create_or_get_account, get_current_account
 from services.character import (
+    build_character_out,
     can_create_additional_character,
     can_start_as_albescent,
 )
 from services.character_capabilities import compute_capabilities
-from services.era import get_current_era_row
+from services.era import load_current_era_stats
 
 router = APIRouter()
 
@@ -100,24 +99,14 @@ async def auth_me(
     char_out = None
     character_level: int | None = None
     if character:
-        try:
-            era_row = await get_current_era_row(session)
-            stats = await _load_stats(character.id, era_row.id, session)
-        except Exception:
-            stats = None
-        char_out = _build_character_out(character, stats)
+        stats = await load_current_era_stats(character.id, session)
+        char_out = build_character_out(character, stats)
         character_level = stats.level if stats else 0
 
-    admin_result = await session.execute(
-        select(AccountRole)
-        .join(Role, AccountRole.role_id == Role.id)
-        .where(AccountRole.account_id == account.id, Role.name == "admin")
-    )
-    is_admin = admin_result.scalar_one_or_none() is not None
+    is_admin = await account_has_admin_role(account.id, session)
 
-    # Eligibility flags depend on the current era row. If the era isn't seeded
-    # (edge case in tests / fresh environments) fall back to False — matches the
-    # behaviour of the stats lookup above.
+    # Eligibility flags depend on the era being seeded. Fall back to False in
+    # fresh test environments where no era row exists yet.
     try:
         can_create_more = await can_create_additional_character(account.id, session)
         can_albescent = await can_start_as_albescent(account.id, session)
