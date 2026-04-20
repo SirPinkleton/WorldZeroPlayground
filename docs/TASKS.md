@@ -1386,7 +1386,7 @@ codebase uses it everywhere. Fixing it would require a big bang refactor.
 
 ---
 
-### TASK S.12 — Move commit() out of services (big refactor)
+### TASK S.12 ✅ 2026-04-20 — Move commit() out of services (big refactor)
 
 **Scope:** 50+ call sites. Every service file except `character_capabilities.py`,
 `scoring.py`, `taunt_service.py`, `meta_task.py`.
