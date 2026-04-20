@@ -1060,6 +1060,433 @@ After T.5 + T.6 + T.7 + T.8 + T.10 merge:
 
 ---
 
+## 🧹 SESSION S — /simplify follow-ups (post-PR #115)
+
+> Carved out of the retroactive `/simplify` pass that merged as PR #115 on
+> 2026-04-20. The pass landed four self-contained batches (TimestampMixin,
+> moderation_status enum, layer separation, Praxis eager-load audit). These
+> tasks capture items that were **intentionally deferred** because bundling
+> them would have made #115 unreviewable, plus follow-ups surfaced by the
+> code review of #115 itself.
+>
+> **Tasks are roughly ordered by risk/effort (cheapest first).** Anything
+> marked "discussion first" should land in a separate session only after
+> Molly decides direction.
+
+---
+
+### TASK S.1 — Document the `get_praxis` cascade invariant (cheap)
+
+**Scope:** One-liner docstring / comment on `services/praxis.py::get_praxis`.
+
+**Context:** After PR #115, `services/praxis.py::delete_praxis` depends on
+`get_praxis` eagerly loading `invites` — `invites` has
+`cascade="all, delete-orphan"` but is `lazy="raise"`, so SQLAlchemy needs
+the collection loaded at delete time for the cascade to fire. Nothing in
+the code currently makes that invariant explicit; a future refactor that
+drops `selectinload(Praxis.invites)` from `get_praxis` would silently
+break praxis deletion.
+
+**Do:**
+1. Add a comment on `get_praxis` stating: *"Must eagerly load every
+   Praxis relationship with `cascade='all, delete-orphan'` — currently
+   just `invites` — because `delete_praxis` does `session.delete(praxis)`
+   which needs those collections in the session to cascade."*
+2. Also mention this at the top of `models/praxis.py` near the relationship
+   declarations so someone adding a new cascade thinks of it.
+
+**Files:** `backend/services/praxis.py`, `backend/models/praxis.py`
+
+**Acceptance:** Comment present. No behaviour change. Tests still green.
+
+---
+
+### TASK S.2 — Verify `cast_or_update_duel_vote` against `lazy="raise"`
+
+**Scope:** Audit + possible fix on `services/vote.py::cast_or_update_duel_vote`.
+
+**Context:** PR #115 review flagged that `services/vote.py::cast_vote_on_praxis`
+passes `praxis_id` (not the object) into `cast_or_update_duel_vote`. That
+function presumably re-fetches the Praxis. With `lazy="raise"` now on
+`votes`, `invites`, `media_items`, `flags`, any relationship access on a
+bare `session.get(Praxis, ...)` will throw. Tests pass, so either the
+function avoids those relationships or coverage has a gap.
+
+**Do:**
+1. Read `cast_or_update_duel_vote` end-to-end. List every `praxis.*`
+   attribute it touches (including transitive access through `members`).
+2. If it accesses a raised relationship, add `selectinload(...)` at the
+   query site (the `session.get` → `session.execute(select(...).options(...))`
+   pattern used elsewhere in the file).
+3. If it only uses selectin-loaded relationships, leave code alone but
+   write a one-line service-level test that exercises the duel-vote path
+   to lock in the invariant.
+
+**Files:** `backend/services/vote.py`, possibly `backend/tests/integration/test_votes.py`.
+
+**Acceptance:** Duel vote path has either an explicit `selectinload()` or a
+test that would catch a future regression. No `StatementError` in the test
+suite.
+
+---
+
+### TASK S.3 — Service-level test for unified anti-self-vote
+
+**Scope:** Add one test to `tests/integration/test_votes.py` (or a new
+`tests/unit/test_vote_service.py` if a DB-free variant is practical).
+
+**Context:** PR #115 moved the account-level anti-self-vote check from
+`routers/votes.py` + `routers/praxes.py` into
+`services/vote.py::cast_or_update_vote`. The service has a fallback: if
+`praxis.created_by` is not selectin-loaded, it falls back to
+`session.get(Character, praxis.created_by_id)`. Existing route-level tests
+always go through the selectin path, so the fallback is untested.
+
+**Do:**
+1. Construct a Praxis via `session.get(Praxis, ...)` (which does NOT load
+   `created_by`) and pass it directly into `cast_or_update_vote` with a
+   voter whose account owns the praxis.
+2. Assert it raises `HTTPException(403, "Cannot vote on your own praxis.")`.
+3. Second assertion: same setup with an unrelated voter's account → vote
+   succeeds.
+
+**Files:** `backend/tests/integration/test_votes.py`.
+
+**Acceptance:** Two new tests, both green; coverage on the fallback branch
+in `cast_or_update_vote` confirmed by coverage report.
+
+---
+
+### TASK S.4 — Adopt the new praxis/vote fixtures
+
+**Scope:** Migrate inline Praxis/PraxisMember/Vote construction in four
+integration test files to the fixtures added to conftest in PR #115.
+
+**Context:** PR #115 added `praxis_solo`, `praxis_collab`, and `vote`
+fixtures to `backend/tests/integration/conftest.py` but deliberately did
+**not** rewrite existing tests to use them (scope discipline). Left unused,
+they'll rot.
+
+**Do:**
+1. Grep each file below for inline Praxis/PraxisMember/Vote construction.
+2. Replace each with the corresponding fixture where the fields match.
+3. Where a test needs non-default fields, keep it inline (don't over-fit
+   the fixtures).
+
+**Files:**
+- `backend/tests/integration/test_praxes.py`
+- `backend/tests/integration/test_admin.py`
+- `backend/tests/integration/test_tasks.py`
+- `backend/tests/integration/test_votes.py`
+
+**Acceptance:** Every straightforward inline Praxis/Vote setup uses a
+fixture. Full suite still 345+ passing, coverage ≥ 83.94%.
+
+---
+
+### TASK S.5 — Fix N+1 in `recalculate_character_stats`
+
+**Scope:** `services/character_stats.py::recalculate_character_stats`.
+
+**Context:** PR #115 survey found `session.get(Task, praxis.task_id)` inside
+a `for praxis in ...` loop (around `character_stats.py:99`), plus similar
+per-item lookups on the collab and member loops (~lines 140, 146, 157–162).
+For a character with N scored praxes this is N+1 queries. The loop runs on
+every vote cast and on era reset for every character — a real perf wart.
+
+**Do:**
+1. Before each loop, collect the set of `task_id`s needed and bulk-fetch:
+   `tasks_by_id = {t.id: t for t in (await session.execute(select(Task).where(Task.id.in_(task_ids)))).scalars()}`.
+2. Replace `session.get(Task, p.task_id)` with `tasks_by_id[p.task_id]`.
+3. Same pattern for the member/character lookups.
+4. Add a test that creates a character with ≥5 scored praxes and asserts
+   the number of SQL statements emitted by `recalculate_character_stats`
+   is bounded (use `event.listens_for(engine, "before_cursor_execute")`
+   or a `Compiled` counter).
+
+**Files:** `backend/services/character_stats.py`, new test in
+`backend/tests/integration/test_votes.py` or a new
+`test_character_stats.py`.
+
+**Acceptance:** Same functional output (covered by existing tests). Query
+count for a recalculation over 5 praxes drops by ≥ 50%.
+
+---
+
+### TASK S.6 — Optimize `moderate_praxis` to skip the re-fetch
+
+**Scope:** `services/admin_service.py::moderate_praxis`.
+
+**Context:** The function currently does two `select(Praxis).options(
+selectinload(invites), selectinload(media_items)).where(id==...)` queries —
+one before the mutation, one after the commit. The second exists because
+`session.refresh(praxis)` expires relationships and would trip
+`lazy="raise"` on the subsequent `build_praxis_out`.
+
+**Do:**
+1. Replace the post-commit re-fetch with
+   `await session.refresh(praxis, attribute_names=["moderation_status",
+   "admin_note", "flagged_at"])` — this refreshes scalar columns only and
+   leaves the initially-loaded relationships in place.
+2. Verify via the test suite (test_admin.py moderation tests).
+
+**Files:** `backend/services/admin_service.py`.
+
+**Acceptance:** One SELECT instead of two on the moderate path. All
+existing moderation tests pass.
+
+---
+
+### TASK S.7 — Fix pre-existing nullability drift (contact/message/vote)
+
+**Scope:** `backend/alembic/versions/00XX_nullability_alignment.py` (new)
++ possibly model tweaks.
+
+**Context:** `alembic revision --autogenerate` on PR #115 surfaced
+pre-existing drift: `contact_messages.created_at`, `message.created_at`,
+`vote.created_at`, and `vote.updated_at` are declared `nullable=False` in
+the models (or via `TimestampMixin`) but lack the NOT NULL constraint in
+the DB. There's also a `uq_vote_solo` / `uq_vote_duel` constraint naming
+mismatch. Not caused by #115 but blocks a future clean autogenerate.
+
+**Do:**
+1. Decide per column whether the model or the DB is authoritative.
+2. For columns where the model is right: write a migration that sets
+   `ALTER COLUMN ... SET NOT NULL` after backfilling any NULLs with
+   `COALESCE(created_at, NOW())`.
+3. For the constraint name mismatch: rename the DB constraints to match
+   the model, or add `name=` kwargs to the model `UniqueConstraint` to
+   match the DB — either is fine, be consistent.
+4. After the migration, `alembic revision --autogenerate` should produce
+   a completely empty migration.
+
+**Files:** `backend/alembic/versions/0009_*.py`, possibly `backend/models/vote.py`.
+
+**Acceptance:** Autogenerate emits zero ops. Round-trip works. Existing
+tests pass.
+
+---
+
+### TASK S.8 — Extract media service (router-level image processing)
+
+**Scope:** Move file-I/O / image-processing out of
+`routers/characters.py::upload_avatar` (60 lines) and
+`routers/praxes.py::upload_media_route` (57 lines).
+
+**Context:** Both handlers mix PIL image resizing, MIME detection, filename
+sanitization, and filesystem writes with HTTP request handling. Spec rule
+is handlers ≤ 15 lines. These were deferred from PR #115's Batch 3 because
+the right home is a new service module and the move has non-trivial
+test implications.
+
+**Do:**
+1. Create `backend/services/media.py`. Define:
+   - `process_and_save_avatar(upload: UploadFile, character_id: int) -> str`
+     — returns the saved relative path.
+   - `process_and_save_media(upload: UploadFile, praxis_id: int) -> MediaItem`
+     — returns the created ORM row (service adds it to the session; router
+     commits).
+2. Move the PIL pipeline (convert, thumbnail, JPEG quality), regex
+   filename sanitization, and filesystem I/O into these helpers.
+3. Shrink both handlers to ≤ 15 lines — validation + service call +
+   response.
+4. Check the existing upload tests still exercise the full path.
+
+**Files:** new `backend/services/media.py`, `backend/routers/characters.py`,
+`backend/routers/praxes.py`.
+
+**Acceptance:** Both handlers ≤ 15 lines. Upload tests in
+`test_characters.py` and `test_praxes.py` still green. Image-processing
+code has a unit-style test that doesn't go through HTTP.
+
+---
+
+### TASK S.9 — Shorten long functions in `services/praxis.py`
+
+**Scope:** `services/praxis.py` specifically; four named functions.
+
+**Context:** `invite_to_praxis` (~99 lines), `apply_metatask` (~90),
+`create_praxis` (~84), `recalculate_character_stats` (~162 lines, in
+`services/character_stats.py`). Each is dense but consists of linear
+eligibility checks that would read more clearly as named helpers.
+
+**Do:**
+1. For `invite_to_praxis`: extract `_check_duel_invite_eligibility(...)`
+   and `_check_collab_invite_eligibility(...)` helpers.
+2. For `apply_metatask`: extract `_check_metatask_eligibility(...)` that
+   folds the level + faction + task_type gates into one returning a
+   reason-string or `None`.
+3. For `create_praxis`: extract `_check_create_preconditions(...)`.
+4. For `recalculate_character_stats`: split into `_score_solo_praxes`,
+   `_score_collab_praxes`, `_score_duel_praxes` — three async helpers,
+   each takes character + session + era and returns a partial score.
+
+**Files:** `backend/services/praxis.py`, `backend/services/character_stats.py`.
+
+**Acceptance:** No function in these files >= 80 lines. All existing tests
+pass. No behaviour change. Each extracted helper has a module-level
+docstring one-liner.
+
+---
+
+### TASK S.10 — Decide hardcoded game-rule numbers (discussion first)
+
+**Scope:** Discussion → potentially moving constants into `EraConfig`.
+
+**Context:** These live as module-level constants in services today:
+- `services/praxis.py`: `DUEL_LEVEL_REQUIRED=2`, `COLLABORATION_LEVEL_REQUIRED=1`,
+  `METATASK_APPLY_LEVEL=7`, `FLAG_LEVEL_REQUIRED=4`.
+- `services/character.py`: `SECOND_CHARACTER_LEVEL_REQUIRED=5`,
+  `ALBESCENT_LEVEL_REQUIRED=8`.
+- `services/faction_service.py`: `FACTION_GRADUATION_LEVEL=3`,
+  `INVITATION_POINT_THRESHOLD=20`.
+
+CLAUDE.md says "don't hardcode values *that live in `EraConfig`*". These
+don't currently. The question is whether they should — if a future era
+needs different level gates, they're easier to tune via `EraConfig`. If
+they're truly era-independent (e.g., cross-faction rules built into the
+game model), they can stay as domain constants.
+
+**Do (discussion step only):**
+1. For each constant, Molly to decide: era-variable or era-invariant.
+2. For era-variable ones: add to `EraConfig` and `eras/era_1.py`, thread
+   through the services that read them.
+3. For era-invariant ones: leave as-is but document why in a comment.
+
+**Files:** `backend/game_config.py`, `backend/eras/era_1.py`, three service
+files.
+
+**Acceptance:** Every hardcoded game-rule number in services is either
+sourced from `era.*` or carries a comment explaining why it's invariant.
+
+---
+
+### TASK S.11 — Discussion: `HTTPException` in services
+
+**Scope:** Codebase-wide posture call.
+
+**Context:** PR #115's survey flagged 100+ `HTTPException` raises inside
+service functions. `docs/spec/SPEC-backend-architecture.md` arguably
+forbids this as a "layer leak" (services should raise domain exceptions;
+routers translate to HTTP). CLAUDE.md doesn't explicitly forbid it. The
+codebase uses it everywhere. Fixing it would require a big bang refactor.
+
+**Do (discussion):**
+1. Molly to decide: is the current pattern an acceptable pragmatic choice
+   or a real violation that needs fixing?
+2. If "acceptable": update `docs/spec/SPEC-backend-architecture.md` to
+   explicitly permit it, so future reviewers don't re-flag it.
+3. If "fix it": follow up with S.12 to design domain exception types
+   (`NotFoundError`, `ForbiddenError`, `ValidationError`) and a router-side
+   translation layer, then do a mechanical rewrite.
+
+**Files:** `docs/spec/SPEC-backend-architecture.md` (either outcome).
+
+**Acceptance:** A clear, documented position on HTTPException-in-services.
+
+---
+
+### TASK S.12 — Move commit() out of services (big refactor)
+
+**Scope:** 50+ call sites. Every service file except `character_capabilities.py`,
+`scoring.py`, `taunt_service.py`, `meta_task.py`.
+
+**Context:** Spec: services use `session.flush()`; the router's
+dependency (`get_db`) owns the commit. Currently every write-path service
+calls `await session.commit()` mid-function (some multiple times). Moving
+commit-ownership is a transactional refactor — it changes what "successful
+response" means (now: dependency commits after handler returns; currently:
+service commits as a side effect).
+
+**Do:**
+1. Update `backend/db.py::get_db` to commit on successful return from the
+   dependent route and rollback on exception (or use a transactional
+   dependency wrapper).
+2. Mechanical pass: replace every `await session.commit()` in services
+   with `await session.flush()`. Grep-driven — every service file.
+3. Any service that needs a read-your-writes guarantee mid-function
+   already has `flush()` where needed.
+4. Any integration test that committed explicitly via fixtures needs
+   review — the SAVEPOINT pattern in `conftest.py` should absorb the
+   commit because the router-level commit is now the only commit per
+   request.
+
+**Files:** `backend/db.py`, every file under `backend/services/`,
+possibly `backend/tests/integration/conftest.py`.
+
+**Acceptance:** Grep `services/ -r "session.commit()"` returns zero hits.
+Full integration suite green. At least one new test that verifies the
+transaction rolls back on an exception raised inside the service.
+
+---
+
+### TASK S.13 — Rewrite `activity_feed.py` to return dataclasses
+
+**Scope:** `services/activity_feed.py` (~925 lines); schema types stay
+under `schemas/activity_feed.py` but are constructed by the router.
+
+**Context:** Every `_fetch_*` helper in `services/activity_feed.py` builds
+and returns Pydantic `ActivityFeedItem` / `FeedCounts` /
+`ActivityFeedResponse` objects. Per spec, services should return ORM
+objects or dataclasses; routers own Pydantic.
+
+**Do:**
+1. Define a frozen dataclass mirror of each Pydantic class (e.g.
+   `ActivityFeedItemDC`, `FeedCountsDC`, `ActivityFeedResponseDC`) in
+   `services/activity_feed.py` (or a new internal module).
+2. Rewrite every `_fetch_*` helper to return the dataclass form.
+3. Keep the composed `get_activity_feed(...)` returning the dataclass
+   composite.
+4. Update `routers/activity_feed.py` to build the Pydantic
+   `ActivityFeedResponse` from the dataclass via a single adapter.
+5. Tests in `test_activity_feed.py` should continue to hit the route; no
+   service-level changes needed.
+
+**Files:** `backend/services/activity_feed.py`,
+`backend/routers/activity_feed.py`, possibly
+`backend/schemas/activity_feed.py` (no changes expected).
+
+**Acceptance:** Service functions return dataclasses. Router still returns
+identical JSON. Existing activity-feed integration test passes.
+
+---
+
+### TASK S.14 — Migration squash 0002–0004 (only after 0006+ is stable)
+
+**Scope:** New `0001_squashed_v2.py` (or similar) that folds
+`0002_collab_member_content` through `0006_metatask_unification` + `0007`
++ `0008` into a single baseline.
+
+**Context:** Migrations 0002–0004 are an evolutionary artifact — 0002
+adds columns that 0003 removes, and 0003 is superseded by 0004. Anyone
+doing a downgrade past 0005 hits a known enum-duplication bug inside
+`0003_submission_unified`. Eventually worth cleaning up.
+
+**⚠️ Do NOT start this task until:**
+- 0007 and 0008 have been deployed to production for at least 30 days,
+- No developer machine/CI still relies on downgrading below 0006.
+
+**Do (when the time comes):**
+1. Spin up a fresh Postgres.
+2. Run `alembic upgrade head` against current chain, then
+   `pg_dump --schema-only` to capture the canonical schema.
+3. Create a new squashed baseline migration that `CREATE`s everything to
+   match the dump.
+4. Delete migrations 0002–0008.
+5. Mark the new baseline as `down_revision = None`.
+6. Coordinate a deploy window; production DB stays untouched — Alembic's
+   `alembic_version` table just needs to be updated to the new baseline's
+   revision id.
+
+**Files:** `backend/alembic/versions/` — delete 0002–0008, add new squashed
+baseline.
+
+**Acceptance:** `alembic upgrade head` from fresh DB produces a schema
+identical to pre-squash `alembic upgrade head`. CI green. Documented
+production rollout plan.
+
+---
+
 ## 🟣 SESSION 5+ — Ambitious Frontend (post-launch)
 
 > Do not start until the site is live on worldzero.org and the MVP frontend is stable.
