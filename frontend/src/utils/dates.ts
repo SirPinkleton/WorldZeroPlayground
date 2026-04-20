@@ -5,6 +5,10 @@ export function formatTimestamp(iso: string): string {
   })
 }
 
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
 /** Returns a human-friendly relative time string (e.g. "2h ago", "3d ago"). */
 export function relativeTime(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)

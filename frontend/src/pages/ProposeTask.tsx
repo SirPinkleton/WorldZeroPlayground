@@ -161,7 +161,7 @@ export default function ProposeTask() {
                       className="pennant-shape"
                       style={{
                         display: 'block',
-                        background: factionCssVar(slug), color: 'white',
+                        background: factionCssVar(slug), color: 'var(--color-text-on-accent)',
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.07em', padding: '2px 10px',
@@ -385,7 +385,7 @@ export default function ProposeTask() {
                 type="submit"
                 disabled={submitting}
                 style={{
-                  background: color, color: 'white',
+                  background: color, color: 'var(--color-text-on-accent)',
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.15em', padding: '10px 24px',

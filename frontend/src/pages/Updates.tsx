@@ -133,7 +133,7 @@ export default function Updates() {
         {count > 0 && (
           <span style={{
             background: hasRedBadge ? 'var(--color-danger)' : (active ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)'),
-            color: hasRedBadge ? 'white' : 'inherit',
+            color: hasRedBadge ? 'var(--color-text-on-accent)' : 'inherit',
             fontSize: 8, padding: '0 5px', borderRadius: 8, minWidth: 16, textAlign: 'center',
           }}>
             {count}

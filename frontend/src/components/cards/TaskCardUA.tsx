@@ -46,7 +46,7 @@ export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
           height: 10,
           borderRadius: '50%',
           background: factionCssVar('ua', 'card-accent'),
-          border: '2px solid rgba(0,0,0,0.25)',
+          border: '2px solid var(--color-overlay-strong)',
         }}
       />
 

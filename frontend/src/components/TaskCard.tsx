@@ -18,7 +18,7 @@ interface CardProps {
   onSignup?: (id: number) => void
 }
 
-/** Map faction slugs to their unique card archetype (Style Guide §6). */
+/** Style Guide §6 — one card archetype per faction. */
 const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   ua: TaskCardUA,
   analog: TaskCardAnalog,
@@ -29,13 +29,8 @@ const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   ua_masters: TaskCardUAMasters,
 }
 
-/** Fallback to UA sticky note for unknown factions */
 const DEFAULT_CARD = TaskCardUA
 
-/**
- * Router component: picks the correct faction card archetype based on task.primary_faction_slug.
- * When admin mode is on, adds inline status controls.
- */
 export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
   const { user } = useAuth()
   const { adminMode } = useAdminMode()
@@ -68,7 +63,7 @@ export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
           <span
             style={{
               background: factionCssVar(task.metatask_faction_slug),
-              color: 'white',
+              color: 'var(--color-text-on-accent)',
               fontFamily: "'Courier Prime', monospace",
               fontSize: 8,
               fontWeight: 700,
@@ -106,63 +101,46 @@ export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
           }}
         >
           {task.status === 'active' && (
-            <button
-              onClick={() => void handleStatusChange('retired')}
-              className="eyebrow"
-              style={{
-                fontSize: 7, padding: '1px 5px',
-                border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626',
-                background: 'rgba(255,255,255,0.9)',
-                cursor: 'pointer',
-              }}
-            >
-              retire
-            </button>
+            <AdminStatusButton label="retire" tone="danger" onClick={() => void handleStatusChange('retired')} />
           )}
           {task.status === 'retired' && (
-            <button
-              onClick={() => void handleStatusChange('active')}
-              className="eyebrow"
-              style={{
-                fontSize: 7, padding: '1px 5px',
-                border: '1px solid rgba(22,163,106,0.3)', color: '#16a34a',
-                background: 'rgba(255,255,255,0.9)',
-                cursor: 'pointer',
-              }}
-            >
-              activate
-            </button>
+            <AdminStatusButton label="activate" tone="success" onClick={() => void handleStatusChange('active')} />
           )}
           {task.status === 'pending' && (
             <>
-              <button
-                onClick={() => void handleStatusChange('active')}
-                className="eyebrow"
-                style={{
-                  fontSize: 7, padding: '1px 5px',
-                  border: '1px solid rgba(22,163,106,0.3)', color: '#16a34a',
-                  background: 'rgba(255,255,255,0.9)',
-                  cursor: 'pointer',
-                }}
-              >
-                activate
-              </button>
-              <button
-                onClick={() => void handleStatusChange('retired')}
-                className="eyebrow"
-                style={{
-                  fontSize: 7, padding: '1px 5px',
-                  border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626',
-                  background: 'rgba(255,255,255,0.9)',
-                  cursor: 'pointer',
-                }}
-              >
-                retire
-              </button>
+              <AdminStatusButton label="activate" tone="success" onClick={() => void handleStatusChange('active')} />
+              <AdminStatusButton label="retire" tone="danger" onClick={() => void handleStatusChange('retired')} />
             </>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+function AdminStatusButton({
+  label,
+  tone,
+  onClick,
+}: {
+  label: string
+  tone: 'danger' | 'success'
+  onClick: () => void
+}) {
+  const toneVar = tone === 'danger' ? 'var(--color-danger)' : 'var(--color-success)'
+  return (
+    <button
+      onClick={onClick}
+      className="eyebrow"
+      style={{
+        fontSize: 7, padding: '1px 5px',
+        border: `1px solid color-mix(in srgb, ${toneVar} 30%, transparent)`,
+        color: toneVar,
+        background: 'var(--color-surface-scrim)',
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
   )
 }

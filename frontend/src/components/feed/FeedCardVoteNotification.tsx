@@ -56,7 +56,7 @@ export default function FeedCardVoteNotification({ item }: Props) {
             height: 28,
             borderRadius: 4,
             background: 'var(--badge-friend)',
-            color: '#fff',
+            color: 'var(--color-text-on-accent)',
             fontFamily: "'Courier Prime', monospace",
             fontSize: 14,
             fontWeight: 700,

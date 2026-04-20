@@ -18,7 +18,7 @@ import { moderatePraxis } from '../api/admin'
 import { extractError } from '../utils/errors'
 import { factionCssVar } from '../utils/factions'
 
-/** Rainbow underline bar colors — 8 segments cycling (Style Guide §12.3) */
+/** Style Guide §12.3 */
 const RAINBOW_COLORS = ['var(--underline-1)', 'var(--underline-2)', 'var(--underline-3)', 'var(--underline-4)', 'var(--underline-5)', 'var(--underline-6)', 'var(--underline-1)', 'var(--underline-2)']
 
 export default function PraxisDetail() {
@@ -370,7 +370,7 @@ export default function PraxisDetail() {
               onClick={handleResubmit}
               disabled={withdrawing}
               style={{
-                background: 'var(--color-success)', color: 'white',
+                background: 'var(--color-success)', color: 'var(--color-text-on-accent)',
                 fontFamily: "'Courier Prime', monospace",
                 fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em',
                 padding: '4px 12px', border: 'none', cursor: 'pointer', borderRadius: 0,

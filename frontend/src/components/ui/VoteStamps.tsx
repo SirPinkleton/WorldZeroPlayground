@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { castVote } from '../../api/votes'
 import { useAuth } from '../../auth/AuthContext'
-import { useTheme } from '../../hooks/useTheme'
 import { extractError } from '../../utils/errors'
 
 /**
@@ -32,9 +31,6 @@ interface Props {
 
 export default function VoteStamps({ praxisId, currentStars, averageStars, totalVotes }: Props) {
   const { user, refetch } = useAuth()
-  const { theme } = useTheme()
-  const dark = theme === 'dark'
-  const [hovered, setHovered] = useState(0)
   const [selected, setSelected] = useState(currentStars ?? 0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -63,36 +59,13 @@ export default function VoteStamps({ praxisId, currentStars, averageStars, total
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           {STAMPS.map((stamp) => {
             const active = selected === stamp.value
-            const isHovered = hovered === stamp.value
             return (
               <div key={stamp.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                 <button
                   disabled={saving}
-                  onMouseEnter={() => setHovered(stamp.value)}
-                  onMouseLeave={() => setHovered(0)}
                   onClick={() => void handleVote(stamp.value)}
-                  style={{
-                    position: 'relative',
-                    width: 44,
-                    height: 44,
-                    border: `2.5px solid ${stamp.color}`,
-                    borderRadius: 0,
-                    background: active
-                      ? stamp.color
-                      : isHovered
-                        ? `${stamp.color}18`
-                        : 'var(--stamp-inactive-bg)',
-                    color: active ? 'white' : (dark ? 'var(--color-text-primary)' : stamp.color),
-                    fontFamily: "'Courier Prime', monospace",
-                    fontSize: 18,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 120ms',
-                    opacity: saving ? 0.5 : 1,
-                  }}
+                  className={active ? 'vote-stamp vote-stamp-active' : 'vote-stamp'}
+                  style={{ '--stamp-color': stamp.color } as React.CSSProperties}
                   aria-label={`Rate ${stamp.value} — ${stamp.label}`}
                 >
                   {/* Inner dashed border on selected */}
@@ -101,7 +74,7 @@ export default function VoteStamps({ praxisId, currentStars, averageStars, total
                       style={{
                         position: 'absolute',
                         inset: 2,
-                        border: '1px dashed rgba(255,255,255,0.25)',
+                        border: '1px dashed color-mix(in srgb, var(--color-text-on-accent) 25%, transparent)',
                         pointerEvents: 'none',
                       }}
                     />
