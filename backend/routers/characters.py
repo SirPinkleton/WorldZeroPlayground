@@ -10,13 +10,13 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 logger = logging.getLogger(__name__)
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from config import settings
 from db import get_db
 from dependencies import get_current_character
 from models.account import Account
 from models.character import Character, CharacterStatus
-from models.character_stats import CharacterStats
 from models.relationship import Relationship
 from models.praxis import Praxis
 from models.vote import Vote
@@ -28,10 +28,11 @@ from services.character import (
     CharacterCreationResult,
     build_character_out,
     create_character,
+    list_characters_for_viewer,
     soft_delete_character,
     update_character,
 )
-from services.era import get_current_era_row_safe, load_current_era_stats
+from services.era import load_current_era_stats
 from services.praxis import build_praxis_out
 
 router = APIRouter()
@@ -46,29 +47,10 @@ async def list_characters(
     session: AsyncSession = Depends(get_db),
 ):
     """List all active characters. Optionally filter by name or faction."""
-    era_row = await get_current_era_row_safe(session)
-    era_id = era_row.id if era_row else None
-
-    query = (
-        select(Character, CharacterStats)
-        .outerjoin(
-            CharacterStats,
-            (CharacterStats.character_id == Character.id)
-            & (CharacterStats.era_id == era_id if era_id else False),
-        )
-        .where(Character.status == CharacterStatus.active)
+    rows = await list_characters_for_viewer(
+        session, search=search, faction_slug=faction, limit=limit, offset=offset
     )
-    if search:
-        query = query.where(Character.username.ilike(f"%{search}%"))
-    if faction:
-        query = query.where(Character.faction_slug == faction)
-    query = query.order_by(
-        CharacterStats.score.desc().nulls_last()
-    ).limit(limit).offset(offset)
-
-    result = await session.execute(query)
-    rows = result.all()
-    return [build_character_out(c, s) for c, s in rows]
+    return [build_character_out(character, stats) for character, stats in rows]
 
 
 @router.get("/{character_id}", response_model=CharacterOut)
@@ -134,6 +116,7 @@ async def get_character_praxes(
 ):
     result = await session.execute(
         select(Praxis)
+        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
         .where(Praxis.created_by_id == character_id)
         .order_by(Praxis.created_at.desc())
         .limit(limit)

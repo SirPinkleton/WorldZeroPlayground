@@ -3,17 +3,19 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from models.task import TaskStatus, TaskType
+
 
 class TaskOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
     id: int
     title: str
     description: str
     point_value: int
     level_required: int
-    status: str
-    task_type: str
+    status: TaskStatus
+    task_type: TaskType
     created_by: int
     primary_faction_slug: str
     metatask_faction_slug: Optional[str] = None

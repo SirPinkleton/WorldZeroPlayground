@@ -1,10 +1,10 @@
 import enum
-from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Text, func
+from sqlalchemy import Enum, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+from models.mixins import CreatedAtMixin
 
 
 class TauntTriggerType(enum.Enum):
@@ -13,7 +13,7 @@ class TauntTriggerType(enum.Enum):
     praxis_complete = "praxis_complete"
 
 
-class TauntMessage(Base):
+class TauntMessage(CreatedAtMixin, Base):
     __tablename__ = "taunt_message"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -26,7 +26,4 @@ class TauntMessage(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     trigger_type: Mapped[TauntTriggerType] = mapped_column(
         Enum(TauntTriggerType, create_type=False), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

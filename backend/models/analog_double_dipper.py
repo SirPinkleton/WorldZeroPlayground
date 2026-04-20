@@ -1,12 +1,11 @@
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+from models.mixins import CreatedAtMixin
 
 
-class AnalogDoubleDipper(Base):
+class AnalogDoubleDipper(CreatedAtMixin, Base):
     """One row per level tier for Analog faction players.
 
     The Double Dipper ability lets an Analog player designate one task per level
@@ -27,7 +26,4 @@ class AnalogDoubleDipper(Base):
     level_tier: Mapped[int] = mapped_column(Integer, nullable=False)
     task_id: Mapped[int] = mapped_column(
         ForeignKey("task.id"), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

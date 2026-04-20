@@ -1,11 +1,11 @@
 import enum
-from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+from models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -17,19 +17,13 @@ class AccountStatus(enum.Enum):
     deleted = "deleted"
 
 
-class Account(Base):
+class Account(TimestampMixin, Base):
     __tablename__ = "account"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     status: Mapped[AccountStatus] = mapped_column(
         Enum(AccountStatus, create_type=False), nullable=False, default=AccountStatus.active
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
     characters: Mapped[List["Character"]] = relationship(
@@ -40,7 +34,7 @@ class Account(Base):
     )
 
 
-class OAuthProvider(Base):
+class OAuthProvider(TimestampMixin, Base):
     __tablename__ = "oauth_provider"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -48,12 +42,6 @@ class OAuthProvider(Base):
     provider: Mapped[str] = mapped_column(String, nullable=False)
     provider_user_id: Mapped[str] = mapped_column(String, nullable=False)
     access_token: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
-    )
 
     account: Mapped["Account"] = relationship(
         "Account", back_populates="oauth_providers", lazy="raise"

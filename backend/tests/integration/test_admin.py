@@ -683,7 +683,7 @@ async def _seed_praxis(
         task_id=active_task.id,
         type=PraxisType.solo,
         title=title,
-        moderation_status=ModerationStatus.visible.value,
+        moderation_status=ModerationStatus.visible,
         created_by_id=character.id,
     )
     db_session.add(praxis)
@@ -718,7 +718,7 @@ async def test_admin_delete_praxis_hides_it(
     # Verify the row is still in the DB but now hidden
     result = await db_session.execute(select(Praxis).where(Praxis.id == praxis.id))
     updated = result.scalar_one()
-    assert updated.moderation_status == ModerationStatus.hidden.value
+    assert updated.moderation_status == ModerationStatus.hidden
 
 
 @pytest.mark.asyncio

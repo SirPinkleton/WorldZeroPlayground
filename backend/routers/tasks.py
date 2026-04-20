@@ -1,7 +1,6 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
@@ -12,13 +11,13 @@ from dependencies import (
 )
 from models.account import Account
 from models.character import Character
-from models.praxis import Praxis, PraxisMember, PraxisStatus
 from models.task import Task, TaskStatus, TaskType
 from schemas.task import TaskCreate, TaskOut
 from services.auth import get_current_account
 from services.task import (
     build_task_out,
     build_task_out_for_viewer,
+    list_signups_for_task,
     list_tasks as service_list_tasks,
     propose_task,
 )
@@ -57,39 +56,25 @@ async def list_tasks(
     ]
 
 
+def _build_signup_dict(member, character, praxis) -> dict:
+    return {
+        "character_id": character.id,
+        "display_name": character.display_name,
+        "avatar_url": character.avatar_url,
+        "faction_slug": character.faction_slug,
+        "praxis_type": praxis.type.value,
+        "joined_at": member.joined_at,
+    }
+
+
 @router.get("/{task_id}/signups", response_model=list[dict])
 async def list_task_signups(
     task_id: int,
     session: AsyncSession = Depends(get_db),
 ):
     """List characters currently working on a task via praxis membership."""
-    task = await session.get(Task, task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
-
-    result = await session.execute(
-        select(PraxisMember, Character, Praxis)
-        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
-        .join(Character, PraxisMember.character_id == Character.id)
-        .where(
-            Praxis.task_id == task_id,
-            Praxis.status == PraxisStatus.in_progress,
-            Praxis.is_withdrawn == False,  # noqa: E712
-        )
-        .order_by(PraxisMember.joined_at.asc())
-    )
-    rows = result.all()
-    return [
-        {
-            "character_id": character.id,
-            "display_name": character.display_name,
-            "avatar_url": character.avatar_url,
-            "faction_slug": character.faction_slug,
-            "praxis_type": praxis.type.value,
-            "joined_at": member.joined_at,
-        }
-        for member, character, praxis in rows
-    ]
+    rows = await list_signups_for_task(task_id, session)
+    return [_build_signup_dict(*row) for row in rows]
 
 
 @router.get("/{task_id}", response_model=TaskOut)

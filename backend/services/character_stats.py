@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.praxis import (
+    ModerationStatus,
     Praxis,
     PraxisMember,
     PraxisStatus,
@@ -14,7 +15,9 @@ from models.praxis import (
 from models.task import Task
 from models.vote import Vote
 from models.era import Era
+from services.character import check_faction_graduation
 from services.era import get_current_era_row, get_or_create_stats
+from services.meta_task import get_meta_task_points
 from services.scoring import (
     COLLABORATION_MODE_COLLAB,
     COLLABORATION_MODE_SOLO,
@@ -23,33 +26,6 @@ from services.scoring import (
     compute_level,
     compute_praxis_score,
 )
-
-
-async def _get_meta_task_points(
-    praxis_id: int, character_level: int, session: AsyncSession
-) -> int:
-    """Return flat bonus points from metatask tasks attached to a praxis.
-
-    Metatasks are Task rows with ``task_type == TaskType.metatask`` whose
-    ``point_value`` is the flat bonus. Each metatask is only counted when the
-    character's level meets the metatask's own ``level_required``.
-    """
-    from models.meta_task import PraxisMetaTask
-    from models.task import TaskType
-
-    result = await session.execute(
-        select(Task)
-        .join(PraxisMetaTask, PraxisMetaTask.task_id == Task.id)
-        .where(PraxisMetaTask.praxis_id == praxis_id)
-    )
-    total = 0
-    for task in result.scalars().all():
-        if task.task_type != TaskType.metatask:
-            continue
-        if character_level < task.level_required:
-            continue
-        total += int(task.point_value)
-    return total
 
 
 async def _get_duel_vote_totals_by_member(
@@ -100,7 +76,7 @@ async def recalculate_character_stats(
         select(Praxis).where(
             Praxis.type == PraxisType.solo,
             Praxis.created_by_id == character_id,
-            Praxis.moderation_status != "hidden",
+            Praxis.moderation_status != ModerationStatus.hidden,
             Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
@@ -115,7 +91,7 @@ async def recalculate_character_stats(
             era,
             collaboration_mode=COLLABORATION_MODE_SOLO,
         )
-        meta_task_points = await _get_meta_task_points(
+        meta_task_points = await get_meta_task_points(
             praxis.id, author_level, session
         )
         sum_result = await session.execute(
@@ -223,7 +199,6 @@ async def recalculate_character_stats(
     stats.level = compute_level(new_score, era)
 
     if author:
-        from services.character import check_faction_graduation
         new_faction = check_faction_graduation(author, stats, era)
         if new_faction:
             author.faction_slug = new_faction

@@ -1,6 +1,12 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+
+FactionMembershipStatus = Literal[
+    "member", "invited", "not_invited", "defected", "can_return"
+]
 
 
 class FactionOut(BaseModel):
@@ -24,7 +30,7 @@ class FactionChoiceRequest(BaseModel):
 class FactionStatusOut(BaseModel):
     slug: str
     name: str
-    status: str  # member, invited, not_invited, defected, can_return
+    status: FactionMembershipStatus
 
 
 class FactionPageOut(BaseModel):

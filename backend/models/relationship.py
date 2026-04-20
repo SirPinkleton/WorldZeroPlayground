@@ -1,10 +1,10 @@
 import enum
-from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+from models.mixins import TimestampMixin
 
 
 class RelationshipType(enum.Enum):
@@ -17,7 +17,7 @@ class RelationshipStatus(enum.Enum):
     blocked = "blocked"
 
 
-class Relationship(Base):
+class Relationship(TimestampMixin, Base):
     __tablename__ = "relationship"
     __table_args__ = (UniqueConstraint("from_character_id", "to_character_id"),)
 
@@ -33,10 +33,4 @@ class Relationship(Base):
     )
     status: Mapped[RelationshipStatus] = mapped_column(
         Enum(RelationshipStatus, create_type=False), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
