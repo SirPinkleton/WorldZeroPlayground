@@ -149,6 +149,55 @@ async def test_admin_update_task_status(
 
 
 @pytest.mark.asyncio
+async def test_admin_can_move_task_freely_between_states(
+    client: AsyncClient,
+    account: Account,
+    character: Character,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """Admin can move a task pending → retired → pending → active without restrictions."""
+    await _make_admin(account, db_session)
+
+    task = Task(
+        title="Free-move",
+        point_value=5,
+        level_required=0,
+        status=TaskStatus.pending,
+        created_by=character.id,
+    )
+    db_session.add(task)
+    await db_session.commit()
+
+    # pending → retired (previously rejected by /retire)
+    resp = await client.put(f"/admin/tasks/{task.id}/retire", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "retired"
+
+    # retired → pending (new: previously no path)
+    resp = await client.put(
+        f"/admin/tasks/{task.id}/status",
+        json={"status": "pending"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "pending"
+
+    # pending → active via /approve
+    resp = await client.put(f"/admin/tasks/{task.id}/approve", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"
+
+    # Same-state is rejected as confused intent
+    resp = await client.put(
+        f"/admin/tasks/{task.id}/status",
+        json={"status": "active"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_admin_create_task(
     client: AsyncClient,
     account: Account,

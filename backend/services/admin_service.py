@@ -406,22 +406,21 @@ async def update_task_status(
     new_status: TaskStatus,
     session: AsyncSession,
 ) -> Task:
-    """Unified task status change with transition validation."""
+    """Admin task status change.
+
+    Admins can move a task freely between pending, active, and retired —
+    e.g. dismiss a pending proposal directly to retired, send an active task
+    back to pending for re-review, or reactivate a retired task. Same-state
+    requests 422 as likely-confused intent.
+    """
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
 
-    VALID_TRANSITIONS = {
-        TaskStatus.pending: {TaskStatus.active, TaskStatus.retired},
-        TaskStatus.active: {TaskStatus.retired},
-        TaskStatus.retired: {TaskStatus.active},
-    }
-
-    allowed = VALID_TRANSITIONS.get(task.status, set())
-    if new_status not in allowed:
+    if new_status == task.status:
         raise HTTPException(
             status_code=422,
-            detail=f"Cannot transition from {task.status.value} to {new_status.value}.",
+            detail=f"Task is already {task.status.value}.",
         )
 
     task.status = new_status
