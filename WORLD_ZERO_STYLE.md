@@ -30,9 +30,11 @@ These are non-negotiable and take precedence over any visual specification.
    - No hardcoded rule thresholds in the frontend. If you're writing `level >= 4` in a component, the backend should be returning a flag instead.
    - Disabled state (`<button disabled>`) is only for in-flight async and form validity — never for rule-based denial.
 
-5. **Faction identity cascades from the card archetype.** Anything associated with a faction (profile headers, praxis bylines, proposal wrappers, feed items) should reuse the faction's card aesthetic. Change the card archetype once and every faction-branded element updates. Don't create parallel styling for each context.
+5. **Every button does something.** Don't render an interactive control unless it has a handler that does real work on press. No placeholder buttons, no "coming soon" stubs, no controls that render but no-op. If the feature isn't built yet, the control isn't on the page yet. This is stricter than #4: #4 hides controls the user *can't* use; this rule says even the *author* can't leave a dead control behind.
 
-6. **The code is the spec.** This document describes design *intent*. When this document and the code disagree, update whichever is wrong. Don't let them drift.
+6. **Faction identity cascades from the card archetype.** Anything associated with a faction (profile headers, praxis bylines, proposal wrappers, feed items) should reuse the faction's card aesthetic. Change the card archetype once and every faction-branded element updates. Don't create parallel styling for each context.
+
+7. **The code is the spec.** This document describes design *intent*. When this document and the code disagree, update whichever is wrong. Don't let them drift.
 
 ---
 
@@ -186,6 +188,7 @@ Brief design intent for each page. For implementation details, read the componen
 - **No dark mode via ternaries** — use CSS variables so the cascade handles it
 - **No dark mode by inverting colors** — each card has a specifically designed dark variant in the CSS variables
 - **No disabled buttons for permission gates** — hide controls users can't use
+- **No dead buttons** — every interactive control must have a working handler; no placeholders, no stubs, no `onClick={() => {}}`
 - **No parallel faction styling** — reuse the card archetype everywhere, don't recreate it
 - **Do not regularize card sizes** — varied widths and rotations are intentional
 - **Do not use emoji as icons** — use CSS or SVG
