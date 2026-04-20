@@ -196,6 +196,12 @@ ERA_N = EraConfig(
 
     level_thresholds=(0, 10, 70, 170, 330, 610, 1090, 1840, 3040),  # TODO: Adjust
 
+    # Capability level gates — minimum level to unlock each action.
+    level_to_propose_task=3,
+    level_to_propose_metatask=6,
+    level_to_see_retired_tasks=2,
+    level_to_see_pending_tasks=3,
+
     reset_score=True,
     reset_level=True,
     reset_faction=True,

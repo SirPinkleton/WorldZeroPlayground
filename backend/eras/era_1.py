@@ -493,6 +493,11 @@ ERA_1 = EraConfig(
     vote_budget_base=100,
     vote_budget_multiplier=2.0,
     level_thresholds=(0, 10, 70, 170, 330, 610, 1090, 1840, 3040),
+    # Capability level gates (see SPEC-game-rules.md "Level privileges")
+    level_to_propose_task=3,
+    level_to_propose_metatask=6,
+    level_to_see_retired_tasks=2,
+    level_to_see_pending_tasks=3,
     reset_score=True,
     reset_level=True,
     reset_faction=True,

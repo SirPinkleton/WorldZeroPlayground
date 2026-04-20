@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, Response
 from fastapi import Request
@@ -17,6 +19,7 @@ from services.character import (
     can_create_additional_character,
     can_start_as_albescent,
 )
+from services.character_capabilities import compute_capabilities
 from services.era import get_current_era_row
 
 router = APIRouter()
@@ -95,6 +98,7 @@ async def auth_me(
     character = result.scalar_one_or_none()
 
     char_out = None
+    character_level: int | None = None
     if character:
         try:
             era_row = await get_current_era_row(session)
@@ -102,6 +106,7 @@ async def auth_me(
         except Exception:
             stats = None
         char_out = _build_character_out(character, stats)
+        character_level = stats.level if stats else 0
 
     admin_result = await session.execute(
         select(AccountRole)
@@ -120,12 +125,15 @@ async def auth_me(
         can_create_more = False
         can_albescent = False
 
+    capabilities = compute_capabilities(character_level, is_admin)
+
     return CurrentUser(
         account_id=account.id,
         character=char_out,
         is_admin=is_admin,
         can_create_additional_character=can_create_more,
         can_start_as_albescent=can_albescent,
+        **asdict(capabilities),
     )
 
 
