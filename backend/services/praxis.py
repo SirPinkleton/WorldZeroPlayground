@@ -465,7 +465,7 @@ async def create_praxis(
         has_submitted=False,
     )
     session.add(member)
-    await session.commit()
+    await session.flush()
     # Reload with detail-view options so ``build_praxis_out`` can read invites
     # and media_items without tripping lazy='raise'.
     return await get_praxis(praxis.id, session)
@@ -485,7 +485,7 @@ async def update_praxis(
         praxis.title = data.title
     if data.body_text is not None:
         praxis.body_text = data.body_text
-    await session.commit()
+    await session.flush()
     # Re-fetch rather than session.refresh(praxis): refresh expires the
     # lazy='raise' relationships and breaks the subsequent build_praxis_out.
     return await get_praxis(praxis_id, session)
@@ -506,10 +506,10 @@ async def withdraw_praxis(
 
     praxis.is_withdrawn = True
     praxis.status = PraxisStatus.in_progress
-    await session.commit()
+    await session.flush()
 
     await recalculate_character_stats(character_id, session, era)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -527,10 +527,10 @@ async def resubmit_praxis(
         raise HTTPException(status_code=422, detail="Praxis is not withdrawn.")
 
     praxis.is_withdrawn = False
-    await session.commit()
+    await session.flush()
 
     await recalculate_character_stats(character_id, session, era)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -549,7 +549,7 @@ async def delete_praxis(
             detail="Cannot delete a submitted praxis. Withdraw it first.",
         )
     await session.delete(praxis)
-    await session.commit()
+    await session.flush()
 
 
 async def can_flag_praxis(
@@ -693,7 +693,7 @@ async def flag_praxis(
         reason=reason or "",
     )
     session.add(flag)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -815,7 +815,7 @@ async def invite_to_praxis(
         status=PraxisInviteStatus.pending,
     )
     session.add(invite)
-    await session.commit()
+    await session.flush()
     await session.refresh(invite)
     return invite
 
@@ -840,7 +840,7 @@ async def respond_to_invite(
 
     if not accept:
         invite.status = PraxisInviteStatus.declined
-        await session.commit()
+        await session.flush()
         await session.refresh(invite)
         return invite
 
@@ -877,7 +877,7 @@ async def respond_to_invite(
     session.add(member)
 
     invite.status = PraxisInviteStatus.accepted
-    await session.commit()
+    await session.flush()
     await session.refresh(invite)
     return invite
 
@@ -915,7 +915,7 @@ async def kick_member(
             member.has_submitted = False
     praxis.status = PraxisStatus.in_progress
 
-    await session.commit()
+    await session.flush()
 
 
 async def submit_praxis(
@@ -945,7 +945,7 @@ async def submit_praxis(
         for member in praxis.members:
             await recalculate_character_stats(member.character_id, session, era)
 
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -964,7 +964,7 @@ async def reopen_praxis(
     for member in praxis.members:
         member.has_submitted = False
 
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -991,7 +991,7 @@ async def moderate_praxis(
     elif mod_enum == ModerationStatus.visible:
         praxis.admin_note = None
 
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -1089,11 +1089,11 @@ async def apply_metatask(
         )
 
     session.add(PraxisMetaTask(praxis_id=praxis_id, task_id=task_id))
-    await session.commit()
+    await session.flush()
 
     for member in praxis.members:
         await recalculate_character_stats(member.character_id, session, era)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -1125,11 +1125,11 @@ async def remove_metatask(
         raise HTTPException(status_code=404, detail="Metatask is not applied to this praxis.")
 
     await session.delete(link)
-    await session.commit()
+    await session.flush()
 
     for member in praxis.members:
         await recalculate_character_stats(member.character_id, session, era)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 

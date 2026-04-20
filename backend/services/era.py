@@ -142,4 +142,4 @@ async def apply_era_reset(
     if era.reset_faction:
         await clear_defection_history_for_era(new_era_row.id, session)
 
-    await session.commit()
+    await session.flush()

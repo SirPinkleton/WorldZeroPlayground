@@ -125,6 +125,6 @@ async def update_task_route(
     # Only allow editing metatask_faction_slug for metatasks.
     if task.task_type == TaskType.metatask and data.metatask_faction_slug is not None:
         task.metatask_faction_slug = data.metatask_faction_slug
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return build_task_out(task)

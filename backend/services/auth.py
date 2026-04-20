@@ -98,6 +98,6 @@ async def create_or_get_account(
         access_token=access_token,
     )
     session.add(oauth_row)
-    await session.commit()
+    await session.flush()
     await session.refresh(account)
     return account

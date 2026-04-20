@@ -185,7 +185,7 @@ async def create_character(
         era_id=era_row.id,
     )
 
-    await session.commit()
+    await session.flush()
     await session.refresh(character)
     await session.refresh(stats)
     return CharacterCreationResult(character=character, stats=stats)
@@ -205,7 +205,7 @@ async def update_character(
             value = ""
         setattr(character, field, value)
 
-    await session.commit()
+    await session.flush()
     await session.refresh(character)
     return character
 
@@ -215,7 +215,7 @@ async def soft_delete_character(character_id: int, session: AsyncSession) -> Non
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
     character.status = CharacterStatus.banned
-    await session.commit()
+    await session.flush()
 
 
 def _character_stats_era_join(era_id: int | None) -> Select:

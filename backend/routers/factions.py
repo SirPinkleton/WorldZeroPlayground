@@ -50,7 +50,7 @@ async def update_faction(
         raise HTTPException(status_code=404, detail="Faction not found.")
     faction.name = data.name
     faction.description = data.description
-    await session.commit()
+    await session.flush()
     await session.refresh(faction)
     return FactionOut.model_validate(faction)
 

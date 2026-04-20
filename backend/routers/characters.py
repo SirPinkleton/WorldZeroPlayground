@@ -140,7 +140,7 @@ async def upload_avatar(
     if character.account_id != account.id:
         raise HTTPException(status_code=403, detail="Cannot update another character's avatar.")
     character.avatar_url = await process_and_save_avatar(file, character_id)
-    await session.commit()
+    await session.flush()
     await session.refresh(character)
     stats = await load_current_era_stats(character_id, session)
     return build_character_out(character, stats)

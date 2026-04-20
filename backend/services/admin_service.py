@@ -210,7 +210,7 @@ async def create_faction(data: FactionCreate, session: AsyncSession) -> Faction:
         status=FactionStatus.hidden if data.hidden else FactionStatus.visible,
     )
     session.add(faction)
-    await session.commit()
+    await session.flush()
     await session.refresh(faction)
     return faction
 
@@ -252,7 +252,7 @@ async def admin_create_character(
         era_id=era_row.id,
     )
 
-    await session.commit()
+    await session.flush()
     await session.refresh(character)
     return character
 
@@ -290,7 +290,7 @@ async def set_character_stats(
         cap = era.vote_budget_base + int(era.vote_budget_multiplier * score_for_cap)
         stats.votes_spent_this_era = max(0, cap - patch.votes_available)
 
-    await session.commit()
+    await session.flush()
     await session.refresh(stats)
     return stats
 
@@ -302,7 +302,7 @@ async def reactivate_task(task_id: int, session: AsyncSession) -> Task:
     if task.status != TaskStatus.retired:
         raise HTTPException(status_code=422, detail="Only retired tasks can be reactivated.")
     task.status = TaskStatus.active
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return task
 
@@ -347,7 +347,7 @@ async def assign_or_revoke_role(
             granted_by=admin_account_id,
         )
         session.add(account_role)
-        await session.commit()
+        await session.flush()
 
     elif action == "revoke":
         if role is None:
@@ -364,7 +364,7 @@ async def assign_or_revoke_role(
             return  # Doesn't have the role — idempotent
 
         await session.delete(account_role)
-        await session.commit()
+        await session.flush()
 
 
 async def suspend_account(
@@ -376,7 +376,7 @@ async def suspend_account(
     if account is None:
         raise HTTPException(status_code=404, detail="Account not found.")
     account.status = AccountStatus.suspended if suspended else AccountStatus.active
-    await session.commit()
+    await session.flush()
     await session.refresh(account)
     return account
 
@@ -413,7 +413,7 @@ async def moderate_praxis(
     elif new_status == ModerationStatus.visible:
         praxis.admin_note = None
 
-    await session.commit()
+    await session.flush()
     # Scalar-only refresh leaves the already-loaded relationships intact,
     # so we don't trip ``lazy="raise"`` on invites/media_items when the
     # router pipes this praxis into ``build_praxis_out``. This avoids the
@@ -433,7 +433,7 @@ async def archive_message(
     if message is None:
         raise HTTPException(status_code=404, detail="Message not found.")
     message.is_archived = not message.is_archived
-    await session.commit()
+    await session.flush()
     await session.refresh(message)
     return message
 
@@ -474,7 +474,7 @@ async def update_task_status(
         )
 
     task.status = new_status
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return task
 
@@ -501,6 +501,6 @@ async def admin_edit_task(
         task.point_value = data.point_value
     if data.level_required is not None:
         task.level_required = data.level_required
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return task

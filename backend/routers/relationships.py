@@ -75,4 +75,4 @@ async def delete_relationship(
     if relationship.from_character_id != character.id:
         raise HTTPException(status_code=403, detail="Only the declaring party can delete a relationship.")
     await session.delete(relationship)
-    await session.commit()
+    await session.flush()

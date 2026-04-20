@@ -100,7 +100,7 @@ async def defect_to_faction(
         session.add(defection)
 
     character.faction_slug = target_slug
-    await session.commit()
+    await session.flush()
     await session.refresh(character)
     return character
 
@@ -276,7 +276,7 @@ async def designate_double_dipper(
         task_id=task.id,
     )
     session.add(designation)
-    await session.commit()
+    await session.flush()
     await session.refresh(designation)
     return designation
 

@@ -266,7 +266,7 @@ async def upload_media_route(
     media_item = await process_and_save_media(
         file, praxis_id, character.id, display_order, session
     )
-    await session.commit()
+    await session.flush()
     await session.refresh(media_item)
     return MediaItemOut.model_validate(media_item)
 
@@ -294,7 +294,7 @@ async def delete_media_route(
         pass
 
     await session.delete(media_item)
-    await session.commit()
+    await session.flush()
     return Response(status_code=204)
 
 

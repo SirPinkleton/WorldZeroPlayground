@@ -74,9 +74,9 @@ async def cast_or_update_vote(
     if existing is not None:
         # Update is free — no budget deduction
         existing.stars = stars
-        await session.commit()
+        await session.flush()
         await recalculate_character_stats(praxis.created_by_id, session, era)
-        await session.commit()
+        await session.flush()
         await session.refresh(existing)
         return existing
 
@@ -97,7 +97,7 @@ async def cast_or_update_vote(
     session.add(vote)
     await session.flush()
     await recalculate_character_stats(praxis.created_by_id, session, era)
-    await session.commit()
+    await session.flush()
     await session.refresh(vote)
     return vote
 
@@ -158,10 +158,10 @@ async def cast_or_update_duel_vote(
     if existing is not None:
         # Update is free
         existing.stars = stars
-        await session.commit()
+        await session.flush()
         for member_id in member_ids:
             await recalculate_character_stats(member_id, session, era)
-        await session.commit()
+        await session.flush()
         await session.refresh(existing)
         return existing
 
@@ -192,6 +192,6 @@ async def cast_or_update_duel_vote(
     await session.flush()
     for member_id in member_ids:
         await recalculate_character_stats(member_id, session, era)
-    await session.commit()
+    await session.flush()
     await session.refresh(vote)
     return vote

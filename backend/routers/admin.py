@@ -212,7 +212,7 @@ async def backfill_all_character_stats(
     era_row = await get_current_era_row(session)
     for character in characters:
         await recalculate_character_stats(character.id, session, era_row=era_row)
-    await session.commit()
+    await session.flush()
     return {"recalculated": len(characters)}
 
 
@@ -421,7 +421,7 @@ async def admin_toggle_task_vision(
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
     task.is_task_vision_eligible = data.is_task_vision_eligible
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return build_task_out(task)
 
@@ -436,7 +436,7 @@ async def admin_delete_praxis(
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
     praxis.moderation_status = ModerationStatus.hidden
-    await session.commit()
+    await session.flush()
 
 
 @router.post("/characters/{character_id}/ban", status_code=200)
@@ -450,7 +450,7 @@ async def ban_character(
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
     character.status = CharacterStatus.banned if data.banned else CharacterStatus.active
-    await session.commit()
+    await session.flush()
     return {"character_id": character_id, "banned": data.banned}
 
 
@@ -501,6 +501,6 @@ async def admin_create_task(
         status=TaskStatus.active,
     )
     session.add(task)
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return build_task_out(task)
