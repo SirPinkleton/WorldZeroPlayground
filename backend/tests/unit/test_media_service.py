@@ -1,0 +1,93 @@
+"""Unit tests for the PIL / filename / MIME pipeline in services.media.
+
+Exercises ``process_and_save_avatar`` directly (no HTTP client, no DB) to
+verify the three things the routers used to own inline:
+  1. Oversized images are downscaled to AVATAR_MAX_SIZE on the long side.
+  2. Non-image uploads are rejected with a 422.
+  3. The filename sanitizer strips path components and unsafe characters.
+"""
+
+import io
+import os
+
+import pytest
+from fastapi import HTTPException, UploadFile
+from PIL import Image
+
+from services import media
+from services.media import (
+    AVATAR_MAX_SIZE,
+    _sanitize_filename,
+    process_and_save_avatar,
+)
+
+
+def _jpeg_bytes(width: int, height: int) -> bytes:
+    """Return a valid JPEG of the given dimensions as bytes."""
+    image = Image.new("RGB", (width, height), color=(200, 100, 50))
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def _make_upload(filename: str, content: bytes, content_type: str) -> UploadFile:
+    """Wrap bytes in an UploadFile matching the FastAPI starlette shape."""
+    upload = UploadFile(
+        filename=filename,
+        file=io.BytesIO(content),
+        headers={"content-type": content_type},
+    )
+    return upload
+
+
+@pytest.mark.asyncio
+async def test_oversized_avatar_is_resized(tmp_path, monkeypatch):
+    """An image larger than AVATAR_MAX_SIZE on either side is downscaled."""
+    monkeypatch.setattr(media.settings, "MEDIA_ROOT", str(tmp_path))
+    upload = _make_upload(
+        "big.jpg", _jpeg_bytes(2048, 1024), "image/jpeg"
+    )
+
+    relative_path = await process_and_save_avatar(upload, character_id=42)
+
+    absolute_path = os.path.join(str(tmp_path), relative_path)
+    assert os.path.isfile(absolute_path)
+    with Image.open(absolute_path) as saved:
+        assert max(saved.size) <= AVATAR_MAX_SIZE
+        # The long edge lands on the cap; the short edge scales proportionally.
+        assert saved.size[0] == AVATAR_MAX_SIZE
+        assert saved.size[1] == AVATAR_MAX_SIZE // 2
+
+
+@pytest.mark.asyncio
+async def test_non_image_rejected(tmp_path, monkeypatch):
+    """A text/plain upload raises HTTPException(422) before touching disk."""
+    monkeypatch.setattr(media.settings, "MEDIA_ROOT", str(tmp_path))
+    upload = _make_upload("resume.txt", b"plain text file", "text/plain")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await process_and_save_avatar(upload, character_id=7)
+
+    assert exc_info.value.status_code == 422
+    # Nothing should have been written under the char directory.
+    assert os.listdir(tmp_path) == []
+
+
+def test_filename_sanitization_strips_path_and_unsafe_chars():
+    """Path components and special characters are replaced; length capped."""
+    # Path traversal attempt collapses to a safe basename.
+    assert _sanitize_filename("/etc/passwd") == "passwd"
+    # os.path.basename is platform-aware, so we only assert the unsafe-char
+    # replacement here — the basename behaviour is the OS's problem, not ours.
+    assert "/" not in _sanitize_filename("foo/bar/baz.png")
+
+    # Spaces, punctuation, unicode punctuation are replaced with underscores.
+    assert _sanitize_filename("my cool video!.mp4") == "my_cool_video_.mp4"
+    assert _sanitize_filename("") == "upload"
+    assert _sanitize_filename(None or "upload") == "upload"
+
+    # Length cap: anything over 100 chars gets truncated.
+    long_name = "a" * 200 + ".jpg"
+    sanitized = _sanitize_filename(long_name)
+    assert len(sanitized) == 100
+    assert sanitized.startswith("a")
