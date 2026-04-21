@@ -74,9 +74,9 @@ async def cast_or_update_vote(
     if existing is not None:
         # Update is free — no budget deduction
         existing.stars = stars
-        await session.commit()
+        await session.flush()
         await recalculate_character_stats(praxis.created_by_id, session, era)
-        await session.commit()
+        await session.flush()
         await session.refresh(existing)
         return existing
 
@@ -96,8 +96,8 @@ async def cast_or_update_vote(
     stats.votes_spent_this_era += 1
     session.add(vote)
     await session.flush()
-    await recalculate_character_stats(praxis.created_by_id, session, era)
-    await session.commit()
+    await recalculate_character_stats(praxis.created_by_id, session, era, era_row=era_row)
+    await session.flush()
     await session.refresh(vote)
     return vote
 
@@ -155,18 +155,19 @@ async def cast_or_update_duel_vote(
     )
     existing = existing_result.scalar_one_or_none()
 
+    era_row = await get_current_era_row(session)
+
     if existing is not None:
         # Update is free
         existing.stars = stars
-        await session.commit()
+        await session.flush()
         for member_id in member_ids:
-            await recalculate_character_stats(member_id, session, era)
-        await session.commit()
+            await recalculate_character_stats(member_id, session, era, era_row=era_row)
+        await session.flush()
         await session.refresh(existing)
         return existing
 
     # New vote — deduct from budget (on-read recomputation)
-    era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, voter.id, era_row.id)
 
     if compute_votes_available(stats, era) <= 0:
@@ -191,7 +192,7 @@ async def cast_or_update_duel_vote(
     session.add(vote)
     await session.flush()
     for member_id in member_ids:
-        await recalculate_character_stats(member_id, session, era)
-    await session.commit()
+        await recalculate_character_stats(member_id, session, era, era_row=era_row)
+    await session.flush()
     await session.refresh(vote)
     return vote

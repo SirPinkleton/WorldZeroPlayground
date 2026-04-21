@@ -17,7 +17,7 @@ from models.vote import Vote
 from models.era import Era
 from services.character import check_faction_graduation
 from services.era import get_current_era_row, get_or_create_stats
-from services.meta_task import get_meta_task_points
+from services.meta_task import get_meta_task_points_bulk
 from services.scoring import (
     COLLABORATION_MODE_COLLAB,
     COLLABORATION_MODE_SOLO,
@@ -28,17 +28,270 @@ from services.scoring import (
 )
 
 
-async def _get_duel_vote_totals_by_member(
-    praxis_id: int, session: AsyncSession
-) -> dict[int, int]:
-    """Return {praxis_member_id: total_stars} for all duel votes on a praxis."""
-    result = await session.execute(
-        select(Vote.praxis_member_id, func.sum(Vote.stars)).where(
-            Vote.praxis_id == praxis_id,
-            Vote.praxis_member_id.is_not(None),
-        ).group_by(Vote.praxis_member_id)
+async def _score_solo_praxes(
+    character_id: int,
+    character_faction_slug: str,
+    author_level: int,
+    session: AsyncSession,
+    era: EraConfig,
+) -> float:
+    """Sum the score contribution of all visible, non-withdrawn solo praxes this character authored."""
+    solo_result = await session.execute(
+        select(Praxis).where(
+            Praxis.type == PraxisType.solo,
+            Praxis.created_by_id == character_id,
+            Praxis.moderation_status != ModerationStatus.hidden,
+            Praxis.is_withdrawn == False,  # noqa: E712
+        )
     )
-    return {member_id: int(stars) for member_id, stars in result.all()}
+    solo_praxes = solo_result.scalars().all()
+
+    # Bulk-fetch tasks and per-praxis vote sums to avoid N+1 queries in the loop.
+    solo_task_ids = {praxis.task_id for praxis in solo_praxes}
+    tasks_by_id: dict[int, Task] = {}
+    if solo_task_ids:
+        tasks_result = await session.execute(
+            select(Task).where(Task.id.in_(solo_task_ids))
+        )
+        tasks_by_id = {task.id: task for task in tasks_result.scalars()}
+
+    solo_praxis_ids = [praxis.id for praxis in solo_praxes]
+    solo_stars_by_praxis: dict[int, int] = {}
+    if solo_praxis_ids:
+        stars_result = await session.execute(
+            select(Vote.praxis_id, func.sum(Vote.stars))
+            .where(Vote.praxis_id.in_(solo_praxis_ids))
+            .group_by(Vote.praxis_id)
+        )
+        solo_stars_by_praxis = {
+            praxis_id: int(stars or 0) for praxis_id, stars in stars_result.all()
+        }
+
+    solo_meta_points_by_praxis = await get_meta_task_points_bulk(
+        solo_praxis_ids, author_level, session
+    )
+
+    subtotal = 0.0
+    for praxis in solo_praxes:
+        task = tasks_by_id.get(praxis.task_id)
+        if task is None:
+            continue
+        task_faction_slug = task.primary_faction_slug or "na"
+        faction_multiplier = compute_faction_multiplier(
+            character_faction_slug,
+            task_faction_slug,
+            era,
+            collaboration_mode=COLLABORATION_MODE_SOLO,
+        )
+        meta_task_points = solo_meta_points_by_praxis.get(praxis.id, 0)
+        total_stars = solo_stars_by_praxis.get(praxis.id, 0)
+        subtotal += compute_praxis_score(
+            task.point_value,
+            faction_multiplier,
+            total_stars,
+            meta_task_points=meta_task_points,
+            duel_multiplier=1.0,
+        )
+    return subtotal
+
+
+async def _score_collab_praxes(
+    character_id: int,
+    character_faction_slug: str,
+    eligible_praxes: list[Praxis],
+    member_tasks_by_id: dict[int, Task],
+    session: AsyncSession,
+    era: EraConfig,
+) -> float:
+    """Sum the score contribution of this character's submitted collaboration memberships."""
+    collab_praxes = [p for p in eligible_praxes if p.type == PraxisType.collab]
+    collab_praxis_ids = [p.id for p in collab_praxes]
+
+    collab_stars_by_praxis: dict[int, int] = {}
+    if collab_praxis_ids:
+        collab_votes_result = await session.execute(
+            select(Vote.praxis_id, func.sum(Vote.stars))
+            .where(Vote.praxis_id.in_(collab_praxis_ids))
+            .group_by(Vote.praxis_id)
+        )
+        collab_stars_by_praxis = {
+            praxis_id: int(stars or 0) for praxis_id, stars in collab_votes_result.all()
+        }
+
+    subtotal = 0.0
+    for praxis in collab_praxes:
+        task = member_tasks_by_id.get(praxis.task_id)
+        if task is None:
+            continue
+        task_faction_slug = task.primary_faction_slug or "na"
+        faction_multiplier = compute_faction_multiplier(
+            character_faction_slug,
+            task_faction_slug,
+            era,
+            collaboration_mode=COLLABORATION_MODE_COLLAB,
+        )
+        total_stars = collab_stars_by_praxis.get(praxis.id, 0)
+        subtotal += compute_praxis_score(
+            task.point_value,
+            faction_multiplier,
+            total_stars,
+            meta_task_points=0,
+            duel_multiplier=1.0,
+        )
+    return subtotal
+
+
+async def _fetch_duel_context(
+    character_id: int,
+    duel_praxis_ids: list[int],
+    session: AsyncSession,
+) -> tuple[
+    dict[int, PraxisMember],
+    dict[int, Character],
+    dict[int, dict[int, int]],
+]:
+    """Bulk-fetch opposing members, opponent characters, and per-member vote tallies."""
+    opponent_members_by_praxis: dict[int, PraxisMember] = {}
+    opponents_result = await session.execute(
+        select(PraxisMember).where(
+            PraxisMember.praxis_id.in_(duel_praxis_ids),
+            PraxisMember.character_id != character_id,
+        )
+    )
+    for opponent_member in opponents_result.scalars():
+        # Duel praxes have exactly one opposing member; first-wins is fine.
+        opponent_members_by_praxis.setdefault(opponent_member.praxis_id, opponent_member)
+
+    opponent_character_ids = {om.character_id for om in opponent_members_by_praxis.values()}
+    opponents_by_id: dict[int, Character] = {}
+    if opponent_character_ids:
+        opponents_result = await session.execute(
+            select(Character).where(Character.id.in_(opponent_character_ids))
+        )
+        opponents_by_id = {
+            opponent.id: opponent for opponent in opponents_result.scalars()
+        }
+
+    duel_vote_totals_by_praxis: dict[int, dict[int, int]] = {}
+    duel_votes_result = await session.execute(
+        select(Vote.praxis_id, Vote.praxis_member_id, func.sum(Vote.stars))
+        .where(
+            Vote.praxis_id.in_(duel_praxis_ids),
+            Vote.praxis_member_id.is_not(None),
+        )
+        .group_by(Vote.praxis_id, Vote.praxis_member_id)
+    )
+    for praxis_id, praxis_member_id, stars in duel_votes_result.all():
+        duel_vote_totals_by_praxis.setdefault(praxis_id, {})[praxis_member_id] = int(stars or 0)
+
+    return opponent_members_by_praxis, opponents_by_id, duel_vote_totals_by_praxis
+
+
+async def _score_duel_praxes(
+    character_id: int,
+    character_faction_slug: str,
+    members: list[PraxisMember],
+    eligible_praxes: list[Praxis],
+    praxes_by_id: dict[int, Praxis],
+    member_tasks_by_id: dict[int, Task],
+    session: AsyncSession,
+    era: EraConfig,
+) -> float:
+    """Sum the score contribution of this character's submitted duel memberships."""
+    duel_praxis_ids = [p.id for p in eligible_praxes if p.type == PraxisType.duel]
+    if not duel_praxis_ids:
+        return 0.0
+
+    (
+        opponent_members_by_praxis,
+        opponents_by_id,
+        duel_vote_totals_by_praxis,
+    ) = await _fetch_duel_context(character_id, duel_praxis_ids, session)
+
+    subtotal = 0.0
+    for member in members:
+        praxis = praxes_by_id.get(member.praxis_id)
+        if praxis is None or praxis.type != PraxisType.duel:
+            continue
+        if praxis.status != PraxisStatus.submitted or praxis.is_withdrawn:
+            continue
+        task = member_tasks_by_id.get(praxis.task_id)
+        if task is None:
+            continue
+
+        vote_totals = duel_vote_totals_by_praxis.get(praxis.id, {})
+        member_stars = vote_totals.get(member.id, 0)
+
+        opponent_member = opponent_members_by_praxis.get(praxis.id)
+        opponent_member_id = opponent_member.id if opponent_member else None
+        opponent_stars = vote_totals.get(opponent_member_id, 0) if opponent_member_id else 0
+        opponent = (
+            opponents_by_id.get(opponent_member.character_id)
+            if opponent_member
+            else None
+        )
+        opponent_faction_slug = opponent.faction_slug if opponent else "na"
+
+        faction_multiplier = compute_faction_multiplier(
+            character_faction_slug,
+            task.primary_faction_slug or "na",
+            era,
+            collaboration_mode=COLLABORATION_MODE_SOLO,  # own/other task, no duel mode
+        )
+        duel_multiplier = compute_duel_multiplier(
+            character_faction_slug,
+            opponent_faction_slug,
+            is_winner=member_stars > opponent_stars,
+            is_tied=member_stars == opponent_stars,
+            era=era,
+        )
+        subtotal += compute_praxis_score(
+            task.point_value,
+            faction_multiplier,
+            member_stars,
+            meta_task_points=0,  # meta tasks on collaborations not yet wired
+            duel_multiplier=duel_multiplier,
+        )
+    return subtotal
+
+
+async def _fetch_membership_context(
+    character_id: int,
+    session: AsyncSession,
+) -> tuple[list[PraxisMember], list[Praxis], dict[int, Praxis], dict[int, Task]]:
+    """Bulk-fetch memberships, their praxes, and eligible praxis tasks for a character."""
+    member_result = await session.execute(
+        select(PraxisMember).where(
+            PraxisMember.character_id == character_id,
+        )
+    )
+    members = list(member_result.scalars().all())
+
+    member_praxis_ids = {member.praxis_id for member in members}
+    praxes_by_id: dict[int, Praxis] = {}
+    if member_praxis_ids:
+        praxes_result = await session.execute(
+            select(Praxis).where(Praxis.id.in_(member_praxis_ids))
+        )
+        praxes_by_id = {praxis.id: praxis for praxis in praxes_result.scalars()}
+
+    eligible_praxes = [
+        praxes_by_id[member.praxis_id]
+        for member in members
+        if member.praxis_id in praxes_by_id
+        and praxes_by_id[member.praxis_id].status == PraxisStatus.submitted
+        and not praxes_by_id[member.praxis_id].is_withdrawn
+    ]
+
+    member_task_ids = {praxis.task_id for praxis in eligible_praxes}
+    member_tasks_by_id: dict[int, Task] = {}
+    if member_task_ids:
+        tasks_result = await session.execute(
+            select(Task).where(Task.id.in_(member_task_ids))
+        )
+        member_tasks_by_id = {task.id: task for task in tasks_result.scalars()}
+
+    return members, eligible_praxes, praxes_by_id, member_tasks_by_id
 
 
 async def recalculate_character_stats(
@@ -69,124 +322,32 @@ async def recalculate_character_stats(
     current_stats = await get_or_create_stats(session, character_id, era_row.id)
     author_level = current_stats.level
 
-    total_score = 0.0
-
-    # ── Solo praxes ───────────────────────────────────────────────────────────
-    solo_result = await session.execute(
-        select(Praxis).where(
-            Praxis.type == PraxisType.solo,
-            Praxis.created_by_id == character_id,
-            Praxis.moderation_status != ModerationStatus.hidden,
-            Praxis.is_withdrawn == False,  # noqa: E712
-        )
+    total_score = await _score_solo_praxes(
+        character_id, character_faction_slug, author_level, session, era
     )
-    for praxis in solo_result.scalars().all():
-        task = await session.get(Task, praxis.task_id)
-        if task is None:
-            continue
-        task_faction_slug = task.primary_faction_slug or "na"
-        faction_multiplier = compute_faction_multiplier(
-            character_faction_slug,
-            task_faction_slug,
-            era,
-            collaboration_mode=COLLABORATION_MODE_SOLO,
-        )
-        meta_task_points = await get_meta_task_points(
-            praxis.id, author_level, session
-        )
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
-        total_score += compute_praxis_score(
-            task.point_value,
-            faction_multiplier,
-            total_stars,
-            meta_task_points=meta_task_points,
-            duel_multiplier=1.0,
-        )
 
-    # ── Submitted collaborations and duels ────────────────────────────────────
-    member_result = await session.execute(
-        select(PraxisMember).where(
-            PraxisMember.character_id == character_id,
-        )
+    members, eligible_praxes, praxes_by_id, member_tasks_by_id = (
+        await _fetch_membership_context(character_id, session)
     )
-    for member in member_result.scalars().all():
-        praxis = await session.get(Praxis, member.praxis_id)
-        if praxis is None or praxis.status != PraxisStatus.submitted:
-            continue
-        if praxis.is_withdrawn:
-            continue
 
-        task = await session.get(Task, praxis.task_id)
-        if task is None:
-            continue
-
-        task_faction_slug = task.primary_faction_slug or "na"
-
-        if praxis.type == PraxisType.duel:
-            # Determine duel outcome for this member
-            vote_totals = await _get_duel_vote_totals_by_member(praxis.id, session)
-            member_stars = vote_totals.get(member.id, 0)
-
-            other_member_result = await session.execute(
-                select(PraxisMember).where(
-                    PraxisMember.praxis_id == praxis.id,
-                    PraxisMember.character_id != character_id,
-                )
-            )
-            other_members = other_member_result.scalars().all()
-            opponent_member = other_members[0] if other_members else None
-            opponent_member_id = opponent_member.id if opponent_member else None
-            opponent_stars = vote_totals.get(opponent_member_id, 0) if opponent_member_id else 0
-
-            opponent = await session.get(Character, opponent_member.character_id) if opponent_member else None
-            opponent_faction_slug = opponent.faction_slug if opponent else "na"
-
-            is_tied = member_stars == opponent_stars
-            is_winner = member_stars > opponent_stars
-
-            faction_multiplier = compute_faction_multiplier(
-                character_faction_slug,
-                task_faction_slug,
-                era,
-                collaboration_mode=COLLABORATION_MODE_SOLO,  # own/other task, no duel mode
-            )
-            duel_multiplier = compute_duel_multiplier(
-                character_faction_slug,
-                opponent_faction_slug,
-                is_winner=is_winner,
-                is_tied=is_tied,
-                era=era,
-            )
-            total_score += compute_praxis_score(
-                task.point_value,
-                faction_multiplier,
-                member_stars,
-                meta_task_points=0,  # meta tasks on collaborations not yet wired
-                duel_multiplier=duel_multiplier,
-            )
-        elif praxis.type == PraxisType.collab:
-            # Collaboration
-            faction_multiplier = compute_faction_multiplier(
-                character_faction_slug,
-                task_faction_slug,
-                era,
-                collaboration_mode=COLLABORATION_MODE_COLLAB,
-            )
-            # Votes on collaborations use praxis-wide voting (no praxis_member_id)
-            sum_result = await session.execute(
-                select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-            )
-            total_stars = int(sum_result.scalar_one_or_none() or 0)
-            total_score += compute_praxis_score(
-                task.point_value,
-                faction_multiplier,
-                total_stars,
-                meta_task_points=0,
-                duel_multiplier=1.0,
-            )
+    total_score += await _score_collab_praxes(
+        character_id,
+        character_faction_slug,
+        eligible_praxes,
+        member_tasks_by_id,
+        session,
+        era,
+    )
+    total_score += await _score_duel_praxes(
+        character_id,
+        character_faction_slug,
+        members,
+        eligible_praxes,
+        praxes_by_id,
+        member_tasks_by_id,
+        session,
+        era,
+    )
 
     new_score = int(total_score)
     stats = current_stats

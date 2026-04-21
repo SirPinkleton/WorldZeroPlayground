@@ -13,8 +13,6 @@ from models.invitation_letter import InvitationLetter
 from models.task import Task
 from services.era import clear_defection_history_for_era, get_current_era_row, get_or_create_stats
 
-FACTION_GRADUATION_LEVEL: int = 3
-INVITATION_POINT_THRESHOLD: int = 20
 ANALOG_FACTION_SLUG: str = "analog"
 UA_MASTERS_FACTION_SLUG: str = "ua_masters"
 UA_FACTION_SLUG: str = "ua"
@@ -102,7 +100,7 @@ async def defect_to_faction(
         session.add(defection)
 
     character.faction_slug = target_slug
-    await session.commit()
+    await session.flush()
     await session.refresh(character)
     return character
 
@@ -136,8 +134,8 @@ async def check_and_deliver_invitations(
     """Deliver invitation letters if the character qualifies.
 
     Trigger conditions (all must be true):
-    - Character level >= FACTION_GRADUATION_LEVEL (3)
-    - Character score >= INVITATION_POINT_THRESHOLD (20)
+    - Character level >= ``era.faction_graduation_level``
+    - Character score >= ``era.invitation_point_threshold``
 
     When conditions are met, delivers a letter for the task's faction. UA Masters
     always sends an invitation to every qualifying player.
@@ -145,9 +143,9 @@ async def check_and_deliver_invitations(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character.id, era_row.id)
 
-    if stats.level < FACTION_GRADUATION_LEVEL:
+    if stats.level < era.faction_graduation_level:
         return []
-    if stats.score < INVITATION_POINT_THRESHOLD:
+    if stats.score < era.invitation_point_threshold:
         return []
 
     task_faction_slug = task.primary_faction_slug or UNAFFILIATED_FACTION_SLUG
@@ -278,7 +276,7 @@ async def designate_double_dipper(
         task_id=task.id,
     )
     session.add(designation)
-    await session.commit()
+    await session.flush()
     await session.refresh(designation)
     return designation
 

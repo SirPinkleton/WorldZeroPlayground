@@ -15,6 +15,6 @@ async def submit_contact(
 ):
     msg = ContactMessage(name=data.name, email=data.email, message=data.message)
     session.add(msg)
-    await session.commit()
+    await session.flush()
     await session.refresh(msg)
     return ContactMessageOut.model_validate(msg)

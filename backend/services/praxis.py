@@ -50,15 +50,8 @@ from services.scoring import (
 )
 
 
-DUEL_LEVEL_REQUIRED = 2
-COLLABORATION_LEVEL_REQUIRED = 1
 ANALOG_FACTION_SLUG = "analog"
 ALBESCENT_FACTION_SLUG = "albescent"
-METATASK_APPLY_LEVEL = 7
-# Minimum character level required to flag a praxis for moderator review.
-# EraConfig does not currently expose this value, so it lives here until a
-# dedicated era field is added (see flag_praxis).
-FLAG_LEVEL_REQUIRED = 4
 
 
 # ---------------------------------------------------------------------------
@@ -322,6 +315,13 @@ async def get_praxis(praxis_id: int, session: AsyncSession) -> Praxis:
     ``task``/``created_by``/``members``) because every service consumer of
     this helper ultimately feeds a ``build_praxis_out`` caller. The list
     endpoint uses :func:`list_praxes` which loads only what the card needs.
+
+    INVARIANT: must eagerly load every Praxis relationship with
+    ``cascade='all, delete-orphan'`` — currently just ``invites`` — because
+    :func:`delete_praxis` does ``session.delete(praxis)`` which needs those
+    collections loaded in the session for the cascade to fire. The other
+    relationships are ``lazy='raise'`` (see ``models/praxis.py``); dropping a
+    ``selectinload`` here silently breaks delete.
     """
     result = await session.execute(
         select(Praxis)
@@ -374,23 +374,14 @@ async def list_praxes(
     return list(result.scalars().all())
 
 
-async def create_praxis(
+async def _check_create_preconditions(
     task_id: int,
     praxis_type: PraxisType,
     character_id: int,
     session: AsyncSession,
-    era: EraConfig = CURRENT_ERA,
-    title: Optional[str] = None,
-    body_text: Optional[str] = None,
-) -> Praxis:
-    """Create a new praxis + praxis_member for the creator.
-
-    Enforces:
-    - Task must exist and be active
-    - Character level meets task.level_required
-    - Bank cap: era.max_task_signups = max concurrent in_progress praxes per character
-    - Duel/collab type requires minimum level
-    """
+    era: EraConfig,
+) -> Task:
+    """Raise HTTPException unless this character may create ``praxis_type`` for ``task_id``."""
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
@@ -398,7 +389,6 @@ async def create_praxis(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character_id, era_row.id)
 
-    # Level gate for the task
     if stats.level < task.level_required:
         raise HTTPException(
             status_code=403,
@@ -417,25 +407,44 @@ async def create_praxis(
             detail="You have already submitted a praxis for this task.",
         )
 
-    # Level gate for duel/collab types
-    if praxis_type == PraxisType.duel and stats.level < DUEL_LEVEL_REQUIRED:
+    if praxis_type == PraxisType.duel and stats.level < era.duel_level_required:
         raise HTTPException(
             status_code=403,
-            detail=f"Duels require level {DUEL_LEVEL_REQUIRED}.",
+            detail=f"Duels require level {era.duel_level_required}.",
         )
-    if praxis_type == PraxisType.collab and stats.level < COLLABORATION_LEVEL_REQUIRED:
+    if praxis_type == PraxisType.collab and stats.level < era.collaboration_level_required:
         raise HTTPException(
             status_code=403,
-            detail=f"Collaborations require level {COLLABORATION_LEVEL_REQUIRED}.",
+            detail=f"Collaborations require level {era.collaboration_level_required}.",
         )
 
-    # Bank cap: count how many in-progress praxes this character is a member of
     in_progress_count = await _count_in_progress_praxes(character_id, session)
     if in_progress_count >= era.max_task_signups:
         raise HTTPException(
             status_code=400,
             detail=f"Task bank is full ({era.max_task_signups} in-progress praxes). Complete or withdraw one first.",
         )
+    return task
+
+
+async def create_praxis(
+    task_id: int,
+    praxis_type: PraxisType,
+    character_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+    title: Optional[str] = None,
+    body_text: Optional[str] = None,
+) -> Praxis:
+    """Create a new praxis + praxis_member for the creator.
+
+    Enforces:
+    - Task must exist and be active
+    - Character level meets task.level_required
+    - Bank cap: era.max_task_signups = max concurrent in_progress praxes per character
+    - Duel/collab type requires minimum level
+    """
+    await _check_create_preconditions(task_id, praxis_type, character_id, session, era)
 
     praxis = Praxis(
         task_id=task_id,
@@ -456,7 +465,7 @@ async def create_praxis(
         has_submitted=False,
     )
     session.add(member)
-    await session.commit()
+    await session.flush()
     # Reload with detail-view options so ``build_praxis_out`` can read invites
     # and media_items without tripping lazy='raise'.
     return await get_praxis(praxis.id, session)
@@ -476,7 +485,7 @@ async def update_praxis(
         praxis.title = data.title
     if data.body_text is not None:
         praxis.body_text = data.body_text
-    await session.commit()
+    await session.flush()
     # Re-fetch rather than session.refresh(praxis): refresh expires the
     # lazy='raise' relationships and breaks the subsequent build_praxis_out.
     return await get_praxis(praxis_id, session)
@@ -497,10 +506,10 @@ async def withdraw_praxis(
 
     praxis.is_withdrawn = True
     praxis.status = PraxisStatus.in_progress
-    await session.commit()
+    await session.flush()
 
     await recalculate_character_stats(character_id, session, era)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -518,10 +527,10 @@ async def resubmit_praxis(
         raise HTTPException(status_code=422, detail="Praxis is not withdrawn.")
 
     praxis.is_withdrawn = False
-    await session.commit()
+    await session.flush()
 
     await recalculate_character_stats(character_id, session, era)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -540,7 +549,7 @@ async def delete_praxis(
             detail="Cannot delete a submitted praxis. Withdraw it first.",
         )
     await session.delete(praxis)
-    await session.commit()
+    await session.flush()
 
 
 async def can_flag_praxis(
@@ -553,11 +562,8 @@ async def can_flag_praxis(
 
     Mirrors the rules enforced in :func:`flag_praxis`:
     - Viewer must be authenticated (anonymous viewers cannot flag).
-    - Viewer must be at or above :data:`FLAG_LEVEL_REQUIRED` in the current era.
+    - Viewer must be at or above ``era.flag_level_required`` in the current era.
     - Viewer cannot flag a praxis they authored (character-level check).
-
-    ``era`` is accepted for signature parity with other service helpers even
-    though :data:`FLAG_LEVEL_REQUIRED` is not yet an EraConfig field.
     """
     if viewer is None:
         return False
@@ -565,7 +571,7 @@ async def can_flag_praxis(
         return False
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, viewer.id, era_row.id)
-    return stats.level >= FLAG_LEVEL_REQUIRED
+    return stats.level >= era.flag_level_required
 
 
 async def can_submit_praxis_for_task(
@@ -611,21 +617,18 @@ def allowed_praxis_modes(
 
     Mirrors the level gates enforced in :func:`create_praxis`:
     - Solo: always allowed once a viewer is authenticated.
-    - Collab: requires ``character_level >= COLLABORATION_LEVEL_REQUIRED``.
-    - Duel: requires ``character_level >= DUEL_LEVEL_REQUIRED``.
+    - Collab: requires ``character_level >= era.collaboration_level_required``.
+    - Duel: requires ``character_level >= era.duel_level_required``.
 
     Anonymous viewers (``character is None``) receive an empty list so the
     UI can hide the mode picker entirely.
-
-    ``era`` is accepted for signature parity; the thresholds are module-level
-    constants today but the signature leaves room for era-specific gates.
     """
     if character is None:
         return []
     modes: list[str] = [PraxisType.solo.value]
-    if character_level >= COLLABORATION_LEVEL_REQUIRED:
+    if character_level >= era.collaboration_level_required:
         modes.append(PraxisType.collab.value)
-    if character_level >= DUEL_LEVEL_REQUIRED:
+    if character_level >= era.duel_level_required:
         modes.append(PraxisType.duel.value)
     return modes
 
@@ -665,8 +668,9 @@ async def flag_praxis(
     flagged_by: Character,
     reason: str,
     session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
-    """Flag a praxis for moderation review. Requires level 4 or above."""
+    """Flag a praxis for moderation review. Requires ``era.flag_level_required`` or above."""
     praxis = await get_praxis(praxis_id, session)
 
     # Self-flag is always rejected with its own error message so the caller
@@ -674,10 +678,10 @@ async def flag_praxis(
     if flagged_by.id == praxis.created_by_id:
         raise HTTPException(status_code=403, detail="Cannot flag your own praxis.")
 
-    if not await can_flag_praxis(flagged_by, praxis, session):
+    if not await can_flag_praxis(flagged_by, praxis, session, era):
         raise HTTPException(
             status_code=403,
-            detail=f"Must be level {FLAG_LEVEL_REQUIRED} or above to flag a praxis.",
+            detail=f"Must be level {era.flag_level_required} or above to flag a praxis.",
         )
 
     praxis.moderation_status = ModerationStatus.flagged
@@ -689,13 +693,67 @@ async def flag_praxis(
         reason=reason or "",
     )
     session.add(flag)
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
 # ---------------------------------------------------------------------------
 # Collaboration/duel specific operations
 # ---------------------------------------------------------------------------
+
+
+def _check_duel_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
+    """Raise 400 when a duel praxis is already at its max_duel_participants cap."""
+    if len(praxis.members) >= era.max_duel_participants:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Duels can only have {era.max_duel_participants} participants.",
+        )
+
+
+def _check_collab_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
+    """Raise 400 when a collab praxis is already at its max_collab_participants cap."""
+    if len(praxis.members) >= era.max_collab_participants:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Collaboration is full (max {era.max_collab_participants} participants).",
+        )
+
+
+async def _check_invitee_task_eligibility(
+    invitee_id: int,
+    task_id: int,
+    session: AsyncSession,
+) -> None:
+    """Reject invites to players who already did this task (non-Analog only)."""
+    existing_praxis_result = await session.execute(
+        select(Praxis).where(
+            Praxis.type == PraxisType.solo,
+            Praxis.created_by_id == invitee_id,
+            Praxis.task_id == task_id,
+            Praxis.is_withdrawn == False,  # noqa: E712
+        )
+    )
+    if existing_praxis_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This player has already submitted proof for this task and is not eligible to be invited.",
+        )
+
+    existing_collab_result = await session.execute(
+        select(PraxisMember)
+        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+        .where(
+            PraxisMember.character_id == invitee_id,
+            Praxis.task_id == task_id,
+            Praxis.status == PraxisStatus.submitted,
+        )
+    )
+    if existing_collab_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This player has already completed this task in a collaboration and is not eligible to be invited.",
+        )
 
 
 async def invite_to_praxis(
@@ -710,7 +768,6 @@ async def invite_to_praxis(
 
     if praxis.type == PraxisType.solo:
         raise HTTPException(status_code=400, detail="Cannot invite to a solo praxis.")
-
     if praxis.status == PraxisStatus.submitted:
         raise HTTPException(status_code=400, detail="Cannot invite to a submitted praxis.")
 
@@ -718,23 +775,13 @@ async def invite_to_praxis(
     if inviter_id not in member_ids:
         raise HTTPException(status_code=403, detail="Only members can send invites.")
 
-    # Duels: max participants from era config
-    if praxis.type == PraxisType.duel and len(praxis.members) >= era.max_duel_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Duels can only have {era.max_duel_participants} participants.",
-        )
-
-    # Collaborations: max capacity from era config
-    if praxis.type == PraxisType.collab and len(praxis.members) >= era.max_collab_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Collaboration is full (max {era.max_collab_participants} participants).",
-        )
+    if praxis.type == PraxisType.duel:
+        _check_duel_invite_eligibility(praxis, era)
+    elif praxis.type == PraxisType.collab:
+        _check_collab_invite_eligibility(praxis, era)
 
     if invitee_id == inviter_id:
         raise HTTPException(status_code=400, detail="Cannot invite yourself.")
-
     if invitee_id in member_ids:
         raise HTTPException(status_code=409, detail="Player is already a member.")
 
@@ -759,34 +806,7 @@ async def invite_to_praxis(
 
     # Eligibility check: skip for Analog faction (Double Dipper perk)
     if invitee.faction_slug != ANALOG_FACTION_SLUG:
-        existing_praxis_result = await session.execute(
-            select(Praxis).where(
-                Praxis.type == PraxisType.solo,
-                Praxis.created_by_id == invitee_id,
-                Praxis.task_id == praxis.task_id,
-                Praxis.is_withdrawn == False,  # noqa: E712
-            )
-        )
-        if existing_praxis_result.scalar_one_or_none() is not None:
-            raise HTTPException(
-                status_code=409,
-                detail="This player has already submitted proof for this task and is not eligible to be invited.",
-            )
-
-        existing_collab_result = await session.execute(
-            select(PraxisMember)
-            .join(Praxis, PraxisMember.praxis_id == Praxis.id)
-            .where(
-                PraxisMember.character_id == invitee_id,
-                Praxis.task_id == praxis.task_id,
-                Praxis.status == PraxisStatus.submitted,
-            )
-        )
-        if existing_collab_result.scalar_one_or_none() is not None:
-            raise HTTPException(
-                status_code=409,
-                detail="This player has already completed this task in a collaboration and is not eligible to be invited.",
-            )
+        await _check_invitee_task_eligibility(invitee_id, praxis.task_id, session)
 
     invite = PraxisInvite(
         praxis_id=praxis_id,
@@ -795,7 +815,7 @@ async def invite_to_praxis(
         status=PraxisInviteStatus.pending,
     )
     session.add(invite)
-    await session.commit()
+    await session.flush()
     await session.refresh(invite)
     return invite
 
@@ -820,7 +840,7 @@ async def respond_to_invite(
 
     if not accept:
         invite.status = PraxisInviteStatus.declined
-        await session.commit()
+        await session.flush()
         await session.refresh(invite)
         return invite
 
@@ -857,7 +877,7 @@ async def respond_to_invite(
     session.add(member)
 
     invite.status = PraxisInviteStatus.accepted
-    await session.commit()
+    await session.flush()
     await session.refresh(invite)
     return invite
 
@@ -895,7 +915,7 @@ async def kick_member(
             member.has_submitted = False
     praxis.status = PraxisStatus.in_progress
 
-    await session.commit()
+    await session.flush()
 
 
 async def submit_praxis(
@@ -922,10 +942,13 @@ async def submit_praxis(
     if all(m.has_submitted for m in praxis.members):
         praxis.status = PraxisStatus.submitted
         await session.flush()
+        era_row = await get_current_era_row(session)
         for member in praxis.members:
-            await recalculate_character_stats(member.character_id, session, era)
+            await recalculate_character_stats(
+                member.character_id, session, era, era_row=era_row
+            )
 
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -944,7 +967,7 @@ async def reopen_praxis(
     for member in praxis.members:
         member.has_submitted = False
 
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -971,13 +994,35 @@ async def moderate_praxis(
     elif mod_enum == ModerationStatus.visible:
         praxis.admin_note = None
 
-    await session.commit()
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
 # ---------------------------------------------------------------------------
 # Metatasks
 # ---------------------------------------------------------------------------
+
+
+def _check_metatask_eligibility(
+    character: Character,
+    task: Task,
+    character_level: int,
+    era: EraConfig,
+) -> Optional[str]:
+    """Return a 403 reason string if this character can't apply ``task``, else None."""
+    if character.faction_slug == ALBESCENT_FACTION_SLUG:
+        return None
+    if character_level < era.metatask_apply_level:
+        return (
+            f"Must be level {era.metatask_apply_level} or above "
+            "to apply metatasks."
+        )
+    if character.faction_slug != task.metatask_faction_slug:
+        return (
+            "This metatask belongs to a different faction. "
+            "Only Albescent characters can apply any faction's metatask."
+        )
+    return None
 
 
 async def apply_metatask(
@@ -995,7 +1040,7 @@ async def apply_metatask(
     - The praxis must be ``in_progress`` (else 422).
     - Faction gate:
         * Albescent characters may apply any faction's metatask.
-        * Otherwise the character must be at least ``METATASK_APPLY_LEVEL``
+        * Otherwise the character must be at least ``era.metatask_apply_level``
           AND their ``faction_slug`` must match ``task.metatask_faction_slug``.
     """
     praxis = await get_praxis(praxis_id, session)
@@ -1028,23 +1073,9 @@ async def apply_metatask(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, character_id, era_row.id)
 
-    if character.faction_slug != ALBESCENT_FACTION_SLUG:
-        if stats.level < METATASK_APPLY_LEVEL:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"Must be level {METATASK_APPLY_LEVEL} or above "
-                    "to apply metatasks."
-                ),
-            )
-        if character.faction_slug != task.metatask_faction_slug:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "This metatask belongs to a different faction. "
-                    "Only Albescent characters can apply any faction's metatask."
-                ),
-            )
+    eligibility_error = _check_metatask_eligibility(character, task, stats.level, era)
+    if eligibility_error is not None:
+        raise HTTPException(status_code=403, detail=eligibility_error)
 
     # Reject duplicate links up front — a metatask can only be applied once
     # to the same praxis.
@@ -1061,11 +1092,14 @@ async def apply_metatask(
         )
 
     session.add(PraxisMetaTask(praxis_id=praxis_id, task_id=task_id))
-    await session.commit()
+    await session.flush()
 
+    era_row = await get_current_era_row(session)
     for member in praxis.members:
-        await recalculate_character_stats(member.character_id, session, era)
-    await session.commit()
+        await recalculate_character_stats(
+            member.character_id, session, era, era_row=era_row
+        )
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -1097,11 +1131,14 @@ async def remove_metatask(
         raise HTTPException(status_code=404, detail="Metatask is not applied to this praxis.")
 
     await session.delete(link)
-    await session.commit()
+    await session.flush()
 
+    era_row = await get_current_era_row(session)
     for member in praxis.members:
-        await recalculate_character_stats(member.character_id, session, era)
-    await session.commit()
+        await recalculate_character_stats(
+            member.character_id, session, era, era_row=era_row
+        )
+    await session.flush()
     return await get_praxis(praxis_id, session)
 
 

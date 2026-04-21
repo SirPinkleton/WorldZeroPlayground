@@ -97,6 +97,13 @@ class Praxis(TimestampMixin, Base):
     # view (and most service-layer reads) do not pay for the joins. Call
     # sites that need them must use ``.options(selectinload(Praxis.foo))``;
     # accessing these attributes on an un-loaded Praxis raises.
+    #
+    # CASCADE INVARIANT: any relationship declared with
+    # ``cascade='all, delete-orphan'`` MUST be eagerly loaded wherever
+    # ``session.delete(praxis)`` is called (see ``services/praxis.get_praxis``).
+    # Otherwise SQLAlchemy cannot cascade the delete and the orphaned rows
+    # remain. If you add a new cascade, update ``get_praxis`` to selectin-load
+    # it too.
     invites: Mapped[List["PraxisInvite"]] = relationship(
         "PraxisInvite",
         back_populates="praxis",

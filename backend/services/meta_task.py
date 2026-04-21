@@ -38,3 +38,30 @@ async def get_meta_task_points(
             continue
         total += int(task.point_value)
     return total
+
+
+async def get_meta_task_points_bulk(
+    praxis_ids: list[int], character_level: int, session: AsyncSession
+) -> dict[int, int]:
+    """Bulk version of ``get_meta_task_points`` — one query for many praxes.
+
+    Returns ``{praxis_id: total_points}`` with zero entries for praxes whose
+    attached tasks don't qualify. Praxes with no attached metatasks are
+    omitted from the result (callers should treat a missing key as 0).
+    """
+    if not praxis_ids:
+        return {}
+
+    result = await session.execute(
+        select(PraxisMetaTask.praxis_id, Task)
+        .join(Task, Task.id == PraxisMetaTask.task_id)
+        .where(PraxisMetaTask.praxis_id.in_(praxis_ids))
+    )
+    totals: dict[int, int] = {}
+    for praxis_id, task in result.all():
+        if task.task_type != TaskType.metatask:
+            continue
+        if character_level < task.level_required:
+            continue
+        totals[praxis_id] = totals.get(praxis_id, 0) + int(task.point_value)
+    return totals

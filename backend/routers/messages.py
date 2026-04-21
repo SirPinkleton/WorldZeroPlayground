@@ -48,7 +48,7 @@ async def send_message(
         body=data.body,
     )
     session.add(msg)
-    await session.commit()
+    await session.flush()
     await session.refresh(msg)
     return MessageOut.model_validate(msg)
 
@@ -68,7 +68,7 @@ async def read_message(
     # Mark as read if recipient
     if msg.to_character_id == character.id and msg.read_at is None:
         msg.read_at = datetime.now(timezone.utc)
-        await session.commit()
+        await session.flush()
         await session.refresh(msg)
 
     return MessageOut.model_validate(msg)

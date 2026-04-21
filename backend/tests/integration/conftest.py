@@ -103,10 +103,20 @@ async def db_session(db_connection):
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession):
-    """Provide an AsyncClient with the get_db dependency overridden."""
+    """Provide an AsyncClient with the get_db dependency overridden.
+
+    Mirrors the production ``get_db`` commit-on-success contract so service
+    flush()-only writes are visible within the SAVEPOINT. We intentionally do
+    NOT call ``rollback`` on exception: the shared ``db_session`` is used by
+    both handler and test body, and rolling back would expire objects the
+    test body is still holding (fixtures like ``era``, ``character``, etc.).
+    Isolation is preserved by the outer test transaction, which rolls back
+    unconditionally at the end of the test.
+    """
 
     async def _override_get_db():
         yield db_session
+        await db_session.commit()
 
     app.dependency_overrides[get_db] = _override_get_db
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

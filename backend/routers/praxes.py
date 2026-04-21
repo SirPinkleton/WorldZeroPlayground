@@ -6,7 +6,6 @@ Replaces the old submissions, collaborations, and praxes routers.
 
 import logging
 import os
-import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
@@ -19,7 +18,7 @@ from db import get_db
 from dependencies import get_current_character, get_current_character_optional
 from game_config import CURRENT_ERA
 from models.character import Character
-from models.praxis import MediaItem, MediaType, ModerationStatus, Praxis, PraxisType
+from models.praxis import MediaItem, ModerationStatus, Praxis, PraxisType
 from pydantic import BaseModel
 from schemas.praxis import (
     DuelVoteSummary,
@@ -59,6 +58,7 @@ from services.praxis import (
     update_praxis,
     withdraw_praxis,
 )
+from services.media import process_and_save_media
 from services.vote import cast_vote_on_praxis
 
 logger = logging.getLogger(__name__)
@@ -263,48 +263,11 @@ async def upload_media_route(
         raise HTTPException(status_code=404, detail="Praxis not found.")
     if praxis.created_by_id != character.id:
         raise HTTPException(status_code=403, detail="Cannot add media to another character's praxis.")
-
-    content_type = file.content_type or ""
-    if content_type.startswith("image/"):
-        media_type = MediaType.image
-    elif content_type.startswith("video/"):
-        media_type = MediaType.video
-    elif content_type.startswith("audio/"):
-        media_type = MediaType.audio
-    else:
-        raise HTTPException(status_code=422, detail="Unsupported media type.")
-
-    rel_dir = os.path.join(str(character.id), str(praxis_id))
-    abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
-    raw_name = os.path.basename(file.filename or "upload")
-    filename = re.sub(r"[^\w.\-]", "_", raw_name)[:100] or "upload"
-    abs_path = os.path.join(abs_dir, filename)
-    rel_path = os.path.join(rel_dir, filename)
-
-    try:
-        os.makedirs(abs_dir, exist_ok=True)
-        contents = await file.read()
-        if len(contents) > 100 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="File too large (max 100 MB).")
-        with open(abs_path, "wb") as file_handle:
-            file_handle.write(contents)
-    except HTTPException:
-        raise
-    except OSError:
-        logger.exception("Failed to save media for praxis %s", praxis_id)
-        raise HTTPException(
-            status_code=500,
-            detail="We couldn't save your file. Please check the file and try again.",
-        )
-
-    media_item = MediaItem(
-        praxis_id=praxis_id,
-        type=media_type,
-        file_path=rel_path,
-        display_order=display_order,
+    media_item = await process_and_save_media(
+        file, praxis_id, character.id, display_order
     )
     session.add(media_item)
-    await session.commit()
+    await session.flush()
     await session.refresh(media_item)
     return MediaItemOut.model_validate(media_item)
 
@@ -332,7 +295,7 @@ async def delete_media_route(
         pass
 
     await session.delete(media_item)
-    await session.commit()
+    await session.flush()
     return Response(status_code=204)
 
 

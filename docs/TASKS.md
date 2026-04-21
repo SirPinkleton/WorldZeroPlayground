@@ -1075,7 +1075,7 @@ After T.5 + T.6 + T.7 + T.8 + T.10 merge:
 
 ---
 
-### TASK S.1 — Document the `get_praxis` cascade invariant (cheap)
+### TASK S.1 ✅ 2026-04-20 — Document the `get_praxis` cascade invariant (cheap)
 
 **Scope:** One-liner docstring / comment on `services/praxis.py::get_praxis`.
 
@@ -1101,7 +1101,7 @@ break praxis deletion.
 
 ---
 
-### TASK S.2 — Verify `cast_or_update_duel_vote` against `lazy="raise"`
+### TASK S.2 ✅ 2026-04-20 — Verify `cast_or_update_duel_vote` against `lazy="raise"`
 
 **Scope:** Audit + possible fix on `services/vote.py::cast_or_update_duel_vote`.
 
@@ -1130,7 +1130,7 @@ suite.
 
 ---
 
-### TASK S.3 — Service-level test for unified anti-self-vote
+### TASK S.3 ✅ 2026-04-20 — Service-level test for unified anti-self-vote
 
 **Scope:** Add one test to `tests/integration/test_votes.py` (or a new
 `tests/unit/test_vote_service.py` if a DB-free variant is practical).
@@ -1157,7 +1157,7 @@ in `cast_or_update_vote` confirmed by coverage report.
 
 ---
 
-### TASK S.4 — Adopt the new praxis/vote fixtures
+### TASK S.4 ✅ 2026-04-20 — Adopt the new praxis/vote fixtures
 
 **Scope:** Migrate inline Praxis/PraxisMember/Vote construction in four
 integration test files to the fixtures added to conftest in PR #115.
@@ -1184,7 +1184,7 @@ fixture. Full suite still 345+ passing, coverage ≥ 83.94%.
 
 ---
 
-### TASK S.5 — Fix N+1 in `recalculate_character_stats`
+### TASK S.5 ✅ 2026-04-20 — Fix N+1 in `recalculate_character_stats`
 
 **Scope:** `services/character_stats.py::recalculate_character_stats`.
 
@@ -1213,7 +1213,7 @@ count for a recalculation over 5 praxes drops by ≥ 50%.
 
 ---
 
-### TASK S.6 — Optimize `moderate_praxis` to skip the re-fetch
+### TASK S.6 ✅ 2026-04-20 — Optimize `moderate_praxis` to skip the re-fetch
 
 **Scope:** `services/admin_service.py::moderate_praxis`.
 
@@ -1237,7 +1237,7 @@ existing moderation tests pass.
 
 ---
 
-### TASK S.7 — Fix pre-existing nullability drift (contact/message/vote)
+### TASK S.7 ✅ 2026-04-20 — Fix pre-existing nullability drift (contact/message/vote)
 
 **Scope:** `backend/alembic/versions/00XX_nullability_alignment.py` (new)
 + possibly model tweaks.
@@ -1267,7 +1267,7 @@ tests pass.
 
 ---
 
-### TASK S.8 — Extract media service (router-level image processing)
+### TASK S.8 ✅ 2026-04-20 — Extract media service (router-level image processing)
 
 **Scope:** Move file-I/O / image-processing out of
 `routers/characters.py::upload_avatar` (60 lines) and
@@ -1301,7 +1301,7 @@ code has a unit-style test that doesn't go through HTTP.
 
 ---
 
-### TASK S.9 — Shorten long functions in `services/praxis.py`
+### TASK S.9 ✅ 2026-04-20 — Shorten long functions in `services/praxis.py`
 
 **Scope:** `services/praxis.py` specifically; four named functions.
 
@@ -1329,7 +1329,7 @@ docstring one-liner.
 
 ---
 
-### TASK S.10 — Decide hardcoded game-rule numbers (discussion first)
+### TASK S.10 ✅ 2026-04-20 — Decide hardcoded game-rule numbers (all era-variable)
 
 **Scope:** Discussion → potentially moving constants into `EraConfig`.
 
@@ -1361,7 +1361,7 @@ sourced from `era.*` or carries a comment explaining why it's invariant.
 
 ---
 
-### TASK S.11 — Discussion: `HTTPException` in services
+### TASK S.11 ✅ 2026-04-20 — Discussion: `HTTPException` in services (documented as acceptable)
 
 **Scope:** Codebase-wide posture call.
 
@@ -1386,7 +1386,7 @@ codebase uses it everywhere. Fixing it would require a big bang refactor.
 
 ---
 
-### TASK S.12 — Move commit() out of services (big refactor)
+### TASK S.12 ✅ 2026-04-20 — Move commit() out of services (big refactor)
 
 **Scope:** 50+ call sites. Every service file except `character_capabilities.py`,
 `scoring.py`, `taunt_service.py`, `meta_task.py`.
@@ -1420,7 +1420,7 @@ transaction rolls back on an exception raised inside the service.
 
 ---
 
-### TASK S.13 — Rewrite `activity_feed.py` to return dataclasses
+### TASK S.13 ✅ 2026-04-20 — Rewrite `activity_feed.py` to return dataclasses
 
 **Scope:** `services/activity_feed.py` (~925 lines); schema types stay
 under `schemas/activity_feed.py` but are constructed by the router.

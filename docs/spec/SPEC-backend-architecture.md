@@ -142,6 +142,31 @@ the caller admin" belongs in a FastAPI dependency.
 Do not scatter level-gate checks across route handlers. If `flag_praxis`
 requires level 4, that check lives inside `services/praxis.py::flag_praxis`.
 
+### HTTPException inside services is allowed
+
+Services **may** raise `fastapi.HTTPException` directly when a domain rule is
+violated. This is a deliberate pragmatic choice, not an accident:
+
+- **Blast radius.** The codebase has 100+ existing `HTTPException` raises in
+  services. A mechanical rewrite to a parallel domain-exception hierarchy and
+  router-side translator buys little and risks a lot.
+- **Single source of truth.** The service layer is the authoritative place for
+  domain rules, and those rules map naturally onto HTTP status codes — 403 for
+  "not allowed", 400 for "bad input", 404 for "not found", 409 for "conflict",
+  422 for "bad state transition". Raising at the point the rule is checked
+  keeps the error shape next to the rule.
+- **Thin routers.** Moving translation into the router layer would push
+  status-code decisions away from the domain rule and make routers thicker —
+  the opposite of the "routes stay thin" posture elsewhere in this spec.
+- **Tradeoff.** Services carry a *soft* coupling to FastAPI's `HTTPException`
+  type. This is not a hard coupling: a service remains unit-testable by
+  asserting `pytest.raises(HTTPException)` and inspecting `exc.status_code` /
+  `exc.detail`. The FastAPI import does not force a web runtime at test time.
+
+Routers should not catch these exceptions only to re-raise them; let FastAPI
+turn them into responses. Routers that need to add context (e.g. wrapping a
+404 from a different resource) can still catch and re-raise deliberately.
+
 ---
 
 ## 6. Ubiquitous language

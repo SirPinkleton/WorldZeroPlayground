@@ -81,7 +81,7 @@ async def create_relationship(
         status=RelationshipStatus.active,
     )
     session.add(relationship)
-    await session.commit()
+    await session.flush()
     await session.refresh(relationship)
     return relationship
 
@@ -99,7 +99,7 @@ async def block_relationship(
         raise HTTPException(status_code=403, detail="Not a party to this relationship.")
 
     relationship.status = RelationshipStatus.blocked
-    await session.commit()
+    await session.flush()
     await session.refresh(relationship)
     return relationship
 

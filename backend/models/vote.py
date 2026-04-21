@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -13,11 +13,26 @@ if TYPE_CHECKING:
 class Vote(Base):
     __tablename__ = "vote"
     __table_args__ = (
-        # Solo/collab votes: one vote per voter per praxis
-        UniqueConstraint("praxis_id", "voter_character_id", name="uq_vote_solo"),
-        # Duel votes: one vote per voter per target member per praxis
-        UniqueConstraint(
-            "praxis_id", "voter_character_id", "praxis_member_id", name="uq_vote_duel"
+        # Solo/collab votes: one vote per voter per praxis (praxis_member_id IS NULL).
+        # Partial unique index because duel-vote rows share (praxis_id, voter_character_id)
+        # triples and must be de-duplicated only among themselves.
+        Index(
+            "uq_vote_praxis",
+            "praxis_id",
+            "voter_character_id",
+            unique=True,
+            postgresql_where=text("praxis_member_id IS NULL"),
+        ),
+        # Duel votes: one vote per voter per target member per praxis.
+        # Partial index restricted to non-null praxis_member_id so the composite
+        # actually enforces uniqueness (NULLs are distinct in btree uniques).
+        Index(
+            "uq_vote_duel",
+            "praxis_id",
+            "voter_character_id",
+            "praxis_member_id",
+            unique=True,
+            postgresql_where=text("praxis_member_id IS NOT NULL"),
         ),
     )
 

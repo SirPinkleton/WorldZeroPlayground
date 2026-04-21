@@ -77,7 +77,7 @@ async def propose_task(
         status=TaskStatus.pending,
     )
     session.add(task)
-    await session.commit()
+    await session.flush()
     await session.refresh(task)
     return task
 
