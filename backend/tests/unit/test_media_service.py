@@ -94,25 +94,16 @@ def test_filename_sanitization_strips_path_and_unsafe_chars():
 
 
 @pytest.mark.asyncio
-async def test_process_and_save_media_image_writes_and_stages(tmp_path, monkeypatch):
-    """An image upload lands on disk and a MediaItem is session.add()ed."""
+async def test_process_and_save_media_image_writes_and_returns_unattached(tmp_path, monkeypatch):
+    """An image upload lands on disk and returns an unattached MediaItem."""
     monkeypatch.setattr(media.settings, "MEDIA_ROOT", str(tmp_path))
 
-    class _FakeSession:
-        def __init__(self):
-            self.added: list = []
-
-        def add(self, obj) -> None:
-            self.added.append(obj)
-
-    session = _FakeSession()
     upload = _make_upload("proof.jpg", _jpeg_bytes(64, 64), "image/jpeg")
 
     media_item = await media.process_and_save_media(
-        upload, praxis_id=11, character_id=3, display_order=0, session=session
+        upload, praxis_id=11, character_id=3, display_order=0
     )
 
-    assert session.added == [media_item]
     assert media_item.praxis_id == 11
     assert media_item.display_order == 0
     absolute_path = os.path.join(str(tmp_path), media_item.file_path)
@@ -124,14 +115,10 @@ async def test_process_and_save_media_unsupported_type_rejected(tmp_path, monkey
     """A non-image/video/audio upload raises 422 and writes nothing."""
     monkeypatch.setattr(media.settings, "MEDIA_ROOT", str(tmp_path))
 
-    class _FakeSession:
-        def add(self, obj) -> None:  # pragma: no cover - should never fire
-            raise AssertionError("session.add must not be called on rejection")
-
     upload = _make_upload("doc.pdf", b"%PDF-1.4", "application/pdf")
 
     with pytest.raises(HTTPException) as exc_info:
         await media.process_and_save_media(
-            upload, praxis_id=1, character_id=1, display_order=0, session=_FakeSession()
+            upload, praxis_id=1, character_id=1, display_order=0
         )
     assert exc_info.value.status_code == 422

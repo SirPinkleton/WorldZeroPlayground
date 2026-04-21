@@ -97,14 +97,13 @@ async def process_and_save_media(
     praxis_id: int,
     character_id: int,
     display_order: int,
-    session,
 ) -> MediaItem:
-    """Persist a praxis media upload to disk and stage its MediaItem row.
+    """Persist a praxis media upload to disk and build its MediaItem row.
 
     Router contract: the caller has already validated the praxis exists and
     is owned by the current character. This function writes the file under
-    ``MEDIA_ROOT/<character_id>/<praxis_id>/`` and calls ``session.add`` on
-    the new ``MediaItem``; the caller is responsible for commit + refresh.
+    ``MEDIA_ROOT/<character_id>/<praxis_id>/`` and returns an unattached
+    ``MediaItem``; the caller is responsible for ``session.add`` + commit.
     """
     content_type = upload.content_type or ""
     media_type = _detect_media_type(content_type)
@@ -131,14 +130,12 @@ async def process_and_save_media(
             detail="We couldn't save your file. Please check the file and try again.",
         )
 
-    media_item = MediaItem(
+    return MediaItem(
         praxis_id=praxis_id,
         type=media_type,
         file_path=relative_path,
         display_order=display_order,
     )
-    session.add(media_item)
-    return media_item
 
 
 __all__ = [

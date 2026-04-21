@@ -264,8 +264,9 @@ async def upload_media_route(
     if praxis.created_by_id != character.id:
         raise HTTPException(status_code=403, detail="Cannot add media to another character's praxis.")
     media_item = await process_and_save_media(
-        file, praxis_id, character.id, display_order, session
+        file, praxis_id, character.id, display_order
     )
+    session.add(media_item)
     await session.flush()
     await session.refresh(media_item)
     return MediaItemOut.model_validate(media_item)
