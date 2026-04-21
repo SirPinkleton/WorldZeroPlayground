@@ -942,8 +942,11 @@ async def submit_praxis(
     if all(m.has_submitted for m in praxis.members):
         praxis.status = PraxisStatus.submitted
         await session.flush()
+        era_row = await get_current_era_row(session)
         for member in praxis.members:
-            await recalculate_character_stats(member.character_id, session, era)
+            await recalculate_character_stats(
+                member.character_id, session, era, era_row=era_row
+            )
 
     await session.flush()
     return await get_praxis(praxis_id, session)
@@ -1091,8 +1094,11 @@ async def apply_metatask(
     session.add(PraxisMetaTask(praxis_id=praxis_id, task_id=task_id))
     await session.flush()
 
+    era_row = await get_current_era_row(session)
     for member in praxis.members:
-        await recalculate_character_stats(member.character_id, session, era)
+        await recalculate_character_stats(
+            member.character_id, session, era, era_row=era_row
+        )
     await session.flush()
     return await get_praxis(praxis_id, session)
 
@@ -1127,8 +1133,11 @@ async def remove_metatask(
     await session.delete(link)
     await session.flush()
 
+    era_row = await get_current_era_row(session)
     for member in praxis.members:
-        await recalculate_character_stats(member.character_id, session, era)
+        await recalculate_character_stats(
+            member.character_id, session, era, era_row=era_row
+        )
     await session.flush()
     return await get_praxis(praxis_id, session)
 
