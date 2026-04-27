@@ -186,7 +186,7 @@ export default function TaskCardSingularity({
               {displayPoints}
             </span>
           </div>
-          <div>LVL: {task.level_required}+</div>
+          <div>LVL: {task.level_required}</div>
         </div>
 
         {task.description && (
@@ -213,7 +213,7 @@ export default function TaskCardSingularity({
               background: "transparent",
               color: "var(--faction-singularity-card-text)",
               border: "1px solid var(--faction-singularity-card-text)",
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: factionCssVar("singularity", "card-font"),
               fontSize: 7,
               textTransform: "uppercase",
               letterSpacing: "0.1em",

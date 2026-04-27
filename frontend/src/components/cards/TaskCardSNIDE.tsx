@@ -26,7 +26,7 @@ function CutoutLetters({ text }: { text: string }) {
             key={index}
             style={{
               fontSize: "var(--text-sm)",
-              fontFamily: "'Courier Prime', monospace",
+              fontFamily: "var(--font-body)",
               color: factionCssVar("snide", "card-accent"),
             }}
           >
@@ -38,7 +38,7 @@ function CutoutLetters({ text }: { text: string }) {
             style={{
               background: factionCssVar("snide", "card-accent"),
               color: factionCssVar("snide", "card-bg"),
-              fontFamily: "'Courier Prime', monospace",
+              fontFamily: "var(--font-body)",
               fontSize: "var(--text-sm)",
               padding: "0 2px",
               lineHeight: 1.4,
@@ -196,7 +196,7 @@ export default function TaskCardSNIDE({
           style={{
             fontSize: "var(--text-xs)",
             color: factionCssVar("snide", "card-accent"),
-            fontFamily: "'Courier Prime', monospace",
+            fontFamily: "var(--font-body)",
           }}
         >
           {displayPoints} pts

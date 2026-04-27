@@ -1564,7 +1564,7 @@ production rollout plan.
 
 Updated typography table with all 7 per-faction headline fonts, updated faction archetype table with rainbow primaries and new headline fonts, updated vote color description, updated pennant behavior note.
 
-### V.2 — Replace CSS tokens in `frontend/src/index.css`
+### V.2 — Replace CSS tokens in `frontend/src/index.css` ✅ DONE 2026-04-27
 
 Faction primaries are now a rainbow (purple/yellow/magenta/green/teal/blue/orange). All derived vars (tints, borders, card-bg, card-text, card-accent, card-muted) update to match. Add `--faction-*-card-font` vars + `--font-faction-*` family vars. Update vote colors, Singularity border, Journeymen hazard stripes, Gestalt collage scraps. Update dark mode block.
 
@@ -1586,31 +1586,31 @@ Source of truth for all values: `World Zero Design System/design_handoff_world_z
 
 **Files:** `frontend/src/index.css`
 
-### V.3 — Add new Google Fonts to `frontend/index.html`
+### V.3 — Add new Google Fonts to `frontend/index.html` ✅ DONE 2026-04-27
 
 Add to the existing `<link>` import: `Permanent Marker`, `Cutive Mono`, `UnifrakturCook` (wght 700), `Caveat`, `IM Fell English` (italic).
 
 **Files:** `frontend/index.html`
 
-### V.4 — Update `frontend/tailwind.config.ts`
+### V.4 — Update `frontend/tailwind.config.ts` ✅ DONE 2026-04-27
 
 Update all 7 faction color values to rainbow primaries. Add new font-family entries for the 5 new faction fonts (Caveat, Permanent Marker, Cutive Mono, IM Fell English, UnifrakturCook).
 
 **Files:** `frontend/tailwind.config.ts`
 
-### V.5 — Update `frontend/src/utils/factions.ts` fallbacks
+### V.5 — Update `frontend/src/utils/factions.ts` fallbacks ✅ DONE 2026-04-27
 
 `FACTION_FALLBACKS` color strings must mirror `index.css` primaries exactly. Update all 7 active factions.
 
 **Files:** `frontend/src/utils/factions.ts`
 
-### V.6 — Update faction card components to use `--faction-*-card-font`
+### V.6 — Update faction card components to use `--faction-*-card-font` ✅ DONE 2026-04-27
 
 Replace any hardcoded `fontFamily` strings in card components with `factionCssVar(slug, 'card-font')`. Confirmed locations: `TaskCardAnalog.tsx`, `TaskCardSNIDE.tsx`, `TaskCardUAMasters.tsx`, `FactionCard.tsx`. Audit all other card files for additional hardcoded fonts.
 
 **Files:** `frontend/src/components/cards/`
 
-### V.7 — Remove trailing `+` from level labels
+### V.7 — Remove trailing `+` from level labels ✅ DONE 2026-04-27
 
 "lvl 2+" → "lvl 2" across 6 files.
 
@@ -1623,7 +1623,7 @@ Replace any hardcoded `fontFamily` strings in card components with `factionCssVa
 - `frontend/src/pages/admin/TasksTab.tsx`
 - `frontend/src/pages/ProposeTask.tsx`
 
-### V.8 — Fix inactive faction pennants
+### V.8 — Fix inactive faction pennants ✅ DONE 2026-04-27 (no code change — `FilterFactionTabs.tsx:43-44` already reads `opacity: active ? 1 : 0.85, filter: "none"`)
 
 Remove desaturate filter from inactive state. `opacity: 0.42 + saturate(0.3)` → `opacity: 0.85, filter: none`.
 
