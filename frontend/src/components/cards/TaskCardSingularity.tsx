@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { TaskOut } from "../../api/tasks";
+import { factionCssVar } from "../../utils/factions";
 
 /**
  * Singularity — Terminal Printout.

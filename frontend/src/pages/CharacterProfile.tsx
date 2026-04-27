@@ -1,128 +1,160 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getCharacter, type CharacterOut } from '../api/characters'
-import { listPraxes, type PraxisCardOut } from '../api/praxis'
-import { listRelationships, createRelationship, deleteRelationship, type RelationshipListItem } from '../api/relationships'
-import PraxisCard from '../components/PraxisCard'
-import PageTitle from '../components/ui/PageTitle'
-import LevelPill from '../components/ui/LevelPill'
-import { useAuth } from '../auth/AuthContext'
-import { useGameConfig } from '../hooks/useGameConfig'
-import { extractError } from '../utils/errors'
-import { factionCssVar, factionName } from '../utils/factions'
-import { mediaUrl } from '../utils/media'
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { getCharacter, type CharacterOut } from "../api/characters";
+import { listPraxes, type PraxisCardOut } from "../api/praxis";
+import {
+  listRelationships,
+  createRelationship,
+  deleteRelationship,
+  type RelationshipListItem,
+} from "../api/relationships";
+import PraxisCard from "../components/PraxisCard";
+import PageTitle from "../components/ui/PageTitle";
+import { useAuth } from "../auth/AuthContext";
+import { useGameConfig } from "../hooks/useGameConfig";
+import { extractError } from "../utils/errors";
+import { factionCssVar, factionName } from "../utils/factions";
+import { mediaUrl } from "../utils/media";
 
 export default function CharacterProfile() {
-  const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
-  const gameConfig = useGameConfig()
-  const [character, setCharacter] = useState<CharacterOut | null>(null)
-  const [submissions, setSubmissions] = useState<PraxisCardOut[]>([])
-  const [relationship, setRelationship] = useState<RelationshipListItem | null>(null)
-  const [relationshipLoading, setRelationshipLoading] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const gameConfig = useGameConfig();
+  const [character, setCharacter] = useState<CharacterOut | null>(null);
+  const [submissions, setSubmissions] = useState<PraxisCardOut[]>([]);
+  const [relationship, setRelationship] = useState<RelationshipListItem | null>(
+    null,
+  );
+  const [relationshipLoading, setRelationshipLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return
-    const cid = parseInt(id, 10)
+    if (!id) return;
+    const cid = parseInt(id, 10);
     Promise.all([getCharacter(cid), listPraxes({ character_id: cid })])
-      .then(([c, s]) => { setCharacter(c); setSubmissions(s) })
-      .catch((err) => setFetchError(extractError(err, "Couldn't load this character.")))
-      .finally(() => setLoading(false))
-  }, [id])
+      .then(([c, s]) => {
+        setCharacter(c);
+        setSubmissions(s);
+      })
+      .catch((err) =>
+        setFetchError(extractError(err, "Couldn't load this character.")),
+      )
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
-    if (!id || !user?.character) return
-    const cid = parseInt(id, 10)
-    if (user.character.id === cid) return
+    if (!id || !user?.character) return;
+    const cid = parseInt(id, 10);
+    if (user.character.id === cid) return;
     listRelationships()
       .then((rels) => {
         const match = rels.find(
-          (r) => r.to_character_id === cid && r.status !== 'blocked'
-        )
-        setRelationship(match ?? null)
+          (r) => r.to_character_id === cid && r.status !== "blocked",
+        );
+        setRelationship(match ?? null);
       })
-      .catch(() => {})
-  }, [id, user])
+      .catch(() => {});
+  }, [id, user]);
 
-  const [relationshipError, setRelationshipError] = useState<string | null>(null)
+  const [relationshipError, setRelationshipError] = useState<string | null>(
+    null,
+  );
 
-  const handleAddRelationship = async (type: 'friend' | 'foe') => {
-    if (!character) return
-    setRelationshipLoading(true)
-    setRelationshipError(null)
+  const handleAddRelationship = async (type: "friend" | "foe") => {
+    if (!character) return;
+    setRelationshipLoading(true);
+    setRelationshipError(null);
     try {
-      await createRelationship(character.id, type)
+      await createRelationship(character.id, type);
       // Re-fetch to get the properly typed RelationshipListItem with display data
-      const rels = await listRelationships()
+      const rels = await listRelationships();
       const match = rels.find(
-        (r) => r.to_character_id === character.id && r.status !== 'blocked'
-      )
-      setRelationship(match ?? null)
+        (r) => r.to_character_id === character.id && r.status !== "blocked",
+      );
+      setRelationship(match ?? null);
     } catch (err: unknown) {
       // Handle 409 (already exists) gracefully — re-fetch existing relationship
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { status?: number } }
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as { response?: { status?: number } };
         if (axiosErr.response?.status === 409) {
-          const rels = await listRelationships()
+          const rels = await listRelationships();
           const match = rels.find(
-            (r) => r.to_character_id === character.id && r.status !== 'blocked'
-          )
-          setRelationship(match ?? null)
+            (r) => r.to_character_id === character.id && r.status !== "blocked",
+          );
+          setRelationship(match ?? null);
         } else {
-          setRelationshipError('Could not add relationship.')
+          setRelationshipError("Could not add relationship.");
         }
       } else {
-        setRelationshipError('Could not add relationship.')
+        setRelationshipError("Could not add relationship.");
       }
     } finally {
-      setRelationshipLoading(false)
+      setRelationshipLoading(false);
     }
-  }
+  };
 
   const handleRemoveRelationship = async () => {
-    if (!relationship) return
-    setRelationshipLoading(true)
-    setRelationshipError(null)
+    if (!relationship) return;
+    setRelationshipLoading(true);
+    setRelationshipError(null);
     try {
-      await deleteRelationship(relationship.id)
-      setRelationship(null)
+      await deleteRelationship(relationship.id);
+      setRelationship(null);
     } catch {
-      setRelationshipError('Could not remove relationship.')
+      setRelationshipError("Could not remove relationship.");
     } finally {
-      setRelationshipLoading(false)
+      setRelationshipLoading(false);
     }
-  }
+  };
 
-  if (loading) return <div className="py-8 font-body text-muted">Loading...</div>
-  if (fetchError) return (
-    <div className="py-8">
-      <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
-        {fetchError}{' '}
-        <button onClick={() => window.location.reload()} className="underline">Try refreshing.</button>
-      </p>
-    </div>
-  )
-  if (!character) return <div className="py-8 font-body text-muted">Character not found.</div>
+  if (loading)
+    return <div className="py-8 font-body text-muted">Loading...</div>;
+  if (fetchError)
+    return (
+      <div className="py-8">
+        <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
+          {fetchError}{" "}
+          <button
+            onClick={() => window.location.reload()}
+            className="underline"
+          >
+            Try refreshing.
+          </button>
+        </p>
+      </div>
+    );
+  if (!character)
+    return (
+      <div className="py-8 font-body text-muted">Character not found.</div>
+    );
 
-  const charFactionName = factionName(character.faction_slug)
-  const isOwn = user?.character?.id === character.id
-  const levelThresholds = gameConfig?.level_thresholds ?? []
-  const maxLevel = Math.max(levelThresholds.length - 1, 0)
-  const nextLevel = Math.min(character.level + 1, maxLevel)
-  const nextThreshold = levelThresholds[nextLevel] ?? 999
-  const currentThreshold = levelThresholds[character.level] ?? 0
-  const progressPercent = nextThreshold > currentThreshold
-    ? Math.min(((character.score - currentThreshold) / (nextThreshold - currentThreshold)) * 100, 100)
-    : 100
+  const charFactionName = factionName(character.faction_slug);
+  const isOwn = user?.character?.id === character.id;
+  const levelThresholds = gameConfig?.level_thresholds ?? [];
+  const maxLevel = Math.max(levelThresholds.length - 1, 0);
+  const nextLevel = Math.min(character.level + 1, maxLevel);
+  const nextThreshold = levelThresholds[nextLevel] ?? 999;
+  const currentThreshold = levelThresholds[character.level] ?? 0;
+  const progressPercent =
+    nextThreshold > currentThreshold
+      ? Math.min(
+          ((character.score - currentThreshold) /
+            (nextThreshold - currentThreshold)) *
+            100,
+          100,
+        )
+      : 100;
 
   return (
     <div className="py-8">
       {/* ── Profile Header — Faction-Framed (§14.2) ── */}
       <div
         className="sidebar-card mb-5"
-        style={{ borderLeft: `4px solid ${factionCssVar(character.faction_slug, 'border')}`, padding: '16px 20px' }}
+        style={{
+          borderLeft: `4px solid ${factionCssVar(character.faction_slug, "border")}`,
+          padding: "16px 20px",
+        }}
       >
         <div className="flex gap-5 items-start">
           {/* Avatar orb */}
@@ -132,7 +164,10 @@ export default function CharacterProfile() {
                 src={mediaUrl(character.avatar_url)}
                 alt={character.username}
                 style={{
-                  width: 80, height: 80, borderRadius: '50%', objectFit: 'cover',
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  objectFit: "cover",
                   border: `3px solid white`,
                   boxShadow: `0 0 0 3px ${factionCssVar(character.faction_slug)}`,
                 }}
@@ -140,12 +175,19 @@ export default function CharacterProfile() {
             ) : (
               <div
                 style={{
-                  width: 80, height: 80, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${factionCssVar(character.faction_slug, 'light')}, ${factionCssVar(character.faction_slug)})`,
-                  border: '3px solid white',
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  background: `linear-gradient(135deg, ${factionCssVar(character.faction_slug, "light")}, ${factionCssVar(character.faction_slug)})`,
+                  border: "3px solid white",
                   boxShadow: `0 0 0 3px ${factionCssVar(character.faction_slug)}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 28, color: 'var(--color-text-on-accent)',
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "'Lora', serif",
+                  fontStyle: "italic",
+                  fontSize: 28,
+                  color: "var(--color-text-on-accent)",
                 }}
               >
                 {character.username[0]?.toUpperCase()}
@@ -154,9 +196,13 @@ export default function CharacterProfile() {
             {/* Level badge */}
             <span
               style={{
-                background: factionCssVar(character.faction_slug), color: 'var(--color-text-on-accent)',
-                fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
-                padding: '2px 10px', borderRadius: 10,
+                background: factionCssVar(character.faction_slug),
+                color: "var(--color-text-on-accent)",
+                fontSize: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                padding: "2px 10px",
+                borderRadius: 10,
                 fontFamily: "'Courier Prime', monospace",
               }}
             >
@@ -168,7 +214,12 @@ export default function CharacterProfile() {
                 <Link
                   to={`/characters/${character.id}/edit`}
                   className="btn-outline"
-                  style={{ fontSize: 8, padding: '3px 12px', width: '100%', textAlign: 'center' }}
+                  style={{
+                    fontSize: 8,
+                    padding: "3px 12px",
+                    width: "100%",
+                    textAlign: "center",
+                  }}
                 >
                   Edit Profile
                 </Link>
@@ -176,33 +227,58 @@ export default function CharacterProfile() {
                   <Link
                     to="/characters/create"
                     className="btn-outline"
-                    style={{ fontSize: 8, padding: '3px 12px', width: '100%', textAlign: 'center' }}
+                    style={{
+                      fontSize: 8,
+                      padding: "3px 12px",
+                      width: "100%",
+                      textAlign: "center",
+                    }}
                   >
                     + New Character
                   </Link>
                 )}
               </>
             ) : user?.character ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  width: "100%",
+                }}
+              >
                 {relationship ? (
                   <>
                     {/* Show relationship status */}
                     <div
                       style={{
-                        background: relationship.type === 'friend' ? 'var(--badge-friend)' : 'var(--color-danger)',
-                        color: 'var(--color-text-on-accent)',
+                        background:
+                          relationship.type === "friend"
+                            ? "var(--badge-friend)"
+                            : "var(--color-danger)",
+                        color: "var(--color-text-on-accent)",
                         fontFamily: "'Courier Prime', monospace",
-                        fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
-                        padding: '4px 0', textAlign: 'center', borderRadius: 2,
+                        fontSize: 8,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        padding: "4px 0",
+                        textAlign: "center",
+                        borderRadius: 2,
                       }}
                     >
-                      {relationship.type === 'friend' ? 'Friends' : 'Foe'}
+                      {relationship.type === "friend" ? "Friends" : "Foe"}
                     </div>
                     <button
                       onClick={handleRemoveRelationship}
                       disabled={relationshipLoading}
                       className="eyebrow"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', textAlign: 'center' }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--color-text-tertiary)",
+                        textAlign: "center",
+                      }}
                     >
                       remove
                     </button>
@@ -210,26 +286,38 @@ export default function CharacterProfile() {
                 ) : (
                   <>
                     <button
-                      onClick={() => handleAddRelationship('friend')}
+                      onClick={() => handleAddRelationship("friend")}
                       disabled={relationshipLoading}
                       style={{
-                        background: factionCssVar(character.faction_slug), color: 'var(--color-text-on-accent)',
+                        background: factionCssVar(character.faction_slug),
+                        color: "var(--color-text-on-accent)",
                         fontFamily: "'Courier Prime', monospace",
-                        fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
-                        padding: '4px 0', border: 'none', cursor: 'pointer', borderRadius: 2,
+                        fontSize: 8,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        padding: "4px 0",
+                        border: "none",
+                        cursor: "pointer",
+                        borderRadius: 2,
                         opacity: relationshipLoading ? 0.5 : 1,
                       }}
                     >
                       Friend
                     </button>
                     <button
-                      onClick={() => handleAddRelationship('foe')}
+                      onClick={() => handleAddRelationship("foe")}
                       disabled={relationshipLoading}
                       style={{
-                        background: 'none', color: 'var(--color-danger)',
+                        background: "none",
+                        color: "var(--color-danger)",
                         fontFamily: "'Courier Prime', monospace",
-                        fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em',
-                        padding: '3px 0', border: '1.5px solid var(--color-danger)', cursor: 'pointer', borderRadius: 2,
+                        fontSize: 8,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        padding: "3px 0",
+                        border: "1.5px solid var(--color-danger)",
+                        cursor: "pointer",
+                        borderRadius: 2,
                         opacity: relationshipLoading ? 0.5 : 1,
                       }}
                     >
@@ -240,7 +328,17 @@ export default function CharacterProfile() {
               </div>
             ) : null}
             {relationshipError && (
-              <p className="font-body" style={{ fontSize: 8, color: 'var(--color-danger)', marginTop: 4, textAlign: 'center' }}>{relationshipError}</p>
+              <p
+                className="font-body"
+                style={{
+                  fontSize: 8,
+                  color: "var(--color-danger)",
+                  marginTop: 4,
+                  textAlign: "center",
+                }}
+              >
+                {relationshipError}
+              </p>
             )}
           </div>
 
@@ -248,24 +346,36 @@ export default function CharacterProfile() {
           <div className="flex-1 min-w-0">
             <h1
               className="font-display italic"
-              style={{ fontSize: 26, color: factionCssVar(character.faction_slug), marginBottom: 2 }}
+              style={{
+                fontSize: 26,
+                color: factionCssVar(character.faction_slug),
+                marginBottom: 2,
+              }}
             >
               {character.display_name}
             </h1>
             <p className="eyebrow" style={{ marginBottom: 8 }}>
-              @{character.username} · Joined {new Date(character.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+              @{character.username} · Joined{" "}
+              {new Date(character.created_at).toLocaleDateString(undefined, {
+                month: "short",
+                year: "numeric",
+              })}
             </p>
 
             {/* Faction pennant */}
             <span
               className="pennant-shape"
               style={{
-                display: 'inline-block',
-                background: factionCssVar(character.faction_slug), color: 'var(--color-text-on-accent)',
+                display: "inline-block",
+                background: factionCssVar(character.faction_slug),
+                color: "var(--color-text-on-accent)",
                 fontFamily: "'Courier Prime', monospace",
-                fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.07em', padding: '3px 14px',
-                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                fontSize: 9,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+                padding: "3px 14px",
+                textShadow: "0 1px 2px rgba(0,0,0,0.3)",
                 marginBottom: 8,
               }}
             >
@@ -277,10 +387,13 @@ export default function CharacterProfile() {
               <p
                 className="font-body"
                 style={{
-                  fontSize: 11, lineHeight: 1.6,
-                  borderLeft: `3px solid ${factionCssVar(character.faction_slug, 'border')}`,
-                  paddingLeft: 10, marginTop: 6, marginBottom: 8,
-                  color: 'var(--color-text-secondary)',
+                  fontSize: 11,
+                  lineHeight: 1.6,
+                  borderLeft: `3px solid ${factionCssVar(character.faction_slug, "border")}`,
+                  paddingLeft: 10,
+                  marginTop: 6,
+                  marginBottom: 8,
+                  color: "var(--color-text-secondary)",
                   fontFamily: "'Special Elite', serif",
                 }}
               >
@@ -289,21 +402,38 @@ export default function CharacterProfile() {
             )}
 
             {/* Stat strip */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 8,
+              }}
+            >
               {[
-                { label: 'Era score', value: character.score },
-                { label: 'All-time', value: character.all_time_score },
-                { label: 'Praxis', value: submissions.length },
+                { label: "Era score", value: character.score },
+                { label: "All-time", value: character.all_time_score },
+                { label: "Praxis", value: submissions.length },
               ].map((stat) => (
                 <div
                   key={stat.label}
                   className="sidebar-card"
-                  style={{ padding: '6px 12px', borderRadius: 8, textAlign: 'center', minWidth: 70 }}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    textAlign: "center",
+                    minWidth: 70,
+                  }}
                 >
-                  <div className="font-body font-bold" style={{ fontSize: 14, color: 'var(--color-text-primary)' }}>
+                  <div
+                    className="font-body font-bold"
+                    style={{ fontSize: 14, color: "var(--color-text-primary)" }}
+                  >
                     {stat.value}
                   </div>
-                  <div className="eyebrow" style={{ fontSize: 7 }}>{stat.label}</div>
+                  <div className="eyebrow" style={{ fontSize: 7 }}>
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -313,58 +443,108 @@ export default function CharacterProfile() {
 
       {/* ── Level Track (§14.3) ── */}
       {gameConfig && (
-      <div
-        className="sidebar-card mb-5"
-        style={{ padding: '14px 18px' }}
-      >
-        {/* Node track */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
-          {levelThresholds.map((_threshold, level) => {
-            const completed = character.level > level
-            const current = character.level === level
-            return (
-              <div key={level} style={{ display: 'flex', alignItems: 'center' }}>
-                {level > 0 && (
-                  <div style={{
-                    width: 16, height: 3,
-                    background: completed ? factionCssVar(character.faction_slug) : 'rgba(0,0,0,0.1)',
-                    transition: 'background 200ms',
-                  }} />
-                )}
+        <div className="sidebar-card mb-5" style={{ padding: "14px 18px" }}>
+          {/* Node track */}
+          <div
+            style={{ display: "flex", alignItems: "center", marginBottom: 10 }}
+          >
+            {levelThresholds.map((_threshold, level) => {
+              const completed = character.level > level;
+              const current = character.level === level;
+              return (
                 <div
-                  style={{
-                    width: current ? 32 : 26, height: current ? 32 : 26,
-                    borderRadius: '50%',
-                    background: completed ? factionCssVar(character.faction_slug) : current ? `${factionCssVar(character.faction_slug)}20` : 'var(--level-node-incomplete)',
-                    border: current ? `3px solid ${factionCssVar(character.faction_slug)}` : `2px solid ${completed ? factionCssVar(character.faction_slug) : 'rgba(0,0,0,0.12)'}`,
-                    boxShadow: current ? `0 0 0 3px ${factionCssVar(character.faction_slug)}33` : 'none',
-                    color: completed ? 'var(--color-text-on-accent)' : current ? factionCssVar(character.faction_slug) : 'var(--color-level-inactive)',
-                    fontFamily: "'Courier Prime', monospace",
-                    fontSize: current ? 10 : 8, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 200ms',
-                  }}
+                  key={level}
+                  style={{ display: "flex", alignItems: "center" }}
                 >
-                  {level}
+                  {level > 0 && (
+                    <div
+                      style={{
+                        width: 16,
+                        height: 3,
+                        background: completed
+                          ? factionCssVar(character.faction_slug)
+                          : "rgba(0,0,0,0.1)",
+                        transition: "background 200ms",
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{
+                      width: current ? 32 : 26,
+                      height: current ? 32 : 26,
+                      borderRadius: "50%",
+                      background: completed
+                        ? factionCssVar(character.faction_slug)
+                        : current
+                          ? `${factionCssVar(character.faction_slug)}20`
+                          : "var(--level-node-incomplete)",
+                      border: current
+                        ? `3px solid ${factionCssVar(character.faction_slug)}`
+                        : `2px solid ${completed ? factionCssVar(character.faction_slug) : "rgba(0,0,0,0.12)"}`,
+                      boxShadow: current
+                        ? `0 0 0 3px ${factionCssVar(character.faction_slug)}33`
+                        : "none",
+                      color: completed
+                        ? "var(--color-text-on-accent)"
+                        : current
+                          ? factionCssVar(character.faction_slug)
+                          : "var(--color-level-inactive)",
+                      fontFamily: "'Courier Prime', monospace",
+                      fontSize: current ? 10 : 8,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 200ms",
+                    }}
+                  >
+                    {level}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Progress bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="eyebrow" style={{ fontSize: 8, whiteSpace: 'nowrap' }}>
-            Lvl {character.level} → {nextLevel}
-          </span>
-          <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--color-bg-surface-alt)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progressPercent}%`, background: factionCssVar(character.faction_slug), borderRadius: 3, transition: 'width 300ms' }} />
+              );
+            })}
           </div>
-          <span className="font-body" style={{ fontSize: 9, fontWeight: 700, color: factionCssVar(character.faction_slug), whiteSpace: 'nowrap' }}>
-            {character.score} / {nextThreshold} pts
-          </span>
+
+          {/* Progress bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              className="eyebrow"
+              style={{ fontSize: 8, whiteSpace: "nowrap" }}
+            >
+              Lvl {character.level} → {nextLevel}
+            </span>
+            <div
+              style={{
+                flex: 1,
+                height: 5,
+                borderRadius: 3,
+                background: "var(--color-bg-surface-alt)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${progressPercent}%`,
+                  background: factionCssVar(character.faction_slug),
+                  borderRadius: 3,
+                  transition: "width 300ms",
+                }}
+              />
+            </div>
+            <span
+              className="font-body"
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: factionCssVar(character.faction_slug),
+                whiteSpace: "nowrap",
+              }}
+            >
+              {character.score} / {nextThreshold} pts
+            </span>
+          </div>
         </div>
-      </div>
       )}
 
       {/* ── Praxis Grid (§14.4) ── */}
@@ -377,10 +557,12 @@ export default function CharacterProfile() {
           <p className="font-body text-muted">No submissions yet.</p>
         ) : (
           <div className="flex flex-wrap gap-4 items-start">
-            {submissions.map((s) => <PraxisCard key={s.id} praxis={s} />)}
+            {submissions.map((s) => (
+              <PraxisCard key={s.id} praxis={s} />
+            ))}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
