@@ -53,7 +53,7 @@ export default function TaskCardAnalog({
         className="card-meta"
         style={{
           color: factionCssVar("analog", "card-accent"),
-          fontFamily: "'Courier Prime', monospace",
+          fontFamily: "var(--font-body)",
         }}
       >
         Analog · {displayPoints} pts
@@ -105,7 +105,7 @@ export default function TaskCardAnalog({
           style={{
             fontSize: "var(--text-base)",
             fontWeight: 700,
-            fontFamily: "'Courier Prime', monospace",
+            fontFamily: "var(--font-body)",
           }}
         >
           {displayPoints}

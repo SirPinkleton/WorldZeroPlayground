@@ -17,6 +17,12 @@ export default {
         "faction-journeymen": ["Cutive Mono", "monospace"],
         "faction-singularity": ["Share Tech Mono", "monospace"],
         "faction-ua-masters": ["UnifrakturCook", "serif"],
+        // Style-named aliases (handoff naming)
+        "faction-marker": ["Permanent Marker", "cursive"],
+        "faction-mono": ["Cutive Mono", "monospace"],
+        "faction-blackletter": ["UnifrakturCook", "serif"],
+        "faction-script": ["Caveat", "cursive"],
+        "faction-old": ["IM Fell English", "serif"],
       },
       colors: {
         paper: "var(--color-bg-page)",
