@@ -8,119 +8,128 @@
    ══════════════════════════════════════════ */
 :root {
   /* ── Page backgrounds ── */
-  --color-bg-page:        #F7F4EE;
-  --color-bg-surface:     rgba(255, 255, 255, 0.72);
-  --color-bg-surface-alt: #F0EDE6;
+  --color-bg-page: #f7f4ee;
+  --color-bg-surface: rgba(255, 255, 255, 0.72);
+  --color-bg-surface-alt: #f0ede6;
 
   /* ── Text ── */
-  --color-text-primary:   #1a1209;
+  --color-text-primary: #1a1209;
   --color-text-secondary: #6b6050;
-  --color-text-tertiary:  #9b8e7d;
+  --color-text-tertiary: #9b8e7d;
 
   /* ── Borders ── */
-  --color-border:         rgba(0, 0, 0, 0.07);
-  --color-border-strong:  rgba(0, 0, 0, 0.15);
+  --color-border: rgba(0, 0, 0, 0.07);
+  --color-border-strong: rgba(0, 0, 0, 0.15);
 
   /* ── Accent ── */
   --color-accent-primary: #be185d;
 
   /* ── Nav ── */
-  --color-nav-bg:         rgba(247, 244, 238, 0.90);
+  --color-nav-bg: rgba(247, 244, 238, 0.9);
 
   /* ── Functional ── */
-  --color-success:        #14532d;
-  --color-danger:         #dc2626;
-  --color-warning:        #b45309;
-  --color-warning-light:  #fef3c7;
+  --color-success: #14532d;
+  --color-danger: #dc2626;
+  --color-warning: #b45309;
+  --color-warning-light: #fef3c7;
 
   /* ── Shared neutrals ── */
   --color-text-on-accent: #ffffff;
-  --color-overlay-weak:   rgba(0, 0, 0, 0.08);
+  --color-overlay-weak: rgba(0, 0, 0, 0.08);
   --color-overlay-medium: rgba(0, 0, 0, 0.15);
   --color-overlay-strong: rgba(0, 0, 0, 0.25);
-  --color-surface-scrim:  rgba(255, 255, 255, 0.9);
+  --color-surface-scrim: rgba(255, 255, 255, 0.9);
 
-  /* ── Faction primary colors ── */
-  --faction-ua:           #6b6a7a;
-  --faction-analog:       #15803d;
-  --faction-gestalt:      #14532d;
-  --faction-snide:        #8a6a20;
-  --faction-journeymen:   #c49a3a;
-  --faction-singularity:  #7c3aed;
-  --faction-ua-masters:   #555555;
+  /* ── Faction primary colors (rainbow palette) ── */
+  --faction-ua: #7c3aed; /* purple */
+  --faction-analog: #ca8a04; /* yellow */
+  --faction-gestalt: #be185d; /* magenta */
+  --faction-snide: #16a34a; /* green */
+  --faction-journeymen: #0e7490; /* teal */
+  --faction-singularity: #2563eb; /* blue */
+  --faction-ua-masters: #c2410c; /* orange */
 
   /* ── Faction tints (backgrounds, highlights) ── */
-  --faction-ua-light:           rgba(107, 106, 122, 0.10);
-  --faction-analog-light:       rgba(21, 128, 61, 0.10);
-  --faction-gestalt-light:      #f0fdf4;
-  --faction-snide-light:        #fef9ee;
-  --faction-journeymen-light:   #fef9ee;
-  --faction-singularity-light:  rgba(124, 58, 237, 0.08);
-  --faction-ua-masters-light:   #f5f0e0;
+  --faction-ua-light: rgba(124, 58, 237, 0.08);
+  --faction-analog-light: rgba(202, 138, 4, 0.1);
+  --faction-gestalt-light: rgba(190, 24, 93, 0.08);
+  --faction-snide-light: rgba(22, 163, 74, 0.1);
+  --faction-journeymen-light: rgba(14, 116, 144, 0.1);
+  --faction-singularity-light: rgba(37, 99, 235, 0.1);
+  --faction-ua-masters-light: rgba(194, 65, 12, 0.1);
 
   /* ── Faction borders ── */
-  --faction-ua-border:          rgba(107, 106, 122, 0.25);
-  --faction-analog-border:      rgba(21, 128, 61, 0.25);
-  --faction-gestalt-border:     rgba(20, 83, 45, 0.20);
-  --faction-snide-border:       #c49a3a;
-  --faction-journeymen-border:  rgba(196, 154, 58, 0.40);
-  --faction-singularity-border: rgba(124, 58, 237, 0.25);
-  --faction-ua-masters-border:  rgba(196, 154, 58, 0.40);
+  --faction-ua-border: rgba(124, 58, 237, 0.3);
+  --faction-analog-border: rgba(202, 138, 4, 0.3);
+  --faction-gestalt-border: rgba(190, 24, 93, 0.3);
+  --faction-snide-border: rgba(22, 163, 74, 0.35);
+  --faction-journeymen-border: rgba(14, 116, 144, 0.35);
+  --faction-singularity-border: rgba(37, 99, 235, 0.35);
+  --faction-ua-masters-border: rgba(194, 65, 12, 0.35);
 
   /* ── Faction card backgrounds (light mode) ── */
-  --faction-ua-card-bg:           #fef9c3;
-  --faction-analog-card-bg:       #fffef5;
-  --faction-gestalt-card-bg:      #f0fdf4;
-  --faction-snide-card-bg:        #f0e8d0;
-  --faction-journeymen-card-bg:   #fef9ee;
-  --faction-singularity-card-bg:  #050f08;
-  --faction-ua-masters-card-bg:   #f0ead8;
+  --faction-ua-card-bg: #f3eefc; /* faded lavender */
+  --faction-analog-card-bg: #fdf6d8; /* cream notebook */
+  --faction-gestalt-card-bg: #fdeef3; /* blush collage */
+  --faction-snide-card-bg: #ecf5ea; /* mossy newsprint */
+  --faction-journeymen-card-bg: #e6f1f3; /* pale teal carbon */
+  --faction-singularity-card-bg: #050f08; /* terminal black */
+  --faction-ua-masters-card-bg: #f5e9d6; /* aged newsprint */
 
   /* ── Faction card text (light mode) ── */
-  --faction-ua-card-text:           #1a1209;
-  --faction-analog-card-text:       #1a1209;
-  --faction-gestalt-card-text:      #14532d;
-  --faction-snide-card-text:        #1a1209;
-  --faction-journeymen-card-text:   #1a1209;
-  --faction-singularity-card-text:  #4ade80;
-  --faction-ua-masters-card-text:   #1a1209;
+  --faction-ua-card-text: #1a1209;
+  --faction-analog-card-text: #1a1209;
+  --faction-gestalt-card-text: #581c39;
+  --faction-snide-card-text: #1a1209;
+  --faction-journeymen-card-text: #1a1209;
+  --faction-singularity-card-text: #4ade80;
+  --faction-ua-masters-card-text: #1a1209;
 
   /* ── Faction card accents (light mode) ── */
-  --faction-ua-card-accent:           #6b6a7a;
-  --faction-analog-card-accent:       #15803d;
-  --faction-gestalt-card-accent:      #15803d;
-  --faction-snide-card-accent:        #8a6a20;
-  --faction-journeymen-card-accent:   #8a6a20;
-  --faction-singularity-card-accent:  #4ade80;
-  --faction-ua-masters-card-accent:   #555555;
+  --faction-ua-card-accent: #7c3aed;
+  --faction-analog-card-accent: #a16207;
+  --faction-gestalt-card-accent: #be185d;
+  --faction-snide-card-accent: #15803d;
+  --faction-journeymen-card-accent: #0e7490;
+  --faction-singularity-card-accent: #4ade80; /* terminal green */
+  --faction-ua-masters-card-accent: #c2410c;
 
   /* ── Faction card secondary text (descriptions, metadata) ── */
-  --faction-ua-card-muted:            #444;
-  --faction-analog-card-muted:        #555;
-  --faction-gestalt-card-muted:       #2d6a4f;
-  --faction-snide-card-muted:         #444;
-  --faction-journeymen-card-muted:    #555;
-  --faction-singularity-card-muted:   #1f6b34;
-  --faction-ua-masters-card-muted:    #333;
+  --faction-ua-card-muted: #4a3a6a;
+  --faction-analog-card-muted: #555;
+  --faction-gestalt-card-muted: #831843;
+  --faction-snide-card-muted: #444;
+  --faction-journeymen-card-muted: #555;
+  --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
+  --faction-ua-masters-card-muted: #333;
 
-  /* ── Singularity terminal border ── */
-  --faction-singularity-border-hard: #1a3a22;
+  /* ── Faction headline fonts (per-faction display) ── */
+  --faction-ua-card-font: var(--font-faction-old);
+  --faction-analog-card-font: var(--font-faction-typewriter);
+  --faction-gestalt-card-font: var(--font-faction-script);
+  --faction-snide-card-font: var(--font-faction-marker);
+  --faction-journeymen-card-font: var(--font-faction-mono);
+  --faction-singularity-card-font: var(--font-faction-terminal);
+  --faction-ua-masters-card-font: var(--font-faction-blackletter);
 
-  /* ── Journeymen hazard stripe colors ── */
-  --faction-journeymen-stripe-red:    #c2410c;
-  --faction-journeymen-stripe-amber:  #f59e0b;
+  /* ── Singularity terminal border (blue brand) ── */
+  --faction-singularity-border-hard: #2563eb;
 
-  /* ── Gestalt collage scrap layers ── */
-  --faction-gestalt-scrap-deep:   #bbf7d0;
-  --faction-gestalt-scrap-mid:    #dcfce7;
-  --faction-gestalt-tape:         rgba(250, 230, 130, 0.7);
+  /* ── Journeymen hazard stripe colors (teal/cyan) ── */
+  --faction-journeymen-stripe-red: #0e7490;
+  --faction-journeymen-stripe-amber: #22d3ee;
 
-  /* ── Vote stamp colors ── */
-  --vote-1: #9b8e7d;
-  --vote-2: #0e7490;
-  --vote-3: #4f46e5;
-  --vote-4: #be185d;
-  --vote-5: #14532d;
+  /* ── Gestalt collage scrap layers (magenta) ── */
+  --faction-gestalt-scrap-deep: #fbcfe0;
+  --faction-gestalt-scrap-mid: #fce7ef;
+  --faction-gestalt-tape: rgba(250, 230, 130, 0.7);
+
+  /* ── Vote stamp colors (orange → yellow → green → blue → magenta) ── */
+  --vote-1: #c2410c;
+  --vote-2: #ca8a04;
+  --vote-3: #16a34a;
+  --vote-4: #2563eb;
+  --vote-5: #be185d;
 
   /* ── Title underline colors (cycling) ── */
   --underline-1: #fbbf24;
@@ -131,48 +140,48 @@
   --underline-6: #f97316;
 
   /* ── Watercolor splash opacities ── */
-  --wc-opacity-blob: 0.30;
+  --wc-opacity-blob: 0.3;
   --wc-opacity-drip: 0.22;
   --wc-opacity-drop: 0.18;
 
   /* ── Shared tokens ── */
-  --nav-blur:   6px;
-  --card-blur:  4px;
-  --radius-sm:  4px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
-  --radius-xl:  14px;
+  --nav-blur: 6px;
+  --card-blur: 4px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
 
   /* ── Filter stamp dashed-border (inverts with active state bg) ── */
-  --stamp-active-dashed:   rgba(255, 255, 255, 0.20);
+  --stamp-active-dashed: rgba(255, 255, 255, 0.2);
   --stamp-inactive-dashed: rgba(0, 0, 0, 0.15);
-  --stamp-inactive-bg:     rgba(255, 255, 255, 0.8);
+  --stamp-inactive-bg: rgba(255, 255, 255, 0.8);
 
   /* ── Leaderboard rank colors (podium — stable across themes) ── */
-  --rank-gold:   #f59e0b;
+  --rank-gold: #f59e0b;
   --rank-silver: #c49a3a;
   --rank-bronze: #888888;
 
   /* ── Leaderboard rank accent (your-rank strip + score highlight) ── */
-  --color-rank-accent:  #4f46e5;
-  --rank-strip-bg:      rgba(79, 70, 229, 0.08);
-  --rank-strip-border:  rgba(79, 70, 229, 0.25);
+  --color-rank-accent: #4f46e5;
+  --rank-strip-bg: rgba(79, 70, 229, 0.08);
+  --rank-strip-border: rgba(79, 70, 229, 0.25);
 
   /* ── Leaderboard table row hover ── */
   --leaderboard-row-hover: rgba(255, 255, 255, 0.55);
 
   /* ── Level track node colors ── */
   --color-level-inactive: #c8c0b0;
-  --level-node-incomplete: rgba(255, 255, 255, 0.50);
+  --level-node-incomplete: rgba(255, 255, 255, 0.5);
 
   /* ── Feed badge colors (stable — white text always legible) ── */
-  --badge-friend:     #14532d;
+  --badge-friend: #14532d;
   --badge-your-stuff: #8a6a20;
-  --badge-global:     #6b6a7a;
-  --badge-duel:       #dc2626;
-  --badge-collab:     #15803d;
-  --badge-admin-bg:   #1a1209;
-  --badge-admin-text: #F7F4EE;
+  --badge-global: #6b6a7a;
+  --badge-duel: #dc2626;
+  --badge-collab: #15803d;
+  --badge-admin-bg: #1a1209;
+  --badge-admin-text: #f7f4ee;
 }
 
 /* ══════════════════════════════════════════
@@ -181,101 +190,101 @@
    ══════════════════════════════════════════ */
 [data-theme="dark"] {
   /* ── Page backgrounds ── */
-  --color-bg-page:        #13121a;
-  --color-bg-surface:     rgba(255, 255, 255, 0.04);
+  --color-bg-page: #13121a;
+  --color-bg-surface: rgba(255, 255, 255, 0.04);
   --color-bg-surface-alt: rgba(255, 255, 255, 0.06);
 
   /* ── Text ── */
-  --color-text-primary:   #f0e6d0;
+  --color-text-primary: #f0e6d0;
   --color-text-secondary: #7a7060;
-  --color-text-tertiary:  #4a4860;
+  --color-text-tertiary: #4a4860;
 
   /* ── Borders ── */
-  --color-border:         rgba(255, 255, 255, 0.07);
-  --color-border-strong:  rgba(255, 255, 255, 0.15);
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
 
   /* ── Accent ── */
   --color-accent-primary: #be185d;
 
   /* ── Nav ── */
-  --color-nav-bg:         rgba(19, 18, 26, 0.92);
+  --color-nav-bg: rgba(19, 18, 26, 0.92);
 
   /* ── Functional ── */
-  --color-success:        #4ade80;
-  --color-danger:         #f87171;
-  --color-warning:        #fbbf24;
-  --color-warning-light:  #1c0a00;
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-warning-light: #1c0a00;
 
   /* ── Shared neutrals (dark) ── */
-  --color-surface-scrim:  rgba(19, 18, 26, 0.85);
+  --color-surface-scrim: rgba(19, 18, 26, 0.85);
 
-  /* ── Faction primary colors (dark) ── */
-  --faction-ua:           #a78bfa;
-  --faction-analog:       #15803d;
-  --faction-gestalt:      #4ade80;
-  --faction-snide:        #c49a3a;
-  --faction-journeymen:   #c49a3a;
-  --faction-singularity:  #4ade80;
-  --faction-ua-masters:   #c49a3a;
+  /* ── Faction primary colors (dark — brightened rainbow) ── */
+  --faction-ua: #a78bfa; /* purple */
+  --faction-analog: #fbbf24; /* yellow */
+  --faction-gestalt: #f472b6; /* magenta */
+  --faction-snide: #4ade80; /* green */
+  --faction-journeymen: #22d3ee; /* teal */
+  --faction-singularity: #60a5fa; /* blue */
+  --faction-ua-masters: #fb923c; /* orange */
 
   /* ── Faction tints (dark) ── */
-  --faction-ua-light:           rgba(167, 139, 250, 0.12);
-  --faction-analog-light:       rgba(21, 128, 61, 0.12);
-  --faction-gestalt-light:      rgba(74, 222, 128, 0.10);
-  --faction-snide-light:        rgba(196, 154, 58, 0.10);
-  --faction-journeymen-light:   rgba(196, 154, 58, 0.10);
-  --faction-singularity-light:  rgba(74, 222, 128, 0.08);
-  --faction-ua-masters-light:   rgba(196, 154, 58, 0.10);
+  --faction-ua-light: rgba(167, 139, 250, 0.12);
+  --faction-analog-light: rgba(251, 191, 36, 0.1);
+  --faction-gestalt-light: rgba(244, 114, 182, 0.08);
+  --faction-snide-light: rgba(74, 222, 128, 0.1);
+  --faction-journeymen-light: rgba(34, 211, 238, 0.1);
+  --faction-singularity-light: rgba(96, 165, 250, 0.1);
+  --faction-ua-masters-light: rgba(251, 146, 60, 0.1);
 
   /* ── Faction borders (dark) ── */
-  --faction-ua-border:          rgba(167, 139, 250, 0.30);
-  --faction-analog-border:      rgba(21, 128, 61, 0.30);
-  --faction-gestalt-border:     rgba(74, 222, 128, 0.25);
-  --faction-snide-border:       rgba(196, 154, 58, 0.35);
-  --faction-journeymen-border:  rgba(196, 154, 58, 0.35);
-  --faction-singularity-border: rgba(74, 222, 128, 0.25);
-  --faction-ua-masters-border:  rgba(196, 154, 58, 0.30);
+  --faction-ua-border: rgba(167, 139, 250, 0.3);
+  --faction-analog-border: rgba(251, 191, 36, 0.3);
+  --faction-gestalt-border: rgba(244, 114, 182, 0.25);
+  --faction-snide-border: rgba(74, 222, 128, 0.3);
+  --faction-journeymen-border: rgba(34, 211, 238, 0.35);
+  --faction-singularity-border: rgba(96, 165, 250, 0.25);
+  --faction-ua-masters-border: rgba(251, 146, 60, 0.3);
 
   /* ── Faction card backgrounds (dark mode) ── */
-  --faction-ua-card-bg:           #211d35;
-  --faction-analog-card-bg:       #1e1a10;
-  --faction-gestalt-card-bg:      #132318;
-  --faction-snide-card-bg:        #1a1710;
-  --faction-journeymen-card-bg:   #1c1610;
-  --faction-singularity-card-bg:  #050f08;
-  --faction-ua-masters-card-bg:   #1a1710;
+  --faction-ua-card-bg: #1d1530;
+  --faction-analog-card-bg: #1f1a0a;
+  --faction-gestalt-card-bg: #2a0d1c;
+  --faction-snide-card-bg: #0d1f12;
+  --faction-journeymen-card-bg: #0a1f24;
+  --faction-singularity-card-bg: #050f08;
+  --faction-ua-masters-card-bg: #1f1208;
 
   /* ── Faction card text (dark mode) ── */
-  --faction-ua-card-text:           #ddd6fe;
-  --faction-analog-card-text:       #e8dcc8;
-  --faction-gestalt-card-text:      #4ade80;
-  --faction-snide-card-text:        #f0e6d0;
-  --faction-journeymen-card-text:   #f5e6c8;
-  --faction-singularity-card-text:  #4ade80;
-  --faction-ua-masters-card-text:   #f0e6d0;
+  --faction-ua-card-text: #ddd6fe;
+  --faction-analog-card-text: #fde68a;
+  --faction-gestalt-card-text: #fbcfe0;
+  --faction-snide-card-text: #bbf7d0;
+  --faction-journeymen-card-text: #a5f3fc;
+  --faction-singularity-card-text: #4ade80;
+  --faction-ua-masters-card-text: #fed7aa;
 
   /* ── Faction card accents (dark mode) ── */
-  --faction-ua-card-accent:           #a78bfa;
-  --faction-analog-card-accent:       #15803d;
-  --faction-gestalt-card-accent:      #4ade80;
-  --faction-snide-card-accent:        #c49a3a;
-  --faction-journeymen-card-accent:   #c49a3a;
-  --faction-singularity-card-accent:  #4ade80;
-  --faction-ua-masters-card-accent:   #c49a3a;
+  --faction-ua-card-accent: #a78bfa;
+  --faction-analog-card-accent: #fbbf24;
+  --faction-gestalt-card-accent: #f472b6;
+  --faction-snide-card-accent: #4ade80;
+  --faction-journeymen-card-accent: #22d3ee;
+  --faction-singularity-card-accent: #4ade80; /* terminal green */
+  --faction-ua-masters-card-accent: #fb923c;
 
   /* ── Faction card secondary text (dark mode) ── */
-  --faction-ua-card-muted:            #a8a0c0;
-  --faction-analog-card-muted:        #a89878;
-  --faction-gestalt-card-muted:       #2d8a50;
-  --faction-snide-card-muted:         #7a6a50;
-  --faction-journeymen-card-muted:    #a89878;
-  --faction-singularity-card-muted:   #1f6b34;
-  --faction-ua-masters-card-muted:    #7a6a50;
+  --faction-ua-card-muted: #a8a0c0;
+  --faction-analog-card-muted: #c9a93a;
+  --faction-gestalt-card-muted: #c4648a;
+  --faction-snide-card-muted: #4a8a60;
+  --faction-journeymen-card-muted: #3a8a9a;
+  --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
+  --faction-ua-masters-card-muted: #b06040;
 
   /* ── Gestalt collage scrap layers (dark) ── */
-  --faction-gestalt-scrap-deep:   #091209;
-  --faction-gestalt-scrap-mid:    #0d1a10;
-  --faction-gestalt-tape:         rgba(250, 230, 130, 0.12);
+  --faction-gestalt-scrap-deep: #091209;
+  --faction-gestalt-scrap-mid: #0d1a10;
+  --faction-gestalt-tape: rgba(250, 230, 130, 0.12);
 
   /* ── Watercolor splash opacities (dimmer in dark) ── */
   --wc-opacity-blob: 0.15;
@@ -286,34 +295,48 @@
   --nav-blur: 8px;
 
   /* ── Filter stamp dashed-border (dark-mode inversions) ── */
-  --stamp-active-dashed:   rgba(0, 0, 0, 0.15);
-  --stamp-inactive-dashed: rgba(255, 255, 255, 0.10);
-  --stamp-inactive-bg:     rgba(255, 255, 255, 0.06);
+  --stamp-active-dashed: rgba(0, 0, 0, 0.15);
+  --stamp-inactive-dashed: rgba(255, 255, 255, 0.1);
+  --stamp-inactive-bg: rgba(255, 255, 255, 0.06);
 
   /* ── Leaderboard rank accent (dark) ── */
-  --color-rank-accent:  #818cf8;
-  --rank-strip-bg:      rgba(129, 140, 248, 0.12);
-  --rank-strip-border:  rgba(129, 140, 248, 0.30);
+  --color-rank-accent: #818cf8;
+  --rank-strip-bg: rgba(129, 140, 248, 0.12);
+  --rank-strip-border: rgba(129, 140, 248, 0.3);
 
   /* ── Leaderboard table row hover (dark) ── */
   --leaderboard-row-hover: rgba(255, 255, 255, 0.03);
 
   /* ── Level track node colors (dark) ── */
-  --color-level-inactive: rgba(255, 255, 255, 0.30);
+  --color-level-inactive: rgba(255, 255, 255, 0.3);
   --level-node-incomplete: rgba(255, 255, 255, 0.06);
 }
 
-/* ── Type Scale ── */
+/* ── Type Scale + Font Families ── */
 :root {
-  --text-xs:   8px;
-  --text-sm:   9px;
+  --text-xs: 8px;
+  --text-sm: 9px;
   --text-base: 10px;
-  --text-md:   11px;
-  --text-lg:   12px;
-  --text-xl:   14px;
-  --text-2xl:  18px;
-  --text-3xl:  28px;
-  --text-4xl:  34px;
+  --text-md: 11px;
+  --text-lg: 12px;
+  --text-xl: 14px;
+  --text-2xl: 18px;
+  --text-3xl: 28px;
+  --text-4xl: 34px;
+
+  /* ── Font families ── */
+  --font-display: "Lora", Georgia, serif;
+  --font-body: "Courier Prime", "Courier New", monospace;
+  --font-accent: "Bebas Neue", Impact, sans-serif;
+
+  /* ── Per-faction headline fonts ── */
+  --font-faction-typewriter: "Special Elite", "Courier New", serif;
+  --font-faction-terminal: "Share Tech Mono", monospace;
+  --font-faction-marker: "Permanent Marker", "Marker Felt", cursive;
+  --font-faction-mono: "Cutive Mono", "Courier New", monospace;
+  --font-faction-blackletter: "UnifrakturCook", "Blackletter", serif;
+  --font-faction-script: "Caveat", cursive;
+  --font-faction-old: "IM Fell English", Georgia, serif;
 }
 
 @layer base {
@@ -321,10 +344,15 @@
     @apply bg-paper font-body text-ink;
     background-color: var(--color-bg-page);
     min-height: 100vh;
-    transition: background-color 150ms, color 150ms;
+    transition:
+      background-color 150ms,
+      color 150ms;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     @apply font-display;
   }
 }
@@ -441,7 +469,7 @@
     border-radius: 0;
     background: var(--stamp-inactive-bg);
     color: var(--stamp-color);
-    font-family: 'Courier Prime', monospace;
+    font-family: "Courier Prime", monospace;
     font-size: 18px;
     font-weight: 900;
     cursor: pointer;
@@ -511,14 +539,30 @@
 
   /* ── Markdown preview ── */
 
-  .markdown-preview h1 { @apply font-display text-2xl font-bold mt-4 mb-2; }
-  .markdown-preview h2 { @apply font-display text-xl font-bold mt-3 mb-1.5; }
-  .markdown-preview h3 { @apply font-display text-lg font-bold mt-2 mb-1; }
-  .markdown-preview p  { @apply mb-3 leading-relaxed; }
-  .markdown-preview strong { @apply font-bold; }
-  .markdown-preview em { @apply italic; }
-  .markdown-preview ul { @apply list-disc pl-5 mb-3 space-y-1; }
-  .markdown-preview ol { @apply list-decimal pl-5 mb-3 space-y-1; }
+  .markdown-preview h1 {
+    @apply font-display text-2xl font-bold mt-4 mb-2;
+  }
+  .markdown-preview h2 {
+    @apply font-display text-xl font-bold mt-3 mb-1.5;
+  }
+  .markdown-preview h3 {
+    @apply font-display text-lg font-bold mt-2 mb-1;
+  }
+  .markdown-preview p {
+    @apply mb-3 leading-relaxed;
+  }
+  .markdown-preview strong {
+    @apply font-bold;
+  }
+  .markdown-preview em {
+    @apply italic;
+  }
+  .markdown-preview ul {
+    @apply list-disc pl-5 mb-3 space-y-1;
+  }
+  .markdown-preview ol {
+    @apply list-decimal pl-5 mb-3 space-y-1;
+  }
   .markdown-preview code {
     background: var(--color-bg-surface-alt);
     @apply px-1 text-xs;

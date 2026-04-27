@@ -27,6 +27,7 @@
 ### TARGET SCHEMA (reference for all P tasks)
 
 **`praxis` table** (replaces `submission`):
+
 - `id`, `task_id` (FK task), `type` (PraxisType: solo|collab|duel)
 - `status` (PraxisStatus: in_progress|submitted)
 - `title` (Text nullable), `body_text` (Text nullable) — shared by all members
@@ -35,15 +36,18 @@
 - `created_at`, `updated_at`
 
 **`praxis_member` table** (replaces `submission_member` + `character_task`):
+
 - `id`, `praxis_id` (FK praxis), `character_id` (FK character)
 - `has_submitted` (bool), `joined_at` (datetime)
 - UNIQUE(praxis_id, character_id)
 
 **`praxis_invite` table** (replaces `submission_invite`):
+
 - `id`, `praxis_id` (FK praxis), `inviter_id` (FK character), `invitee_id` (FK character)
 - `status` (PraxisInviteStatus: pending|accepted|declined), `created_at`
 
 **`vote` table changes**:
+
 - `submission_id` → `praxis_id` (FK praxis)
 - `duel_vote_for` (FK character) → `praxis_member_id` (FK praxis_member, nullable)
 - NULL praxis_member_id = solo/collab vote; non-NULL = duel vote for that member
@@ -62,27 +66,29 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Scope:** Database only. No Python model/service code changes yet.
 
 **Do:**
+
 1. Write `backend/alembic/versions/XXXX_praxis_unification.py`
 2. Create new `praxis`, `praxis_member`, `praxis_invite` tables per the target schema above
 3. Data migration — execute in this order:
    a. Migrate legacy `praxis` rows (type='solo') → new `praxis` + `praxis_member` for each `character_id`
    b. Migrate `collaboration` rows → new `praxis` (type = collaboration.mode) + `praxis_member` per `collaboration_member`
    c. Migrate `submission` rows → new `praxis` rows:
-      - solo rows: type='solo', `created_by_id` = `character_id`; create `praxis_member`
-      - collab/duel rows: type from `collab_mode`, `created_by_id` from `created_by_id`; create `praxis_member` per `submission_member`
-   d. Migrate `submission_invite` → `praxis_invite`
-   e. Migrate `collaboration_invite` → `praxis_invite` (dedup if same praxis already has the invite)
-   f. Migrate `character_task` rows with no corresponding active praxis → skeleton `praxis` (in_progress, no title/body) + `praxis_member`
-   g. Update `vote.submission_id` → `praxis_id`; map `duel_vote_for` character FK to the corresponding `praxis_member_id`
-   h. Update `media_item.submission_id` → `praxis_id`
-   i. Update `flag.submission_id` → `praxis_id`
-   j. Update `praxis_meta_task.submission_id` → `praxis_id`
+   - solo rows: type='solo', `created_by_id` = `character_id`; create `praxis_member`
+   - collab/duel rows: type from `collab_mode`, `created_by_id` from `created_by_id`; create `praxis_member` per `submission_member`
+     d. Migrate `submission_invite` → `praxis_invite`
+     e. Migrate `collaboration_invite` → `praxis_invite` (dedup if same praxis already has the invite)
+     f. Migrate `character_task` rows with no corresponding active praxis → skeleton `praxis` (in_progress, no title/body) + `praxis_member`
+     g. Update `vote.submission_id` → `praxis_id`; map `duel_vote_for` character FK to the corresponding `praxis_member_id`
+     h. Update `media_item.submission_id` → `praxis_id`
+     i. Update `flag.submission_id` → `praxis_id`
+     j. Update `praxis_meta_task.submission_id` → `praxis_id`
 4. Drop old tables: `submission`, `submission_member`, `submission_invite`, legacy `praxis`, `collaboration`, `collaboration_member`, `collaboration_invite`, `character_task`
 5. Write downgrade path (re-create old tables, migrate back)
 
 **Files:** `backend/alembic/versions/XXXX_praxis_unification.py`
 
 **Acceptance:**
+
 - `alembic upgrade head` runs clean against a fresh DB and against a DB with existing data
 - `alembic downgrade -1` returns to previous state without data loss
 - All FK constraints are intact after migration
@@ -95,6 +101,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.1
 
 **Do:**
+
 1. Rewrite `backend/models/praxis.py` — define `PraxisType`, `PraxisStatus`, `PraxisInviteStatus`, `Praxis`, `PraxisMember`, `PraxisInvite`, `MediaItem` (keep MediaItem here as it already lives in this file; update FK to `praxis_id`)
 2. Delete `backend/models/submission.py` and `backend/models/collaboration.py`
 3. Update `backend/models/vote.py`: rename `submission_id` → `praxis_id`, rename `duel_vote_for` → `praxis_member_id` (FK to `praxis_member.id`, nullable), update unique constraints
@@ -104,6 +111,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 7. Update `backend/models/__init__.py` (or wherever models are registered) to remove old imports
 
 **Key model design notes:**
+
 - `Praxis.created_by_id` is always non-nullable — every praxis has an initiating character
 - Solo praxes have exactly one `PraxisMember` (the creator); this is enforced in the service, not the DB
 - `PraxisMember` has NO `title`/`body_text` — content is on `Praxis` itself
@@ -111,6 +119,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 - `Vote.praxis_member_id` is NULL for solo/collab votes, non-NULL for duel votes
 
 **Files:**
+
 - `backend/models/praxis.py` (rewrite)
 - `backend/models/submission.py` (delete)
 - `backend/models/collaboration.py` (delete)
@@ -128,6 +137,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.2
 
 **Do:**
+
 1. Rewrite `backend/schemas/praxis.py` as the single canonical schema file:
    - `PraxisMemberOut` (id, character_id, character_display_name, character_avatar_url, has_submitted, joined_at)
    - `PraxisInviteOut` (id, praxis_id, inviter, invitee, status, created_at)
@@ -143,6 +153,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 3. Update any schema files that imported `SubmissionOut` etc.
 
 **Files:**
+
 - `backend/schemas/praxis.py` (rewrite)
 - `backend/schemas/submission.py` (delete)
 - `backend/schemas/collaboration.py` (delete)
@@ -156,6 +167,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.3
 
 **Do:**
+
 1. Rewrite `backend/services/praxis.py` as the single canonical service:
    - `_count_active_praxes(character_id, session)` — counts PraxisMember rows where praxis.status=in_progress and not withdrawn; used for bank limit enforcement
    - `build_praxis_out(praxis, session, era)` — unified serializer for all types
@@ -181,6 +193,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Key rule:** add `max_duel_participants: int` to `EraConfig` in `backend/game_config.py` and set a value in `backend/eras/era_1.py`. The service reads `era.max_duel_participants` — never hardcodes 2.
 
 **Files:**
+
 - `backend/services/praxis.py` (rewrite)
 - `backend/services/submission.py` (delete)
 - `backend/services/collaboration.py` (delete)
@@ -198,6 +211,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.4
 
 **Do:**
+
 1. Rewrite `backend/routers/praxes.py` as the single unified router (all endpoints under `/praxes`):
    - `GET /praxes` — list with `?type=solo|collab|duel`, `?task_id=`, `?character_id=`, `?status=`
    - `GET /praxes/{id}` — detail
@@ -220,6 +234,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 4. Update `backend/main.py` to remove old router includes, confirm praxes router is included
 
 **Files:**
+
 - `backend/routers/praxes.py` (rewrite)
 - `backend/routers/submissions.py` (delete)
 - `backend/routers/collaborations.py` (delete)
@@ -235,6 +250,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.5 (backend must be running with new routes)
 
 **Do:**
+
 1. Rewrite `frontend/src/api/praxis.ts` as the single canonical client:
    - Types: `PraxisMemberOut`, `PraxisInviteOut`, `PraxisOut`, `PraxisCardOut`, `MediaItemOut`, `DuelVoteSummary`
    - Functions: `listPraxes`, `getPraxis`, `createPraxis`, `updatePraxis`, `withdrawPraxis`, `resubmitPraxis`, `flagPraxis`
@@ -246,6 +262,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 4. Update `frontend/src/api/votes.ts` if it references submission types
 
 **Files:**
+
 - `frontend/src/api/praxis.ts` (rewrite)
 - `frontend/src/api/submissions.ts` (delete)
 - `frontend/src/api/collaborations.ts` (delete)
@@ -260,6 +277,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.6
 
 **Do:**
+
 1. Update `frontend/src/pages/PraxisDetail.tsx`: import from `api/praxis`, use `PraxisOut` type; support solo and collab/duel rendering from the same component (or keep as shared detail view)
 2. Update `frontend/src/pages/Praxes.tsx`: import from `api/praxis`, use `listPraxes`
 3. Update `frontend/src/pages/EditPraxis.tsx`: import from `api/praxis`, use `updatePraxis`
@@ -272,6 +290,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 10. Update `frontend/src/App.tsx` routing: remove any `/collaborations` legacy routes if they only existed as shims; confirm `/praxes` routes work
 
 **Files:**
+
 - All pages and components listed above
 - `frontend/src/App.tsx`
 
@@ -284,6 +303,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** P.5
 
 **Do:**
+
 1. Rewrite `backend/tests/integration/test_submissions.py` → rename to `test_praxis.py`; update all imports and endpoint paths to `/praxes`; cover:
    - Create solo praxis (happy path + bank limit enforcement)
    - Create collab praxis, invite member, member accepts, both submit
@@ -300,6 +320,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Note:** Tasks T.4 (integration tests: praxes routes) and T.9 (collaborations coverage) are superseded by this task.
 
 **Files:**
+
 - `backend/tests/integration/test_praxis.py` (rename from test_submissions.py)
 - `backend/tests/integration/test_admin.py`
 - `docs/spec/SPEC-data-models.md`
@@ -323,6 +344,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** Praxis creation does not check whether `character.level ≥ task.level_required`.
 
 **Fix:**
+
 1. In `backend/services/praxis.py::create_praxis`, load the task's `level_required` and raise 403 if the character's level is below it.
 2. Return a clear error message: `"Character level {n} is below the required level {m} for this task."`
 
@@ -337,6 +359,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** `task_submit_level_gap` is a dead field — once a character signs up, they can always submit regardless of level. The field adds confusion.
 
 **Fix:**
+
 1. Remove `task_submit_level_gap` from the `EraConfig` dataclass in `backend/game_config.py`.
 2. Remove it from `backend/eras/era_1.py`.
 3. Remove any service code that reads it.
@@ -352,6 +375,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** Collab praxes have no participant cap. The intended limit is 20.
 
 **Fix:**
+
 1. Add `max_collab_participants: int = 20` to `EraConfig` in `backend/game_config.py`.
 2. Set the value in `backend/eras/era_1.py`.
 3. In `backend/services/praxis.py::respond_to_invite`, when the invitee accepts a collab praxis, count current members and reject with 400 if `count >= era.max_collab_participants`.
@@ -364,9 +388,10 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 
 ### TASK R.4 ✅ 2026-04-17 — Switch duel anti-self-vote to account-level
 
-**Problem:** Duel vote validation checks `voter.character_id not in duel members` (character-level). It should check `voter.account_id not in duel participants' account_ids` — a voter cannot use *any* of their characters to rate either side of a duel they participate in.
+**Problem:** Duel vote validation checks `voter.character_id not in duel members` (character-level). It should check `voter.account_id not in duel participants' account_ids` — a voter cannot use _any_ of their characters to rate either side of a duel they participate in.
 
 **Fix:**
+
 1. In `backend/services/praxis.py::cast_duel_vote`, load the account IDs of both duel members and compare against `voter_account_id`.
 2. Reject with 403 if the voter's account owns any member character.
 
@@ -381,6 +406,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** `votes_available` is stored as a running counter and decremented on each vote. It drifts from the formula if score changes (era reset, stat patch, etc.) and does not grow as the character earns points.
 
 **Fix:**
+
 1. In `CharacterStats`, replace the stored `votes_available` column with `votes_spent_this_era` (count of distinct first-casts this era). **Alembic migration required.**
 2. Add a `compute_votes_available(stats, era)` helper in `backend/services/scoring.py`:
    ```python
@@ -402,6 +428,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** `backend/services/scoring.py::compute_duel_multiplier` applies Snide's `duel_loss_modifier` (0.0×) to the non-Snide player in a tie. The correct behavior: the non-Snide player receives **their own faction's** `duel_loss_modifier`.
 
 **Fix:**
+
 1. In `compute_duel_multiplier`, when resolving a tie where exactly one participant is Snide: apply `snide_config.duel_win_modifier` to Snide and `opponent_faction_config.duel_loss_modifier` to the opponent (not `snide_config.duel_loss_modifier`).
 
 **Files:** `backend/services/scoring.py`
@@ -415,12 +442,11 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** Creating a second character currently requires level 3 on any existing character. Target: level 5. Additionally, choosing Albescent as the starting faction for a new character requires the account to have at least one character at level 8.
 
 **Backend:**
+
 1. In `backend/services/character.py::create_character`, raise the existing level check from 3 → 5.
 2. If the new character's requested faction is `"albescent"`, additionally verify that at least one of the account's existing characters has `stats.level >= 8`. Reject with 403 and a clear message if not.
 
-**Frontend:**
-3. Update any frontend copy or gate checks that reference "level 3" for second character creation to "level 5".
-4. In the character creation flow, only show Albescent as a choosable starting faction if the account has a character at level 8.
+**Frontend:** 3. Update any frontend copy or gate checks that reference "level 3" for second character creation to "level 5". 4. In the character creation flow, only show Albescent as a choosable starting faction if the account has a character at level 8.
 
 **Files:** `backend/services/character.py`, relevant frontend character creation component
 
@@ -435,6 +461,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** New characters always start in `"ua"`. An Albescent second character should start in `"albescent"` at level 1 and never be assigned to UA.
 
 **Fix:**
+
 1. In `backend/services/character.py::create_character`, if `faction_slug = "albescent"`, set `character.faction_slug = "albescent"` directly instead of the default `"ua"` assignment.
 2. Skip the faction graduation check (UA → aged_out) for Albescent characters — they are never in UA.
 
@@ -449,14 +476,13 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** The level table has stale metatask access rows (level 4 "meta task access"). Correct model: level 6 = see list + propose; level 7 = apply own faction's metatasks; Albescent = apply any faction.
 
 **Backend:**
+
 1. In `backend/services/meta_task.py` (or wherever metatask access is gated), remove any level-4 gate.
 2. Gate "see metatask list" and "propose metatask" behind `character.level >= 6`.
 3. Gate "apply metatask to praxis" behind `character.level >= 7` OR `character.faction_slug == "albescent"`.
 4. For Albescent: allow applying metatasks from any faction; for level-7 characters: only their own faction's metatasks.
 
-**Frontend:**
-5. Remove metatask UI elements for characters below level 6.
-6. Show "propose" controls at level 6+; show "apply" controls at level 7+ (or Albescent).
+**Frontend:** 5. Remove metatask UI elements for characters below level 6. 6. Show "propose" controls at level 6+; show "apply" controls at level 7+ (or Albescent).
 
 **Files:** `backend/services/meta_task.py`, relevant frontend metatask components
 
@@ -489,6 +515,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 ### TASK M.1 ✅ 2026-04-17 — Add `task_type` to Task model and seed metatask tasks
 
 **Do:**
+
 1. Add `task_type: TaskType` enum column to the `Task` model (`TaskType.standard | TaskType.metatask`). Default `standard`. **Alembic migration required.**
 2. Add `metatask_faction_slug: Optional[str]` to `Task` — the faction this metatask belongs to (used for access gating at level 7).
 3. Add `TaskType` enum to `backend/models/task.py`.
@@ -509,6 +536,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** Currently `PraxisMetaTask` stores a link between a praxis and an old-model metatask. After M.1, a metatask is just a Task row with `task_type = "metatask"`. The association table needs to point to the task (not a separate metatask model).
 
 **Do:**
+
 1. Rename/rewrite `praxis_meta_task` table: `praxis_id` (FK praxis) + `task_id` (FK task, must have `task_type = "metatask"`). **Alembic migration required.**
 2. Drop any separate `meta_task` or `metatask` model/table that is not the unified `Task` table.
 3. Add a DB check or service-level guard: only tasks with `task_type = "metatask"` can be linked via `praxis_meta_task`.
@@ -525,6 +553,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** M.2
 
 **Do:**
+
 1. Add `apply_metatask(praxis_id, task_id, character_id, session, era)` to `backend/services/praxis.py`:
    - Verify `task.task_type == TaskType.metatask`.
    - Verify character's level/faction access (level 7 + own faction, or Albescent + any faction).
@@ -546,6 +575,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Depends on:** M.1
 
 **Do:**
+
 1. Level-6+ characters can propose a new metatask task via `POST /tasks` with `task_type = "metatask"` and `metatask_faction_slug`. Proposed metatasks start in `pending` status like any other task.
 2. Admin approves via existing `POST /admin/tasks/{id}/activate` (or equivalent) — no new route needed if the task activation flow already handles `task_type = "metatask"`.
 3. Update `GET /tasks` to support `?task_type=metatask` filter.
@@ -560,6 +590,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 ### TASK M.5 ⚠️ PARTIAL 2026-04-17 — Frontend: metatask list, apply/remove UI
 
 **Done in this session:**
+
 - `frontend/src/api/metaTasks.ts` rewritten — `listMetatasks` and `proposeMetatask` hit the unified `/tasks` endpoint with `task_type=metatask`
 - `frontend/src/api/praxis.ts` — added `applyMetatask(praxisId, taskId)` and `removeMetatask(praxisId, taskId)` calling `/praxes/{id}/metatasks`
 - `frontend/src/api/tasks.ts` — `TaskOut` and `TaskCreate` now carry `task_type` and `metatask_faction_slug`
@@ -567,11 +598,13 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 - `frontend/src/pages/TaskDetail.tsx` and `frontend/src/pages/Tasks.tsx` updated to be metatask-aware
 
 **Deferred (follow-up):**
+
 - **Metatask apply/remove panel on `PraxisDetail.tsx`** — a level-7 Gestalt character (or any-level Albescent) should see an "Apply metatask" panel on an in-progress praxis they're a member of, with a list of applicable metatasks and a remove button for already-applied ones. This requires exposing `applied_metatasks: List[TaskOut]` on `PraxisOut` (backend schema + build_praxis_out). The apply/remove APIs already exist — this is pure UI wiring.
 
 **Depends on:** M.3, M.4
 
 **Do:**
+
 1. Add `listMetatasks()` to `frontend/src/api/tasks.ts` (or `praxis.ts`) — calls `GET /tasks?task_type=metatask`.
 2. Add `applyMetatask(praxisId, taskId)` and `removeMetatask(praxisId, taskId)` to `frontend/src/api/praxis.ts`.
 3. On the praxis detail page (for in-progress praxes), show a "Add metatask" panel for eligible characters (level 7+ or Albescent). List available metatasks filtered by access rules. Show applied metatasks with a remove button.
@@ -594,6 +627,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** `PraxisCard.tsx` reads `praxis` as a read-only prop and never updates it after a moderation action. None of the callers pass `onModerated`, so the refresh callback is always a no-op. Errors are silently swallowed.
 
 **Fix:**
+
 - Add `const [localPraxis, setLocalPraxis] = useState(praxis)` and render from `localPraxis`
 - Rewrite `handleHide` / `handleFail` with try/catch; on success call `setLocalPraxis(updated)` (API returns updated `PraxisOut`); on error show an inline error message
 
@@ -632,13 +666,12 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** No admin endpoint or UI exists to edit task title, description, point_value, or level_required after a task is created. `PUT /tasks/{id}` rejects everyone except the original proposer on pending-only tasks.
 
 **Backend:**
+
 1. Add `AdminTaskPatch` schema to `backend/schemas/admin.py` — optional fields: title, description, point_value, level_required
 2. Add `admin_edit_task(task_id, data, session)` to `backend/services/admin_service.py` — loads task, rejects if status is `active`, applies non-None fields, commits
 3. Add `PATCH /admin/tasks/{task_id}` route in `backend/routers/admin.py` that calls the service and returns `TaskOut`
 
-**Frontend:**
-4. Add `adminPatchTask(id, data)` to `frontend/src/api/admin.ts` calling `PATCH /admin/tasks/{id}`
-5. In `frontend/src/pages/admin/TasksTab.tsx`, add an "edit" button on pending and retired task rows that toggles an inline form for title, description, point_value, level_required; on save call `adminPatchTask` then `refresh()`
+**Frontend:** 4. Add `adminPatchTask(id, data)` to `frontend/src/api/admin.ts` calling `PATCH /admin/tasks/{id}` 5. In `frontend/src/pages/admin/TasksTab.tsx`, add an "edit" button on pending and retired task rows that toggles an inline form for title, description, point_value, level_required; on save call `adminPatchTask` then `refresh()`
 
 **Acceptance:** Admin can open the edit form on any pending/retired task, change any of the four fields, save, and see the updated values in the list. Active tasks show no edit button.
 
@@ -649,11 +682,11 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 **Problem:** `services/task.py` gates proposals behind `stats.level < 3`. `ProposeTask.tsx` shows a hard error page for any character below level 3. Admins should bypass both gates.
 
 **Backend:**
+
 1. Add `skip_level_check: bool = False` param to `propose_task()` in `backend/services/task.py`; gate on `not skip_level_check`
 2. In `backend/routers/tasks.py` propose route: load the current Account; if `account.is_admin`, pass `skip_level_check=True`
 
-**Frontend:**
-3. In `frontend/src/pages/ProposeTask.tsx`, change the level gate from `if (characterLevel < 3)` to `if (!user?.is_admin && characterLevel < 3)`
+**Frontend:** 3. In `frontend/src/pages/ProposeTask.tsx`, change the level gate from `if (characterLevel < 3)` to `if (!user?.is_admin && characterLevel < 3)`
 
 **Acceptance:** An admin character at level 0 can navigate to Propose Task without hitting the gate and successfully submit a proposal.
 
@@ -682,7 +715,7 @@ legacy `praxis` (old table), `collaboration`, `collaboration_member`,
 ### TASK A.1 ✅ 2026-04-15 — Rename `Submission` → `Praxis` across the codebase
 
 The canonical noun is **Praxis** (the completed-task artifact). "Submit" is
-the verb — a player *submits* a praxis. Today the code names the entity
+the verb — a player _submits_ a praxis. Today the code names the entity
 `Submission` everywhere (model, table, schemas, routes, services), which
 reads as noun-verb confusion to anyone coming from the spec prose. Lock in
 "Praxis" as the noun and "submit" as the verb, consistently.
@@ -691,6 +724,7 @@ This is a real refactor, not a doc sweep. Break it into two phases so it
 can land safely:
 
 **Phase 1 — Docs and new code surface:**
+
 - Sweep `docs/` so every use of "Submission" as a noun for the artifact
   becomes "Praxis". Leave verbs ("submit the praxis", "submitted") intact.
 - In `SPEC-backend-architecture.md` §6 this is already the canonical
@@ -699,6 +733,7 @@ can land safely:
   "Praxis" for the noun.
 
 **Phase 2 — Code rename (single PR):**
+
 - Rename model: `models/submission.py` → `models/praxis.py`; class
   `Submission` → `Praxis`; table `submission` → `praxis`.
 - Rename child-model references: `MediaItem.submission_id` →
@@ -716,6 +751,7 @@ can land safely:
   will need coordination with `frontend-feature`).
 
 **Acceptance:**
+
 - `grep -ri "Submission" backend/ frontend/src/ docs/` returns no hits
   referring to the entity; only residual references to verbs/history
   (if any) remain with comments.
@@ -732,6 +768,7 @@ and `routers/tasks.py::list_task_signups` to run manual join queries for data
 the ORM could eager-load.
 
 **Do:** add `relationship()` declarations for:
+
 - `Account.characters` / `Character.account`
 - `Account.oauth_providers` / `OAuthProvider.account`
 - `Character.submissions` / `Submission.character`
@@ -772,6 +809,7 @@ cycle. The whole codebase has exactly one function-scoped service import, and
 this is it.
 
 **Do:** pick one:
+
 1. Move `clear_defection_history_for_era` into `services/era.py` (it only
    clears `FactionDefectionHistory` rows; it's closer to era concerns than
    faction concerns).
@@ -897,12 +935,14 @@ connections are bound to a single event loop, so this causes
 **Do:** Rewrite the test fixtures using one of these approaches (pick one):
 
 **Option A — Function-scoped engine (simplest, slower):**
+
 - Make `test_engine` function-scoped instead of session-scoped
 - Each test gets its own engine → own connection → own event loop
 - Trade-off: `create_all` runs per test (slower), but no concurrency issues
 - Mitigate by using `scope="module"` if per-test is too slow
 
 **Option B — NullPool + begin_nested (recommended):**
+
 - Add `poolclass=NullPool` to `create_async_engine` in the test engine
 - Use `connection.begin_nested()` (SAVEPOINT) pattern:
   ```python
@@ -918,11 +958,13 @@ connections are bound to a single event loop, so this causes
 - The single connection avoids asyncpg's concurrent-operation check
 
 **Option C — Sync create_all + async tests:**
+
 - Use a synchronous engine for `create_all`/`drop_all` only
 - Use the async engine only for test sessions
 - Avoids the session-scoped async fixture loop-binding issue entirely
 
 **Also:**
+
 - Set `asyncio_default_fixture_loop_scope = "session"` in `pytest.ini` to
   ensure all async fixtures share one event loop (requires pytest-asyncio ≥ 0.23)
 - OR pin `pytest-asyncio` and set `loop_scope="session"` on the engine fixture
@@ -968,6 +1010,7 @@ check to pass.
 **Current state:** 31 tests cover CRUD, list filters (search, faction, pagination), stats exposure, avatar upload (including 403 cases), relationships, votes-received, and the second-character level gate. The gate test functions correctly check the **level 5** threshold from R.7, but their names still say "level3".
 
 **Remaining work:**
+
 1. Rename `test_second_character_blocked_below_level3` → `test_second_character_blocked_below_level5`
 2. Rename `test_second_character_allowed_at_level3` → `test_second_character_allowed_at_level5`
 3. Add `test_albescent_requires_level8_character_on_account` (R.7) — account with only a level-7 character cannot create an Albescent second character; with a level-8 character it can
@@ -983,6 +1026,7 @@ check to pass.
 **Current state:** 31 tests cover list filters (status, faction, level, points, exclude_character_id), propose at level-3, edit pending tasks, signup lists, hidden-faction exclusion, response field shape.
 
 **Remaining work:**
+
 1. Add `test_my_tasks_with_status_filter` — `GET /my-tasks?status=submitted` and `?status=abandoned` return the right subsets
 2. Add `test_admin_bypass_propose_level_gate` (B.5) — admin character at level 0 can propose a task
 3. Add `test_propose_metatask_requires_level6` once SESSION M lands (defer; note here as a dependency)
@@ -997,6 +1041,7 @@ check to pass.
 **Current state:** 15 tests cover `/auth/me` (authenticated / unauthenticated / no character / with stats / no email leak / not-admin-by-default), logout + cookie clear, and token validation (expired, malformed, wrong signature, missing Bearer prefix).
 
 **Remaining work:**
+
 1. Add `test_auth_me_exposes_votes_available` — the computed `votes_available` field from R.5 is present in the returned CharacterStats and equals `base + floor(multiplier * score) - votes_spent_this_era`
 
 **File:** `backend/tests/integration/test_auth.py`
@@ -1009,6 +1054,7 @@ check to pass.
 **Current state:** 46 tests including task management, praxis moderation, character stats patching, account management, era reset, role management, and 403 coverage on every endpoint. `test_admin_patch_character_stats` still passes under R.5 because `set_character_stats` translates the `votes_available` patch into `votes_spent_this_era = max(0, cap - desired)` at the service layer.
 
 **Remaining work:**
+
 1. Add `test_admin_patch_stats_recomputes_votes_available` — PATCH with `votes_available=5`, read back, confirm the computed value matches `base + floor(multiplier * new_score) - spent` where `spent` was set to `max(0, cap - 5)`
 2. Add `test_admin_era_reset_zeros_votes_spent_this_era` (R.5) — before reset a character has `votes_spent_this_era > 0`; after reset with `reset_vote_budget=True`, it's `0`; budget recalculates from the new score
 3. Add `test_admin_era_reset_preserves_votes_spent_without_flag` — reset with `reset_vote_budget=False` carries over `votes_spent_this_era`
@@ -1023,6 +1069,7 @@ check to pass.
 factions.py (8 tests), leaderboard.py (7 tests), messages.py (10 tests), relationships.py (11 tests), votes.py (10 tests) each have solid coverage of happy paths and key error cases. collaborations.py is ⛔ superseded by P.8.
 
 **Remaining (optional, pick up only if overall coverage is below target):**
+
 - One or two tests each for leaderboard era-specific queries and message list filtering if coverage % still lags.
 
 **Target:** raise overall coverage from 59% → 80%+ after T.5 + T.7 + T.8 + T.10 land. This is the milestone where `--cov-fail-under` in `backend/pytest.ini` can be raised back from 60 → 80.
@@ -1054,6 +1101,7 @@ Each rule that shipped in PRs #105 and #106 deserves a dedicated integration tes
 ### Overall SESSION T finish line
 
 After T.5 + T.6 + T.7 + T.8 + T.10 merge:
+
 - Overall backend coverage should reach 80%+
 - Raise `--cov-fail-under` from 60 → 80 in `backend/pytest.ini`
 - Enable branch protection on `main` requiring the Test status check (T.3)
@@ -1088,10 +1136,11 @@ drops `selectinload(Praxis.invites)` from `get_praxis` would silently
 break praxis deletion.
 
 **Do:**
-1. Add a comment on `get_praxis` stating: *"Must eagerly load every
+
+1. Add a comment on `get_praxis` stating: _"Must eagerly load every
    Praxis relationship with `cascade='all, delete-orphan'` — currently
    just `invites` — because `delete_praxis` does `session.delete(praxis)`
-   which needs those collections in the session to cascade."*
+   which needs those collections in the session to cascade."_
 2. Also mention this at the top of `models/praxis.py` near the relationship
    declarations so someone adding a new cascade thinks of it.
 
@@ -1113,6 +1162,7 @@ bare `session.get(Praxis, ...)` will throw. Tests pass, so either the
 function avoids those relationships or coverage has a gap.
 
 **Do:**
+
 1. Read `cast_or_update_duel_vote` end-to-end. List every `praxis.*`
    attribute it touches (including transitive access through `members`).
 2. If it accesses a raised relationship, add `selectinload(...)` at the
@@ -1143,6 +1193,7 @@ suite.
 always go through the selectin path, so the fallback is untested.
 
 **Do:**
+
 1. Construct a Praxis via `session.get(Praxis, ...)` (which does NOT load
    `created_by`) and pass it directly into `cast_or_update_vote` with a
    voter whose account owns the praxis.
@@ -1168,12 +1219,14 @@ fixtures to `backend/tests/integration/conftest.py` but deliberately did
 they'll rot.
 
 **Do:**
+
 1. Grep each file below for inline Praxis/PraxisMember/Vote construction.
 2. Replace each with the corresponding fixture where the fields match.
 3. Where a test needs non-default fields, keep it inline (don't over-fit
    the fixtures).
 
 **Files:**
+
 - `backend/tests/integration/test_praxes.py`
 - `backend/tests/integration/test_admin.py`
 - `backend/tests/integration/test_tasks.py`
@@ -1195,6 +1248,7 @@ For a character with N scored praxes this is N+1 queries. The loop runs on
 every vote cast and on era reset for every character — a real perf wart.
 
 **Do:**
+
 1. Before each loop, collect the set of `task_id`s needed and bulk-fetch:
    `tasks_by_id = {t.id: t for t in (await session.execute(select(Task).where(Task.id.in_(task_ids)))).scalars()}`.
 2. Replace `session.get(Task, p.task_id)` with `tasks_by_id[p.task_id]`.
@@ -1224,9 +1278,10 @@ one before the mutation, one after the commit. The second exists because
 `lazy="raise"` on the subsequent `build_praxis_out`.
 
 **Do:**
+
 1. Replace the post-commit re-fetch with
    `await session.refresh(praxis, attribute_names=["moderation_status",
-   "admin_note", "flagged_at"])` — this refreshes scalar columns only and
+"admin_note", "flagged_at"])` — this refreshes scalar columns only and
    leaves the initially-loaded relationships in place.
 2. Verify via the test suite (test_admin.py moderation tests).
 
@@ -1240,7 +1295,8 @@ existing moderation tests pass.
 ### TASK S.7 ✅ 2026-04-20 — Fix pre-existing nullability drift (contact/message/vote)
 
 **Scope:** `backend/alembic/versions/00XX_nullability_alignment.py` (new)
-+ possibly model tweaks.
+
+- possibly model tweaks.
 
 **Context:** `alembic revision --autogenerate` on PR #115 surfaced
 pre-existing drift: `contact_messages.created_at`, `message.created_at`,
@@ -1250,6 +1306,7 @@ the DB. There's also a `uq_vote_solo` / `uq_vote_duel` constraint naming
 mismatch. Not caused by #115 but blocks a future clean autogenerate.
 
 **Do:**
+
 1. Decide per column whether the model or the DB is authoritative.
 2. For columns where the model is right: write a migration that sets
    `ALTER COLUMN ... SET NOT NULL` after backfilling any NULLs with
@@ -1280,6 +1337,7 @@ the right home is a new service module and the move has non-trivial
 test implications.
 
 **Do:**
+
 1. Create `backend/services/media.py`. Define:
    - `process_and_save_avatar(upload: UploadFile, character_id: int) -> str`
      — returns the saved relative path.
@@ -1311,6 +1369,7 @@ code has a unit-style test that doesn't go through HTTP.
 eligibility checks that would read more clearly as named helpers.
 
 **Do:**
+
 1. For `invite_to_praxis`: extract `_check_duel_invite_eligibility(...)`
    and `_check_collab_invite_eligibility(...)` helpers.
 2. For `apply_metatask`: extract `_check_metatask_eligibility(...)` that
@@ -1334,6 +1393,7 @@ docstring one-liner.
 **Scope:** Discussion → potentially moving constants into `EraConfig`.
 
 **Context:** These live as module-level constants in services today:
+
 - `services/praxis.py`: `DUEL_LEVEL_REQUIRED=2`, `COLLABORATION_LEVEL_REQUIRED=1`,
   `METATASK_APPLY_LEVEL=7`, `FLAG_LEVEL_REQUIRED=4`.
 - `services/character.py`: `SECOND_CHARACTER_LEVEL_REQUIRED=5`,
@@ -1341,13 +1401,14 @@ docstring one-liner.
 - `services/faction_service.py`: `FACTION_GRADUATION_LEVEL=3`,
   `INVITATION_POINT_THRESHOLD=20`.
 
-CLAUDE.md says "don't hardcode values *that live in `EraConfig`*". These
+CLAUDE.md says "don't hardcode values _that live in `EraConfig`_". These
 don't currently. The question is whether they should — if a future era
 needs different level gates, they're easier to tune via `EraConfig`. If
 they're truly era-independent (e.g., cross-faction rules built into the
 game model), they can stay as domain constants.
 
 **Do (discussion step only):**
+
 1. For each constant, Molly to decide: era-variable or era-invariant.
 2. For era-variable ones: add to `EraConfig` and `eras/era_1.py`, thread
    through the services that read them.
@@ -1372,6 +1433,7 @@ routers translate to HTTP). CLAUDE.md doesn't explicitly forbid it. The
 codebase uses it everywhere. Fixing it would require a big bang refactor.
 
 **Do (discussion):**
+
 1. Molly to decide: is the current pattern an acceptable pragmatic choice
    or a real violation that needs fixing?
 2. If "acceptable": update `docs/spec/SPEC-backend-architecture.md` to
@@ -1399,6 +1461,7 @@ response" means (now: dependency commits after handler returns; currently:
 service commits as a side effect).
 
 **Do:**
+
 1. Update `backend/db.py::get_db` to commit on successful return from the
    dependent route and rollback on exception (or use a transactional
    dependency wrapper).
@@ -1431,6 +1494,7 @@ and returns Pydantic `ActivityFeedItem` / `FeedCounts` /
 objects or dataclasses; routers own Pydantic.
 
 **Do:**
+
 1. Define a frozen dataclass mirror of each Pydantic class (e.g.
    `ActivityFeedItemDC`, `FeedCountsDC`, `ActivityFeedResponseDC`) in
    `services/activity_feed.py` (or a new internal module).
@@ -1455,7 +1519,8 @@ identical JSON. Existing activity-feed integration test passes.
 
 **Scope:** New `0001_squashed_v2.py` (or similar) that folds
 `0002_collab_member_content` through `0006_metatask_unification` + `0007`
-+ `0008` into a single baseline.
+
+- `0008` into a single baseline.
 
 **Context:** Migrations 0002–0004 are an evolutionary artifact — 0002
 adds columns that 0003 removes, and 0003 is superseded by 0004. Anyone
@@ -1463,10 +1528,12 @@ doing a downgrade past 0005 hits a known enum-duplication bug inside
 `0003_submission_unified`. Eventually worth cleaning up.
 
 **⚠️ Do NOT start this task until:**
+
 - 0007 and 0008 have been deployed to production for at least 30 days,
 - No developer machine/CI still relies on downgrading below 0006.
 
 **Do (when the time comes):**
+
 1. Spin up a fresh Postgres.
 2. Run `alembic upgrade head` against current chain, then
    `pg_dump --schema-only` to capture the canonical schema.
@@ -1487,6 +1554,83 @@ production rollout plan.
 
 ---
 
+## 🔴 SESSION V — Visual System Redesign ← START HERE
+
+> **Highest priority. Complete all V tasks before any other pending work.**
+>
+> Source: design handoff in `World Zero Design System/design_handoff_world_zero/`. Where the handoff disagrees with the current codebase, the handoff wins. Rule: never hardcode hex values — only CSS variables change.
+
+### V.1 — Update `WORLD_ZERO_STYLE.md` ✅ DONE
+
+Updated typography table with all 7 per-faction headline fonts, updated faction archetype table with rainbow primaries and new headline fonts, updated vote color description, updated pennant behavior note.
+
+### V.2 — Replace CSS tokens in `frontend/src/index.css`
+
+Faction primaries are now a rainbow (purple/yellow/magenta/green/teal/blue/orange). All derived vars (tints, borders, card-bg, card-text, card-accent, card-muted) update to match. Add `--faction-*-card-font` vars + `--font-faction-*` family vars. Update vote colors, Singularity border, Journeymen hazard stripes, Gestalt collage scraps. Update dark mode block.
+
+Source of truth for all values: `World Zero Design System/design_handoff_world_zero/colors_and_type.css`
+
+**New primaries:**
+
+| Faction     | Old                | New               |
+| ----------- | ------------------ | ----------------- |
+| UA          | `#6b6a7a` slate    | `#7c3aed` purple  |
+| Analog      | `#15803d` green    | `#ca8a04` yellow  |
+| Gestalt     | `#14532d` forest   | `#be185d` magenta |
+| S.N.I.D.E.  | `#8a6a20` ochre    | `#16a34a` green   |
+| Journeymen  | `#c49a3a` amber    | `#0e7490` teal    |
+| Singularity | `#7c3aed` violet   | `#2563eb` blue    |
+| UA Masters  | `#555555` graphite | `#c2410c` orange  |
+
+**New vote colors:** `--vote-1: #c2410c`, `--vote-2: #ca8a04`, `--vote-3: #16a34a`, `--vote-4: #2563eb`, `--vote-5: #be185d`
+
+**Files:** `frontend/src/index.css`
+
+### V.3 — Add new Google Fonts to `frontend/index.html`
+
+Add to the existing `<link>` import: `Permanent Marker`, `Cutive Mono`, `UnifrakturCook` (wght 700), `Caveat`, `IM Fell English` (italic).
+
+**Files:** `frontend/index.html`
+
+### V.4 — Update `frontend/tailwind.config.ts`
+
+Update all 7 faction color values to rainbow primaries. Add new font-family entries for the 5 new faction fonts (Caveat, Permanent Marker, Cutive Mono, IM Fell English, UnifrakturCook).
+
+**Files:** `frontend/tailwind.config.ts`
+
+### V.5 — Update `frontend/src/utils/factions.ts` fallbacks
+
+`FACTION_FALLBACKS` color strings must mirror `index.css` primaries exactly. Update all 7 active factions.
+
+**Files:** `frontend/src/utils/factions.ts`
+
+### V.6 — Update faction card components to use `--faction-*-card-font`
+
+Replace any hardcoded `fontFamily` strings in card components with `factionCssVar(slug, 'card-font')`. Confirmed locations: `TaskCardAnalog.tsx`, `TaskCardSNIDE.tsx`, `TaskCardUAMasters.tsx`, `FactionCard.tsx`. Audit all other card files for additional hardcoded fonts.
+
+**Files:** `frontend/src/components/cards/`
+
+### V.7 — Remove trailing `+` from level labels
+
+"lvl 2+" → "lvl 2" across 6 files.
+
+**Files:**
+
+- `frontend/src/components/ui/LevelPill.tsx`
+- `frontend/src/components/cards/TaskCardSingularity.tsx`
+- `frontend/src/components/feed/FeedCardCollabInvite.tsx`
+- `frontend/src/components/feed/FeedCardGlobalTask.tsx`
+- `frontend/src/pages/admin/TasksTab.tsx`
+- `frontend/src/pages/ProposeTask.tsx`
+
+### V.8 — Fix inactive faction pennants
+
+Remove desaturate filter from inactive state. `opacity: 0.42 + saturate(0.3)` → `opacity: 0.85, filter: none`.
+
+**Files:** `frontend/src/components/ui/FilterFactionTabs.tsx`
+
+---
+
 ## 🟣 SESSION 5+ — Ambitious Frontend (post-launch)
 
 > Do not start until the site is live on worldzero.org and the MVP frontend is stable.
@@ -1494,6 +1638,7 @@ production rollout plan.
 **Vision:** Faction-specific UI themes — each faction gets its own color palette, typography, background textures, and layout variations driven by a `data-faction` attribute on `<body>` + CSS custom properties.
 
 **Planned features:**
+
 - Per-faction design tokens (colors, fonts, borders) toggled when a logged-in character's faction changes
 - Easter eggs: invisible clickable elements scattered through pages that trigger hidden messages, sounds, or lore
 - Secrets: hidden routes or interactions unlocked by specific player levels (level 5 and 8 already have UX secrets in the game spec)

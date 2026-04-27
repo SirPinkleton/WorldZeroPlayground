@@ -16,28 +16,28 @@
  */
 
 export interface FactionConfig {
-  slug: string
-  name: string
+  slug: string;
+  name: string;
   /** Primary faction color (light mode value — use factionCssVar for theme-aware styles) */
-  color: string
+  color: string;
 }
 
 /** Hardcoded fallback — matches index.css --faction-* values exactly. Used on first render
  *  before the API response arrives. Do not use these values directly; call factionColor(). */
 const FACTION_FALLBACKS: Record<string, FactionConfig> = {
-  ua:          { slug: 'ua',          name: 'UA',          color: '#6b6a7a' },
-  analog:      { slug: 'analog',      name: 'Analog',      color: '#15803d' },
-  gestalt:     { slug: 'gestalt',     name: 'Gestalt',     color: '#14532d' },
-  snide:       { slug: 'snide',       name: 'S.N.I.D.E.',  color: '#8a6a20' },
-  journeymen:  { slug: 'journeymen',  name: 'Journeymen',  color: '#c49a3a' },
-  singularity: { slug: 'singularity', name: 'Singularity', color: '#7c3aed' },
-  ua_masters:  { slug: 'ua_masters',  name: 'UA Masters',  color: '#555555' },
-  albescent:   { slug: 'albescent',   name: '/Albescent',  color: '#6b6a7a' },
-  aged_out:    { slug: 'aged_out',    name: 'Aged Out',    color: '#6b6a7a' },
-}
+  ua: { slug: "ua", name: "UA", color: "#7c3aed" },
+  analog: { slug: "analog", name: "Analog", color: "#ca8a04" },
+  gestalt: { slug: "gestalt", name: "Gestalt", color: "#be185d" },
+  snide: { slug: "snide", name: "S.N.I.D.E.", color: "#16a34a" },
+  journeymen: { slug: "journeymen", name: "Journeymen", color: "#0e7490" },
+  singularity: { slug: "singularity", name: "Singularity", color: "#2563eb" },
+  ua_masters: { slug: "ua_masters", name: "UA Masters", color: "#c2410c" },
+  albescent: { slug: "albescent", name: "/Albescent", color: "#7c3aed" },
+  aged_out: { slug: "aged_out", name: "Aged Out", color: "#7c3aed" },
+};
 
 /** Live registry — starts as the fallback, overwritten by populateFactionRegistry(). */
-let factionRegistry: Record<string, FactionConfig> = { ...FACTION_FALLBACKS }
+let factionRegistry: Record<string, FactionConfig> = { ...FACTION_FALLBACKS };
 
 /**
  * Called once by useGameConfig when the API response arrives.
@@ -45,10 +45,10 @@ let factionRegistry: Record<string, FactionConfig> = { ...FACTION_FALLBACKS }
  * calls return API-sourced values without any component changes.
  */
 export function populateFactionRegistry(
-  apiFactions: Array<{ slug: string; name: string; color: string }>
+  apiFactions: Array<{ slug: string; name: string; color: string }>,
 ) {
   for (const f of apiFactions) {
-    factionRegistry[f.slug] = { slug: f.slug, name: f.name, color: f.color }
+    factionRegistry[f.slug] = { slug: f.slug, name: f.name, color: f.color };
   }
 }
 
@@ -57,16 +57,16 @@ export function populateFactionRegistry(
  * Faction slugs use underscores in the DB but CSS variables use hyphens.
  */
 const CSS_KEY: Record<string, string> = {
-  ua:          'ua',
-  analog:      'analog',
-  gestalt:     'gestalt',
-  snide:       'snide',
-  journeymen:  'journeymen',
-  singularity: 'singularity',
-  ua_masters:  'ua-masters',
-  albescent:   'ua',
-  aged_out:    'ua',
-}
+  ua: "ua",
+  analog: "analog",
+  gestalt: "gestalt",
+  snide: "snide",
+  journeymen: "journeymen",
+  singularity: "singularity",
+  ua_masters: "ua-masters",
+  albescent: "ua",
+  aged_out: "ua",
+};
 
 /**
  * Get a CSS variable reference for a faction property.
@@ -81,23 +81,26 @@ const CSS_KEY: Record<string, string> = {
  *   'card-accent' — card accent (meta text, decorations)
  *   'card-muted'  — card secondary/description text
  */
-export function factionCssVar(slug: string | null | undefined, suffix?: string): string {
-  const key = CSS_KEY[slug ?? ''] ?? 'ua'
-  const prop = suffix ? `--faction-${key}-${suffix}` : `--faction-${key}`
-  return `var(${prop})`
+export function factionCssVar(
+  slug: string | null | undefined,
+  suffix?: string,
+): string {
+  const key = CSS_KEY[slug ?? ""] ?? "ua";
+  const prop = suffix ? `--faction-${key}-${suffix}` : `--faction-${key}`;
+  return `var(${prop})`;
 }
 
 /** Get faction color by slug, with fallback (raw hex — light mode only) */
 export function factionColor(slug: string | null | undefined): string {
-  return factionRegistry[slug ?? '']?.color ?? '#6b6a7a'
+  return factionRegistry[slug ?? ""]?.color ?? "#6b6a7a";
 }
 
 /** Get faction display name by slug, with fallback */
 export function factionName(slug: string | null | undefined): string {
-  return factionRegistry[slug ?? '']?.name ?? 'Unaffiliated'
+  return factionRegistry[slug ?? ""]?.name ?? "Unaffiliated";
 }
 
 /** Get all factions from the live registry (populated from API after useGameConfig loads) */
 export function getAllFactions(): FactionConfig[] {
-  return Object.values(factionRegistry)
+  return Object.values(factionRegistry);
 }
