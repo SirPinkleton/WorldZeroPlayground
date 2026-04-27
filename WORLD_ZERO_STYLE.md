@@ -1,6 +1,6 @@
 # World Zero — Frontend Style Guide
 
-**Design system reference.** This document describes *intent and constraints* — not implementation. For exact values, see `index.css` (CSS variables) and `factions.ts` (faction config). The code is the source of truth for colors, sizes, and spacing.
+**Design system reference.** This document describes _intent and constraints_ — not implementation. For exact values, see `index.css` (CSS variables) and `factions.ts` (faction config). The code is the source of truth for colors, sizes, and spacing.
 
 ---
 
@@ -30,11 +30,11 @@ These are non-negotiable and take precedence over any visual specification.
    - No hardcoded rule thresholds in the frontend. If you're writing `level >= 4` in a component, the backend should be returning a flag instead.
    - Disabled state (`<button disabled>`) is only for in-flight async and form validity — never for rule-based denial.
 
-5. **Every button does something.** Don't render an interactive control unless it has a handler that does real work on press. No placeholder buttons, no "coming soon" stubs, no controls that render but no-op. If the feature isn't built yet, the control isn't on the page yet. This is stricter than #4: #4 hides controls the user *can't* use; this rule says even the *author* can't leave a dead control behind.
+5. **Every button does something.** Don't render an interactive control unless it has a handler that does real work on press. No placeholder buttons, no "coming soon" stubs, no controls that render but no-op. If the feature isn't built yet, the control isn't on the page yet. This is stricter than #4: #4 hides controls the user _can't_ use; this rule says even the _author_ can't leave a dead control behind.
 
 6. **Faction identity cascades from the card archetype.** Anything associated with a faction (profile headers, praxis bylines, proposal wrappers, feed items) should reuse the faction's card aesthetic. Change the card archetype once and every faction-branded element updates. Don't create parallel styling for each context.
 
-7. **The code is the spec.** This document describes design *intent*. When this document and the code disagree, update whichever is wrong. Don't let them drift.
+7. **The code is the spec.** This document describes design _intent_. When this document and the code disagree, update whichever is wrong. Don't let them drift.
 
 ---
 
@@ -54,13 +54,14 @@ These are non-negotiable and take precedence over any visual specification.
 All color values are CSS custom properties defined in `index.css`. See that file for the complete list.
 
 **Key groups:**
+
 - **Page:** `--color-bg-page`, `--color-bg-surface`, `--color-bg-surface-alt`
 - **Text:** `--color-text-primary`, `--color-text-secondary`, `--color-text-tertiary`
 - **Borders:** `--color-border`, `--color-border-strong`
 - **Factions:** `--faction-{slug}` (primary), `--faction-{slug}-light` (tint), `--faction-{slug}-border`
-- **Faction cards:** `--faction-{slug}-card-bg`, `--faction-{slug}-card-text`, `--faction-{slug}-card-accent`
+- **Faction cards:** `--faction-{slug}-card-bg`, `--faction-{slug}-card-text`, `--faction-{slug}-card-accent`, `--faction-{slug}-card-font`
 - **Functional:** `--color-success`, `--color-danger`, `--color-warning` (each with `-light` and `-border` variants)
-- **Votes:** `--vote-1` through `--vote-5`
+- **Votes:** `--vote-1` through `--vote-5` (orange → yellow → green → blue → magenta, increasing intensity)
 
 **Dark mode** is handled by `[data-theme="dark"]` overrides in `index.css`. Components should use `var(--faction-analog-card-bg)` — never `dark ? '#1e1a10' : '#fffef5'`.
 
@@ -72,13 +73,25 @@ All color values are CSS custom properties defined in `index.css`. See that file
 
 All fonts loaded from Google Fonts.
 
-| Role | Font | Usage |
-|------|------|-------|
-| Display / Logo | `Lora` (italic) | Wordmark, page titles, praxis titles |
-| Body / UI | `Courier Prime` | All body text, labels, nav links, filters |
-| Faction: Analog, SNIDE, UA Masters | `Special Elite` | Card body text for these factions |
-| Faction: Singularity | `Share Tech Mono` | All Singularity text |
-| Accent display | `Bebas Neue` | Reserved for special uses |
+| Role           | Font            | Usage                                     |
+| -------------- | --------------- | ----------------------------------------- |
+| Display / Logo | `Lora` (italic) | Wordmark, page titles, praxis titles      |
+| Body / UI      | `Courier Prime` | All body text, labels, nav links, filters |
+| Accent display | `Bebas Neue`    | Reserved for special uses                 |
+
+**Per-faction headline fonts** — each faction card uses its own display font for the headline/title, exposed via `--faction-{slug}-card-font`:
+
+| Faction     | Headline font      | CSS var                           |
+| ----------- | ------------------ | --------------------------------- |
+| UA          | `IM Fell English`  | `--faction-ua-card-font`          |
+| Analog      | `Special Elite`    | `--faction-analog-card-font`      |
+| Gestalt     | `Caveat`           | `--faction-gestalt-card-font`     |
+| S.N.I.D.E.  | `Permanent Marker` | `--faction-snide-card-font`       |
+| Journeymen  | `Cutive Mono`      | `--faction-journeymen-card-font`  |
+| Singularity | `Share Tech Mono`  | `--faction-singularity-card-font` |
+| UA Masters  | `UnifrakturCook`   | `--faction-ua-masters-card-font`  |
+
+Use `factionCssVar(slug, 'card-font')` in components. Never hardcode the font family string directly.
 
 **Type scale** is defined as CSS variables (`--text-xs` through `--text-4xl`). Use the variable names, not raw pixel values.
 
@@ -108,15 +121,15 @@ The sidebar contains: character card, active tasks panel, recent activity panel,
 
 Cards are arranged in a `flex-wrap` container with varied heights and slight rotations. This is intentional — they are NOT on a strict grid.
 
-| Faction | Card type | Key visual metaphor | Font |
-|---------|----------|---------------------|------|
-| UA | Sticky note | Push pin, clipped corner, pastel yellow/pink | Courier Prime |
-| Analog | Field journal page | Red margin rule, horizontal lines, torn bottom edge | Special Elite |
-| Gestalt | Paper collage | 3 layered scraps, scotch tape strip | Courier Prime |
-| S.N.I.D.E. | Newspaper clipping | Torn edges, two columns, cutout ransom letters | Special Elite |
-| Journeymen | Luggage tag | Hanging string, eyelet, hazard stripe | Courier Prime |
-| Singularity | Terminal printout | Always dark, green text, sprocket holes, scanlines | Share Tech Mono |
-| UA Masters | Gazette article | Corner-snipped edges, proper masthead, two columns | Special Elite |
+| Faction     | Card type          | Primary color     | Key visual metaphor                                 | Headline font    |
+| ----------- | ------------------ | ----------------- | --------------------------------------------------- | ---------------- |
+| UA          | Sticky note        | `#7c3aed` purple  | Push pin, clipped corner, faded lavender            | IM Fell English  |
+| Analog      | Field journal page | `#ca8a04` yellow  | Red margin rule, horizontal lines, torn bottom edge | Special Elite    |
+| Gestalt     | Paper collage      | `#be185d` magenta | 3 layered scraps, scotch tape strip                 | Caveat           |
+| S.N.I.D.E.  | Newspaper clipping | `#16a34a` green   | Torn edges, two columns, cutout ransom letters      | Permanent Marker |
+| Journeymen  | Luggage tag        | `#0e7490` teal    | Hanging string, eyelet, teal/cyan hazard stripe     | Cutive Mono      |
+| Singularity | Terminal printout  | `#2563eb` blue    | Always dark, green text, sprocket holes, scanlines  | Share Tech Mono  |
+| UA Masters  | Gazette article    | `#c2410c` orange  | Corner-snipped edges, proper masthead, two columns  | UnifrakturCook   |
 
 **Faction card colors** (backgrounds, text, accents) are defined as CSS variables: `--faction-{slug}-card-bg`, `--faction-{slug}-card-text`, `--faction-{slug}-card-accent`. Dark mode variants are automatic via the cascade.
 
@@ -129,24 +142,30 @@ Cards are arranged in a `flex-wrap` container with varied heights and slight rot
 ## 7. Components
 
 ### Nav Bar
+
 - Frosted glass: `var(--color-nav-bg)` with backdrop blur
 - Wordmark: Lora italic with rainbow gradient underline
 - Links: Courier Prime, `--text-base`, uppercase
 
 ### Page Title
+
 - Lora italic, `--text-4xl`
 - Per-letter colored underline bars cycling through `--underline-1` to `--underline-6`
 
 ### Filter Controls
+
 Three visually distinct types — NOT standard `<select>` or checkbox elements:
+
 - **Status:** Rectangular rubber stamps (no border-radius)
-- **Faction:** Diagonal banner/pennant tabs using faction colors
+- **Faction:** Diagonal banner/pennant tabs using faction colors. Pennants render at full saturation always. Inactive: `opacity 0.85`. Active: `opacity 1`. No desaturate filter.
 - **Level:** Connected circle nodes
 
 ### Sidebar Cards
+
 Frosted surface: `var(--color-bg-surface)`, backdrop blur, `var(--color-border)`
 
 ### Watercolor Background
+
 Full-bleed SVG with blurred ellipses in four corners. Opacity controlled by `--wc-opacity-*` variables so dark mode dims automatically.
 
 ---
