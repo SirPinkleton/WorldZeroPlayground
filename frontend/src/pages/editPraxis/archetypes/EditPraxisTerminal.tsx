@@ -1,0 +1,736 @@
+/**
+ * Terminal Draft — Singularity faction.
+ * vim-styled editor on near-black, scanline overlay, blinking cursor.
+ */
+import { useEffect, useMemo, useState } from "react";
+import { factionCssVar } from "../../../utils/factions";
+import { mediaUrl } from "../../../utils/media";
+import { type PraxisType } from "../../../api/praxis";
+import MarkdownPreview from "../blocks/MarkdownPreview";
+import { Breadcrumb, ErrorBanner, TitleCounter, formatClock } from "./shared";
+import { FilePicker, InviteSearch, MetatasksList } from "./controls";
+import type { EditPraxisState } from "../useEditPraxis";
+
+interface Props {
+  state: EditPraxisState;
+}
+
+const MODE_OPTIONS: Array<{ key: PraxisType; flag: string; desc: string }> = [
+  { key: "solo", flag: "--solo", desc: "one author. all credit accrues." },
+  {
+    key: "collab",
+    flag: "--collab",
+    desc: "fork. multiple authors. all earn full pts.",
+  },
+  { key: "duel", flag: "--duel", desc: "pvp. winner-take-all on vote median." },
+];
+
+export default function EditPraxisTerminal({ state }: Props) {
+  const praxis = state.praxis!;
+  const task = state.task;
+
+  // Singularity-specific tokens; these CSS vars resolve to terminal-green/black.
+  const term = factionCssVar("singularity", "card-text"); // #4ade80 in both modes
+  const dim = factionCssVar("singularity", "card-muted");
+  const bg = factionCssVar("singularity", "card-bg"); // black in both modes
+  const accent = factionCssVar("singularity");
+
+  const [cursorOn, setCursorOn] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setCursorOn((c) => !c), 600);
+    return () => clearInterval(id);
+  }, []);
+
+  const lineCount = useMemo(() => state.body.split("\n").length, [state.body]);
+
+  const allowedModes = task?.allowed_modes ?? ["solo", "collab", "duel"];
+
+  return (
+    <div
+      style={{
+        background: bg,
+        color: term,
+        fontFamily: "'Share Tech Mono', monospace",
+        position: "relative",
+        minHeight: "100vh",
+        boxShadow: `0 0 0 1px ${accent}, 0 0 80px rgba(37,99,235,.2) inset`,
+      }}
+    >
+      {/* Scanlines overlay */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          backgroundImage:
+            "repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(74,222,128,.05) 2px, rgba(74,222,128,.05) 3px)",
+          zIndex: 1,
+        }}
+      />
+
+      {/* Window chrome */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 16px",
+          borderBottom: `1px solid ${accent}`,
+          background: "linear-gradient(to bottom, #0a1f2e, #050f1c)",
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 9,
+                height: 7,
+                background: bg,
+                border: `1px solid ${accent}`,
+              }}
+            />
+          ))}
+          <span
+            style={{
+              fontSize: 10,
+              color: dim,
+              marginLeft: 12,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+            }}
+          >
+            singularity://praxis/draft.md · session 0x{praxis.id.toString(16)}
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: 12, fontSize: 10, color: dim }}>
+          <span style={{ color: term }}>{cursorOn ? "●" : "○"} REC</span>
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: "20px 26px 28px",
+          position: "relative",
+          zIndex: 2,
+          maxWidth: 880,
+          margin: "0 auto",
+        }}
+      >
+        <Breadcrumb
+          praxisId={praxis.id}
+          taskId={praxis.task_id}
+          taskTitle={praxis.task_title}
+          inkColor={dim}
+        />
+
+        {/* Boot lines */}
+        <div style={{ marginBottom: 16, fontSize: 11, lineHeight: 1.7 }}>
+          <div style={{ color: dim }}>$ wz auth --whoami</div>
+          <div style={{ color: term }}>
+            &gt; @{praxis.created_by_display_name} · faction:singularity
+          </div>
+          <div style={{ color: dim }}>
+            $ wz praxis edit ./draft-{praxis.id}.md --live --rainbow=on
+          </div>
+        </div>
+
+        {/* Task block */}
+        <div style={{ marginBottom: 22, position: "relative" }}>
+          <span
+            style={{
+              position: "absolute",
+              top: -8,
+              left: 12,
+              background: bg,
+              padding: "0 8px",
+              fontSize: 9,
+              color: accent,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+            }}
+          >
+            ▸ proving completion of
+          </span>
+          <div
+            style={{
+              border: `1px solid ${accent}`,
+              padding: "14px 16px",
+              background: "rgba(37,99,235,.05)",
+            }}
+          >
+            <div style={{ fontSize: 13, color: term, lineHeight: 1.4 }}>
+              <span style={{ color: dim }}>&gt; </span>
+              {praxis.task_title}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                marginTop: 10,
+                fontSize: 10,
+                color: dim,
+                flexWrap: "wrap",
+              }}
+            >
+              <span>
+                <span style={{ color: accent }}>FACTION:</span> singularity
+              </span>
+              {task && (
+                <span>
+                  <span style={{ color: accent }}>PTS:</span> {task.point_value}
+                </span>
+              )}
+              {task && (
+                <span>
+                  <span style={{ color: accent }}>LVL:</span>{" "}
+                  {task.level_required}
+                </span>
+              )}
+              <span>
+                <span style={{ color: accent }}>MODE:</span> {praxis.type}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Mode selector */}
+        {!state.controlsLocked && (
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 10, color: dim, marginBottom: 10 }}>
+              <span style={{ color: term }}>$ </span>wz praxis set-mode --select
+            </div>
+            <div style={{ display: "flex", gap: 0 }}>
+              {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map(
+                (opt) => {
+                  const active = praxis.type === opt.key;
+                  const disabled =
+                    state.modeIsLocked || state.switchingMode !== null;
+                  if (state.modeIsLocked && !active) return null;
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        if (!disabled) void state.changeMode(opt.key);
+                      }}
+                      disabled={disabled && !active}
+                      style={{
+                        flex: 1,
+                        cursor: disabled ? "not-allowed" : "pointer",
+                        textAlign: "left",
+                        background: active ? term : "transparent",
+                        color: active ? bg : term,
+                        border: `1px solid ${active ? term : accent}`,
+                        borderRight: "none",
+                        padding: "10px 12px",
+                        fontFamily: "'Share Tech Mono', monospace",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          marginBottom: 2,
+                        }}
+                      >
+                        {active && "["}
+                        {opt.flag}
+                        {active && "]"}
+                      </div>
+                      <div
+                        style={{ fontSize: 9, opacity: active ? 0.85 : 0.6 }}
+                      >
+                        {opt.desc}
+                      </div>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Invite */}
+        {state.showCollabInvite &&
+          !(praxis.type === "duel" && state.duelSlotFull) && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 10, color: dim, marginBottom: 8 }}>
+                <span style={{ color: term }}>$ </span>wz praxis invite
+                [...handles]
+              </div>
+              <div
+                style={{
+                  border: `1px dashed ${accent}`,
+                  padding: "10px 12px",
+                  background: "rgba(37,99,235,.04)",
+                }}
+              >
+                <InviteSearch
+                  state={state}
+                  skin={{
+                    fontFamily: "'Share Tech Mono', monospace",
+                    inputBg: "transparent",
+                    inputColor: term,
+                    inputBorder: `1px dashed ${accent}`,
+                    dropdownBg: bg,
+                    dropdownBorder: `1px solid ${accent}`,
+                    acceptedBg: "rgba(74,222,128,.15)",
+                    acceptedColor: term,
+                    pendingBg: "transparent",
+                    pendingColor: dim,
+                    placeholder: "search handle...",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+        {/* Title */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 10, color: dim, marginBottom: 6 }}>
+            <span style={{ color: term }}>$ </span>echo "title" &gt;&gt;
+            ./draft.md ·{" "}
+            <TitleCounter length={state.title.length} color={dim} />
+          </div>
+          <div
+            style={{
+              position: "relative",
+              borderBottom: `1px solid ${state.title ? term : accent}`,
+              paddingBottom: 6,
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 4,
+                color: dim,
+                fontSize: 18,
+              }}
+            >
+              #{" "}
+            </span>
+            <input
+              type="text"
+              maxLength={200}
+              value={state.title}
+              onChange={(event) => state.setTitle(event.target.value)}
+              placeholder="title_goes_here.md"
+              style={{
+                width: "100%",
+                paddingLeft: 22,
+                fontFamily: "'Lora', serif",
+                fontStyle: "italic",
+                fontSize: 26,
+                color: term,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ marginBottom: 22 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 6,
+            }}
+          >
+            <div style={{ fontSize: 10, color: dim }}>
+              <span style={{ color: term }}>$ </span>vim ./draft.md ·{" "}
+              <span style={{ color: dim }}>
+                {state.wordCount} words · {lineCount} lines
+              </span>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              border: `1px solid ${accent}`,
+              background: "rgba(0,0,0,.4)",
+              minHeight: 240,
+            }}
+          >
+            {/* Line numbers */}
+            <div
+              aria-hidden
+              style={{
+                background: "rgba(37,99,235,.08)",
+                padding: "12px 8px",
+                borderRight: `1px solid ${accent}`,
+                fontSize: 11,
+                color: dim,
+                lineHeight: 1.7,
+                textAlign: "right",
+                minWidth: 36,
+                fontFamily: "'Share Tech Mono', monospace",
+              }}
+            >
+              {Array.from({ length: Math.max(12, lineCount) }).map((_, i) => (
+                <div key={i}>{String(i + 1).padStart(2, " ")}</div>
+              ))}
+            </div>
+            <div
+              style={{ flex: 1, padding: "12px 14px", position: "relative" }}
+            >
+              <textarea
+                value={state.body}
+                onChange={(event) => state.setBody(event.target.value)}
+                rows={12}
+                placeholder="# what did you do?\n\nwrite here. supports markdown.\n\n--INSERT--"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  minHeight: 220,
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: 12,
+                  lineHeight: 1.7,
+                  color: term,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  resize: "vertical",
+                }}
+              />
+              {!state.body && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: 16,
+                    left: 14,
+                    fontSize: 12,
+                    color: dim,
+                    fontStyle: "italic",
+                    pointerEvents: "none",
+                  }}
+                >
+                  --INSERT-- {cursorOn ? "▊" : " "}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* status bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: accent,
+              color: bg,
+              padding: "3px 12px",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+            }}
+          >
+            <span>-- INSERT --</span>
+            <span>
+              {state.wordCount} W · {state.body.length} CH · UTF-8
+            </span>
+            <span>
+              {state.saveStatus === "saving"
+                ? "saving..."
+                : state.autosaveAt
+                  ? `[saved ${formatClock(state.autosaveAt)}]`
+                  : "unsaved"}
+            </span>
+          </div>
+          {state.body.trim() && (
+            <div
+              style={{
+                marginTop: 14,
+                border: `1px solid ${accent}`,
+                padding: "14px 18px",
+                background: "rgba(0,0,0,.5)",
+              }}
+            >
+              <div style={{ fontSize: 9, color: dim, marginBottom: 8 }}>
+                <span style={{ color: term }}>$ </span>render --markdown
+              </div>
+              <MarkdownPreview
+                source={state.body}
+                className="markdown-preview"
+                style={{
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: 12,
+                  lineHeight: 1.7,
+                  color: term,
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Media */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 10, color: dim, marginBottom: 8 }}>
+            <span style={{ color: term }}>$ </span>wz praxis attach ./media/*
+          </div>
+          <div
+            style={{
+              border: `1px dashed ${accent}`,
+              padding: "14px 16px",
+              background: "rgba(37,99,235,.04)",
+            }}
+          >
+            {state.media.length === 0 && state.newFiles.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: dim,
+                  fontStyle: "italic",
+                  marginBottom: 12,
+                }}
+              >
+                // 0 files attached · drop zone empty
+                <br />
+                <span style={{ fontSize: 9 }}>
+                  // max 50mb/file · accepts: image/* video/* audio/*
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  marginBottom: 10,
+                }}
+              >
+                {state.media.map((item) => {
+                  const filename =
+                    item.file_path.split("/").pop() ?? item.file_path;
+                  const src = mediaUrl(item.file_path);
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "6px 10px",
+                        background: "rgba(74,222,128,.06)",
+                        border: `1px solid ${accent}`,
+                        fontSize: 11,
+                        color: term,
+                      }}
+                    >
+                      <span style={{ color: accent }}>[{item.type}]</span>
+                      <a
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ flex: 1, color: term, textDecoration: "none" }}
+                      >
+                        {filename}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void state.removeMedia(item)}
+                        style={{
+                          background: "transparent",
+                          color: "#f87171",
+                          border: "none",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          fontSize: 10,
+                        }}
+                      >
+                        rm
+                      </button>
+                    </div>
+                  );
+                })}
+                {state.newFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "6px 10px",
+                      background: "rgba(74,222,128,.06)",
+                      border: `1px dashed ${accent}`,
+                      fontSize: 11,
+                      color: term,
+                    }}
+                  >
+                    <span style={{ color: accent }}>[staged]</span>
+                    <span style={{ flex: 1 }}>{file.name}</span>
+                    <span style={{ color: dim, fontSize: 9 }}>
+                      {(file.size / 1024 / 1024).toFixed(1)}MB
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => state.removeNewFile(index)}
+                      style={{
+                        background: "transparent",
+                        color: "#f87171",
+                        border: "none",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        fontSize: 10,
+                      }}
+                    >
+                      rm
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <FilePicker
+              state={state}
+              skin={{
+                buttonStyle: {
+                  background: "transparent",
+                  color: term,
+                  border: `1px solid ${term}`,
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: 10,
+                  padding: "6px 14px",
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                },
+                buttonLabel: "+ attach",
+                errorColor: "#f87171",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Metatasks */}
+        {state.showMetatasks && (
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 10, color: dim, marginBottom: 8 }}>
+              <span style={{ color: term }}>$ </span>wz praxis apply-metatask
+              --opt
+            </div>
+            <div
+              style={{
+                border: `1px dashed ${accent}`,
+                padding: "8px 10px",
+              }}
+            >
+              <MetatasksList
+                state={state}
+                skin={{
+                  rowStyle: (selected) => ({
+                    padding: "8px 6px",
+                    background: selected
+                      ? "rgba(74,222,128,.08)"
+                      : "transparent",
+                    border: `1px solid ${selected ? term : "transparent"}`,
+                    color: term,
+                    fontFamily: "'Share Tech Mono', monospace",
+                    marginBottom: 4,
+                  }),
+                  titleColor: term,
+                  descColor: dim,
+                  pointsActiveColor: term,
+                  pointsIdleColor: dim,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        <ErrorBanner message={state.error} />
+
+        {/* CTAs */}
+        <div
+          style={{
+            borderTop: `1px solid ${accent}`,
+            paddingTop: 18,
+            paddingBottom: 22,
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {!state.isPublished && (
+            <button
+              type="button"
+              onClick={() => void state.publish()}
+              disabled={
+                state.saving || state.submitting || state.switchingMode !== null
+              }
+              style={{
+                background: term,
+                color: bg,
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                padding: "12px 22px",
+                border: `2px solid ${term}`,
+                cursor: state.submitting ? "wait" : "pointer",
+                textTransform: "uppercase",
+                position: "relative",
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 3,
+                  border: "1px dashed rgba(0,0,0,.3)",
+                  pointerEvents: "none",
+                }}
+              />
+              {state.submitting
+                ? "$ committing..."
+                : '$ git commit -m "publish"'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void state.save()}
+            disabled={state.saving || state.submitting}
+            style={{
+              background: "transparent",
+              color: term,
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: 11,
+              letterSpacing: "0.1em",
+              padding: "10px 16px",
+              border: `1px solid ${term}`,
+              cursor: state.saving ? "wait" : "pointer",
+              textTransform: "uppercase",
+            }}
+          >
+            {state.saving ? ":saving" : ":w (save draft)"}
+          </button>
+          <div style={{ flex: 1 }} />
+          <button
+            type="button"
+            onClick={state.cancel}
+            style={{
+              background: "transparent",
+              color: dim,
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: 9,
+              border: "none",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            [esc] :q
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

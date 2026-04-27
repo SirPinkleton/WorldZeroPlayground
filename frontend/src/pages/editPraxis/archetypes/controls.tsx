@@ -1,0 +1,287 @@
+/**
+ * Lightly skinned, accessible control primitives shared by all archetypes.
+ * Archetypes still own their own visual treatment for the *outer* containers
+ * (paperclips, customs stamps, sticky notes); these are the inner essentials
+ * that must always render: file picker, member chips, search dropdown.
+ */
+import { useRef } from "react";
+import type { CSSProperties } from "react";
+import LevelPill from "../../../components/ui/LevelPill";
+import { factionCssVar, factionName } from "../../../utils/factions";
+import type { EditPraxisState } from "../useEditPraxis";
+
+export interface InviteSearchSkin {
+  inputBg?: string;
+  inputColor?: string;
+  inputBorder?: string;
+  fontFamily?: string;
+  dropdownBg?: string;
+  dropdownBorder?: string;
+  pillBg?: string;
+  pillColor?: string;
+  acceptedBg?: string;
+  acceptedColor?: string;
+  pendingBg?: string;
+  pendingColor?: string;
+  placeholder?: string;
+}
+
+export function InviteSearch({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: InviteSearchSkin;
+}) {
+  const praxis = state.praxis!;
+  return (
+    <div>
+      <div
+        style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}
+      >
+        {praxis.members
+          .filter((member) => member.character_id !== state.currentCharacterId)
+          .map((member) => (
+            <span
+              key={member.id}
+              style={{
+                fontFamily: skin.fontFamily,
+                fontSize: 11,
+                padding: "4px 10px",
+                background: skin.acceptedBg ?? "var(--color-success)",
+                color: skin.acceptedColor ?? "var(--color-text-on-accent)",
+              }}
+            >
+              {member.character_display_name}
+            </span>
+          ))}
+        {praxis.invites
+          .filter((invite) => invite.status === "pending")
+          .map((invite) => (
+            <span
+              key={invite.id}
+              style={{
+                fontFamily: skin.fontFamily,
+                fontSize: 11,
+                padding: "4px 10px",
+                background: skin.pendingBg ?? "transparent",
+                color: skin.pendingColor ?? "inherit",
+                border: "1px dashed currentColor",
+              }}
+            >
+              {invite.invitee_display_name} <em>· pending</em>
+            </span>
+          ))}
+      </div>
+      <div style={{ position: "relative" }}>
+        <input
+          type="text"
+          value={state.inviteQuery}
+          onChange={(event) => state.setInviteQuery(event.target.value)}
+          placeholder={skin.placeholder ?? "search player name or @handle"}
+          aria-label="search players to invite"
+          style={{
+            width: "100%",
+            fontFamily: skin.fontFamily,
+            fontSize: 13,
+            padding: "8px 12px",
+            background: skin.inputBg ?? "transparent",
+            color: skin.inputColor ?? "inherit",
+            border: skin.inputBorder ?? "1px solid currentColor",
+            outline: "none",
+          }}
+          onFocus={() => {
+            if (state.inviteResults.length > 0) state.setInviteOpen(true);
+          }}
+          onBlur={() => setTimeout(() => state.setInviteOpen(false), 200)}
+        />
+        {state.inviteOpen && state.inviteResults.length > 0 && (
+          <div
+            role="listbox"
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              background: skin.dropdownBg ?? "var(--color-bg-surface)",
+              border: skin.dropdownBorder ?? "1px solid var(--color-border)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              maxHeight: 220,
+              overflowY: "auto",
+            }}
+          >
+            {state.inviteResults.map((character) => (
+              <button
+                key={character.id}
+                type="button"
+                disabled={state.inviting}
+                onMouseDown={() => void state.sendInvite(character)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "8px 12px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: state.inviting ? "wait" : "pointer",
+                  textAlign: "left",
+                  fontFamily: skin.fontFamily,
+                  fontSize: 12,
+                  color: skin.inputColor ?? "inherit",
+                }}
+              >
+                <span
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: factionCssVar(character.faction_slug, "light"),
+                    border: `1px solid ${factionCssVar(character.faction_slug, "border")}`,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontWeight: 700 }}>
+                  {character.display_name}
+                </span>
+                <span style={{ marginLeft: "auto", fontSize: 9, opacity: 0.7 }}>
+                  {factionName(character.faction_slug)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export interface FilePickerSkin {
+  buttonStyle: CSSProperties;
+  buttonLabel: string;
+  errorColor?: string;
+  helperText?: string;
+  helperStyle?: CSSProperties;
+}
+
+export function FilePicker({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: FilePickerSkin;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        style={skin.buttonStyle}
+      >
+        {skin.buttonLabel}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*,video/*,audio/*"
+        onChange={state.handleFileChange}
+        style={{ display: "none" }}
+      />
+      {skin.helperText && <div style={skin.helperStyle}>{skin.helperText}</div>}
+      {state.fileError && (
+        <p
+          style={{
+            fontSize: 11,
+            color: skin.errorColor ?? "var(--color-danger)",
+            marginTop: 8,
+          }}
+        >
+          {state.fileError}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export interface MetataskListSkin {
+  containerStyle?: CSSProperties;
+  rowStyle?: (selected: boolean) => CSSProperties;
+  titleColor?: string;
+  descColor?: string;
+  pointsActiveColor?: string;
+  pointsIdleColor?: string;
+}
+
+export function MetatasksList({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: MetataskListSkin;
+}) {
+  return (
+    <div style={skin.containerStyle}>
+      {state.metaTasks.map((mt) => {
+        const selected = state.appliedMetatasks.has(mt.id);
+        const busy = state.applyingMetatask === mt.id;
+        return (
+          <button
+            key={mt.id}
+            type="button"
+            disabled={busy}
+            onClick={() => void state.toggleMetatask(mt)}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              width: "100%",
+              cursor: busy ? "wait" : "pointer",
+              textAlign: "left",
+              ...(skin.rowStyle ? skin.rowStyle(selected) : {}),
+            }}
+          >
+            <span
+              style={{
+                width: 16,
+                height: 16,
+                flexShrink: 0,
+                border: `2px solid ${skin.titleColor ?? "currentColor"}`,
+                background: selected
+                  ? (skin.titleColor ?? "currentColor")
+                  : "transparent",
+                marginTop: 2,
+              }}
+              aria-hidden
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: skin.titleColor }}>
+                {mt.title}
+              </div>
+              {mt.description && (
+                <div style={{ fontSize: 10, color: skin.descColor }}>
+                  {mt.description}
+                </div>
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: selected
+                  ? (skin.pointsActiveColor ?? "var(--color-success)")
+                  : (skin.pointsIdleColor ?? "inherit"),
+                whiteSpace: "nowrap",
+              }}
+            >
+              +{mt.point_value} pts
+            </span>
+            {mt.level_required > 0 && <LevelPill level={mt.level_required} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
