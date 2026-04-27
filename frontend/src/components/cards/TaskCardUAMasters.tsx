@@ -135,7 +135,7 @@ export default function TaskCardUAMasters({
           style={{
             fontSize: "var(--text-xs)",
             color: factionCssVar("ua_masters", "card-accent"),
-            fontFamily: "'Courier Prime', monospace",
+            fontFamily: "var(--font-body)",
           }}
         >
           {displayPoints} pts

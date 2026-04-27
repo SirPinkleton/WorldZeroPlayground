@@ -29,7 +29,7 @@ export default function FeedCardCollabInvite({ item }: Props) {
   const [loading, setLoading] = useState(false);
   // Task-list-full modal state
   const [showDropModal, setShowDropModal] = useState(false);
-  const [myTasks, setMyTasks] = useState<
+  const [myTasks] = useState<
     { id: number; task: { id: number; title: string } }[]
   >([]);
   const [dropError, setDropError] = useState("");

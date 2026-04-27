@@ -50,7 +50,7 @@ export default function TasksTab() {
     setEditingId(t.id);
     setEditState({
       title: t.title,
-      description: t.description,
+      description: t.description ?? "",
       point_value: String(t.point_value),
       level_required: String(t.level_required),
     });
