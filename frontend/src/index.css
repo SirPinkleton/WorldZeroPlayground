@@ -312,6 +312,12 @@
   --level-node-incomplete: rgba(255, 255, 255, 0.06);
 }
 
+/* ── Dark mode: warmer gold text inside editable fields ── */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea {
+  color: #f5dfa8;
+}
+
 /* ── Type Scale + Font Families ── */
 :root {
   --text-xs: 8px;
