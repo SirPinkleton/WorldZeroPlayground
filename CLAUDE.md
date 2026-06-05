@@ -1,3 +1,9 @@
+# Vault context
+@../../../CLAUDE.md
+@../../../MEMORY.md
+
+---
+
 # World Zero — Agent Instructions
 
 A pointer document. It tells you *where* the rules live, not what they are.
