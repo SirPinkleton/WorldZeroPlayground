@@ -343,11 +343,18 @@ async def list_praxes(
     praxis_type: Optional[PraxisType] = None,
     status: Optional[PraxisStatus] = None,
     moderation_status: Optional[str] = None,
+    faction: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[Praxis]:
     """List praxes with optional filters."""
     query = select(Praxis)
+
+    if faction is not None:
+        # Praxis has no faction of its own; it inherits the linked task's faction.
+        query = query.join(Task, Praxis.task_id == Task.id).where(
+            Task.primary_faction_slug == faction
+        )
 
     if praxis_type is not None:
         query = query.where(Praxis.type == praxis_type)

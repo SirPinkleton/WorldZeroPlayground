@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getFactions, getFactionStatus, getInvitations, chooseFaction } from '../api/factions'
 import type { FactionOut, FactionPageOut, InvitationLetterOut } from '../api/factions'
 import PageTitle from '../components/ui/PageTitle'
@@ -320,6 +321,22 @@ export default function Factions() {
                   onJoin={character && canJoin ? () => setConfirmSlug(f.slug) : undefined}
                 />
               )}
+
+              {/* Visit the faction's detail page. PLACEHOLDER affordance —
+                  design may fold this into the card archetype later. */}
+              <Link
+                to={`/factions/${f.slug}`}
+                className="font-body no-underline"
+                style={{
+                  display: 'inline-block',
+                  marginTop: 6,
+                  fontSize: 10,
+                  letterSpacing: '0.05em',
+                  color: factionCssVar(f.slug, 'border'),
+                }}
+              >
+                Visit faction →
+              </Link>
 
               {/* Not-invited hint */}
               {character && status === STATUS_NOT_INVITED && !needsFactionChoice && (

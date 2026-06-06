@@ -15,7 +15,7 @@
 | # | Surface | What varies | Existing example |
 |---|---|---|---|
 | 1 | **Task card** | Whole archetype (shape, layout, ornament, copy voice) | Analog field-journal, S.N.I.D.E. ransom clipping |
-| 2 | **Praxis card** | Mirrors the task-card archetype | per faction |
+| 2 | **Praxis card** | Mirrors the task-card archetype — **⚠ currently reads flat next to the task cards; flagged for a visual rework (pending design)** | per faction |
 | 3 | **Edit-praxis editor** | Mirrors the archetype, as a form | sticky-note / terminal / gazette |
 | 4 | **Faction-selection card** | Bespoke "join me" card | per faction |
 | 5 | **Headline font** | One display face per faction | Bebas Neue (Everymen), Caveat (Gestalt) |
@@ -26,6 +26,7 @@
 | 10 | **Page backdrop** *(Tier 3 new, optional)* | Full-page background **when a faction is the page's context**; falls back to the global rainbow watercolor otherwise | Everymen poster wall; Gestalt lo-fi desktop |
 | 11 | **Avatar + membership badge** *(Tier 3 new)* | Avatar frame treatment + a small faction sigil badge | Everymen cog badge; Gestalt moon badge |
 | 12 | **Activity-feed card** *(Tier 3 new)* | The feed row/card styling for that faction's context | Everymen dispatch slip; Gestalt window row |
+| 13 | **Faction detail page** *(new)* | The per-faction page at `/factions/:slug`: faction description + members + tasks + recently-completed praxis. The page backdrop (#10) themes it to the faction. | shell shipped with placeholder styling; per-faction visual design pending |
 
 ### Global — one shared version for the whole app, regardless of faction
 
@@ -121,4 +122,8 @@ Hand this to whoever wires the faction after design is delivered. (Designer only
 
 ## 6. Change log
 
+- **2026-06-06** — Added surface **#13 Faction detail page** (`/factions/:slug`):
+  description + members + tasks + recent praxis, backdrop-themed. Shell shipped with
+  placeholder styling; per-faction visual design pending. Flagged the **praxis card**
+  (#2) for a visual rework — technically per-faction but reads flat next to task cards.
 - **2026-06-05** — Created. Adopted **Tier 3** boundary. Added surfaces 8–12 (vote, progression, backdrop, avatar, feed card) as per-faction; kept generic controls global. Drafted to support the **Everymen** (new, red, Bebas Neue, union-poster) and **Gestalt redesign** (pink `#ec5f99`/`#f472b6`, Caveat, lo-fi `.exe` desktop) work.
