@@ -18,6 +18,7 @@ const FACTION_DESCRIPTORS: Record<string, string> = {
   snide: "Mischief",
   journeymen: "Explore",
   singularity: "Discover",
+  everymen: "Mobilize",
   ua_masters: "Chronicle",
 };
 
