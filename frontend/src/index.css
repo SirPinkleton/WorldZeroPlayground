@@ -354,6 +354,30 @@
   --everymen-field-deep: #5a1d20;
 }
 
+/* ══ Everymen poster-wall backdrop (faction-context pages; theme-aware) ══ */
+.em-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--everymen-paper);
+  background-image:
+    radial-gradient(42% 32% at 100% 0%, color-mix(in srgb, var(--everymen-gold) 16%, transparent), transparent 70%),
+    radial-gradient(46% 38% at 0% 100%, color-mix(in srgb, var(--everymen-olive) 13%, transparent), transparent 70%),
+    repeating-conic-gradient(from 0deg at 50% -6%, color-mix(in srgb, var(--everymen-red) 6%, transparent) 0 5deg, transparent 5deg 11deg),
+    radial-gradient(color-mix(in srgb, var(--everymen-paper-text) 6%, transparent) 0.6px, transparent 0.9px),
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--everymen-paper-text) 3.5%, transparent) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--everymen-paper-text) 3%, transparent) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, var(--everymen-paper), var(--everymen-paper-deep));
+  background-size: 100% 100%, 100% 100%, 100% 100%, 6px 6px, auto, auto, 100% 100%;
+}
+.em-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 8%, transparent 40%, color-mix(in srgb, var(--everymen-paper-deep) 55%, transparent));
+}
+
 /* ── Dark mode: warmer gold text inside editable fields ── */
 [data-theme="dark"] input,
 [data-theme="dark"] textarea {

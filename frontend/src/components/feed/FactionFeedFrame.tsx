@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
+import EverymenFeedFrame from './factionFrames/EverymenFeedFrame'
 
 /**
  * Per-faction activity-feed framing dispatcher (Tier-3 surface). A faction
@@ -15,7 +16,9 @@ export interface FactionFeedFrameProps {
   children: ReactNode
 }
 
-const FACTION_FEED_FRAMES: Record<string, ComponentType<FactionFeedFrameProps>> = {}
+const FACTION_FEED_FRAMES: Record<string, ComponentType<FactionFeedFrameProps>> = {
+  everymen: EverymenFeedFrame,
+}
 
 export default function FactionFeedFrame({
   factionSlug,

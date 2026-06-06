@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import VoteStamps from '../ui/VoteStamps'
+import EverymenVote from './EverymenVote'
 
 /**
  * Per-faction vote/rating UI dispatcher (Tier-3 surface). Keyed by the voted
@@ -14,7 +15,9 @@ export interface VoteUIProps {
   totalVotes?: number
 }
 
-const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {}
+const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {
+  everymen: EverymenVote,
+}
 
 export default function VoteUI({
   factionSlug,

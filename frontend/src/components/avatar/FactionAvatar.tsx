@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { CharacterOut } from '../../api/auth'
 import { mediaUrl } from '../../utils/media'
+import EverymenAvatar from './EverymenAvatar'
 
 /**
  * Per-faction avatar + membership-badge dispatcher (Tier-3 surface). Keyed by
@@ -33,7 +34,9 @@ function DefaultAvatar({ character, size = 'md' }: FactionAvatarProps) {
   )
 }
 
-const FACTION_AVATARS: Record<string, ComponentType<FactionAvatarProps>> = {}
+const FACTION_AVATARS: Record<string, ComponentType<FactionAvatarProps>> = {
+  everymen: EverymenAvatar,
+}
 
 export default function FactionAvatar({ character, size }: FactionAvatarProps) {
   const Variant =

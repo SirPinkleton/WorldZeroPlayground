@@ -1,5 +1,6 @@
 import type { FactionOut } from "../../api/factions";
 import { factionCssVar } from "../../utils/factions";
+import EverymenCard from "./EverymenFactionCard";
 
 /**
  * FactionCard — faction-archetype switcher.
@@ -1034,6 +1035,8 @@ export default function FactionCard(props: FactionCardProps) {
       return <JourneymenCard {...props} />;
     case "singularity":
       return <SingularityCard {...props} />;
+    case "everymen":
+      return <EverymenCard {...props} />;
     case "ua_masters":
       return <UAMastersCard {...props} />;
     default:

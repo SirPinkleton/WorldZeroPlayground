@@ -38,9 +38,14 @@
     pages don't call `useFactionBackdrop()` yet (so every page still shows watercolor — correct until a faction backdrop variant exists).
   - **Pre-existing tsc errors (NOT mine, verified via stash):** `EditPraxis.tsx:67` (`<Archetype>` dynamic-component typing) +
     unused-var warnings in `EditPraxisLuggageManifest.tsx`, `EditPraxisStickyNote.tsx`. Fix opportunistically in Session 3 (touches EditPraxis).
-- [ ] **Session 3 — Everymen components** (port `~/Downloads/Everymen/everymen/everymen-*.jsx`)
-  - `TaskCardEverymen`, `EverymenCard` (faction-select), `EditPraxisEverymen`; everymen variants for the 5 Tier-3 dispatchers;
-    port `.em-backdrop` CSS (everymen.css lines 72-103) into index.css. Register everymen in every dispatcher.
+- [x] **Session 3 — Everymen components** (committed; `tsc --noEmit` EXIT 0 — whole frontend clean, incl. fixing the prior EditPraxis errors)
+  - New variant files: `cards/TaskCardEverymen.tsx`, `cards/EverymenFactionCard.tsx` (faction-select), `pages/editPraxis/archetypes/EditPraxisEverymen.tsx`,
+    `vote/EverymenVote.tsx`, `backdrop/EverymenBackdrop.tsx`, `progression/EverymenProgression.tsx`, `avatar/EverymenAvatar.tsx`, `feed/factionFrames/EverymenFeedFrame.tsx`.
+  - `.em-backdrop` CSS ported into index.css. Registered `everymen` in ALL eight dispatchers (TaskCard, FactionCard switch, EditPraxis,
+    FactionBackdrop, VoteUI, Progression, FactionAvatar, FactionFeedFrame).
+  - Backdrop now wired live: `CharacterProfile.tsx` calls `useFactionBackdrop(character?.faction_slug)` → Everymen profiles show the poster wall; others fall back to watercolor.
+  - Fixed pre-existing tsc errors: EditPraxis.tsx dynamic-archetype typing (`slug ? map[slug] : undefined`) + unused vars in StickyNote/LuggageManifest archetypes.
+  - The 3 big components (task card, faction-select card, edit-praxis) were ported by parallel subagents; the 4 small dispatcher-tight variants authored directly.
 - [ ] **Session 4 — Gestalt redesign components** (port `~/Downloads/Gestalt redesin (1)/gestalt-cards/gestalt-*.jsx`)
   - Re-skin `GestaltCard`, `TaskCardGestalt`, the gestalt edit-praxis archetype to the lo-fi `.exe` window look;
     add the full window-chrome token set to index.css (title bar/notepad/ivy); gestalt variants for the 5 Tier-3 dispatchers

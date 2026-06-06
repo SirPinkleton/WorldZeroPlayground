@@ -9,6 +9,7 @@ import TaskCardSNIDE from './cards/TaskCardSNIDE'
 import TaskCardJourneymen from './cards/TaskCardJourneymen'
 import TaskCardSingularity from './cards/TaskCardSingularity'
 import TaskCardUAMasters from './cards/TaskCardUAMasters'
+import TaskCardEverymen from './cards/TaskCardEverymen'
 import { factionCssVar, factionName } from '../utils/factions'
 import type { ComponentType } from 'react'
 
@@ -26,6 +27,7 @@ const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   snide: TaskCardSNIDE,
   journeymen: TaskCardJourneymen,
   singularity: TaskCardSingularity,
+  everymen: TaskCardEverymen,
   ua_masters: TaskCardUAMasters,
 }
 

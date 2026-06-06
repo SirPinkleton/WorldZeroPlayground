@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import WatercolorBackground from '../layout/WatercolorBackground'
+import EverymenBackdrop from './EverymenBackdrop'
 import { useBackdropSlug } from './BackdropContext'
 
 /**
@@ -8,7 +9,9 @@ import { useBackdropSlug } from './BackdropContext'
  * and for any null / unknown / mixed-page slug — it falls back to the global
  * rainbow watercolor. Render once, fixed behind page content at z-index 0.
  */
-const FACTION_BACKDROPS: Record<string, ComponentType> = {}
+const FACTION_BACKDROPS: Record<string, ComponentType> = {
+  everymen: EverymenBackdrop,
+}
 
 export default function FactionBackdrop() {
   const slug = useBackdropSlug()
