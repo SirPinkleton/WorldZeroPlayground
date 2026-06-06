@@ -162,6 +162,17 @@
   --faction-everymen-card-muted: var(--everymen-muted);
   --faction-everymen-card-font: var(--font-accent); /* Bebas Neue */
 
+  /* ── Analog is reskinned as Everymen: alias its tokens to the everymen
+        palette (slug kept; later declaration wins over the originals above) ── */
+  --faction-analog: var(--faction-everymen);
+  --faction-analog-light: var(--faction-everymen-light);
+  --faction-analog-border: var(--faction-everymen-border);
+  --faction-analog-card-bg: var(--faction-everymen-card-bg);
+  --faction-analog-card-text: var(--faction-everymen-card-text);
+  --faction-analog-card-accent: var(--faction-everymen-card-accent);
+  --faction-analog-card-muted: var(--faction-everymen-card-muted);
+  --faction-analog-card-font: var(--faction-everymen-card-font);
+
   /* ── Vote stamp colors (orange → yellow → green → blue → magenta) ── */
   --vote-1: #c2410c;
   --vote-2: #ca8a04;
@@ -376,6 +387,15 @@
   --everymen-muted: #b6a079;
   --everymen-field: #3c1416;
   --everymen-field-deep: #5a1d20;
+
+  /* ── Analog→Everymen alias (dark): override the original analog dark values ── */
+  --faction-analog: var(--faction-everymen);
+  --faction-analog-light: var(--faction-everymen-light);
+  --faction-analog-border: var(--faction-everymen-border);
+  --faction-analog-card-bg: var(--faction-everymen-card-bg);
+  --faction-analog-card-text: var(--faction-everymen-card-text);
+  --faction-analog-card-accent: var(--faction-everymen-card-accent);
+  --faction-analog-card-muted: var(--faction-everymen-card-muted);
 }
 
 /* ══ Everymen poster-wall backdrop (faction-context pages; theme-aware) ══ */

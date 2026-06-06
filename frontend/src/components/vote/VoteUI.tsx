@@ -17,7 +17,7 @@ export interface VoteUIProps {
 }
 
 const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {
-  everymen: EverymenVote,
+  analog: EverymenVote,
   gestalt: GestaltVote,
 }
 

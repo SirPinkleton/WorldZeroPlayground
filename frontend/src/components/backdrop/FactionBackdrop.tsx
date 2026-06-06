@@ -11,7 +11,7 @@ import { useBackdropSlug } from './BackdropContext'
  * rainbow watercolor. Render once, fixed behind page content at z-index 0.
  */
 const FACTION_BACKDROPS: Record<string, ComponentType> = {
-  everymen: EverymenBackdrop,
+  analog: EverymenBackdrop,
   gestalt: GestaltBackdrop,
 }
 

@@ -26,12 +26,12 @@ export interface FactionConfig {
  *  before the API response arrives. Do not use these values directly; call factionColor(). */
 const FACTION_FALLBACKS: Record<string, FactionConfig> = {
   ua: { slug: "ua", name: "UA", color: "#7c3aed" },
-  analog: { slug: "analog", name: "Analog", color: "#ca8a04" },
+  // Analog is reskinned/rebranded as Everymen (slug kept to avoid new-faction plumbing).
+  analog: { slug: "analog", name: "Everymen", color: "#c1272d" },
   gestalt: { slug: "gestalt", name: "Gestalt", color: "#ec5f99" },
   snide: { slug: "snide", name: "S.N.I.D.E.", color: "#16a34a" },
   journeymen: { slug: "journeymen", name: "Journeymen", color: "#0e7490" },
   singularity: { slug: "singularity", name: "Singularity", color: "#2563eb" },
-  everymen: { slug: "everymen", name: "Everymen", color: "#c1272d" },
   ua_masters: { slug: "ua_masters", name: "UA Masters", color: "#c2410c" },
   albescent: { slug: "albescent", name: "/Albescent", color: "#7c3aed" },
   aged_out: { slug: "aged_out", name: "Aged Out", color: "#7c3aed" },

@@ -138,7 +138,7 @@ export function BadgedAvatar({
 }
 
 const FACTION_AVATARS: Record<string, ComponentType<FactionAvatarProps>> = {
-  everymen: EverymenAvatar,
+  analog: EverymenAvatar,
   gestalt: GestaltAvatar,
 }
 
