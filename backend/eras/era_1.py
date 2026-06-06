@@ -69,10 +69,13 @@ ERA_1_FACTIONS = {
         duel_loss_modifier=0.5,
     ),
     "journeymen": FactionConfig(
+        # Reskinned/rebranded as The Ephemerists. The slug stays "journeymen" so
+        # existing DB rows, tasks, members, and the Task Vision ability carry over
+        # with no new-faction plumbing (mirrors the Analog→Everymen reskin below).
         slug="journeymen",
-        name="Journeymen",
-        description="Explorers with access to select retired tasks (Task Vision ability).",
-        color="#c49a3a",
+        name="The Ephemerists",
+        description="Wanderers who set down fleeting truths before the road moves on. Task Vision — access to select retired tasks.",
+        color="#1d6e72",
         is_selectable=True,
         can_always_rejoin=False,
         own_task_modifier=1.0,
@@ -448,14 +451,14 @@ ERA_1_TAUNT_TEMPLATES: dict[str, dict[str, list[str]]] = {
     },
     "journeymen": {
         "score_overtake": [
-            "{from_name} found a path past {to_name}. The road provides.",
-            "{from_name} wandered ahead of {to_name}. Not all who wander are lost.",
+            "{from_name} recorded a truth past {to_name}. Nothing keeps; the record does.",
+            "{from_name} triangulated a way past {to_name}. The map and the road disagree — {from_name} sided with the road.",
         ],
         "level_up": [
-            "{from_name} discovered a new horizon. {to_name} hasn't packed yet.",
+            "{from_name} sealed another entry in the ephemeris. {to_name}'s page stays blank.",
         ],
         "praxis_complete": [
-            "{from_name} returned from the journey with proof. {to_name} stayed home.",
+            "{from_name} filed the finding before it could pass. {to_name} let it slip.",
         ],
     },
     "analog": {

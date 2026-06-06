@@ -16,7 +16,7 @@ const FACTION_DESCRIPTORS: Record<string, string> = {
   gestalt: "Collective",
   analog: "Mobilize",
   snide: "Mischief",
-  journeymen: "Explore",
+  journeymen: "Record",
   singularity: "Discover",
   ua_masters: "Chronicle",
 };

@@ -5,7 +5,7 @@ import { updateTaskStatus } from '../api/admin'
 import TaskCardUA from './cards/TaskCardUA'
 import TaskCardGestalt from './cards/TaskCardGestalt'
 import TaskCardSNIDE from './cards/TaskCardSNIDE'
-import TaskCardJourneymen from './cards/TaskCardJourneymen'
+import TaskCardEphemerists from './cards/TaskCardEphemerists'
 import TaskCardSingularity from './cards/TaskCardSingularity'
 import TaskCardUAMasters from './cards/TaskCardUAMasters'
 import TaskCardEverymen from './cards/TaskCardEverymen'
@@ -24,7 +24,7 @@ const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   analog: TaskCardEverymen,
   gestalt: TaskCardGestalt,
   snide: TaskCardSNIDE,
-  journeymen: TaskCardJourneymen,
+  journeymen: TaskCardEphemerists,
   singularity: TaskCardSingularity,
   ua_masters: TaskCardUAMasters,
 }

@@ -14,7 +14,7 @@ import {
 import EditPraxisPunkZine from "./editPraxis/archetypes/EditPraxisPunkZine";
 import EditPraxisTerminal from "./editPraxis/archetypes/EditPraxisTerminal";
 import EditPraxisPaperCollage from "./editPraxis/archetypes/EditPraxisPaperCollage";
-import EditPraxisLuggageManifest from "./editPraxis/archetypes/EditPraxisLuggageManifest";
+import EditPraxisEphemeris from "./editPraxis/archetypes/EditPraxisEphemeris";
 import EditPraxisGazette from "./editPraxis/archetypes/EditPraxisGazette";
 import EditPraxisStickyNote from "./editPraxis/archetypes/EditPraxisStickyNote";
 import EditPraxisEverymen from "./editPraxis/archetypes/EditPraxisEverymen";
@@ -26,7 +26,7 @@ const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
   snide: EditPraxisPunkZine,
   singularity: EditPraxisTerminal,
   gestalt: EditPraxisPaperCollage,
-  journeymen: EditPraxisLuggageManifest,
+  journeymen: EditPraxisEphemeris,
   ua_masters: EditPraxisGazette,
   ua: EditPraxisStickyNote,
   albescent: EditPraxisStickyNote,

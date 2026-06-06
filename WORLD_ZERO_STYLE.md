@@ -87,7 +87,7 @@ All fonts loaded from Google Fonts.
 | Analog      | `Special Elite`    | `--faction-analog-card-font`      |
 | Gestalt     | `Caveat`           | `--faction-gestalt-card-font`     |
 | S.N.I.D.E.  | `Permanent Marker` | `--faction-snide-card-font`       |
-| Journeymen  | `Cutive Mono`      | `--faction-journeymen-card-font`  |
+| Ephemerists | `Cinzel`           | `--faction-journeymen-card-font`  |
 | Singularity | `Share Tech Mono`  | `--faction-singularity-card-font` |
 | UA Masters  | `UnifrakturCook`   | `--faction-ua-masters-card-font`  |
 
@@ -127,7 +127,7 @@ Cards are arranged in a `flex-wrap` container with varied heights and slight rot
 | Analog      | Field journal page | `#ca8a04` yellow  | Red margin rule, horizontal lines, torn bottom edge | Special Elite    |
 | Gestalt     | Paper collage      | `#be185d` magenta | 3 layered scraps, scotch tape strip                 | Caveat           |
 | S.N.I.D.E.  | Newspaper clipping | `#16a34a` green   | Torn edges, two columns, cutout ransom letters      | Permanent Marker |
-| Journeymen  | Luggage tag        | `#0e7490` teal    | Hanging string, eyelet, teal/cyan hazard stripe     | Cutive Mono      |
+| Ephemerists | Discordant map     | `#1d6e72` lapis   | Three irreconcilable coordinate grids, one word in the lapis, House-of-Leaves apparatus on aged vellum | Cinzel           |
 | Singularity | Terminal printout  | `#2563eb` blue    | Always dark, green text, sprocket holes, scanlines  | Share Tech Mono  |
 | UA Masters  | Gazette article    | `#c2410c` orange  | Corner-snipped edges, proper masthead, two columns  | UnifrakturCook   |
 
