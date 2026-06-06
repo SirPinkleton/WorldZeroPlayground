@@ -1,6 +1,7 @@
 import type { FactionOut } from "../../api/factions";
 import { factionCssVar } from "../../utils/factions";
 import EverymenCard from "./EverymenFactionCard";
+import SnideMasthead from "./SnideMasthead";
 import { EphSeal, LapisLastWord } from "./ephemeristsAtoms";
 
 /**
@@ -624,19 +625,8 @@ function SnideCard({
           clipPath: SNIDE_TORN_CLIP,
         }}
       />
-      <div
-        style={{
-          fontSize: 7,
-          textTransform: "uppercase",
-          letterSpacing: "0.25em",
-          color: factionCssVar("snide", "card-muted"),
-          borderBottom: `1.5px solid ${factionCssVar("snide", "card-accent")}`,
-          paddingBottom: 3,
-          marginBottom: 6,
-        }}
-      >
-        The Daily Snide Gazette
-      </div>
+      <div className="snide-tape" style={{ top: -10, left: 22, transform: "rotate(-8deg)" }} />
+      <SnideMasthead subtitle="field dispatch" />
       {invitationNote && (
         <InvitationNote slug={faction.slug} note={invitationNote} />
       )}

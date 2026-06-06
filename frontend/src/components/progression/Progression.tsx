@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import LevelPill from '../ui/LevelPill'
 import EverymenProgression from './EverymenProgression'
 import GestaltProgression from './GestaltProgression'
+import SnideProgression from './SnideProgression'
 import EphemeristsProgression from './EphemeristsProgression'
 
 /**
@@ -18,6 +19,7 @@ export interface ProgressionProps {
 const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {
   analog: EverymenProgression,
   gestalt: GestaltProgression,
+  snide: SnideProgression,
   journeymen: EphemeristsProgression,
 }
 

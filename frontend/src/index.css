@@ -44,7 +44,7 @@
   --faction-ua: #7c3aed; /* purple */
   --faction-analog: #ca8a04; /* yellow */
   --faction-gestalt: #ec5f99; /* redesign pink */
-  --faction-snide: #16a34a; /* green */
+  --faction-snide: #6fae00; /* acid green (deep — legible on light chrome) */
   --faction-journeymen: #1d6e72; /* lapis-verdigris — Ephemerists reskin of the teal slot */
   --faction-singularity: #2563eb; /* blue */
   --faction-ua-masters: #c2410c; /* orange */
@@ -53,7 +53,7 @@
   --faction-ua-light: rgba(124, 58, 237, 0.08);
   --faction-analog-light: rgba(202, 138, 4, 0.1);
   --faction-gestalt-light: rgba(236, 95, 153, 0.1);
-  --faction-snide-light: rgba(22, 163, 74, 0.1);
+  --faction-snide-light: rgba(182, 255, 46, 0.16);
   --faction-journeymen-light: rgba(29, 110, 114, 0.1);
   --faction-singularity-light: rgba(37, 99, 235, 0.1);
   --faction-ua-masters-light: rgba(194, 65, 12, 0.1);
@@ -62,7 +62,7 @@
   --faction-ua-border: rgba(124, 58, 237, 0.3);
   --faction-analog-border: rgba(202, 138, 4, 0.3);
   --faction-gestalt-border: rgba(236, 95, 153, 0.3);
-  --faction-snide-border: rgba(22, 163, 74, 0.35);
+  --faction-snide-border: rgba(111, 174, 0, 0.45);
   --faction-journeymen-border: rgba(29, 110, 114, 0.35);
   --faction-singularity-border: rgba(37, 99, 235, 0.35);
   --faction-ua-masters-border: rgba(194, 65, 12, 0.35);
@@ -71,7 +71,7 @@
   --faction-ua-card-bg: #f3eefc; /* faded lavender */
   --faction-analog-card-bg: #fdf6d8; /* cream notebook */
   --faction-gestalt-card-bg: #fdeef3; /* blush collage */
-  --faction-snide-card-bg: #ecf5ea; /* mossy newsprint */
+  --faction-snide-card-bg: #14110b; /* photocopier ink (dark-in-light, Singularity precedent) */
   --faction-journeymen-card-bg: var(--eph-vellum); /* Ephemerists: aged manuscript stock */
   --faction-singularity-card-bg: #050f08; /* terminal black */
   --faction-ua-masters-card-bg: #f5e9d6; /* aged newsprint */
@@ -80,7 +80,7 @@
   --faction-ua-card-text: #1a1209;
   --faction-analog-card-text: #1a1209;
   --faction-gestalt-card-text: #581c39;
-  --faction-snide-card-text: #1a1209;
+  --faction-snide-card-text: #f4f1e8; /* warm xerox paper on ink */
   --faction-journeymen-card-text: var(--eph-vellum-text);
   --faction-singularity-card-text: #4ade80;
   --faction-ua-masters-card-text: #1a1209;
@@ -89,7 +89,7 @@
   --faction-ua-card-accent: #7c3aed;
   --faction-analog-card-accent: #a16207;
   --faction-gestalt-card-accent: #ec5f99;
-  --faction-snide-card-accent: #15803d;
+  --faction-snide-card-accent: #b6ff2e; /* toxic acid */
   --faction-journeymen-card-accent: var(--eph-rubric);
   --faction-singularity-card-accent: #4ade80; /* terminal green */
   --faction-ua-masters-card-accent: #c2410c;
@@ -98,7 +98,7 @@
   --faction-ua-card-muted: #4a3a6a;
   --faction-analog-card-muted: #555;
   --faction-gestalt-card-muted: #831843;
-  --faction-snide-card-muted: #444;
+  --faction-snide-card-muted: #d8d6c8; /* faded newsprint grey on ink */
   --faction-journeymen-card-muted: var(--eph-muted);
   --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
   --faction-ua-masters-card-muted: #333;
@@ -111,6 +111,29 @@
   --faction-journeymen-card-font: var(--eph-display);
   --faction-singularity-card-font: var(--font-faction-terminal);
   --faction-ua-masters-card-font: var(--font-faction-blackletter);
+
+  /* ── S.N.I.D.E. punk extension — ransom/xerox/spray pigments + font set ──
+     Extra named pigments beyond the standard suffix set, namespaced to the
+     faction (sanctioned exception, see SPEC-faction-ui-profile.md §3). Card
+     surfaces are ink-dark in both themes (Singularity precedent), so the
+     pigments stay constant across themes; only the flyposted-wall backdrop
+     tokens flip under [data-theme="dark"]. */
+  --faction-snide-acid: #b6ff2e; /* toxic / radioactive green */
+  --faction-snide-acid-deep: #6fae00;
+  --faction-snide-ink: #14110b; /* photocopier black */
+  --faction-snide-paper: #f4f1e8; /* warm xerox paper */
+  --faction-snide-pink: #ff2d8b; /* hot zine pink */
+  --faction-snide-pink-deep: #be185d;
+  --faction-snide-tape: rgba(228, 214, 120, 0.62);
+  --faction-snide-wall: #efece3; /* flyposted xerox-paper wall (FLIP in dark) */
+  --faction-snide-wall-deep: #e0ddd1;
+  --faction-snide-wall-text: #14110b;
+  /* SNIDE font set — a ransom note mixes many faces in one surface */
+  --faction-snide-font-impact: "Anton", Impact, sans-serif;
+  --faction-snide-font-cond: var(--font-accent); /* Bebas Neue */
+  --faction-snide-font-black: "Archivo Black", Impact, sans-serif;
+  --faction-snide-font-type: var(--font-faction-typewriter); /* Special Elite */
+  --faction-snide-font-marker: var(--font-faction-marker); /* Permanent Marker */
 
   /* ── Singularity terminal border (blue brand) ── */
   --faction-singularity-border-hard: #2563eb;
@@ -292,7 +315,7 @@
   --faction-ua: #a78bfa; /* purple */
   --faction-analog: #fbbf24; /* yellow */
   --faction-gestalt: #f472b6; /* magenta */
-  --faction-snide: #4ade80; /* green */
+  --faction-snide: #b6ff2e; /* acid green (bright — pops on dark) */
   --faction-journeymen: #3aa0a4; /* lapis-verdigris lifted for dark — Ephemerists */
   --faction-singularity: #60a5fa; /* blue */
   --faction-ua-masters: #fb923c; /* orange */
@@ -301,7 +324,7 @@
   --faction-ua-light: rgba(167, 139, 250, 0.12);
   --faction-analog-light: rgba(251, 191, 36, 0.1);
   --faction-gestalt-light: rgba(244, 114, 182, 0.08);
-  --faction-snide-light: rgba(74, 222, 128, 0.1);
+  --faction-snide-light: rgba(182, 255, 46, 0.12);
   --faction-journeymen-light: rgba(58, 160, 164, 0.1);
   --faction-singularity-light: rgba(96, 165, 250, 0.1);
   --faction-ua-masters-light: rgba(251, 146, 60, 0.1);
@@ -310,7 +333,7 @@
   --faction-ua-border: rgba(167, 139, 250, 0.3);
   --faction-analog-border: rgba(251, 191, 36, 0.3);
   --faction-gestalt-border: rgba(244, 114, 182, 0.25);
-  --faction-snide-border: rgba(74, 222, 128, 0.3);
+  --faction-snide-border: rgba(182, 255, 46, 0.3);
   --faction-journeymen-border: rgba(58, 160, 164, 0.35);
   --faction-singularity-border: rgba(96, 165, 250, 0.25);
   --faction-ua-masters-border: rgba(251, 146, 60, 0.3);
@@ -319,7 +342,7 @@
   --faction-ua-card-bg: #1d1530;
   --faction-analog-card-bg: #1f1a0a;
   --faction-gestalt-card-bg: #2a0d1c;
-  --faction-snide-card-bg: #0d1f12;
+  --faction-snide-card-bg: #0c0a07; /* deeper ink */
   /* journeymen card-bg inherits the :root var(--eph-vellum) rebind (flips below) */
   --faction-singularity-card-bg: #050f08;
   --faction-ua-masters-card-bg: #1f1208;
@@ -328,7 +351,7 @@
   --faction-ua-card-text: #ddd6fe;
   --faction-analog-card-text: #fde68a;
   --faction-gestalt-card-text: #fbcfe0;
-  --faction-snide-card-text: #bbf7d0;
+  --faction-snide-card-text: #f4f1e8;
   --faction-singularity-card-text: #4ade80;
   --faction-ua-masters-card-text: #fed7aa;
 
@@ -336,7 +359,7 @@
   --faction-ua-card-accent: #a78bfa;
   --faction-analog-card-accent: #fbbf24;
   --faction-gestalt-card-accent: #f472b6;
-  --faction-snide-card-accent: #4ade80;
+  --faction-snide-card-accent: #b6ff2e;
   --faction-singularity-card-accent: #4ade80; /* terminal green */
   --faction-ua-masters-card-accent: #fb923c;
 
@@ -344,7 +367,11 @@
   --faction-ua-card-muted: #a8a0c0;
   --faction-analog-card-muted: #c9a93a;
   --faction-gestalt-card-muted: #c4648a;
-  --faction-snide-card-muted: #4a8a60;
+  --faction-snide-card-muted: #cfcdbf;
+  /* SNIDE flyposted wall flips to concrete-at-night */
+  --faction-snide-wall: #141310;
+  --faction-snide-wall-deep: #0b0a08;
+  --faction-snide-wall-text: #e9e6da;
   --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
   --faction-ua-masters-card-muted: #b06040;
 
@@ -478,6 +505,29 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(120% 95% at 50% 0%, transparent 45%, color-mix(in srgb, var(--faction-gestalt-body-bg) 70%, transparent));
+}
+
+/* ══ S.N.I.D.E. flyposted-wall backdrop (faction-context pages; theme-aware) ══ */
+.snide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--faction-snide-wall);
+  background-image:
+    radial-gradient(40% 30% at 100% 0%, color-mix(in srgb, var(--faction-snide-acid) 18%, transparent), transparent 70%),
+    radial-gradient(44% 36% at 0% 100%, color-mix(in srgb, var(--faction-snide-pink) 14%, transparent), transparent 70%),
+    radial-gradient(color-mix(in srgb, var(--faction-snide-wall-text) 7%, transparent) 0.6px, transparent 1px),
+    repeating-linear-gradient(28deg, color-mix(in srgb, var(--faction-snide-wall-text) 3%, transparent) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-19deg, color-mix(in srgb, var(--faction-snide-wall-text) 2.5%, transparent) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, var(--faction-snide-wall), var(--faction-snide-wall-deep));
+  background-size: 100% 100%, 100% 100%, 5px 5px, auto, auto, 100% 100%;
+}
+.snide-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 6%, transparent 42%, color-mix(in srgb, var(--faction-snide-wall-deep) 60%, transparent));
 }
 
 /* ── Dark mode: warmer gold text inside editable fields ── */
@@ -757,6 +807,65 @@
   }
   .markdown-preview a:hover {
     color: var(--color-text-primary);
+  }
+
+  /* ── S.N.I.D.E. punk textures — shared utilities for faction surfaces ──
+     Cheap, filter-free craft layers. `currentColor` drives the halftone tint,
+     so set `color` on the element (or a wrapper) to recolor the dots. */
+  .ht-dots {
+    background-image: radial-gradient(currentColor 32%, transparent 34%);
+    background-size: 5px 5px;
+  }
+  .ht-dots-lg {
+    background-image: radial-gradient(currentColor 30%, transparent 33%);
+    background-size: 8px 8px;
+  }
+  .xerox {
+    background-color: var(--faction-snide-paper);
+    background-image:
+      radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+      radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    background-size: 3px 3px, 4px 4px;
+    background-position: 0 0, 2px 1px;
+  }
+  .snide-torn-top,
+  .snide-torn-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 7px;
+  }
+  .snide-torn-top {
+    top: -1px;
+  }
+  .snide-torn-bottom {
+    bottom: -1px;
+  }
+  .snide-tape {
+    position: absolute;
+    height: 26px;
+    width: 64px;
+    background: var(--faction-snide-tape);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    opacity: 0.9;
+  }
+  .snide-tape::before,
+  .snide-tape::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px);
+  }
+  .snide-tape::before {
+    left: 0;
+  }
+  .snide-tape::after {
+    right: 0;
+  }
+  .snide-merrow {
+    background-image: repeating-conic-gradient(var(--faction-snide-acid) 0deg 18deg, var(--faction-snide-acid-deep) 18deg 36deg);
   }
 }
 
