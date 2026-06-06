@@ -52,6 +52,16 @@
   - New Tier-3 variants: `vote/GestaltVote.tsx` (heart ramp), `progression/GestaltProgression.tsx` (compact moon phases), `avatar/GestaltAvatar.tsx` (moon badge), `backdrop/GestaltBackdrop.tsx` (dotted desktop), `feed/factionFrames/GestaltFeedFrame.tsx` (window row).
   - Registered `gestalt` in all 5 Tier-3 dispatchers. (3 re-skins + 2 new variants ported by parallel subagents; 3 small variants authored directly.)
   - `--faction-gestalt-scrap-*`/`-tape` left in index.css as harmless legacy (no longer referenced after re-skin); safe to delete later.
-- [ ] **Session 5 — Verification & polish**
-  - `npm start` + preview workflow (quest board mixed→rainbow; single-faction profile→faction backdrop+avatar; praxis detail→per-faction votes;
-    Factions grid: Everymen visible + Gestalt pink); toggle dark mode on each; screenshots light+dark. Backend `pytest` once a venv exists.
+- [x] **Session 5 — Verification & polish** (committed)
+  - **Frontend `tsc --noEmit`: EXIT 0** (whole project). **`vite build`: EXIT 0** (336 modules, both factions bundled).
+  - **Live end-to-end** (venv backend on :8000 vs Docker Postgres, frontend dev :5173): `/game-config` serves 11 factions, Gestalt `#ec5f99`, Everymen `#c1272d` selectable.
+    Factions page renders the Everymen recruitment poster AND the `gestalt.exe` window card in BOTH light and dark mode; watercolor fallback backdrop renders; theme flip works.
+  - Inserted the **Everymen `Faction` DB row** (the flagged one-off upsert) into the dev DB — left in place (forward-compatible with the new code).
+  - Restored env: removed the throwaway QA character, restarted the original `worldzero-playground-backend-1` container, stopped the preview server.
+
+## Deploy / follow-up notes
+1. **The running Docker `backend` container is built from an image (no source mount)** — it still serves PRE-change code until rebuilt. To run the new backend in the persistent stack: `docker-compose up -d --build backend`. (During verification I ran the backend from a fresh `backend/.venv` instead.)
+2. **Existing DBs need the Everymen `Faction` row** (done in this dev DB). For other environments: `INSERT INTO faction (slug,name,description,status) VALUES ('everymen','Everymen','…','visible') ON CONFLICT DO NOTHING;` (or a fresh DB seeds it automatically).
+3. **Backend `pytest` not run** (no venv at session start; one now exists at `backend/.venv`). Run: `backend/.venv/Scripts/python -m pytest --cov=. --cov-fail-under=80` from `/backend`.
+4. **TODO(everymen)** gameplay modifiers in `era_1.py` are still placeholders — confirm before launch (they feed `services/scoring.py`).
+5. Optional cleanup: delete the now-unused legacy `--faction-gestalt-scrap-*`/`-tape` tokens from index.css.
