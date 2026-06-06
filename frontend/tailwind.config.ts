@@ -38,7 +38,7 @@ export default {
         ua: { DEFAULT: "#7c3aed", accent: "#a78bfa" },
         analog: { DEFAULT: "#ca8a04", accent: "#fbbf24" },
         gestalt: { DEFAULT: "#be185d", accent: "#f472b6" },
-        snide: { DEFAULT: "#16a34a", accent: "#4ade80" },
+        snide: { DEFAULT: "#6fae00", accent: "#b6ff2e" },
         journeymen: { DEFAULT: "#0e7490", accent: "#22d3ee" },
         singularity: { DEFAULT: "#2563eb", accent: "#60a5fa" },
         "ua-masters": { DEFAULT: "#c2410c", accent: "#fb923c" },

@@ -6,6 +6,7 @@ import { useAdminMode } from "../auth/AdminModeContext";
 import { moderatePraxis } from "../api/admin";
 import { factionCssVar } from "../utils/factions";
 import { extractError } from "../utils/errors";
+import SnideMasthead from "./cards/SnideMasthead";
 
 interface Props {
   praxis: PraxisCardOut;
@@ -422,19 +423,8 @@ function SnidePraxisCard({
           clipPath: SNIDE_TORN_CLIP,
         }}
       />
-      <div
-        style={{
-          fontSize: 7,
-          textTransform: "uppercase",
-          letterSpacing: "0.25em",
-          color: factionCssVar("snide", "card-muted"),
-          borderBottom: `1.5px solid ${factionCssVar("snide", "card-accent")}`,
-          paddingBottom: 3,
-          marginBottom: 6,
-        }}
-      >
-        The Daily Snide Gazette
-      </div>
+      <div className="snide-tape" style={{ top: -10, left: 22, transform: "rotate(-8deg)" }} />
+      <SnideMasthead subtitle="evidence locker" />
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}

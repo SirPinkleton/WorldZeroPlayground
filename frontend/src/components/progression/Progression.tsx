@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import LevelPill from '../ui/LevelPill'
 import EverymenProgression from './EverymenProgression'
 import GestaltProgression from './GestaltProgression'
+import SnideProgression from './SnideProgression'
 
 /**
  * Per-faction progression / level indicator dispatcher (Tier-3 surface).
@@ -17,6 +18,7 @@ export interface ProgressionProps {
 const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {
   analog: EverymenProgression,
   gestalt: GestaltProgression,
+  snide: SnideProgression,
 }
 
 export default function Progression({ level, factionSlug }: ProgressionProps) {

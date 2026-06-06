@@ -74,11 +74,11 @@ Required suffixes (consumed by the dispatchers / `factionCssVar`):
 | `--faction-{key}-card-muted` | secondary text |
 | `--faction-{key}-card-font` | headline font (points at a `--font-*` face) |
 
-Plus any **archetype-private primitives** (e.g. Everymen's `--everymen-cream/-gold/-ink/-paper/-field`, Gestalt's window-chrome tokens). These are referenced only inside that faction's own components, not through `factionCssVar`, and are ported verbatim from the design kit.
+Plus any **archetype-private primitives** (e.g. Everymen's `--everymen-cream/-gold/-ink/-paper/-field`, Gestalt's window-chrome tokens, S.N.I.D.E.'s punk pigments `--faction-snide-acid/-ink/-paper/-pink/-tape` + flyposted-wall `--faction-snide-wall*` + the `--faction-snide-font-*` set). These are referenced only inside that faction's own components, not through `factionCssVar`, and are ported verbatim from the design kit. S.N.I.D.E. namespaces them under `--faction-snide-*` (rather than bare `--acid` etc.) so they stay within the single-source-of-truth scheme; note that this flips `--faction-snide-card-bg` to ink — SNIDE is an always-dark card like Singularity.
 
 **Dark mode is automatic via the cascade** — supply a `[data-theme="dark"]` value for every token; no `dark ? a : b` ternaries in components. A faction may opt to be always-dark (Singularity) by giving identical light/dark values.
 
-**Fonts** must already be loaded in `index.html` / `index.css`. Bebas Neue (`--font-accent`) and Caveat (`--font-faction-script`) are present. A genuinely new face is a separate, explicit step.
+**Fonts** must already be loaded in `index.html` / `index.css`. Bebas Neue (`--font-accent`) and Caveat (`--font-faction-script`) are present. A genuinely new face is a separate, explicit step — e.g. S.N.I.D.E.'s ransom set added `Anton` and `Archivo Black` to the `index.html` Google Fonts `<link>`.
 
 ---
 
