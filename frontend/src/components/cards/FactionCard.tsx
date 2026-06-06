@@ -2,6 +2,7 @@ import type { FactionOut } from "../../api/factions";
 import { factionCssVar } from "../../utils/factions";
 import EverymenCard from "./EverymenFactionCard";
 import SnideMasthead from "./SnideMasthead";
+import { EphSeal, LapisLastWord } from "./ephemeristsAtoms";
 
 /**
  * FactionCard — faction-archetype switcher.
@@ -677,107 +678,102 @@ function SnideCard({
   );
 }
 
-function JourneymenCard({
+/**
+ * The Ephemerists — a codex frontispiece "join me" card. Lapis celestial field
+ * masthead with the sigil seal, gold rules, the name with one word in the blue,
+ * and a vellum body. Colors via the --eph-* tokens (theme-aware).
+ */
+function EphemeristsCard({
   faction,
   status,
   invitationNote,
   ...actions
 }: FactionCardProps) {
   const desc = faction.description
-    ? faction.description.slice(0, 100) +
-      (faction.description.length > 100 ? "…" : "")
+    ? faction.description.slice(0, 110) +
+      (faction.description.length > 110 ? "…" : "")
     : "";
   return (
     <div
       style={{
-        paddingTop: 26,
         position: "relative",
         width: "100%",
         boxSizing: "border-box",
+        overflow: "hidden",
+        border: "2px solid var(--eph-gold)",
+        boxShadow: "0 0 0 1px var(--eph-ink)",
+        fontFamily: "var(--eph-serif)",
+        transition: "background 150ms, color 150ms",
       }}
     >
-      {/* Hanging string */}
+      {/* Celestial-field masthead */}
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
+          position: "relative",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
+          gap: 16,
+          padding: "16px 18px",
+          background:
+            "radial-gradient(120% 150% at 82% 0%, var(--eph-lapis), var(--eph-field-deep) 60%, #05131c 100%)",
+          color: "var(--eph-parchment)",
+          borderBottom: "3px solid var(--eph-gold)",
         }}
       >
-        <div
-          style={{
-            width: 0,
-            height: 14,
-            borderLeft: `2px dashed ${factionCssVar("journeymen", "card-accent")}`,
-          }}
-        />
-        <div
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            border: `2px solid ${factionCssVar("journeymen", "card-accent")}`,
-            background: "var(--color-bg-page)",
-          }}
-        />
-      </div>
-      {/* Tag body */}
-      <div
-        style={{
-          border: `2px solid ${factionCssVar("journeymen", "card-accent")}`,
-          background: factionCssVar("journeymen", "card-bg"),
-          fontFamily: "var(--font-body)",
-          color: factionCssVar("journeymen", "card-text"),
-          transition: "background 150ms, color 150ms",
-        }}
-      >
-        {/* Hazard stripe */}
-        <div
-          style={{
-            height: 4,
-            backgroundImage: `repeating-linear-gradient(90deg, var(--faction-journeymen-stripe-red) 0, var(--faction-journeymen-stripe-red) 8px, ${factionCssVar("journeymen", "card-bg")} 8px, ${factionCssVar("journeymen", "card-bg")} 16px, var(--faction-journeymen-stripe-amber) 16px, var(--faction-journeymen-stripe-amber) 24px, ${factionCssVar("journeymen", "card-bg")} 24px, ${factionCssVar("journeymen", "card-bg")} 32px)`,
-          }}
-        />
-        <div style={{ padding: "10px 14px 14px" }}>
-          {invitationNote && (
-            <InvitationNote slug={faction.slug} note={invitationNote} />
-          )}
+        <EphSeal size={64} bg="var(--eph-vellum)" eye="var(--eph-lapis)" />
+        <div style={{ minWidth: 0 }}>
           <div
-            className="card-meta"
             style={{
-              color: factionCssVar("journeymen", "card-accent"),
+              fontFamily: "var(--eph-serif)",
+              fontSize: 8,
+              letterSpacing: "0.26em",
+              textTransform: "uppercase",
+              color: "var(--eph-gold-light)",
               marginBottom: 4,
             }}
           >
-            <StatusBadge status={status} slug="journeymen" />
+            World Zero · Faction №5
           </div>
           <div
             style={{
-              fontSize: "var(--text-lg)",
-              fontWeight: 700,
-              lineHeight: 1.3,
-              marginBottom: 8,
+              fontFamily: "var(--eph-display)",
+              fontWeight: 800,
+              fontSize: 26,
+              lineHeight: 0.92,
+              color: "var(--eph-parchment)",
+              textShadow: "1px 1px 0 var(--eph-field-deep)",
             }}
           >
-            {faction.name}
+            <LapisLastWord text={faction.name} />
           </div>
-          {desc && (
-            <div
-              className="card-description"
-              style={{
-                color: factionCssVar("journeymen", "card-muted"),
-                marginBottom: 10,
-              }}
-            >
-              {desc}
-            </div>
-          )}
-          <ActionRow faction={faction} status={status} {...actions} />
         </div>
+      </div>
+      {/* Vellum body */}
+      <div
+        style={{
+          background: "var(--eph-vellum)",
+          color: "var(--eph-vellum-text)",
+          padding: "12px 16px 14px",
+        }}
+      >
+        {invitationNote && (
+          <InvitationNote slug={faction.slug} note={invitationNote} />
+        )}
+        <div
+          className="card-meta"
+          style={{ color: "var(--eph-rubric)", marginBottom: 6 }}
+        >
+          <StatusBadge status={status} slug="journeymen" />
+        </div>
+        {desc && (
+          <div
+            className="card-description"
+            style={{ color: "var(--eph-muted)", marginBottom: 10, fontStyle: "italic" }}
+          >
+            {desc}
+          </div>
+        )}
+        <ActionRow faction={faction} status={status} {...actions} />
       </div>
     </div>
   );
@@ -1076,7 +1072,7 @@ export default function FactionCard(props: FactionCardProps) {
     case "snide":
       return <SnideCard {...props} />;
     case "journeymen":
-      return <JourneymenCard {...props} />;
+      return <EphemeristsCard {...props} />;
     case "singularity":
       return <SingularityCard {...props} />;
     case "everymen":

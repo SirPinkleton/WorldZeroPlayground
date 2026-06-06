@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ComponentType } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getFactions, type FactionOut } from "../api/factions";
 import { listCharacters, type CharacterOut } from "../api/characters";
@@ -14,6 +14,26 @@ import { extractError } from "../utils/errors";
 import { factionCssVar } from "../utils/factions";
 import { computeDisplayPoints } from "../utils/points";
 import { useFactionBackdrop } from "../components/backdrop/BackdropContext";
+import EphemeristsFactionHero from "../components/cards/EphemeristsFactionHero";
+
+/**
+ * Per-faction page-hero dispatcher (Tier-3 surface). A faction opts in to a
+ * bespoke frontispiece by registering here; any slug not in the map falls back
+ * to the shared title + description chrome below. Mirrors the other per-faction
+ * dispatchers (TaskCard, VoteUI, FactionBackdrop, …).
+ */
+export interface FactionHeroProps {
+  name: string;
+  description?: string | null;
+  /** Raw counts — each hero labels them in its own faction voice. */
+  members: number;
+  tasks: number;
+  praxes: number;
+}
+
+const FACTION_HEROES: Record<string, ComponentType<FactionHeroProps>> = {
+  journeymen: EphemeristsFactionHero,
+};
 
 /** Shared flex-wrap card grid — varied card sizes are intentional, not a CSS grid. */
 const CARD_GRID: CSSProperties = {
@@ -112,19 +132,36 @@ export default function FactionDetail() {
 
   const accent = factionCssVar(faction.slug, "border");
 
+  // A faction may register a bespoke frontispiece in FACTION_HEROES; otherwise
+  // the shared title + description chrome is used. The page backdrop is themed
+  // per-faction by useFactionBackdrop above either way.
+  const Hero = FACTION_HEROES[faction.slug];
+
   return (
     <div className="py-8">
-      <PageTitle title={faction.name} eyebrow="Faction" />
+      {Hero ? (
+        <Hero
+          name={faction.name}
+          description={faction.description}
+          members={members.length}
+          tasks={tasks.length}
+          praxes={recentPraxis.length}
+        />
+      ) : (
+        <>
+          <PageTitle title={faction.name} eyebrow="Faction" />
 
-      {/* ── Description ── PLACEHOLDER: design to restyle ── */}
-      <div
-        className="sidebar-card mb-6"
-        style={{ borderLeft: `4px solid ${accent}`, padding: "14px 16px" }}
-      >
-        <p className="font-body text-sm text-ink">
-          {faction.description ?? "No description yet."}
-        </p>
-      </div>
+          {/* ── Description ── PLACEHOLDER: design to restyle ── */}
+          <div
+            className="sidebar-card mb-6"
+            style={{ borderLeft: `4px solid ${accent}`, padding: "14px 16px" }}
+          >
+            <p className="font-body text-sm text-ink">
+              {faction.description ?? "No description yet."}
+            </p>
+          </div>
+        </>
+      )}
 
       {/* ── Members ── PLACEHOLDER: design to restyle ── */}
       <section className="mb-8">

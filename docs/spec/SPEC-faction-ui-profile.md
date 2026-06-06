@@ -122,6 +122,13 @@ Hand this to whoever wires the faction after design is delivered. (Designer only
 
 ## 6. Change log
 
+- **2026-06-06** — Rebranded the **Journeymen → The Ephemerists** (slug kept as
+  `journeymen`; no DB migration). New archetype: the *Discordant Map* illuminated codex
+  (lapis-verdigris `#1d6e72`/`#3aa0a4`, Cinzel/EB Garamond/Cormorant, vellum + gold-leaf +
+  rubric). Added `--eph-*` pigments + `.eph-backdrop` to `index.css` and registered the
+  faction in all five Tier-3 dispatchers (vote = the wax-seal *Concordance* ramp,
+  progression = roman-numeral grade, backdrop, avatar, feed frame), which it previously
+  inherited as global defaults.
 - **2026-06-06** — Added surface **#13 Faction detail page** (`/factions/:slug`):
   description + members + tasks + recent praxis, backdrop-themed. Shell shipped with
   placeholder styling; per-faction visual design pending. Flagged the **praxis card**

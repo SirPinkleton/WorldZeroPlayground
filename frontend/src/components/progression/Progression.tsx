@@ -3,6 +3,7 @@ import LevelPill from '../ui/LevelPill'
 import EverymenProgression from './EverymenProgression'
 import GestaltProgression from './GestaltProgression'
 import SnideProgression from './SnideProgression'
+import EphemeristsProgression from './EphemeristsProgression'
 
 /**
  * Per-faction progression / level indicator dispatcher (Tier-3 surface).
@@ -19,6 +20,7 @@ const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {
   analog: EverymenProgression,
   gestalt: GestaltProgression,
   snide: SnideProgression,
+  journeymen: EphemeristsProgression,
 }
 
 export default function Progression({ level, factionSlug }: ProgressionProps) {

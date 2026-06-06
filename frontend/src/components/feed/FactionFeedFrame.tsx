@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from 'react'
 import EverymenFeedFrame from './factionFrames/EverymenFeedFrame'
 import GestaltFeedFrame from './factionFrames/GestaltFeedFrame'
 import SnideFeedFrame from './factionFrames/SnideFeedFrame'
+import EphemeristsFeedFrame from './factionFrames/EphemeristsFeedFrame'
 
 /**
  * Per-faction activity-feed framing dispatcher (Tier-3 surface). A faction
@@ -22,6 +23,7 @@ const FACTION_FEED_FRAMES: Record<string, ComponentType<FactionFeedFrameProps>> 
   analog: EverymenFeedFrame,
   gestalt: GestaltFeedFrame,
   snide: SnideFeedFrame,
+  journeymen: EphemeristsFeedFrame,
 }
 
 export default function FactionFeedFrame({

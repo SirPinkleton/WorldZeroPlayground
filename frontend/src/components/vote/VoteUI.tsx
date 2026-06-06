@@ -3,6 +3,7 @@ import VoteStamps from '../ui/VoteStamps'
 import EverymenVote from './EverymenVote'
 import GestaltVote from './GestaltVote'
 import SnideVote from './SnideVote'
+import EphemeristsVote from './EphemeristsVote'
 
 /**
  * Per-faction vote/rating UI dispatcher (Tier-3 surface). Keyed by the voted
@@ -21,6 +22,7 @@ const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {
   analog: EverymenVote,
   gestalt: GestaltVote,
   snide: SnideVote,
+  journeymen: EphemeristsVote,
 }
 
 export default function VoteUI({

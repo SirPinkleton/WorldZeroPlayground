@@ -45,7 +45,7 @@
   --faction-analog: #ca8a04; /* yellow */
   --faction-gestalt: #ec5f99; /* redesign pink */
   --faction-snide: #6fae00; /* acid green (deep — legible on light chrome) */
-  --faction-journeymen: #0e7490; /* teal */
+  --faction-journeymen: #1d6e72; /* lapis-verdigris — Ephemerists reskin of the teal slot */
   --faction-singularity: #2563eb; /* blue */
   --faction-ua-masters: #c2410c; /* orange */
 
@@ -54,7 +54,7 @@
   --faction-analog-light: rgba(202, 138, 4, 0.1);
   --faction-gestalt-light: rgba(236, 95, 153, 0.1);
   --faction-snide-light: rgba(182, 255, 46, 0.16);
-  --faction-journeymen-light: rgba(14, 116, 144, 0.1);
+  --faction-journeymen-light: rgba(29, 110, 114, 0.1);
   --faction-singularity-light: rgba(37, 99, 235, 0.1);
   --faction-ua-masters-light: rgba(194, 65, 12, 0.1);
 
@@ -63,7 +63,7 @@
   --faction-analog-border: rgba(202, 138, 4, 0.3);
   --faction-gestalt-border: rgba(236, 95, 153, 0.3);
   --faction-snide-border: rgba(111, 174, 0, 0.45);
-  --faction-journeymen-border: rgba(14, 116, 144, 0.35);
+  --faction-journeymen-border: rgba(29, 110, 114, 0.35);
   --faction-singularity-border: rgba(37, 99, 235, 0.35);
   --faction-ua-masters-border: rgba(194, 65, 12, 0.35);
 
@@ -72,7 +72,7 @@
   --faction-analog-card-bg: #fdf6d8; /* cream notebook */
   --faction-gestalt-card-bg: #fdeef3; /* blush collage */
   --faction-snide-card-bg: #14110b; /* photocopier ink (dark-in-light, Singularity precedent) */
-  --faction-journeymen-card-bg: #e6f1f3; /* pale teal carbon */
+  --faction-journeymen-card-bg: var(--eph-vellum); /* Ephemerists: aged manuscript stock */
   --faction-singularity-card-bg: #050f08; /* terminal black */
   --faction-ua-masters-card-bg: #f5e9d6; /* aged newsprint */
 
@@ -81,7 +81,7 @@
   --faction-analog-card-text: #1a1209;
   --faction-gestalt-card-text: #581c39;
   --faction-snide-card-text: #f4f1e8; /* warm xerox paper on ink */
-  --faction-journeymen-card-text: #1a1209;
+  --faction-journeymen-card-text: var(--eph-vellum-text);
   --faction-singularity-card-text: #4ade80;
   --faction-ua-masters-card-text: #1a1209;
 
@@ -90,7 +90,7 @@
   --faction-analog-card-accent: #a16207;
   --faction-gestalt-card-accent: #ec5f99;
   --faction-snide-card-accent: #b6ff2e; /* toxic acid */
-  --faction-journeymen-card-accent: #0e7490;
+  --faction-journeymen-card-accent: var(--eph-rubric);
   --faction-singularity-card-accent: #4ade80; /* terminal green */
   --faction-ua-masters-card-accent: #c2410c;
 
@@ -99,7 +99,7 @@
   --faction-analog-card-muted: #555;
   --faction-gestalt-card-muted: #831843;
   --faction-snide-card-muted: #d8d6c8; /* faded newsprint grey on ink */
-  --faction-journeymen-card-muted: #555;
+  --faction-journeymen-card-muted: var(--eph-muted);
   --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
   --faction-ua-masters-card-muted: #333;
 
@@ -108,7 +108,7 @@
   --faction-analog-card-font: var(--font-faction-typewriter);
   --faction-gestalt-card-font: var(--font-faction-script);
   --faction-snide-card-font: var(--font-faction-marker);
-  --faction-journeymen-card-font: var(--font-faction-mono);
+  --faction-journeymen-card-font: var(--eph-display);
   --faction-singularity-card-font: var(--font-faction-terminal);
   --faction-ua-masters-card-font: var(--font-faction-blackletter);
 
@@ -138,9 +138,30 @@
   /* ── Singularity terminal border (blue brand) ── */
   --faction-singularity-border-hard: #2563eb;
 
-  /* ── Journeymen hazard stripe colors (teal/cyan) ── */
-  --faction-journeymen-stripe-red: #0e7490;
-  --faction-journeymen-stripe-amber: #22d3ee;
+  /* ══ Ephemerists illuminated-codex palette (the journeymen slot) ══
+     The card contract above rebinds to these. CONSTANTS (gold/rubric/
+     lapis/verdigris/ink) keep their role in both themes; the VELLUM
+     surface + its text FLIP in dark (see [data-theme="dark"]). */
+  --eph-gold: #b0863a; /* gold leaf / ochre */
+  --eph-gold-light: #d4ab55; /* burnished highlight */
+  --eph-gold-deep: #8a6622;
+  --eph-rubric: #9c3622; /* vermilion rubrication red */
+  --eph-rubric-deep: #7c2718;
+  --eph-lapis: #1d4f6e; /* deep celestial blue */
+  --eph-lapis-deep: #143b54;
+  --eph-verdigris: #4a7d70; /* aged copper / astrolabe patina */
+  --eph-ink: #2a1d12; /* iron-gall ink — stays dark in both themes */
+  --eph-vellum: #e9dcbf; /* aged manuscript stock */
+  --eph-vellum-deep: #dccba2; /* shadowed / verso panel */
+  --eph-vellum-text: #2a1d12; /* primary text on vellum */
+  --eph-muted: #6f5c3e; /* faded marginalia ink */
+  --eph-parchment: #f1e8cf; /* bright text on dark elements */
+  --eph-field: #1d4f6e; /* lapis celestial-diagram field */
+  --eph-field-deep: #143b54;
+  /* Ephemerist faces — Cinzel display caps, EB Garamond body, Cormorant flourishes */
+  --eph-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --eph-serif: "EB Garamond", Georgia, serif;
+  --eph-script: "Cormorant Garamond", Georgia, serif;
 
   /* ── Gestalt collage scrap layers (legacy — kept for back-compat) ── */
   --faction-gestalt-scrap-deep: #fbcfe0;
@@ -295,7 +316,7 @@
   --faction-analog: #fbbf24; /* yellow */
   --faction-gestalt: #f472b6; /* magenta */
   --faction-snide: #b6ff2e; /* acid green (bright — pops on dark) */
-  --faction-journeymen: #22d3ee; /* teal */
+  --faction-journeymen: #3aa0a4; /* lapis-verdigris lifted for dark — Ephemerists */
   --faction-singularity: #60a5fa; /* blue */
   --faction-ua-masters: #fb923c; /* orange */
 
@@ -304,7 +325,7 @@
   --faction-analog-light: rgba(251, 191, 36, 0.1);
   --faction-gestalt-light: rgba(244, 114, 182, 0.08);
   --faction-snide-light: rgba(182, 255, 46, 0.12);
-  --faction-journeymen-light: rgba(34, 211, 238, 0.1);
+  --faction-journeymen-light: rgba(58, 160, 164, 0.1);
   --faction-singularity-light: rgba(96, 165, 250, 0.1);
   --faction-ua-masters-light: rgba(251, 146, 60, 0.1);
 
@@ -313,7 +334,7 @@
   --faction-analog-border: rgba(251, 191, 36, 0.3);
   --faction-gestalt-border: rgba(244, 114, 182, 0.25);
   --faction-snide-border: rgba(182, 255, 46, 0.3);
-  --faction-journeymen-border: rgba(34, 211, 238, 0.35);
+  --faction-journeymen-border: rgba(58, 160, 164, 0.35);
   --faction-singularity-border: rgba(96, 165, 250, 0.25);
   --faction-ua-masters-border: rgba(251, 146, 60, 0.3);
 
@@ -322,7 +343,7 @@
   --faction-analog-card-bg: #1f1a0a;
   --faction-gestalt-card-bg: #2a0d1c;
   --faction-snide-card-bg: #0c0a07; /* deeper ink */
-  --faction-journeymen-card-bg: #0a1f24;
+  /* journeymen card-bg inherits the :root var(--eph-vellum) rebind (flips below) */
   --faction-singularity-card-bg: #050f08;
   --faction-ua-masters-card-bg: #1f1208;
 
@@ -331,7 +352,6 @@
   --faction-analog-card-text: #fde68a;
   --faction-gestalt-card-text: #fbcfe0;
   --faction-snide-card-text: #f4f1e8;
-  --faction-journeymen-card-text: #a5f3fc;
   --faction-singularity-card-text: #4ade80;
   --faction-ua-masters-card-text: #fed7aa;
 
@@ -340,7 +360,6 @@
   --faction-analog-card-accent: #fbbf24;
   --faction-gestalt-card-accent: #f472b6;
   --faction-snide-card-accent: #b6ff2e;
-  --faction-journeymen-card-accent: #22d3ee;
   --faction-singularity-card-accent: #4ade80; /* terminal green */
   --faction-ua-masters-card-accent: #fb923c;
 
@@ -353,9 +372,28 @@
   --faction-snide-wall: #141310;
   --faction-snide-wall-deep: #0b0a08;
   --faction-snide-wall-text: #e9e6da;
-  --faction-journeymen-card-muted: #3a8a9a;
   --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
   --faction-ua-masters-card-muted: #b06040;
+
+  /* ══ Ephemerists palette (dark) — pigments stay vivid; vellum darkens
+     to aged tobacco and its text flips ink→parchment. The card contract
+     inherits these via the :root var() rebind. ══ */
+  --eph-gold: #cda24a;
+  --eph-gold-light: #e6c267;
+  --eph-gold-deep: #9c7626;
+  --eph-rubric: #c0533a; /* rubric brightens on dark vellum */
+  --eph-rubric-deep: #93341f;
+  --eph-lapis: #4f8fb0; /* celestial blue lifts off near-black */
+  --eph-lapis-deep: #2d6285;
+  --eph-verdigris: #6aa597;
+  --eph-ink: #0c0a06; /* element ink stays dark */
+  --eph-vellum: #211a10; /* aged tobacco — a surface on the dark page */
+  --eph-vellum-deep: #181208;
+  --eph-vellum-text: #efe3c6; /* text FLIPS to parchment */
+  --eph-muted: #b6a079;
+  --eph-parchment: #efe3c6;
+  --eph-field: #102a3a; /* celestial field deepens */
+  --eph-field-deep: #0a1d2a;
 
   /* ── Gestalt collage scrap layers (dark) ── */
   --faction-gestalt-scrap-deep: #091209;
@@ -519,7 +557,6 @@
   --font-faction-typewriter: "Special Elite", "Courier New", serif;
   --font-faction-terminal: "Share Tech Mono", monospace;
   --font-faction-marker: "Permanent Marker", "Marker Felt", cursive;
-  --font-faction-mono: "Cutive Mono", "Courier New", monospace;
   --font-faction-blackletter: "UnifrakturCook", "Blackletter", serif;
   --font-faction-script: "Caveat", cursive;
   --font-faction-old: "IM Fell English", Georgia, serif;
@@ -830,4 +867,44 @@
   .snide-merrow {
     background-image: repeating-conic-gradient(var(--faction-snide-acid) 0deg 18deg, var(--faction-snide-acid-deep) 18deg 36deg);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EPHEMERISTS CODEX BACKDROP — the page as a sheet of the ephemeris:
+   aged vellum, faint foxing, two sets of astrolabe rings bleeding from
+   opposite corners, and ghost scribe-lines. Rendered behind the page
+   by the journeymen FactionBackdrop variant. Theme-aware via --eph-*.
+   ══════════════════════════════════════════════════════════════ */
+.eph-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--eph-vellum);
+  background-image:
+    radial-gradient(40% 32% at 100% 0%, color-mix(in srgb, var(--eph-gold) 15%, transparent), transparent 72%),
+    radial-gradient(46% 38% at 0% 100%, color-mix(in srgb, var(--eph-lapis) 13%, transparent), transparent 72%),
+    repeating-radial-gradient(circle at 90% 8%, transparent 0 33px, color-mix(in srgb, var(--eph-ink) 5%, transparent) 33px 34px),
+    repeating-radial-gradient(circle at 6% 96%, transparent 0 27px, color-mix(in srgb, var(--eph-lapis) 7%, transparent) 27px 28px),
+    radial-gradient(color-mix(in srgb, var(--eph-vellum-text) 5%, transparent) 0.6px, transparent 0.9px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--eph-vellum-text) 4%, transparent) 0 1px, transparent 1px 26px),
+    linear-gradient(170deg, var(--eph-vellum), var(--eph-vellum-deep));
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 5px 5px, 100% 100%, 100% 100%;
+}
+.eph-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 6%, transparent 46%, color-mix(in srgb, var(--eph-vellum-deep) 58%, transparent));
+}
+
+/* Slow motion — rings turn, points breathe. Stilled for reduced-motion. */
+@keyframes eph-spin { to { transform: rotate(360deg); } }
+@keyframes eph-twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+@keyframes eph-depth { 0%, 100% { opacity: 0.92; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.03); } }
+@media (prefers-reduced-motion: no-preference) {
+  .eph-spin { animation: eph-spin 140s linear infinite; }
+  .eph-spin-rev { animation: eph-spin 100s linear infinite reverse; }
+  .eph-twinkle { animation: eph-twinkle 5s ease-in-out infinite; }
+  .eph-depth { animation: eph-depth 16s ease-in-out infinite; }
 }
