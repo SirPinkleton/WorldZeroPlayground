@@ -78,6 +78,7 @@ async def list_praxes_route(
     type: Optional[str] = None,
     status: Optional[str] = None,
     moderation_status: Optional[str] = None,
+    faction: Optional[str] = None,
     sort: Optional[str] = "recent",
     limit: int = 50,
     offset: int = 0,
@@ -105,6 +106,7 @@ async def list_praxes_route(
         praxis_type=praxis_type,
         status=praxis_status,
         moderation_status=moderation_status,
+        faction=faction,
         limit=limit,
         offset=offset,
     )

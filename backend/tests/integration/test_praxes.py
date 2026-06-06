@@ -122,6 +122,83 @@ async def test_list_praxes_filter_by_task_id(
         assert item["task_id"] == active_task.id
 
 
+@pytest.mark.asyncio
+async def test_list_praxes_filter_by_faction(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """GET /praxes?faction=X returns only praxes whose task belongs to faction X.
+
+    Praxis has no faction of its own — it inherits the linked task's faction
+    (Task.primary_faction_slug). The filter joins through Task.
+    """
+    from models.faction import Faction, FactionStatus
+    from models.task import TaskStatus
+
+    # active_task is a UA task; add a second task in another faction. The faction
+    # row must exist for the FK constraint.
+    existing = await db_session.execute(
+        select(Faction).where(Faction.slug == "gestalt")
+    )
+    if existing.scalar_one_or_none() is None:
+        db_session.add(
+            Faction(
+                slug="gestalt",
+                name="Gestalt",
+                description="",
+                status=FactionStatus.visible,
+            )
+        )
+        await db_session.commit()
+
+    gestalt_task = Task(
+        title="Gestalt Task",
+        description="",
+        point_value=10,
+        level_required=0,
+        status=TaskStatus.active,
+        created_by=character.id,
+        primary_faction_slug="gestalt",
+    )
+    db_session.add(gestalt_task)
+    await db_session.commit()
+    await db_session.refresh(gestalt_task)
+
+    # One praxis on each task.
+    ua_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "UA Praxis"},
+        headers=auth_headers,
+    )
+    assert ua_resp.status_code == 201
+    ua_praxis_id = ua_resp.json()["id"]
+
+    gestalt_resp = await client.post(
+        "/praxes",
+        json={"task_id": gestalt_task.id, "type": "solo", "title": "Gestalt Praxis"},
+        headers=auth_headers,
+    )
+    assert gestalt_resp.status_code == 201
+    gestalt_praxis_id = gestalt_resp.json()["id"]
+
+    # Filter to UA — only the UA praxis comes back.
+    ua_list = await client.get("/praxes", params={"faction": "ua"})
+    assert ua_list.status_code == 200
+    ua_ids = {item["id"] for item in ua_list.json()}
+    assert ua_praxis_id in ua_ids
+    assert gestalt_praxis_id not in ua_ids
+
+    # Filter to Gestalt — only the Gestalt praxis comes back.
+    gestalt_list = await client.get("/praxes", params={"faction": "gestalt"})
+    assert gestalt_list.status_code == 200
+    gestalt_ids = {item["id"] for item in gestalt_list.json()}
+    assert gestalt_praxis_id in gestalt_ids
+    assert ua_praxis_id not in gestalt_ids
+
+
 # ---------------------------------------------------------------------------
 # Solo praxis — submit lifecycle
 # ---------------------------------------------------------------------------

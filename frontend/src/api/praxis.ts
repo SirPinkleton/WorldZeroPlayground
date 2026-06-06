@@ -118,6 +118,7 @@ export async function listPraxes(filters?: {
   character_id?: number
   type?: PraxisType
   status?: PraxisStatus
+  faction?: string
   limit?: number
   offset?: number
 }): Promise<PraxisCardOut[]> {
