@@ -15,6 +15,7 @@ import { useGameConfig } from "../hooks/useGameConfig";
 import { extractError } from "../utils/errors";
 import { factionCssVar, factionName } from "../utils/factions";
 import { mediaUrl } from "../utils/media";
+import { useFactionBackdrop } from "../components/backdrop/BackdropContext";
 
 export default function CharacterProfile() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,10 @@ export default function CharacterProfile() {
   const [relationshipLoading, setRelationshipLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Theme the page backdrop to this character's faction (falls back to the
+  // global watercolor until loaded / for factions with no backdrop variant).
+  useFactionBackdrop(character?.faction_slug);
 
   useEffect(() => {
     if (!id) return;

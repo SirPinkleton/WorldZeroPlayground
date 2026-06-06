@@ -1,5 +1,6 @@
 import type { FactionOut } from "../../api/factions";
 import { factionCssVar } from "../../utils/factions";
+import EverymenCard from "./EverymenFactionCard";
 
 /**
  * FactionCard — faction-archetype switcher.
@@ -409,6 +410,49 @@ function AnalogCard({
   );
 }
 
+// ─── Gestalt ".exe" window atoms ──────────────────────────────────────────────
+
+/** A small sparkle glyph used in the gestalt.exe title bar. */
+function GestaltSparkle({
+  size = 10,
+  color,
+}: {
+  size?: number;
+  color: string;
+}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 1c.6 5.2 2.8 7.4 8 8-5.2.6-7.4 2.8-8 8-.6-5.2-2.8-7.4-8-8 5.2-.6 7.4-2.8 8-8z"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
+/** A tiny white die-cut ivy sticker peeking off the window corner. */
+function GestaltIvySticker({
+  stem,
+  leaf,
+}: {
+  stem: string;
+  leaf: string;
+}) {
+  return (
+    <svg width="22" height="26" viewBox="0 0 20 22" aria-hidden="true">
+      <path
+        d="M5 22C5 14 4 8 6 2"
+        stroke={stem}
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path d="M5 12c-5-1-5-6-5-6 4 0 6 3 5 6Z" fill={leaf} />
+      <path d="M6 7c4-1 5-5 5-5-3 0-5 2-5 5Z" fill={leaf} />
+    </svg>
+  );
+}
+
 function GestaltCard({
   faction,
   status,
@@ -419,98 +463,182 @@ function GestaltCard({
     ? faction.description.slice(0, 100) +
       (faction.description.length > 100 ? "…" : "")
     : "";
+  const titleText = "var(--faction-gestalt-title-text)";
   return (
-    <div style={{ position: "relative", width: "100%", minHeight: 140 }}>
-      {/* Back scrap 2 (deepest) */}
-      <div
-        style={{
-          position: "absolute",
-          top: 10,
-          left: -4,
-          right: -4,
-          height: 24,
-          background: "var(--faction-gestalt-scrap-deep)",
-          border: "1.5px solid rgba(0,0,0,0.12)",
-          transform: "rotate(-4deg)",
-          borderRadius: 1,
-        }}
-      />
-      {/* Back scrap 1 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 4,
-          left: -2,
-          right: -2,
-          height: 36,
-          background: "var(--faction-gestalt-scrap-mid)",
-          border: "1.5px solid rgba(0,0,0,0.12)",
-          transform: "rotate(3deg)",
-          borderRadius: 1,
-        }}
-      />
-      {/* Front scrap (main content) */}
-      <div
-        style={{
+    <div
+      style={
+        {
           position: "relative",
-          background: factionCssVar("gestalt", "card-bg"),
-          border: "1.5px solid rgba(0,0,0,0.12)",
-          transform: "rotate(-2deg)",
-          padding: "22px 14px 16px",
+          width: "100%",
           fontFamily: "var(--font-body)",
-          color: factionCssVar("gestalt", "card-text"),
-          zIndex: 2,
-          transition: "background 150ms, color 150ms",
           boxSizing: "border-box",
-        }}
+        } as React.CSSProperties
+      }
+    >
+      {/* the .exe window frame */}
+      <div
+        style={
+          {
+            position: "relative",
+            borderRadius: 12,
+            overflow: "hidden",
+            border: "2px solid var(--faction-gestalt-win-border)",
+            transition: "background 150ms, color 150ms",
+            boxSizing: "border-box",
+          } as React.CSSProperties
+        }
       >
-        {/* Scotch tape strip */}
+        {/* title bar */}
         <div
-          style={{
-            position: "absolute",
-            top: 5,
-            left: "50%",
-            transform: "translateX(-50%) rotate(-1deg)",
-            width: 48,
-            height: 14,
-            background: "var(--faction-gestalt-tape)",
-            borderRadius: 1,
-          }}
-        />
-        {invitationNote && (
-          <InvitationNote slug={faction.slug} note={invitationNote} />
-        )}
-        <div
-          className="card-meta"
-          style={{
-            color: factionCssVar("gestalt", "card-accent"),
-            marginBottom: 6,
-          }}
+          style={
+            {
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 11px",
+              background:
+                "linear-gradient(180deg, var(--faction-gestalt-title-from), var(--faction-gestalt-title-to))",
+              borderBottom: "2px solid var(--faction-gestalt-win-border)",
+            } as React.CSSProperties
+          }
         >
-          <StatusBadge status={status} slug="gestalt" />
-        </div>
-        <div
-          style={{
-            fontSize: "var(--text-lg)",
-            fontWeight: 700,
-            lineHeight: 1.3,
-            marginBottom: 8,
-          }}
-        >
-          {faction.name}
-        </div>
-        {desc && (
-          <div
-            className="card-description"
+          <span style={{ display: "flex", gap: 5 }}>
+            <span
+              style={{
+                width: 11,
+                height: 11,
+                borderRadius: "50%",
+                background: "#fb7aa8",
+                border: "1.5px solid rgba(255,255,255,0.7)",
+              }}
+            />
+            <span
+              style={{
+                width: 11,
+                height: 11,
+                borderRadius: "50%",
+                background: "#f6c75e",
+                border: "1.5px solid rgba(255,255,255,0.7)",
+              }}
+            />
+            <span
+              style={{
+                width: 11,
+                height: 11,
+                borderRadius: "50%",
+                background: "#86cfa6",
+                border: "1.5px solid rgba(255,255,255,0.7)",
+              }}
+            />
+          </span>
+          <span
             style={{
-              color: factionCssVar("gestalt", "card-muted"),
-              marginBottom: 10,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10.5,
+              color: titleText,
+              letterSpacing: "0.03em",
             }}
           >
-            {desc}
+            <GestaltSparkle size={10} color={titleText} /> gestalt.exe
+          </span>
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: 11,
+              color: titleText,
+              opacity: 0.75,
+              letterSpacing: "1.5px",
+            }}
+          >
+            ▭ ✕
+          </span>
+        </div>
+        {/* dotted body */}
+        <div
+          style={
+            {
+              position: "relative",
+              padding: "14px 14px 13px",
+              background: "var(--faction-gestalt-body-bg)",
+              backgroundImage:
+                "radial-gradient(var(--faction-gestalt-dot) 1.4px, transparent 1.4px)",
+              backgroundSize: "13px 13px",
+            } as React.CSSProperties
+          }
+        >
+          {/* ivy sticker peeking off the body's lower-left corner */}
+          <span
+            style={{
+              position: "absolute",
+              bottom: -2,
+              left: 6,
+              filter: "drop-shadow(0 2px 2px rgba(120,40,80,0.28))",
+              zIndex: 3,
+              pointerEvents: "none",
+            }}
+          >
+            <GestaltIvySticker
+              stem="var(--faction-gestalt-ivy)"
+              leaf="var(--faction-gestalt-ivy-leaf)"
+            />
+          </span>
+          {invitationNote && (
+            <InvitationNote slug={faction.slug} note={invitationNote} />
+          )}
+          {/* notepad panel */}
+          <div
+            style={
+              {
+                position: "relative",
+                zIndex: 2,
+                background: "var(--faction-gestalt-notepad-bg)",
+                border: "1.5px solid var(--faction-gestalt-notepad-border)",
+                borderRadius: 7,
+                padding: "11px 13px",
+                marginBottom: 11,
+              } as React.CSSProperties
+            }
+          >
+            <div
+              className="card-meta"
+              style={{
+                color: factionCssVar("gestalt", "card-accent"),
+                marginBottom: 4,
+              }}
+            >
+              <StatusBadge status={status} slug="gestalt" />
+            </div>
+            <div
+              style={{
+                fontFamily: factionCssVar("gestalt", "card-font"),
+                fontSize: 26,
+                fontWeight: 700,
+                lineHeight: 1.05,
+                color: factionCssVar("gestalt", "card-text"),
+                marginBottom: 4,
+              }}
+            >
+              {faction.name}
+            </div>
+            {desc && (
+              <div
+                style={{
+                  fontSize: 10,
+                  lineHeight: 1.5,
+                  color: factionCssVar("gestalt", "card-muted"),
+                }}
+              >
+                {desc}
+              </div>
+            )}
           </div>
-        )}
-        <ActionRow faction={faction} status={status} {...actions} />
+          {/* action footer */}
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <ActionRow faction={faction} status={status} {...actions} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1034,6 +1162,8 @@ export default function FactionCard(props: FactionCardProps) {
       return <JourneymenCard {...props} />;
     case "singularity":
       return <SingularityCard {...props} />;
+    case "everymen":
+      return <EverymenCard {...props} />;
     case "ua_masters":
       return <UAMastersCard {...props} />;
     default:

@@ -2,7 +2,8 @@ import { useEffect, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import NavBar from './NavBar'
-import WatercolorBackground from './layout/WatercolorBackground'
+import { BackdropProvider } from './backdrop/BackdropContext'
+import FactionBackdrop from './backdrop/FactionBackdrop'
 import Sidebar from './layout/Sidebar'
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -21,8 +22,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [user, loading, pathname, navigate])
 
   return (
+    <BackdropProvider>
     <div className="min-h-screen flex flex-col relative">
-      <WatercolorBackground />
+      <FactionBackdrop />
 
       <NavBar />
 
@@ -52,5 +54,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Link to="/donate" className="hover:underline">Donate</Link>
       </footer>
     </div>
+    </BackdropProvider>
   )
 }

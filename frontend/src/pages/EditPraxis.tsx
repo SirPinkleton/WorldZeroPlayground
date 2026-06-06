@@ -18,6 +18,7 @@ import EditPraxisPaperCollage from "./editPraxis/archetypes/EditPraxisPaperColla
 import EditPraxisLuggageManifest from "./editPraxis/archetypes/EditPraxisLuggageManifest";
 import EditPraxisGazette from "./editPraxis/archetypes/EditPraxisGazette";
 import EditPraxisStickyNote from "./editPraxis/archetypes/EditPraxisStickyNote";
+import EditPraxisEverymen from "./editPraxis/archetypes/EditPraxisEverymen";
 
 type Archetype = (props: { state: EditPraxisState }) => JSX.Element;
 
@@ -28,6 +29,7 @@ const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
   gestalt: EditPraxisPaperCollage,
   journeymen: EditPraxisLuggageManifest,
   ua_masters: EditPraxisGazette,
+  everymen: EditPraxisEverymen,
   ua: EditPraxisStickyNote,
   albescent: EditPraxisStickyNote,
   aged_out: EditPraxisStickyNote,
@@ -59,7 +61,7 @@ export default function EditPraxis() {
   }
 
   const slug = state.task?.primary_faction_slug ?? null;
-  const Archetype = (slug && ARCHETYPE_BY_SLUG[slug]) ?? EditPraxisStickyNote;
+  const Archetype = (slug ? ARCHETYPE_BY_SLUG[slug] : undefined) ?? EditPraxisStickyNote;
 
   return (
     <>

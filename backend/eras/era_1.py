@@ -58,7 +58,7 @@ ERA_1_FACTIONS = {
         slug="gestalt",
         name="Gestalt",
         description="Collective-minded. Excel at their own faction's tasks; reduced elsewhere.",
-        color="#14532d",
+        color="#ec5f99",              # redesign pink (light); dark var is #f472b6 in index.css
         is_selectable=True,
         can_always_rejoin=False,
         own_task_modifier=1.1,        # +10% on solo own-faction
@@ -107,6 +107,27 @@ ERA_1_FACTIONS = {
         other_task_modifier=1.0,
         collab_own_modifier=1.0,
         collab_other_modifier=1.0,
+        duel_win_modifier=1.5,
+        duel_loss_modifier=0.5,
+    ),
+    "everymen": FactionConfig(
+        slug="everymen",
+        name="Everymen",
+        description="No inner circle, no waiting to be chosen. Reliable hands who do the "
+        "work in front of them and finish what they start.",
+        color="#c1272d",              # the rainbow's missing red
+        # ---------------------------------------------------------------------
+        # TODO(everymen): PLACEHOLDER gameplay values — confirm before launch.
+        # These mirror a standard selectable faction; they feed services/scoring.py
+        # so wrong values silently change scoring. Revisit selectability + modifiers
+        # with the design intent ("solidarity / collective / finish what you start").
+        # ---------------------------------------------------------------------
+        is_selectable=True,
+        can_always_rejoin=False,
+        own_task_modifier=1.0,
+        other_task_modifier=0.7,
+        collab_own_modifier=1.0,
+        collab_other_modifier=0.7,
         duel_win_modifier=1.5,
         duel_loss_modifier=0.5,
     ),

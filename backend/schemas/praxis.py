@@ -52,6 +52,7 @@ class PraxisOut(BaseModel):
     task_id: int
     task_title: str             # populated by build_praxis_out
     task_point_value: int       # populated by build_praxis_out
+    task_faction_slug: Optional[str] = None  # populated by build_praxis_out; drives per-faction vote UI
     type: PraxisType
     status: PraxisStatus
     title: Optional[str]

@@ -52,6 +52,7 @@ export interface PraxisOut {
   task_id: number
   task_title: string
   task_point_value: number
+  task_faction_slug: string | null
   type: PraxisType
   status: PraxisStatus
   title: string | null

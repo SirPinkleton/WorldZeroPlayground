@@ -34,7 +34,6 @@ export default function EditPraxisLuggageManifest({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
 
-  const accent = factionCssVar("journeymen");
   const accentDeep = factionCssVar("journeymen", "card-accent");
   const surface = factionCssVar("journeymen", "card-bg");
   const ink = factionCssVar("journeymen", "card-text");
