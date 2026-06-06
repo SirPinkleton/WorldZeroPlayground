@@ -46,10 +46,12 @@
   - Backdrop now wired live: `CharacterProfile.tsx` calls `useFactionBackdrop(character?.faction_slug)` → Everymen profiles show the poster wall; others fall back to watercolor.
   - Fixed pre-existing tsc errors: EditPraxis.tsx dynamic-archetype typing (`slug ? map[slug] : undefined`) + unused vars in StickyNote/LuggageManifest archetypes.
   - The 3 big components (task card, faction-select card, edit-praxis) were ported by parallel subagents; the 4 small dispatcher-tight variants authored directly.
-- [ ] **Session 4 — Gestalt redesign components** (port `~/Downloads/Gestalt redesin (1)/gestalt-cards/gestalt-*.jsx`)
-  - Re-skin `GestaltCard`, `TaskCardGestalt`, the gestalt edit-praxis archetype to the lo-fi `.exe` window look;
-    add the full window-chrome token set to index.css (title bar/notepad/ivy); gestalt variants for the 5 Tier-3 dispatchers
-    (moon-phase progression, heart votes). Remove now-dead `--faction-gestalt-scrap-*`/`-tape` tokens once components stop referencing them.
+- [x] **Session 4 — Gestalt redesign components** (committed; `tsc --noEmit` EXIT 0)
+  - Added `.exe` window-chrome tokens to index.css (`--faction-gestalt-win-border/-title-from/-title-to/-title-text/-body-bg/-notepad-bg/-notepad-border/-dot/-ivy/-ivy-leaf`, light+dark) + a `.gestalt-backdrop` desktop CSS rule.
+  - Re-skinned IN PLACE (logic preserved, visuals → lo-fi `.exe` window): `TaskCardGestalt.tsx`, `EditPraxisPaperCollage.tsx`, and the `GestaltCard` function inside `FactionCard.tsx`.
+  - New Tier-3 variants: `vote/GestaltVote.tsx` (heart ramp), `progression/GestaltProgression.tsx` (compact moon phases), `avatar/GestaltAvatar.tsx` (moon badge), `backdrop/GestaltBackdrop.tsx` (dotted desktop), `feed/factionFrames/GestaltFeedFrame.tsx` (window row).
+  - Registered `gestalt` in all 5 Tier-3 dispatchers. (3 re-skins + 2 new variants ported by parallel subagents; 3 small variants authored directly.)
+  - `--faction-gestalt-scrap-*`/`-tape` left in index.css as harmless legacy (no longer referenced after re-skin); safe to delete later.
 - [ ] **Session 5 — Verification & polish**
   - `npm start` + preview workflow (quest board mixed→rainbow; single-faction profile→faction backdrop+avatar; praxis detail→per-faction votes;
     Factions grid: Everymen visible + Gestalt pink); toggle dark mode on each; screenshots light+dark. Backend `pytest` once a venv exists.

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import WatercolorBackground from '../layout/WatercolorBackground'
 import EverymenBackdrop from './EverymenBackdrop'
+import GestaltBackdrop from './GestaltBackdrop'
 import { useBackdropSlug } from './BackdropContext'
 
 /**
@@ -11,6 +12,7 @@ import { useBackdropSlug } from './BackdropContext'
  */
 const FACTION_BACKDROPS: Record<string, ComponentType> = {
   everymen: EverymenBackdrop,
+  gestalt: GestaltBackdrop,
 }
 
 export default function FactionBackdrop() {

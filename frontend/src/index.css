@@ -119,10 +119,22 @@
   --faction-journeymen-stripe-red: #0e7490;
   --faction-journeymen-stripe-amber: #22d3ee;
 
-  /* ── Gestalt collage scrap layers (magenta) ── */
+  /* ── Gestalt collage scrap layers (legacy — kept for back-compat) ── */
   --faction-gestalt-scrap-deep: #fbcfe0;
   --faction-gestalt-scrap-mid: #fce7ef;
   --faction-gestalt-tape: rgba(250, 230, 130, 0.7);
+
+  /* ── Gestalt lo-fi ".exe" window chrome (redesign) ── */
+  --faction-gestalt-win-border: #e487b5;
+  --faction-gestalt-title-from: #fbcfe2;
+  --faction-gestalt-title-to: #f3a6cb;
+  --faction-gestalt-title-text: #8e2f5c;
+  --faction-gestalt-body-bg: #fdeef6;
+  --faction-gestalt-notepad-bg: #fffdfa;
+  --faction-gestalt-notepad-border: #f3b6d2;
+  --faction-gestalt-dot: rgba(214, 90, 150, 0.2);
+  --faction-gestalt-ivy: #7cbf99;
+  --faction-gestalt-ivy-leaf: #9ad3b1;
 
   /* ══ Everymen — the rainbow's missing red (union/WW2 poster) ══
      Constants (cream/gold/ink) keep their role in both themes; the paper
@@ -312,6 +324,18 @@
   --faction-gestalt-scrap-mid: #0d1a10;
   --faction-gestalt-tape: rgba(250, 230, 130, 0.12);
 
+  /* ── Gestalt ".exe" window chrome (dark) ── */
+  --faction-gestalt-win-border: #f472b6;
+  --faction-gestalt-title-from: #5e2a46;
+  --faction-gestalt-title-to: #41203a;
+  --faction-gestalt-title-text: #fbd6e8;
+  --faction-gestalt-body-bg: #2a0d1c;
+  --faction-gestalt-notepad-bg: #39152a;
+  --faction-gestalt-notepad-border: #7a3358;
+  --faction-gestalt-dot: rgba(244, 114, 182, 0.16);
+  --faction-gestalt-ivy: #5fa882;
+  --faction-gestalt-ivy-leaf: #7fc59e;
+
   /* ── Watercolor splash opacities (dimmer in dark) ── */
   --wc-opacity-blob: 0.15;
   --wc-opacity-drip: 0.11;
@@ -376,6 +400,26 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(120% 90% at 50% 8%, transparent 40%, color-mix(in srgb, var(--everymen-paper-deep) 55%, transparent));
+}
+
+/* ══ Gestalt lo-fi desktop backdrop (faction-context pages; theme-aware) ══ */
+.gestalt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--faction-gestalt-body-bg);
+  background-image:
+    radial-gradient(46% 36% at 0% 0%, color-mix(in srgb, var(--faction-gestalt) 12%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 100% 100%, color-mix(in srgb, var(--faction-gestalt-ivy) 12%, transparent), transparent 70%),
+    radial-gradient(var(--faction-gestalt-dot) 1.4px, transparent 1.6px);
+  background-size: 100% 100%, 100% 100%, 14px 14px;
+}
+.gestalt-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 95% at 50% 0%, transparent 45%, color-mix(in srgb, var(--faction-gestalt-body-bg) 70%, transparent));
 }
 
 /* ── Dark mode: warmer gold text inside editable fields ── */
