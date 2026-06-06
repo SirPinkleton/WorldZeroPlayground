@@ -84,8 +84,8 @@ def test_selectable_factions_count():
         slug for slug, config in ERA_1.factions.items()
         if config.is_selectable
     ]
-    # ua_masters, snide, gestalt, journeymen, analog, singularity, everymen = 7
-    assert len(selectable) == 7
+    # ua_masters, snide, gestalt, journeymen, analog, singularity = 6
+    assert len(selectable) == 6
 
 
 def test_can_always_rejoin_only_two():

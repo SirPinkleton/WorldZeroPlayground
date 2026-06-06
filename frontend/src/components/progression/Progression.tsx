@@ -15,7 +15,7 @@ export interface ProgressionProps {
 }
 
 const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {
-  everymen: EverymenProgression,
+  analog: EverymenProgression,
   gestalt: GestaltProgression,
 }
 

@@ -330,84 +330,11 @@ function UACard({
   );
 }
 
-function AnalogCard({
-  faction,
-  status,
-  invitationNote,
-  ...actions
-}: FactionCardProps) {
-  const desc = faction.description
-    ? faction.description.slice(0, 100) +
-      (faction.description.length > 100 ? "…" : "")
-    : "";
-  return (
-    <div
-      style={{
-        width: "100%",
-        background: factionCssVar("analog", "card-bg"),
-        border: "1px solid var(--color-border)",
-        clipPath:
-          "polygon(0 0, 100% 0, 100% 90%, 92% 100%, 80% 95%, 68% 100%, 56% 93%, 44% 100%, 32% 94%, 20% 100%, 8% 94%, 0 100%)",
-        position: "relative",
-        padding: "14px 16px 28px 28px",
-        fontFamily: factionCssVar("analog", "card-font"),
-        color: factionCssVar("analog", "card-text"),
-        backgroundImage:
-          "repeating-linear-gradient(to bottom, transparent, transparent 17px, rgba(100,140,200,0.08) 17px, rgba(100,140,200,0.08) 18px)",
-        transition: "background 150ms, color 150ms",
-        boxSizing: "border-box",
-      }}
-    >
-      {/* Red margin line */}
-      <div
-        style={{
-          position: "absolute",
-          left: 22,
-          top: 0,
-          bottom: 0,
-          width: 1,
-          background: "rgba(220,80,80,0.2)",
-        }}
-      />
-      {invitationNote && (
-        <InvitationNote slug={faction.slug} note={invitationNote} />
-      )}
-      <div
-        className="card-meta"
-        style={{
-          color: factionCssVar("analog", "card-accent"),
-          fontFamily: "var(--font-body)",
-          marginBottom: 6,
-        }}
-      >
-        <StatusBadge status={status} slug="analog" />
-      </div>
-      <div
-        style={{
-          fontSize: "var(--text-lg)",
-          fontWeight: 400,
-          lineHeight: 1.3,
-          marginBottom: 8,
-        }}
-      >
-        {faction.name}
-      </div>
-      {desc && (
-        <div
-          className="card-description"
-          style={{
-            fontSize: "var(--text-sm)",
-            color: factionCssVar("analog", "card-muted"),
-            lineHeight: 1.5,
-            marginBottom: 10,
-          }}
-        >
-          {desc}
-        </div>
-      )}
-      <ActionRow faction={faction} status={status} {...actions} />
-    </div>
-  );
+// Analog is reskinned as Everymen (the Analog identity is being deprecated).
+// The slug stays "analog" so no new DB row / registration is needed; it just
+// renders the Everymen faction card.
+function AnalogCard(props: FactionCardProps) {
+  return <EverymenCard {...props} />;
 }
 
 // ─── Gestalt ".exe" window atoms ──────────────────────────────────────────────

@@ -11,7 +11,6 @@ import {
   useEditPraxis,
   type EditPraxisState,
 } from "./editPraxis/useEditPraxis";
-import EditPraxisFieldJournal from "./editPraxis/archetypes/EditPraxisFieldJournal";
 import EditPraxisPunkZine from "./editPraxis/archetypes/EditPraxisPunkZine";
 import EditPraxisTerminal from "./editPraxis/archetypes/EditPraxisTerminal";
 import EditPraxisPaperCollage from "./editPraxis/archetypes/EditPraxisPaperCollage";
@@ -23,13 +22,12 @@ import EditPraxisEverymen from "./editPraxis/archetypes/EditPraxisEverymen";
 type Archetype = (props: { state: EditPraxisState }) => JSX.Element;
 
 const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
-  analog: EditPraxisFieldJournal,
+  analog: EditPraxisEverymen,
   snide: EditPraxisPunkZine,
   singularity: EditPraxisTerminal,
   gestalt: EditPraxisPaperCollage,
   journeymen: EditPraxisLuggageManifest,
   ua_masters: EditPraxisGazette,
-  everymen: EditPraxisEverymen,
   ua: EditPraxisStickyNote,
   albescent: EditPraxisStickyNote,
   aged_out: EditPraxisStickyNote,

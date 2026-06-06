@@ -17,6 +17,19 @@
 - Gestalt: only the *primary/tint/border/accent* tokens were flipped to pink in Session 1. The full
   window-chrome (`.exe`) token set + component re-skin lands in Session 4, together, so each checkpoint stays coherent.
 
+## Update 2026-06-06 — Everymen reskinned onto the `analog` slug
+To avoid new-faction friction (prod DB insert + image rebuild for a brand-new slug), the **Everymen
+faction is now the rebranded `analog` faction** — the slug stays `analog`, so the existing DB row,
+tasks, members, and Double Dipper ability carry over with zero new plumbing. The standalone
+`everymen` *slug* was removed (backend config + frontend registry). The Everymen **components/CSS
+namespace** (`--faction-everymen-*`, `EverymenCard`, etc.) live on as the *skin*: every `analog`
+dispatcher entry now points at the Everymen component, and `--faction-analog-*` is aliased to the
+everymen palette in index.css. Backend `analog` config → name "Everymen", color `#c1272d`.
+- **Deploy:** code deploy + one-time `UPDATE faction SET name='Everymen', description='…' WHERE slug='analog';`
+  (the existing-row update the seed won't do — far less friction than the new-slug INSERT).
+- **Open question:** Everymen currently keeps Analog's Double Dipper ability (keyed on `ANALOG_FACTION_SLUG`). Confirm if desired.
+- **Known gap:** the praxis-card display for `analog` (`PraxisCard.tsx`) still uses the old field-journal skin (no Everymen praxis-display was built); task cards / edit-praxis / vote / etc. are all Everymen.
+
 ## Sessions
 - [x] **Session 1 — Foundation** (committed)
   - `backend/eras/era_1.py`: added `everymen` FactionConfig (red `#c1272d`, selectable, placeholder modifiers); fixed `gestalt` color `#14532d`→`#ec5f99`.

@@ -18,7 +18,7 @@ export interface FactionFeedFrameProps {
 }
 
 const FACTION_FEED_FRAMES: Record<string, ComponentType<FactionFeedFrameProps>> = {
-  everymen: EverymenFeedFrame,
+  analog: EverymenFeedFrame,
   gestalt: GestaltFeedFrame,
 }
 

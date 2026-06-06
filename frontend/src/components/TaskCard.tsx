@@ -3,7 +3,6 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { updateTaskStatus } from '../api/admin'
 import TaskCardUA from './cards/TaskCardUA'
-import TaskCardAnalog from './cards/TaskCardAnalog'
 import TaskCardGestalt from './cards/TaskCardGestalt'
 import TaskCardSNIDE from './cards/TaskCardSNIDE'
 import TaskCardJourneymen from './cards/TaskCardJourneymen'
@@ -22,12 +21,11 @@ interface CardProps {
 /** Style Guide §6 — one card archetype per faction. */
 const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   ua: TaskCardUA,
-  analog: TaskCardAnalog,
+  analog: TaskCardEverymen,
   gestalt: TaskCardGestalt,
   snide: TaskCardSNIDE,
   journeymen: TaskCardJourneymen,
   singularity: TaskCardSingularity,
-  everymen: TaskCardEverymen,
   ua_masters: TaskCardUAMasters,
 }
 
