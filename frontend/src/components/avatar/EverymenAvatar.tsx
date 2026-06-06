@@ -1,5 +1,4 @@
-import type { FactionAvatarProps } from './FactionAvatar'
-import { mediaUrl } from '../../utils/media'
+import { BadgedAvatar, type FactionAvatarProps } from './FactionAvatar'
 
 /** 8-tooth worker gear sigil. */
 function CogMark({ size, color }: { size: number; color: string }) {
@@ -28,51 +27,21 @@ function CogMark({ size, color }: { size: number; color: string }) {
  * Everymen avatar — the standard circle plus a red union membership badge
  * (cog sigil) clipped to the lower-right.
  */
-export default function EverymenAvatar({ character, size = 'md' }: FactionAvatarProps) {
-  const isSmall = size === 'sm'
-  const dim = isSmall ? 24 : 32
-  const badge = isSmall ? 12 : 16
+export default function EverymenAvatar({ character, size }: FactionAvatarProps) {
   return (
-    <span style={{ position: 'relative', display: 'inline-block', width: dim, height: dim }}>
-      {character.avatar_url ? (
-        <img
-          src={mediaUrl(character.avatar_url)}
-          alt={character.username}
-          className="rounded-full object-cover"
-          style={{ width: dim, height: dim, border: '2px solid var(--everymen-ink)' }}
-        />
-      ) : (
-        <span
-          className="rounded-full flex items-center justify-center font-display font-bold"
-          style={{
-            width: dim,
-            height: dim,
-            border: '2px solid var(--everymen-ink)',
-            background: 'var(--everymen-paper)',
-            color: 'var(--everymen-paper-text)',
-            fontSize: isSmall ? 11 : 14,
-          }}
-        >
-          {character.username[0]?.toUpperCase()}
-        </span>
-      )}
-      <span
-        style={{
-          position: 'absolute',
-          right: -3,
-          bottom: -3,
-          width: badge,
-          height: badge,
-          borderRadius: '50%',
-          background: 'var(--everymen-red)',
-          border: '1.5px solid var(--everymen-cream)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CogMark size={badge - 5} color="var(--everymen-cream)" />
-      </span>
-    </span>
+    <BadgedAvatar
+      character={character}
+      size={size}
+      circle={{
+        borderColor: 'var(--everymen-ink)',
+        bg: 'var(--everymen-paper)',
+        textColor: 'var(--everymen-paper-text)',
+        fontFamily: 'var(--font-display)',
+      }}
+      initialFontSize={[11, 14]}
+      badgeBg="var(--everymen-red)"
+      badgeRing="var(--everymen-cream)"
+      glyph={(s, color) => <CogMark size={s} color={color} />}
+    />
   )
 }

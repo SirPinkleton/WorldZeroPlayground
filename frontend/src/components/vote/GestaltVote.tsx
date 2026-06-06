@@ -1,5 +1,6 @@
 import type { VoteUIProps } from './VoteUI'
 import { useVote } from './useVote'
+import { VoteLoginGate, VoteSummary } from './VoteShell'
 
 /**
  * Gestalt faction vote UI — the 1-5 rating rendered as filled hearts in the
@@ -50,7 +51,7 @@ export default function GestaltVote({ praxisId, currentStars, averageStars, tota
   const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
 
   if (!user) {
-    return <p className="eyebrow">Log in to vote</p>
+    return <VoteLoginGate />
   }
 
   return (
@@ -105,41 +106,19 @@ export default function GestaltVote({ praxisId, currentStars, averageStars, tota
         })}
       </div>
 
-      {selected > 0 && (
-        <p
-          className="font-body"
-          style={{ fontSize: 8, color: 'var(--faction-gestalt-card-muted)', margin: '8px 0 0' }}
-        >
-          Voted {selected} pts
-        </p>
-      )}
-
-      {averageStars !== undefined && (
-        <p
-          className="font-body"
-          style={{ fontSize: 10, color: 'var(--faction-gestalt-card-muted)', margin: '11px 0 0' }}
-        >
-          <b
-            style={{
-              color: 'var(--faction-gestalt)',
-              fontFamily: 'var(--faction-gestalt-card-font)',
-              fontSize: 16,
-            }}
-          >
-            {averageStars.toFixed(1)}
-          </b>{' '}
-          avg · {totalVotes ?? 0} votes
-        </p>
-      )}
-
-      {error && (
-        <p
-          className="font-body"
-          style={{ fontSize: 9, color: 'var(--color-danger)', marginTop: 4 }}
-        >
-          {error}
-        </p>
-      )}
+      <VoteSummary
+        selected={selected}
+        averageStars={averageStars}
+        totalVotes={totalVotes}
+        error={error}
+        theme={{
+          muted: 'var(--faction-gestalt-card-muted)',
+          accent: 'var(--faction-gestalt)',
+          accentFont: 'var(--faction-gestalt-card-font)',
+          avgFontSize: 16,
+          errorColor: 'var(--color-danger)',
+        }}
+      />
     </div>
   )
 }

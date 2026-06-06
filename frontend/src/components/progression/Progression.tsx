@@ -20,7 +20,6 @@ const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {
 }
 
 export default function Progression({ level, factionSlug }: ProgressionProps) {
-  const Variant = (factionSlug && FACTION_PROGRESSION[factionSlug]) || null
-  if (Variant) return <Variant level={level} factionSlug={factionSlug} />
-  return <LevelPill level={level} factionSlug={factionSlug ?? undefined} />
+  const Variant = (factionSlug && FACTION_PROGRESSION[factionSlug]) || LevelPill
+  return <Variant level={level} factionSlug={factionSlug ?? undefined} />
 }

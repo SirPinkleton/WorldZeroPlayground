@@ -1,5 +1,6 @@
 import type { VoteUIProps } from './VoteUI'
 import { useVote } from './useVote'
+import { VoteLoginGate, VoteSummary } from './VoteShell'
 
 /**
  * Everymen faction vote UI — union "approval stamps" with an escalating
@@ -32,7 +33,7 @@ export default function EverymenVote({ praxisId, currentStars, averageStars, tot
   const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
 
   if (!user) {
-    return <p className="eyebrow">Log in to vote</p>
+    return <VoteLoginGate />
   }
 
   return (
@@ -100,46 +101,20 @@ export default function EverymenVote({ praxisId, currentStars, averageStars, tot
         })}
       </div>
 
-      {selected > 0 && (
-        <p
-          className="font-body"
-          style={{ fontSize: 8, color: 'var(--everymen-muted)', margin: '8px 0 0' }}
-        >
-          Voted {selected} pts
-        </p>
-      )}
-
-      {averageStars !== undefined && (
-        <p
-          className="font-body"
-          style={{
-            fontSize: 10,
-            color: 'var(--everymen-muted)',
-            margin: '11px 0 0',
-            letterSpacing: '0.04em',
-          }}
-        >
-          <b
-            style={{
-              color: 'var(--everymen-red)',
-              fontFamily: 'var(--faction-everymen-card-font)',
-              fontSize: 15,
-            }}
-          >
-            {averageStars.toFixed(1)}
-          </b>{' '}
-          avg · {totalVotes ?? 0} votes
-        </p>
-      )}
-
-      {error && (
-        <p
-          className="font-body"
-          style={{ fontSize: 9, color: 'var(--everymen-red)', marginTop: 4 }}
-        >
-          {error}
-        </p>
-      )}
+      <VoteSummary
+        selected={selected}
+        averageStars={averageStars}
+        totalVotes={totalVotes}
+        error={error}
+        theme={{
+          muted: 'var(--everymen-muted)',
+          accent: 'var(--everymen-red)',
+          accentFont: 'var(--faction-everymen-card-font)',
+          avgFontSize: 15,
+          errorColor: 'var(--everymen-red)',
+          avgLetterSpacing: '0.04em',
+        }}
+      />
     </div>
   )
 }

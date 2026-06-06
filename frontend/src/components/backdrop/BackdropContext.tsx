@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react'
@@ -24,11 +25,10 @@ const BackdropContext = createContext<BackdropContextValue>({
 
 export function BackdropProvider({ children }: { children: ReactNode }) {
   const [slug, setSlug] = useState<string | null>(null)
-  return (
-    <BackdropContext.Provider value={{ slug, setSlug }}>
-      {children}
-    </BackdropContext.Provider>
-  )
+  // Memoize so consumers (e.g. FactionBackdrop) only re-render when slug changes,
+  // not on every Layout render.
+  const value = useMemo(() => ({ slug, setSlug }), [slug])
+  return <BackdropContext.Provider value={value}>{children}</BackdropContext.Provider>
 }
 
 /** Read the active backdrop faction slug (null = global fallback). */

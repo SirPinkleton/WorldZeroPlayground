@@ -1,5 +1,4 @@
-import type { FactionAvatarProps } from './FactionAvatar'
-import { mediaUrl } from '../../utils/media'
+import { BadgedAvatar, type FactionAvatarProps } from './FactionAvatar'
 
 /** Crescent-moon sigil. */
 function MoonGlyph({ size, color }: { size: number; color: string }) {
@@ -17,52 +16,20 @@ function MoonGlyph({ size, color }: { size: number; color: string }) {
  * Gestalt avatar — the standard circle with a pink "coven" moon membership
  * badge clipped to the lower-right.
  */
-export default function GestaltAvatar({ character, size = 'md' }: FactionAvatarProps) {
-  const isSmall = size === 'sm'
-  const dim = isSmall ? 24 : 32
-  const badge = isSmall ? 12 : 16
+export default function GestaltAvatar({ character, size }: FactionAvatarProps) {
   return (
-    <span style={{ position: 'relative', display: 'inline-block', width: dim, height: dim }}>
-      {character.avatar_url ? (
-        <img
-          src={mediaUrl(character.avatar_url)}
-          alt={character.username}
-          className="rounded-full object-cover"
-          style={{ width: dim, height: dim, border: '2px solid var(--faction-gestalt-win-border)' }}
-        />
-      ) : (
-        <span
-          className="rounded-full flex items-center justify-center font-bold"
-          style={{
-            width: dim,
-            height: dim,
-            border: '2px solid var(--faction-gestalt-win-border)',
-            background: 'var(--faction-gestalt-notepad-bg)',
-            color: 'var(--faction-gestalt-card-text)',
-            fontFamily: 'var(--faction-gestalt-card-font)',
-            fontSize: isSmall ? 13 : 16,
-          }}
-        >
-          {character.username[0]?.toUpperCase()}
-        </span>
-      )}
-      <span
-        style={{
-          position: 'absolute',
-          right: -3,
-          bottom: -3,
-          width: badge,
-          height: badge,
-          borderRadius: '50%',
-          background: 'var(--faction-gestalt)',
-          border: '1.5px solid var(--faction-gestalt-notepad-bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <MoonGlyph size={badge - 5} color="var(--faction-gestalt-notepad-bg)" />
-      </span>
-    </span>
+    <BadgedAvatar
+      character={character}
+      size={size}
+      circle={{
+        borderColor: 'var(--faction-gestalt-win-border)',
+        bg: 'var(--faction-gestalt-notepad-bg)',
+        textColor: 'var(--faction-gestalt-card-text)',
+        fontFamily: 'var(--faction-gestalt-card-font)',
+      }}
+      badgeBg="var(--faction-gestalt)"
+      badgeRing="var(--faction-gestalt-notepad-bg)"
+      glyph={(s, color) => <MoonGlyph size={s} color={color} />}
+    />
   )
 }
