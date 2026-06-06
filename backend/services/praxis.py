@@ -217,6 +217,7 @@ async def build_praxis_out(
         task_id=praxis.task_id,
         task_title=task_title,
         task_point_value=task_point_value,
+        task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
         type=praxis.type,
         status=praxis.status,
         title=praxis.title,
