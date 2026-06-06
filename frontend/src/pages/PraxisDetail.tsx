@@ -11,7 +11,7 @@ import {
 import { getVotes, type VoteSummary } from '../api/votes'
 import MediaGallery from '../components/MediaGallery'
 import { formatTimestamp } from '../utils/dates'
-import VoteStamps from '../components/ui/VoteStamps'
+import VoteUI from '../components/vote/VoteUI'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { moderatePraxis } from '../api/admin'
@@ -468,7 +468,8 @@ export default function PraxisDetail() {
             </span>
           )}
         </div>
-        <VoteStamps
+        <VoteUI
+          factionSlug={praxis.task_faction_slug}
           praxisId={praxis.id}
           averageStars={votes?.average_stars}
           totalVotes={votes?.total_votes}

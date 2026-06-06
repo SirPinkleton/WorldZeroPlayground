@@ -1,0 +1,21 @@
+import type { ComponentType } from 'react'
+import LevelPill from '../ui/LevelPill'
+
+/**
+ * Per-faction progression / level indicator dispatcher (Tier-3 surface).
+ * Faction variants (e.g. Gestalt's moon-phase track, Everymen's stamped pill)
+ * register in Sessions 3-4. Default is the global LevelPill, which already
+ * tints itself from the faction accent. See SPEC-faction-ui-profile.md §1-2.
+ */
+export interface ProgressionProps {
+  level: number
+  factionSlug?: string | null
+}
+
+const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {}
+
+export default function Progression({ level, factionSlug }: ProgressionProps) {
+  const Variant = (factionSlug && FACTION_PROGRESSION[factionSlug]) || null
+  if (Variant) return <Variant level={level} factionSlug={factionSlug} />
+  return <LevelPill level={level} factionSlug={factionSlug ?? undefined} />
+}

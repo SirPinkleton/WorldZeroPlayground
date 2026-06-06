@@ -26,14 +26,18 @@
   - `frontend/src/utils/factions.ts`: `FACTION_FALLBACKS.everymen` + `CSS_KEY.everymen`; `gestalt` fallback `#be185d`→`#ec5f99`.
   - `frontend/src/index.css`: full `--faction-everymen-*` + private `--everymen-*` token block (light `:root` + dark); Gestalt primary/tint/border/accent → pink.
   - `docs/spec/SPEC-faction-ui-profile.md`: the reusable per-faction profile (written during planning).
-- [ ] **Session 2 — Tier-3 dispatcher scaffolding** (all default to current global components; zero visual change)
-  - Create dispatchers mirroring `components/TaskCard.tsx` `CARD_COMPONENTS`: `components/vote/VoteUI.tsx`,
-    `components/progression/Progression.tsx`, `components/backdrop/FactionBackdrop.tsx`, `components/avatar/FactionAvatar.tsx`,
-    and a faction-aware layer in `components/feed/FeedCardRouter.tsx`.
-  - Backdrop: `BackdropContext` + `useFactionBackdrop(slug)` in `components/Layout.tsx`; replace hardcoded
-    `<WatercolorBackground/>` with `<FactionBackdrop/>` that falls back to watercolor for null/unknown/mixed pages.
-  - Vote dispatcher keys on `praxis.task_faction_slug`; default = existing `components/ui/VoteStamps.tsx`.
-  - Progression default = existing `components/ui/LevelPill.tsx`. Avatar first pass = inside `components/CharacterBadge.tsx` only.
+- [x] **Session 2 — Tier-3 dispatcher scaffolding** (committed; all default to current globals; zero visual change, zero new tsc errors)
+  - Created dispatchers (empty faction maps → fall back to today's global components):
+    `components/vote/VoteUI.tsx` (+ `vote/useVote.ts` shared hook), `components/progression/Progression.tsx`,
+    `components/backdrop/FactionBackdrop.tsx` (+ `backdrop/BackdropContext.tsx` w/ `BackdropProvider`+`useFactionBackdrop`),
+    `components/avatar/FactionAvatar.tsx`, `components/feed/FactionFeedFrame.tsx` (passthrough).
+  - **Wired** (safe, behavior-identical): `Layout.tsx` (BackdropProvider + `<FactionBackdrop/>` replacing `<WatercolorBackground/>`);
+    `PraxisDetail.tsx` (`<VoteUI factionSlug={praxis.task_faction_slug} …/>`); `CharacterBadge.tsx` (`<FactionAvatar/>`, DefaultAvatar = old markup).
+  - **NOT yet wired** (wire when first faction variant lands in S3/S4): Progression has no prominent call-site swap yet (LevelPill
+    callers still call LevelPill directly — fine, they pass factionSlug); FactionFeedFrame not yet wrapped around feed type-cards;
+    pages don't call `useFactionBackdrop()` yet (so every page still shows watercolor — correct until a faction backdrop variant exists).
+  - **Pre-existing tsc errors (NOT mine, verified via stash):** `EditPraxis.tsx:67` (`<Archetype>` dynamic-component typing) +
+    unused-var warnings in `EditPraxisLuggageManifest.tsx`, `EditPraxisStickyNote.tsx`. Fix opportunistically in Session 3 (touches EditPraxis).
 - [ ] **Session 3 — Everymen components** (port `~/Downloads/Everymen/everymen/everymen-*.jsx`)
   - `TaskCardEverymen`, `EverymenCard` (faction-select), `EditPraxisEverymen`; everymen variants for the 5 Tier-3 dispatchers;
     port `.em-backdrop` CSS (everymen.css lines 72-103) into index.css. Register everymen in every dispatcher.
