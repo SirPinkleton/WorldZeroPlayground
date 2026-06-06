@@ -3,6 +3,7 @@ import type { CharacterOut } from '../../api/auth'
 import { mediaUrl } from '../../utils/media'
 import EverymenAvatar from './EverymenAvatar'
 import GestaltAvatar from './GestaltAvatar'
+import EphemeristsAvatar from './EphemeristsAvatar'
 
 /**
  * Per-faction avatar + membership-badge dispatcher (Tier-3 surface). Keyed by
@@ -140,6 +141,7 @@ export function BadgedAvatar({
 const FACTION_AVATARS: Record<string, ComponentType<FactionAvatarProps>> = {
   analog: EverymenAvatar,
   gestalt: GestaltAvatar,
+  journeymen: EphemeristsAvatar,
 }
 
 export default function FactionAvatar({ character, size }: FactionAvatarProps) {

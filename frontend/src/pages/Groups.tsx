@@ -13,11 +13,11 @@ const FACTIONS = [
   },
   {
     slug: "journeymen",
-    name: "The Journeymen",
-    theme: "Time and space",
-    colors: "Gold on blue",
+    name: "The Ephemerists",
+    theme: "Time and space — recording fleeting truths",
+    colors: "Gold on lapis blue",
     gameplay:
-      "Task Vision — access to select retired tasks flagged for Journeymen.",
+      "Task Vision — access to select retired tasks flagged for the Ephemerists.",
     dotClass: "bg-journeymen",
   },
   {

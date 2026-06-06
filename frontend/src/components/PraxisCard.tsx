@@ -6,6 +6,7 @@ import { useAdminMode } from "../auth/AdminModeContext";
 import { moderatePraxis } from "../api/admin";
 import { factionCssVar } from "../utils/factions";
 import { extractError } from "../utils/errors";
+import { EphMark, Foxing } from "./cards/ephemeristsAtoms";
 
 interface Props {
   praxis: PraxisCardOut;
@@ -445,7 +446,11 @@ function SnidePraxisCard({
   );
 }
 
-function JourneymenPraxisCard({
+/**
+ * The Ephemerists (journeymen slug) — a sealed ephemeris entry. A foxed vellum
+ * leaf with a lapis-ruled running head, the sigil, and rubric-accented text.
+ */
+function EphemeristsPraxisCard({
   praxis,
   adminProps,
 }: {
@@ -455,66 +460,55 @@ function JourneymenPraxisCard({
   return (
     <div
       style={{
-        paddingTop: 26,
         position: "relative",
         width: "100%",
         flex: "1 1 280px",
         minWidth: 280,
         boxSizing: "border-box",
+        overflow: "hidden",
+        background: "var(--eph-vellum)",
+        color: "var(--eph-vellum-text)",
+        border: "1px solid color-mix(in srgb, var(--eph-vellum-text) 30%, transparent)",
+        fontFamily: "var(--eph-serif)",
+        boxShadow: "0 1px 0 rgba(0,0,0,0.04), 0 8px 20px -16px rgba(0,0,0,0.6)",
+        transition: "background 150ms, color 150ms",
       }}
     >
+      <Foxing opacity={0.4} />
+      {/* running head — sigil + ephemeris label, lapis-ruled */}
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 0,
-            height: 14,
-            borderLeft: `2px dashed ${factionCssVar("journeymen", "card-accent")}`,
-          }}
-        />
-        <div
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            border: `2px solid ${factionCssVar("journeymen", "card-accent")}`,
-            background: "var(--color-bg-page)",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          border: `2px solid ${factionCssVar("journeymen", "card-accent")}`,
-          background: factionCssVar("journeymen", "card-bg"),
-          fontFamily: "'Courier Prime', monospace",
-          color: factionCssVar("journeymen", "card-text"),
           position: "relative",
-          transition: "background 150ms, color 150ms",
+          zIndex: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "7px 14px 6px",
+          borderBottom: "1px solid var(--eph-gold-deep)",
+          boxShadow: "0 2px 0 -1px color-mix(in srgb, var(--eph-lapis) 55%, transparent)",
         }}
       >
-        <div
+        <EphMark size={13} color="var(--eph-lapis)" />
+        <span
           style={{
-            height: 4,
-            backgroundImage: `repeating-linear-gradient(90deg, var(--faction-journeymen-stripe-red) 0, var(--faction-journeymen-stripe-red) 8px, ${factionCssVar("journeymen", "card-bg")} 8px, ${factionCssVar("journeymen", "card-bg")} 16px, var(--faction-journeymen-stripe-amber) 16px, var(--faction-journeymen-stripe-amber) 24px, ${factionCssVar("journeymen", "card-bg")} 24px, ${factionCssVar("journeymen", "card-bg")} 32px)`,
+            fontFamily: "var(--eph-serif)",
+            fontSize: 8.5,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--eph-rubric)",
           }}
+        >
+          Ephemeris · sealed entry
+        </span>
+      </div>
+      <div style={{ position: "relative", zIndex: 2, padding: "10px 14px 14px" }}>
+        <AdminOverlay {...adminProps} />
+        <PraxisContent
+          praxis={praxis}
+          titleStyle={{ fontFamily: "var(--eph-display)", color: "var(--eph-vellum-text)" }}
+          bodyStyle={{ color: "var(--eph-muted)" }}
+          metaStyle={{ color: "var(--eph-muted)" }}
         />
-        <div style={{ padding: "10px 14px 14px" }}>
-          <AdminOverlay {...adminProps} />
-          <PraxisContent
-            praxis={praxis}
-            bodyStyle={{ color: factionCssVar("journeymen", "card-muted") }}
-            metaStyle={{ color: factionCssVar("journeymen", "card-muted") }}
-          />
-        </div>
       </div>
     </div>
   );
@@ -805,7 +799,7 @@ export default function PraxisCard({ praxis, onModerated }: Props) {
       return <SnidePraxisCard praxis={localPraxis} adminProps={adminProps} />;
     case "journeymen":
       return (
-        <JourneymenPraxisCard praxis={localPraxis} adminProps={adminProps} />
+        <EphemeristsPraxisCard praxis={localPraxis} adminProps={adminProps} />
       );
     case "singularity":
       return (

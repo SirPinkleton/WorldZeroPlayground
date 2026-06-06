@@ -30,7 +30,8 @@ const FACTION_FALLBACKS: Record<string, FactionConfig> = {
   analog: { slug: "analog", name: "Everymen", color: "#c1272d" },
   gestalt: { slug: "gestalt", name: "Gestalt", color: "#ec5f99" },
   snide: { slug: "snide", name: "S.N.I.D.E.", color: "#16a34a" },
-  journeymen: { slug: "journeymen", name: "Journeymen", color: "#0e7490" },
+  // Journeymen is reskinned/rebranded as The Ephemerists (slug kept to avoid new-faction plumbing).
+  journeymen: { slug: "journeymen", name: "The Ephemerists", color: "#1d6e72" },
   singularity: { slug: "singularity", name: "Singularity", color: "#2563eb" },
   ua_masters: { slug: "ua_masters", name: "UA Masters", color: "#c2410c" },
   albescent: { slug: "albescent", name: "/Albescent", color: "#7c3aed" },
