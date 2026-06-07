@@ -75,9 +75,9 @@ export default function FactionDetail() {
   const accent = factionCssVar(faction.slug, "border");
 
   // A faction may register a bespoke frontispiece in FACTION_HEROES; otherwise
-  // the shared title + description chrome is used. The page backdrop is themed
-  // per-faction by useFactionDetail either way.
-  const Hero = FACTION_HEROES[faction.slug];
+  // (Hero is undefined) the shared title + description chrome is used. The page
+  // backdrop is themed per-faction by useFactionDetail either way.
+  const Hero = pickVariant(FACTION_HEROES, faction.slug);
   const Body = pickVariant(FACTION_BODY, faction.slug, DefaultFactionBody);
 
   return (

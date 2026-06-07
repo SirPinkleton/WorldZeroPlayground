@@ -30,12 +30,27 @@ const SLUG_ALIASES: Record<string, string> = {
  * (so albescent/aged_out inherit ua's variant without a duplicate map row);
  * then the supplied fallback. A null/undefined/empty slug goes straight to the
  * fallback.
+ *
+ * The fallback is optional: with one, you always get a component (the
+ * "every faction renders something" page case); without one, you get
+ * `undefined` when nothing is registered (the "render a bespoke variant if it
+ * exists, otherwise inline default chrome" case, e.g. faction-page heroes) —
+ * and the alias rule still applies either way.
  */
 export function pickVariant<P>(
   map: Record<string, ComponentType<P>>,
   slug: string | null | undefined,
   fallback: ComponentType<P>,
-): ComponentType<P> {
+): ComponentType<P>
+export function pickVariant<P>(
+  map: Record<string, ComponentType<P>>,
+  slug: string | null | undefined,
+): ComponentType<P> | undefined
+export function pickVariant<P>(
+  map: Record<string, ComponentType<P>>,
+  slug: string | null | undefined,
+  fallback?: ComponentType<P>,
+): ComponentType<P> | undefined {
   if (!slug) return fallback
   const alias = SLUG_ALIASES[slug]
   return map[slug] ?? (alias ? map[alias] : undefined) ?? fallback

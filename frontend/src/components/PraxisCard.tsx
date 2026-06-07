@@ -65,7 +65,6 @@ function UAPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("ua", "card-muted") }}
         metaStyle={{ color: factionCssVar("ua", "card-muted") }}
       />
     </div>
@@ -106,7 +105,6 @@ function AnalogPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("analog", "card-muted") }}
         metaStyle={{ color: factionCssVar("analog", "card-muted") }}
       />
     </div>
@@ -180,7 +178,6 @@ function GestaltPraxisCard({ praxis, adminProps }: ArchetypeProps) {
         <AdminOverlay {...adminProps} />
         <PraxisContent
           praxis={praxis}
-          bodyStyle={{ color: factionCssVar("gestalt", "card-muted") }}
           metaStyle={{ color: factionCssVar("gestalt", "card-muted") }}
         />
       </div>
@@ -234,7 +231,6 @@ function SnidePraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("snide", "card-muted") }}
         metaStyle={{ color: factionCssVar("snide", "card-muted") }}
       />
     </div>
@@ -295,7 +291,6 @@ function EphemeristsPraxisCard({ praxis, adminProps }: ArchetypeProps) {
         <PraxisContent
           praxis={praxis}
           titleStyle={{ fontFamily: "var(--eph-display)", color: "var(--eph-vellum-text)" }}
-          bodyStyle={{ color: "var(--eph-muted)" }}
           metaStyle={{ color: "var(--eph-muted)" }}
         />
       </div>
@@ -429,10 +424,6 @@ function SingularityPraxisCard({ praxis, adminProps }: ArchetypeProps) {
         <AdminOverlay {...adminProps} />
         <PraxisContent
           praxis={praxis}
-          bodyStyle={{
-            color: "var(--faction-singularity-card-muted)",
-            fontSize: 9,
-          }}
           metaStyle={{ color: "var(--faction-singularity-card-muted)" }}
         />
       </div>
@@ -477,7 +468,6 @@ function UAMastersPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("ua_masters", "card-muted") }}
         metaStyle={{ color: factionCssVar("ua_masters", "card-muted") }}
       />
     </div>
@@ -504,7 +494,6 @@ function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar(slug, "card-muted") }}
         metaStyle={{ color: factionCssVar(slug, "card-muted") }}
       />
     </div>

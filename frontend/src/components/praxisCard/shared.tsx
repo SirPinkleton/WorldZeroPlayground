@@ -21,12 +21,6 @@ import type { PraxisCardOut } from "../../api/praxis";
 export interface ContentProps {
   praxis: PraxisCardOut;
   titleStyle?: CSSProperties;
-  /**
-   * Historically accepted but unused by the default composition (the original
-   * `PraxisContent` never read it). Kept so existing archetype call sites stay
-   * untouched; a bespoke content layout may consume it.
-   */
-  bodyStyle?: CSSProperties;
   metaStyle?: CSSProperties;
 }
 
