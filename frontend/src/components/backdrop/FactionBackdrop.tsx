@@ -5,6 +5,7 @@ import GestaltBackdrop from './GestaltBackdrop'
 import SnideBackdrop from './SnideBackdrop'
 import EphemeristsBackdrop from './EphemeristsBackdrop'
 import { useBackdropSlug } from './BackdropContext'
+import { pickVariant } from '../../utils/factionDispatch'
 
 /**
  * Per-faction full-page backdrop dispatcher (Tier-3 surface).
@@ -21,6 +22,6 @@ const FACTION_BACKDROPS: Record<string, ComponentType> = {
 
 export default function FactionBackdrop() {
   const slug = useBackdropSlug()
-  const Backdrop = (slug && FACTION_BACKDROPS[slug]) || WatercolorBackground
+  const Backdrop = pickVariant(FACTION_BACKDROPS, slug, WatercolorBackground)
   return <Backdrop />
 }

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { pickVariant } from '../../utils/factionDispatch'
 import LevelPill from '../ui/LevelPill'
 import EverymenProgression from './EverymenProgression'
 import GestaltProgression from './GestaltProgression'
@@ -24,6 +25,6 @@ const FACTION_PROGRESSION: Record<string, ComponentType<ProgressionProps>> = {
 }
 
 export default function Progression({ level, factionSlug }: ProgressionProps) {
-  const Variant = (factionSlug && FACTION_PROGRESSION[factionSlug]) || LevelPill
+  const Variant = pickVariant(FACTION_PROGRESSION, factionSlug, LevelPill)
   return <Variant level={level} factionSlug={factionSlug ?? undefined} />
 }

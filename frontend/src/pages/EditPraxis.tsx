@@ -7,6 +7,7 @@
  */
 import { useParams } from "react-router-dom";
 import PageTitle from "../components/ui/PageTitle";
+import { pickVariant } from "../utils/factionDispatch";
 import {
   useEditPraxis,
   type EditPraxisState,
@@ -21,6 +22,9 @@ import EditPraxisEverymen from "./editPraxis/archetypes/EditPraxisEverymen";
 
 type Archetype = (props: { state: EditPraxisState }) => JSX.Element;
 
+// albescent / aged_out inherit ua's archetype via pickVariant's alias rule, so
+// they need no explicit rows here. ua is listed for documentation even though it
+// matches the fallback.
 const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
   analog: EditPraxisEverymen,
   snide: EditPraxisPunkZine,
@@ -29,8 +33,6 @@ const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
   journeymen: EditPraxisEphemeris,
   ua_masters: EditPraxisGazette,
   ua: EditPraxisStickyNote,
-  albescent: EditPraxisStickyNote,
-  aged_out: EditPraxisStickyNote,
 };
 
 export default function EditPraxis() {
@@ -59,7 +61,7 @@ export default function EditPraxis() {
   }
 
   const slug = state.task?.primary_faction_slug ?? null;
-  const Archetype = (slug ? ARCHETYPE_BY_SLUG[slug] : undefined) ?? EditPraxisStickyNote;
+  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, slug, EditPraxisStickyNote);
 
   return (
     <>

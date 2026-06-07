@@ -10,6 +10,7 @@ import TaskCardSingularity from './cards/TaskCardSingularity'
 import TaskCardUAMasters from './cards/TaskCardUAMasters'
 import TaskCardEverymen from './cards/TaskCardEverymen'
 import { factionCssVar, factionName } from '../utils/factions'
+import { pickVariant } from '../utils/factionDispatch'
 import type { ComponentType } from 'react'
 
 interface CardProps {
@@ -41,7 +42,7 @@ export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
     window.location.reload()
   }
 
-  const Card = CARD_COMPONENTS[task.primary_faction_slug ?? ''] ?? DEFAULT_CARD
+  const Card = pickVariant(CARD_COMPONENTS, task.primary_faction_slug, DEFAULT_CARD)
   const isMetatask = task.task_type === 'metatask'
   return (
     <div style={{ position: 'relative' }}>

@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react'
 import type { CharacterOut } from '../../api/auth'
 import { mediaUrl } from '../../utils/media'
+import { pickVariant } from '../../utils/factionDispatch'
 import EverymenAvatar from './EverymenAvatar'
 import GestaltAvatar from './GestaltAvatar'
 import SnideAvatar from './SnideAvatar'
@@ -147,8 +148,6 @@ const FACTION_AVATARS: Record<string, ComponentType<FactionAvatarProps>> = {
 }
 
 export default function FactionAvatar({ character, size }: FactionAvatarProps) {
-  const Variant =
-    (character.faction_slug && FACTION_AVATARS[character.faction_slug]) ||
-    DefaultAvatar
+  const Variant = pickVariant(FACTION_AVATARS, character.faction_slug, DefaultAvatar)
   return <Variant character={character} size={size} />
 }

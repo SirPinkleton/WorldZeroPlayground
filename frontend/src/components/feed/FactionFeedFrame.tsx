@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
+import { pickVariant } from '../../utils/factionDispatch'
 import EverymenFeedFrame from './factionFrames/EverymenFeedFrame'
 import GestaltFeedFrame from './factionFrames/GestaltFeedFrame'
 import SnideFeedFrame from './factionFrames/SnideFeedFrame'
@@ -26,11 +27,15 @@ const FACTION_FEED_FRAMES: Record<string, ComponentType<FactionFeedFrameProps>> 
   journeymen: EphemeristsFeedFrame,
 }
 
+/** No registered frame → render the row untouched (transparent passthrough). */
+function FeedFramePassthrough({ children }: FactionFeedFrameProps) {
+  return <>{children}</>
+}
+
 export default function FactionFeedFrame({
   factionSlug,
   children,
 }: FactionFeedFrameProps) {
-  const Variant = factionSlug ? FACTION_FEED_FRAMES[factionSlug] : undefined
-  if (!Variant) return <>{children}</>
+  const Variant = pickVariant(FACTION_FEED_FRAMES, factionSlug, FeedFramePassthrough)
   return <Variant factionSlug={factionSlug}>{children}</Variant>
 }
