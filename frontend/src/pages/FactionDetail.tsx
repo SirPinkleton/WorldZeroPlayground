@@ -15,6 +15,7 @@ import { factionCssVar } from "../utils/factions";
 import { computeDisplayPoints } from "../utils/points";
 import { useFactionBackdrop } from "../components/backdrop/BackdropContext";
 import EphemeristsFactionHero from "../components/cards/EphemeristsFactionHero";
+import SnideFactionHero from "../components/cards/SnideFactionHero";
 
 /**
  * Per-faction page-hero dispatcher (Tier-3 surface). A faction opts in to a
@@ -33,6 +34,7 @@ export interface FactionHeroProps {
 
 const FACTION_HEROES: Record<string, ComponentType<FactionHeroProps>> = {
   journeymen: EphemeristsFactionHero,
+  snide: SnideFactionHero,
 };
 
 /** Shared flex-wrap card grid — varied card sizes are intentional, not a CSS grid. */
