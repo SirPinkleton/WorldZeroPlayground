@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react'
 import EverymenFeedFrame from './factionFrames/EverymenFeedFrame'
 import GestaltFeedFrame from './factionFrames/GestaltFeedFrame'
+import SnideFeedFrame from './factionFrames/SnideFeedFrame'
 import EphemeristsFeedFrame from './factionFrames/EphemeristsFeedFrame'
 
 /**
@@ -21,6 +22,7 @@ export interface FactionFeedFrameProps {
 const FACTION_FEED_FRAMES: Record<string, ComponentType<FactionFeedFrameProps>> = {
   analog: EverymenFeedFrame,
   gestalt: GestaltFeedFrame,
+  snide: SnideFeedFrame,
   journeymen: EphemeristsFeedFrame,
 }
 

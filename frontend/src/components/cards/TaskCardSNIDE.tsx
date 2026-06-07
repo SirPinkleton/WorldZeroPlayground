@@ -1,15 +1,14 @@
 import { Link } from "react-router-dom";
 import type { TaskOut } from "../../api/tasks";
 import LevelPill from "../ui/LevelPill";
-import { factionCssVar } from "../../utils/factions";
+import SnideMasthead from "./SnideMasthead";
 
 /**
- * S.N.I.D.E. — Newspaper Clipping.
- * Aged newsprint, torn top/bottom edges, masthead, two-column body, cutout ransom letters.
+ * S.N.I.D.E. — Ransom Dispatch.
+ * Photocopier-black demand note taped to the wall: acid masthead, cut-out
+ * ransom-letter title, pink scrawl, halftone screen. Loudest card in the grid.
+ * Visuals only — same prop contract as the other faction cards.
  */
-
-const TORN_CLIP =
-  "polygon(0% 0%, 4% 100%, 8% 20%, 12% 90%, 16% 10%, 20% 80%, 24% 0%, 28% 100%, 32% 15%, 36% 85%, 40% 5%, 44% 95%, 48% 20%, 52% 80%, 56% 0%, 60% 100%, 64% 15%, 68% 90%, 72% 5%, 76% 85%, 80% 0%, 84% 100%, 88% 20%, 92% 80%, 96% 10%, 100% 0%)";
 
 interface Props {
   task: TaskOut;
@@ -17,37 +16,83 @@ interface Props {
   onSignup?: (id: number) => void;
 }
 
-function CutoutLetters({ text }: { text: string }) {
+/** Mismatched cut-out letters — bg/colour/face/tilt picked deterministically per char. */
+const RANSOM_STYLES = [
+  {
+    bg: "var(--faction-snide-paper)",
+    col: "var(--faction-snide-ink)",
+    font: "var(--faction-snide-font-impact)",
+    rot: -5,
+  },
+  {
+    bg: "var(--faction-snide-ink)",
+    col: "var(--faction-snide-acid)",
+    font: "var(--faction-snide-font-cond)",
+    rot: 4,
+  },
+  {
+    bg: "var(--faction-snide-pink)",
+    col: "#fff",
+    font: "var(--faction-snide-font-black)",
+    rot: -3,
+  },
+  {
+    bg: "var(--faction-snide-acid)",
+    col: "var(--faction-snide-ink)",
+    font: "var(--faction-snide-font-impact)",
+    rot: 6,
+  },
+  {
+    bg: "var(--faction-snide-paper)",
+    col: "var(--faction-snide-ink)",
+    font: "var(--font-display)",
+    rot: 2,
+    italic: true,
+  },
+  {
+    bg: "var(--faction-snide-ink)",
+    col: "#fff",
+    font: "var(--faction-snide-font-cond)",
+    rot: -6,
+  },
+];
+
+function Ransom({ text, size = 22 }: { text: string; size?: number }) {
   return (
-    <span style={{ display: "inline-flex", gap: 1 }}>
-      {text.split("").map((char, index) =>
-        char === "." ? (
+    <span
+      style={{
+        display: "inline-flex",
+        flexWrap: "wrap",
+        gap: "4px 3px",
+        alignItems: "center",
+      }}
+    >
+      {[...text].map((char, index) => {
+        if (char === " ")
+          return <span key={index} style={{ width: size * 0.22 }} />;
+        const style =
+          RANSOM_STYLES[(char.charCodeAt(0) + index * 3) % RANSOM_STYLES.length];
+        return (
           <span
             key={index}
             style={{
-              fontSize: "var(--text-sm)",
-              fontFamily: "var(--font-body)",
-              color: factionCssVar("snide", "card-accent"),
-            }}
-          >
-            .
-          </span>
-        ) : (
-          <span
-            key={index}
-            style={{
-              background: factionCssVar("snide", "card-accent"),
-              color: factionCssVar("snide", "card-bg"),
-              fontFamily: "var(--font-body)",
-              fontSize: "var(--text-sm)",
-              padding: "0 2px",
-              lineHeight: 1.4,
+              display: "inline-block",
+              background: style.bg,
+              color: style.col,
+              fontFamily: style.font,
+              fontStyle: style.italic ? "italic" : "normal",
+              fontSize: size,
+              lineHeight: 0.92,
+              padding: "2px 5px 0",
+              transform: `rotate(${style.rot}deg)`,
+              boxShadow: "1.5px 2.5px 0 rgba(0,0,0,0.4)",
+              textTransform: "uppercase",
             }}
           >
             {char}
           </span>
-        ),
-      )}
+        );
+      })}
     </span>
   );
 }
@@ -57,152 +102,128 @@ export default function TaskCardSNIDE({
   displayPoints,
   onSignup,
 }: Props) {
-  const words = (task.description ?? "").split(" ");
-  const mid = Math.ceil(words.length / 2);
-  const col1 = words.slice(0, mid).join(" ");
-  const col2 = words.slice(mid).join(" ");
-
   return (
     <div
       style={{
-        minWidth: 136,
-        maxWidth: 164,
-        flex: "0 1 148px",
-        background: factionCssVar("snide", "card-bg"),
+        minWidth: 212,
+        maxWidth: 272,
+        flex: "0 1 248px",
         position: "relative",
-        padding: "10px 10px 12px",
-        fontFamily: factionCssVar("snide", "card-font"),
-        color: factionCssVar("snide", "card-text"),
+        background: "var(--faction-snide-card-bg)",
+        color: "var(--faction-snide-card-text)",
+        padding: "26px 18px 18px",
+        fontFamily: "var(--font-body)",
+        overflow: "hidden",
+        boxShadow: "6px 8px 0 rgba(0,0,0,0.28)",
+        transform: "rotate(-1deg)",
         transition: "background 150ms, color 150ms",
       }}
     >
+      {/* halftone dot screen (acid tint) */}
       <div
+        className="ht-dots"
         style={{
           position: "absolute",
-          top: -1,
-          left: 0,
-          right: 0,
-          height: 6,
-          background: "var(--color-bg-page)",
-          clipPath: TORN_CLIP,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: -1,
-          left: 0,
-          right: 0,
-          height: 6,
-          background: "var(--color-bg-page)",
-          clipPath: TORN_CLIP,
+          inset: 0,
+          color: "rgba(182,255,46,0.09)",
+          pointerEvents: "none",
         }}
       />
 
+      {/* masthead */}
+      <SnideMasthead
+        subtitle={`dispatch №${String(task.id).padStart(4, "0")}`}
+        size={14}
+      />
+
+      {/* pink scrawl */}
       <div
         style={{
-          fontSize: 6,
-          textTransform: "uppercase",
-          letterSpacing: "0.25em",
-          color: factionCssVar("snide", "card-muted"),
-          borderBottom: `1.5px solid ${factionCssVar("snide", "card-accent")}`,
-          paddingBottom: 3,
-          marginBottom: 5,
+          position: "relative",
+          fontFamily: "var(--faction-snide-font-marker)",
+          fontSize: 11,
+          color: "var(--faction-snide-pink)",
+          transform: "rotate(-1.5deg)",
+          marginBottom: 8,
         }}
       >
-        The Daily Snide Gazette
+        your assignment, should you ignore it —
       </div>
 
+      {/* ransom-letter title */}
       <Link
         to={`/tasks/${task.id}`}
         style={{ textDecoration: "none", color: "inherit" }}
       >
-        <div
-          style={{
-            fontSize: "var(--text-lg)",
-            lineHeight: 1.2,
-            marginBottom: 4,
-            overflowWrap: "anywhere",
-          }}
-        >
-          {task.title}
+        <div style={{ position: "relative", margin: "4px 0 12px" }}>
+          <Ransom text={task.title} size={22} />
         </div>
       </Link>
 
-      <div style={{ marginBottom: 6 }}>
-        <CutoutLetters text="S.N.I.D.E." />
-        <span
-          style={{
-            fontSize: "var(--text-xs)",
-            color: factionCssVar("snide", "card-accent"),
-            marginLeft: 4,
-          }}
-        >
-          {displayPoints} pts
-        </span>
-      </div>
-
       {task.description && (
-        <div
+        <p
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1px 1fr",
-            gap: 4,
-            marginBottom: 8,
+            position: "relative",
+            fontSize: 10,
+            lineHeight: 1.5,
+            color: "var(--faction-snide-card-muted)",
+            margin: "0 0 14px",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
           }}
         >
-          <div
-            style={{
-              fontSize: 7.5,
-              color: factionCssVar("snide", "card-muted"),
-              lineHeight: 1.5,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            {col1}
-          </div>
-          <div style={{ background: "var(--color-border)" }} />
-          <div
-            style={{
-              fontSize: 7.5,
-              color: factionCssVar("snide", "card-muted"),
-              lineHeight: 1.5,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            {col2}
-          </div>
-        </div>
+          {task.description}
+        </p>
       )}
 
       {onSignup && (
         <button
           onClick={() => onSignup(task.id)}
-          className="btn-primary"
-          style={{ fontSize: 7, padding: "2px 8px", marginBottom: 6 }}
+          style={{
+            position: "relative",
+            background: "var(--faction-snide-pink)",
+            color: "#fff",
+            fontFamily: "var(--faction-snide-font-black)",
+            fontSize: 11,
+            padding: "6px 12px",
+            border: "none",
+            cursor: "pointer",
+            transform: "rotate(-2deg)",
+            boxShadow: "2px 3px 0 rgba(0,0,0,0.4)",
+            marginBottom: 12,
+          }}
         >
-          sign up
+          I'M IN ↗
         </button>
       )}
 
-      <div className="card-footer">
+      {/* footer: points + level */}
+      <div className="card-footer" style={{ position: "relative" }}>
         <span
           style={{
-            fontSize: "var(--text-xs)",
-            color: factionCssVar("snide", "card-accent"),
-            fontFamily: "var(--font-body)",
+            fontFamily: "var(--faction-snide-font-impact)",
+            fontSize: 18,
+            letterSpacing: "0.04em",
+            color: "var(--faction-snide-acid)",
           }}
         >
-          {displayPoints} pts
+          {displayPoints}
+          <span style={{ fontSize: 9, marginLeft: 3 }}>PTS</span>
         </span>
         <LevelPill level={task.level_required} factionSlug="snide" />
       </div>
+
+      {/* scotch tape */}
+      <div
+        className="snide-tape"
+        style={{ top: -11, left: 28, transform: "rotate(-8deg)" }}
+      />
+      <div
+        className="snide-tape"
+        style={{ top: -9, right: 22, transform: "rotate(7deg)" }}
+      />
     </div>
   );
 }
