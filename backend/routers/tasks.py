@@ -34,6 +34,7 @@ async def list_tasks(
     max_points: Optional[int] = None,
     exclude_character_id: Optional[int] = None,
     task_type: Optional[str] = None,
+    sort: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
@@ -48,6 +49,7 @@ async def list_tasks(
         max_points=max_points,
         exclude_character_id=exclude_character_id,
         task_type=task_type,
+        sort=sort,
         limit=limit,
         offset=offset,
     )
