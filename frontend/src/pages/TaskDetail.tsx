@@ -9,6 +9,7 @@
  */
 import { useParams } from "react-router-dom";
 import PageTitle from "../components/ui/PageTitle";
+import { pickVariant } from "../utils/factionDispatch";
 import { useTaskDetail, type TaskDetailState } from "./taskDetail/useTaskDetail";
 import DefaultTaskDetail from "./taskDetail/archetypes/DefaultTaskDetail";
 import TaskDetailSNIDE from "./taskDetail/archetypes/TaskDetailSNIDE";
@@ -47,7 +48,7 @@ export default function TaskDetail() {
     return <div className="py-8 font-body text-muted">Task not found.</div>;
 
   const slug = state.task.primary_faction_slug ?? null;
-  const Archetype = (slug ? ARCHETYPE_BY_SLUG[slug] : undefined) ?? DefaultTaskDetail;
+  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, slug, DefaultTaskDetail);
 
   return (
     <>

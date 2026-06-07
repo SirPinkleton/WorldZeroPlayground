@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { pickVariant } from '../../utils/factionDispatch'
 import VoteStamps from '../ui/VoteStamps'
 import EverymenVote from './EverymenVote'
 import GestaltVote from './GestaltVote'
@@ -29,6 +30,6 @@ export default function VoteUI({
   factionSlug,
   ...props
 }: VoteUIProps & { factionSlug?: string | null }) {
-  const Variant = (factionSlug && FACTION_VOTE[factionSlug]) || VoteStamps
+  const Variant = pickVariant(FACTION_VOTE, factionSlug, VoteStamps)
   return <Variant {...props} />
 }

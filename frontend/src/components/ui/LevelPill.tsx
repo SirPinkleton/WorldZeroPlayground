@@ -12,7 +12,7 @@ export default function LevelPill({
   factionSlug,
 }: {
   level: number;
-  factionSlug?: string;
+  factionSlug?: string | null;
 }) {
   const bg = factionSlug
     ? factionCssVar(factionSlug, "card-accent")
