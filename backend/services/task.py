@@ -161,6 +161,10 @@ async def list_signups_for_task(
     return list(result.all())
 
 
+#: ``sort`` value that orders the task list by creation time, newest first.
+SORT_NEWEST = "newest"
+
+
 async def list_tasks(
     session: AsyncSession,
     *,
@@ -171,6 +175,7 @@ async def list_tasks(
     max_points: Optional[int] = None,
     exclude_character_id: Optional[int] = None,
     task_type: Optional[str] = None,
+    sort: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[Task]:
@@ -178,6 +183,9 @@ async def list_tasks(
 
     If ``task_type`` is None or 'all', both standard and metatask rows are
     returned. Pass 'standard' or 'metatask' to filter.
+
+    ``sort='newest'`` orders by creation time (newest first); the default
+    ordering surfaces the easiest, highest-value tasks first.
     """
     # Collect hidden faction slugs to exclude their tasks
     hidden_result = await session.execute(
@@ -232,6 +240,10 @@ async def list_tasks(
         )
         query = query.where(Task.id.notin_(active_task_ids))
 
-    query = query.order_by(Task.level_required.asc(), Task.point_value.desc()).limit(limit).offset(offset)
+    if sort == SORT_NEWEST:
+        query = query.order_by(Task.created_at.desc(), Task.id.desc())
+    else:
+        query = query.order_by(Task.level_required.asc(), Task.point_value.desc())
+    query = query.limit(limit).offset(offset)
     result = await session.execute(query)
     return list(result.scalars().all())

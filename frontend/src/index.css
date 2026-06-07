@@ -898,6 +898,10 @@
   background: radial-gradient(120% 90% at 50% 6%, transparent 46%, color-mix(in srgb, var(--eph-vellum-deep) 58%, transparent));
 }
 
+/* Homepage activity ticker — horizontal marquee + blinking "LIVE" dot. */
+@keyframes ticker-roll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes wz-blink { 50% { opacity: 0; } }
+
 /* Slow motion — rings turn, points breathe. Stilled for reduced-motion. */
 @keyframes eph-spin { to { transform: rotate(360deg); } }
 @keyframes eph-twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }

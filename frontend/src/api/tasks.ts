@@ -41,6 +41,10 @@ export interface TaskFilters {
   level?: number
   exclude_character_id?: number
   task_type?: TaskType
+  /** 'newest' orders by creation time (newest first); default sorts by level/points. */
+  sort?: string
+  limit?: number
+  offset?: number
 }
 
 export async function listTasks(filters?: TaskFilters): Promise<TaskOut[]> {
