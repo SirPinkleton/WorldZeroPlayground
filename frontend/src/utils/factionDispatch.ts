@@ -12,16 +12,7 @@
  */
 import type { ComponentType } from 'react'
 
-/**
- * Faction-identity aliases: members of a derived/retired faction render with
- * their canonical faction's archetype. Mirrors the albescent / aged_out → ua
- * rows of CSS_KEY in utils/factions.ts (kept local because that map also encodes
- * unrelated CSS-key hyphenation, which dispatch doesn't care about).
- */
-const SLUG_ALIASES: Record<string, string> = {
-  albescent: 'ua',
-  aged_out: 'ua',
-}
+import { FACTION_ALIASES } from './factions'
 
 /**
  * Resolve a faction slug to its archetype component.
@@ -52,6 +43,6 @@ export function pickVariant<P>(
   fallback?: ComponentType<P>,
 ): ComponentType<P> | undefined {
   if (!slug) return fallback
-  const alias = SLUG_ALIASES[slug]
+  const alias = FACTION_ALIASES[slug]
   return map[slug] ?? (alias ? map[alias] : undefined) ?? fallback
 }
