@@ -413,12 +413,16 @@ async def _check_create_preconditions(
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
 
-    if task.status != TaskStatus.active:
-        if character.faction_slug not in era.allow_praxis_on_inactive_task_factions:
-            raise HTTPException(
-                status_code=403,
-                detail=f"This task is {task.status.value} and is not open for new praxes.",
-            )
+    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
+        raise HTTPException(
+            status_code=403,
+            detail="This task is retired and is not open for new praxes.",
+        )
+    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
+        raise HTTPException(
+            status_code=403,
+            detail="This task is pending and is not open for new praxes.",
+        )
 
     if not await can_submit_praxis_for_task(character, task, session):
         raise HTTPException(

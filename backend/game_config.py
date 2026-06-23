@@ -98,9 +98,12 @@ class EraConfig:
     # Taunt templates for this era
     taunt_templates: dict = field(default_factory=dict)  # faction slug → trigger → templates
 
-    # Faction slugs allowed to create praxes for non-active (pending/retired) tasks.
-    # Empty by default; set per-era in eras/*.py.
-    allow_praxis_on_inactive_task_factions: frozenset = field(default_factory=frozenset)
+    # Faction slugs allowed to create praxes for retired / pending tasks respectively.
+    # Kept separate because granting access to pending (admin-review) tasks is a
+    # categorically different — and much rarer — permission than granting Task Vision
+    # access to retired ones. Mirrors the level_to_see_retired/pending_tasks split.
+    allow_praxis_on_retired_task_factions: frozenset = field(default=frozenset())
+    allow_praxis_on_pending_task_factions: frozenset = field(default=frozenset())
 
 
 # -- Era configs live in backend/eras/ (one file per era) --------------------

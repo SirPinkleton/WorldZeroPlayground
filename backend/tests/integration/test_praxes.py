@@ -17,7 +17,7 @@ from models.character import Character
 from models.character_stats import CharacterStats
 from models.era import Era
 from models.praxis import ModerationStatus, Praxis, PraxisMember, PraxisStatus
-from models.task import Task
+from models.task import Task, TaskStatus
 
 
 # ---------------------------------------------------------------------------
@@ -1307,96 +1307,46 @@ async def test_create_minimal_draft_blocks_duplicate_non_analog(
 
 
 @pytest.mark.asyncio
-async def test_create_praxis_pending_task_returns_403(
+@pytest.mark.parametrize("task_status", [TaskStatus.pending, TaskStatus.retired])
+async def test_create_praxis_non_active_task_returns_403(
     client: AsyncClient,
     db_session: AsyncSession,
     character: Character,
     auth_headers: dict,
+    task_status: TaskStatus,
 ):
-    """Praxis creation against a pending task is rejected for non-carve-out factions."""
-    from models.task import Task, TaskStatus
-
-    pending_task = Task(
-        title="Not Yet Active",
+    """Praxis creation against a pending or retired task is rejected for non-carve-out factions."""
+    task = Task(
+        title="Not Open",
         description="",
         point_value=10,
         level_required=0,
-        status=TaskStatus.pending,
+        status=task_status,
         created_by=character.id,
         primary_faction_slug="ua",
     )
-    db_session.add(pending_task)
+    db_session.add(task)
     await db_session.commit()
-    await db_session.refresh(pending_task)
+    await db_session.refresh(task)
 
     resp = await client.post(
         "/praxes",
-        json={"task_id": pending_task.id, "type": "solo", "title": "Pending Task Praxis"},
+        json={"task_id": task.id, "type": "solo", "title": "Blocked Praxis"},
         headers=auth_headers,
     )
     assert resp.status_code == 403
-    assert "pending" in resp.json()["detail"].lower()
+    assert task_status.value in resp.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_create_praxis_retired_task_returns_403(
+async def test_create_praxis_retired_task_allowed_for_ephemerists(
     client: AsyncClient,
     db_session: AsyncSession,
     character: Character,
+    faction_ephemerists,
     auth_headers: dict,
 ):
-    """Praxis creation against a retired task is rejected for non-carve-out factions."""
-    from models.task import Task, TaskStatus
-
-    retired_task = Task(
-        title="Long Gone",
-        description="",
-        point_value=10,
-        level_required=0,
-        status=TaskStatus.retired,
-        created_by=character.id,
-        primary_faction_slug="ua",
-    )
-    db_session.add(retired_task)
-    await db_session.commit()
-    await db_session.refresh(retired_task)
-
-    resp = await client.post(
-        "/praxes",
-        json={"task_id": retired_task.id, "type": "solo", "title": "Retired Task Praxis"},
-        headers=auth_headers,
-    )
-    assert resp.status_code == 403
-    assert "retired" in resp.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
-async def test_create_praxis_inactive_task_allowed_for_carve_out_faction(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    character: Character,
-    auth_headers: dict,
-):
-    """Ephemerists may create praxes on non-active tasks (Task Vision carve-out in Era 1)."""
-    from models.faction import Faction, FactionStatus
-    from models.task import Task, TaskStatus
-    from sqlalchemy import select as sa_select
-
-    # Ensure ephemerists faction row exists for the FK constraint.
-    existing = await db_session.execute(
-        sa_select(Faction).where(Faction.slug == "ephemerists")
-    )
-    if existing.scalar_one_or_none() is None:
-        db_session.add(
-            Faction(
-                slug="ephemerists",
-                name="The Ephemerists",
-                description="Task Vision perk",
-                status=FactionStatus.visible,
-            )
-        )
-        await db_session.commit()
-
+    """Ephemerists may create praxes on retired tasks (Task Vision carve-out in Era 1)."""
     character.faction_slug = "ephemerists"
     await db_session.commit()
 
