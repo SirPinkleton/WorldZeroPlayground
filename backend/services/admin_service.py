@@ -3,7 +3,6 @@
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from game_config import CURRENT_ERA, EraConfig
 from models.account import Account, AccountStatus
@@ -379,49 +378,6 @@ async def suspend_account(
     await session.flush()
     await session.refresh(account)
     return account
-
-
-# ---------------------------------------------------------------------------
-# Moderation
-# ---------------------------------------------------------------------------
-
-
-async def moderate_praxis(
-    praxis_id: int,
-    new_status: ModerationStatus,
-    admin_note: str | None,
-    session: AsyncSession,
-) -> Praxis:
-    """Set the moderation status of a praxis. Admin can override any state.
-
-    Loads ``invites`` and ``media_items`` because the admin router pipes the
-    returned praxis into ``build_praxis_out`` for the response body.
-    """
-    result = await session.execute(
-        select(Praxis)
-        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
-        .where(Praxis.id == praxis_id)
-    )
-    praxis = result.scalar_one_or_none()
-    if praxis is None:
-        raise HTTPException(status_code=404, detail="Praxis not found.")
-
-    praxis.moderation_status = new_status
-
-    if new_status == ModerationStatus.failed:
-        praxis.admin_note = admin_note or ""
-    elif new_status == ModerationStatus.visible:
-        praxis.admin_note = None
-
-    await session.flush()
-    # Scalar-only refresh leaves the already-loaded relationships intact,
-    # so we don't trip ``lazy="raise"`` on invites/media_items when the
-    # router pipes this praxis into ``build_praxis_out``. This avoids the
-    # second full SELECT + selectinload round-trip the old code issued.
-    await session.refresh(
-        praxis, attribute_names=["moderation_status", "admin_note", "flagged_at"]
-    )
-    return praxis
 
 
 async def archive_message(
