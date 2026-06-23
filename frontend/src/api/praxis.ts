@@ -1,4 +1,5 @@
 import api from './axios'
+import type { TaskOut } from './tasks'
 
 // ---------------------------------------------------------------------------
 // Types — match backend schemas/praxis.py exactly
@@ -71,6 +72,7 @@ export interface PraxisOut {
   score: number
   duel_vote_summary: DuelVoteSummary[] | null
   can_flag: boolean
+  applied_metatasks: TaskOut[]
 }
 
 export interface PraxisCardOut {

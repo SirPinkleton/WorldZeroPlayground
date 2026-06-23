@@ -525,6 +525,109 @@ export default function DefaultPraxisDetail({
           )}
         </div>
       )}
+
+      {/* -- Metatask Panel -- */}
+      {(() => {
+        if (!state.praxis || !state.user?.character) return null;
+
+        const character = state.user.character;
+        const isMember = state.praxis.members.some(
+          (m) => m.character_id === character.id
+        );
+        if (!isMember) return null;
+
+        const level = character.level ?? 0;
+        const isAlbescent = character.faction_slug === "albescent";
+        const canEdit = isAlbescent || level >= 7;
+        const canSee = level >= 6 || isAlbescent;
+        if (!canSee) return null;
+
+        const appliedIds = new Set(
+          (state.praxis.applied_metatasks ?? []).map((t) => t.id)
+        );
+        const available = state.metatasks.filter(
+          (t) =>
+            !appliedIds.has(t.id) &&
+            (isAlbescent || t.metatask_faction_slug === character.faction_slug)
+        );
+
+        return (
+          <div className="sidebar-card mb-4" style={{ padding: "14px 16px" }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="eyebrow">Metatasks</span>
+              {state.metataskLoading && (
+                <span className="eyebrow" style={{ fontSize: 8 }}>loading...</span>
+              )}
+            </div>
+
+            {/* Applied metatasks */}
+            {state.praxis.applied_metatasks && state.praxis.applied_metatasks.length > 0 ? (
+              <div style={{ marginBottom: canEdit ? 12 : 0 }}>
+                <span className="eyebrow" style={{ fontSize: 8, display: "block", marginBottom: 6 }}>Applied</span>
+                {state.praxis.applied_metatasks.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2 mb-1" style={{ padding: "4px 8px", background: "var(--color-surface-soft)", fontSize: 11 }}>
+                    <span className="flex-1 font-body">{t.title}</span>
+                    <span className="eyebrow" style={{ fontSize: 8 }}>+{t.point_value} pts</span>
+                    {canEdit && (
+                      <button
+                        onClick={() => void state.handleRemoveMetatask(t.id)}
+                        disabled={state.removingMetataskId === t.id}
+                        style={{ background: "none", border: "1px solid rgba(220,38,38,0.3)", color: "var(--color-danger)", fontSize: 8, padding: "1px 6px", cursor: "pointer", opacity: state.removingMetataskId === t.id ? 0.5 : 1 }}
+                      >
+                        {state.removingMetataskId === t.id ? "..." : "remove"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-body" style={{ fontSize: 10, color: "var(--color-text-tertiary)", marginBottom: canEdit ? 12 : 0 }}>
+                No metatasks applied yet.
+              </p>
+            )}
+
+            {/* Available metatasks */}
+            {canEdit && (
+              <>
+                <span className="eyebrow" style={{ fontSize: 8, display: "block", marginBottom: 6 }}>Available</span>
+                {state.metataskError && (
+                  <p className="font-body" style={{ fontSize: 9, color: "var(--color-danger)", marginBottom: 6 }}>
+                    {state.metataskError}
+                  </p>
+                )}
+                {available.length === 0 && !state.metataskLoading ? (
+                  <p className="font-body" style={{ fontSize: 10, color: "var(--color-text-tertiary)" }}>
+                    No eligible metatasks available.
+                  </p>
+                ) : (
+                  available.map((t) => (
+                    <div key={t.id} className="flex items-center gap-2 mb-1" style={{ padding: "4px 8px", background: "var(--color-surface-soft)", fontSize: 11 }}>
+                      <span className="flex-1 font-body">{t.title}</span>
+                      <span className="eyebrow" style={{ fontSize: 8 }}>+{t.point_value} pts</span>
+                      <button
+                        onClick={() => void state.handleApplyMetatask(t.id)}
+                        disabled={state.applyingMetataskId === t.id}
+                        style={{ background: "none", border: "1px solid var(--color-accent)", color: "var(--color-accent)", fontSize: 8, padding: "1px 6px", cursor: "pointer", opacity: state.applyingMetataskId === t.id ? 0.5 : 1 }}
+                      >
+                        {state.applyingMetataskId === t.id ? "..." : "apply"}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+
+            {/* Read-only note */}
+            {!canEdit && canSee && (
+              <p className="font-body" style={{ fontSize: 9, color: "var(--color-text-tertiary)", fontStyle: "italic" }}>
+                Reach level 7 to apply metatasks.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* -- end Metatask Panel -- */}
     </div>
   )
 }
