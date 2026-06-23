@@ -1,6 +1,7 @@
 /**
  * Punk Zine — S.N.I.D.E. faction.
- * Cream pulp, ransom-note title, two-column markdown preview, xerox photo tiles.
+ * Photocopier ink stock, ransom-note title, two-column markdown preview, xerox
+ * photo tiles. Colours read from the faction tokens, so it tracks the punk palette.
  */
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
@@ -27,7 +28,8 @@ interface Props {
 const cutoutFonts = [
   "'Permanent Marker', cursive",
   "'Special Elite', serif",
-  "'UnifrakturCook', serif",
+  "'Anton', sans-serif",
+  "'Archivo Black', sans-serif",
   "'Lora', serif",
   "'Courier Prime', monospace",
   "'Bebas Neue', sans-serif",
@@ -105,7 +107,7 @@ export default function EditPraxisPunkZine({ state }: Props) {
   const ink = factionCssVar("snide", "card-text");
   const muted = factionCssVar("snide", "card-muted");
   const lightBg = factionCssVar("snide", "light");
-  const hot = "#c44a3a";
+  const hot = "var(--faction-snide-pink)";
 
   const allowedModes = task?.allowed_modes ?? ["solo", "collab", "duel"];
 

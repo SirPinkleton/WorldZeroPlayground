@@ -3,7 +3,6 @@
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from game_config import CURRENT_ERA, EraConfig
 from models.account import Account, AccountStatus
@@ -27,7 +26,7 @@ from schemas.admin import (
     OverviewStats,
 )
 from services.era import get_current_era_row, get_or_create_stats
-from services.scoring import compute_votes_available
+from services.scoring import compute_vote_budget, compute_votes_available
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +85,7 @@ async def get_account_detail(account_id: int, session: AsyncSession) -> AccountD
 async def list_characters(
     session: AsyncSession,
     faction: str | None = None,
-    status: str | None = None,
+    status: CharacterStatus | None = None,
     era: EraConfig = CURRENT_ERA,
 ) -> list[CharacterSummary]:
     era_row = await get_current_era_row(session)
@@ -103,11 +102,7 @@ async def list_characters(
     if faction:
         query = query.where(Character.faction_slug == faction)
     if status:
-        try:
-            status_enum = CharacterStatus(status)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
-        query = query.where(Character.status == status_enum)
+        query = query.where(Character.status == status)
 
     result = await session.execute(query)
     rows = result.all()
@@ -287,7 +282,7 @@ async def set_character_stats(
         # so the on-read formula lands on the requested value.
         # votes_spent = cap - desired (clamped at 0).
         score_for_cap = patch.score if patch.score is not None else stats.score
-        cap = era.vote_budget_base + int(era.vote_budget_multiplier * score_for_cap)
+        cap = compute_vote_budget(score_for_cap, era)
         stats.votes_spent_this_era = max(0, cap - patch.votes_available)
 
     await session.flush()
@@ -326,43 +321,34 @@ async def assign_or_revoke_role(
     role_result = await session.execute(select(Role).where(Role.name == role_name))
     role = role_result.scalar_one_or_none()
 
-    if action == "grant":
-        if role is None:
-            role = Role(name=role_name, description="")
-            session.add(role)
-            await session.flush()
+    if role is None:
+        if action == "revoke":
+            raise HTTPException(status_code=404, detail=f"Role '{role_name}' does not exist.")
+        role = Role(name=role_name, description="")
+        session.add(role)
+        await session.flush()
 
-        existing_result = await session.execute(
-            select(AccountRole).where(
-                AccountRole.account_id == account_id,
-                AccountRole.role_id == role.id,
-            )
+    existing_result = await session.execute(
+        select(AccountRole).where(
+            AccountRole.account_id == account_id,
+            AccountRole.role_id == role.id,
         )
-        if existing_result.scalar_one_or_none() is not None:
-            return  # Already has the role — idempotent
+    )
+    account_role = existing_result.scalar_one_or_none()
 
-        account_role = AccountRole(
+    if action == "grant":
+        if account_role is not None:
+            return  # Already has the role — idempotent
+        session.add(AccountRole(
             account_id=account_id,
             role_id=role.id,
             granted_by=admin_account_id,
-        )
-        session.add(account_role)
+        ))
         await session.flush()
 
     elif action == "revoke":
-        if role is None:
-            raise HTTPException(status_code=404, detail=f"Role '{role_name}' does not exist.")
-
-        existing_result = await session.execute(
-            select(AccountRole).where(
-                AccountRole.account_id == account_id,
-                AccountRole.role_id == role.id,
-            )
-        )
-        account_role = existing_result.scalar_one_or_none()
         if account_role is None:
             return  # Doesn't have the role — idempotent
-
         await session.delete(account_role)
         await session.flush()
 
@@ -379,49 +365,6 @@ async def suspend_account(
     await session.flush()
     await session.refresh(account)
     return account
-
-
-# ---------------------------------------------------------------------------
-# Moderation
-# ---------------------------------------------------------------------------
-
-
-async def moderate_praxis(
-    praxis_id: int,
-    new_status: ModerationStatus,
-    admin_note: str | None,
-    session: AsyncSession,
-) -> Praxis:
-    """Set the moderation status of a praxis. Admin can override any state.
-
-    Loads ``invites`` and ``media_items`` because the admin router pipes the
-    returned praxis into ``build_praxis_out`` for the response body.
-    """
-    result = await session.execute(
-        select(Praxis)
-        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
-        .where(Praxis.id == praxis_id)
-    )
-    praxis = result.scalar_one_or_none()
-    if praxis is None:
-        raise HTTPException(status_code=404, detail="Praxis not found.")
-
-    praxis.moderation_status = new_status
-
-    if new_status == ModerationStatus.failed:
-        praxis.admin_note = admin_note or ""
-    elif new_status == ModerationStatus.visible:
-        praxis.admin_note = None
-
-    await session.flush()
-    # Scalar-only refresh leaves the already-loaded relationships intact,
-    # so we don't trip ``lazy="raise"`` on invites/media_items when the
-    # router pipes this praxis into ``build_praxis_out``. This avoids the
-    # second full SELECT + selectinload round-trip the old code issued.
-    await session.refresh(
-        praxis, attribute_names=["moderation_status", "admin_note", "flagged_at"]
-    )
-    return praxis
 
 
 async def archive_message(

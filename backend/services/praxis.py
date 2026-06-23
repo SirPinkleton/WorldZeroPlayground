@@ -28,6 +28,7 @@ from models.praxis import (
 )
 from models.task import Task, TaskType
 from models.vote import Vote
+from schemas.task import TaskOut
 from schemas.praxis import (
     DuelVoteSummary,
     MediaItemOut,
@@ -113,6 +114,11 @@ async def compute_praxis_score_from_db(
     if task is None:
         return 0.0
 
+    sum_result = await session.execute(
+        select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
+    )
+    total_stars = int(sum_result.scalar_one_or_none() or 0)
+
     if praxis.type == PraxisType.solo:
         creator = praxis.created_by
         character_faction_slug = creator.faction_slug if creator else "na"
@@ -130,10 +136,6 @@ async def compute_praxis_score_from_db(
         else:
             creator_level = 0
         meta_task_points = await get_meta_task_points(praxis.id, creator_level, session)
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars, meta_task_points)
 
     elif praxis.type == PraxisType.collab:
@@ -151,18 +153,10 @@ async def compute_praxis_score_from_db(
             era,
             collaboration_mode=COLLABORATION_MODE_COLLAB,
         )
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 
     elif praxis.type == PraxisType.duel:
         # For a duel, return the combined star total across members
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
         faction_multiplier = 1.0
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 
@@ -177,16 +171,13 @@ async def compute_praxis_score_from_db(
 async def build_praxis_out(
     praxis: Praxis,
     session: AsyncSession,
-    viewer_character_id: Optional[int] = None,
     era: EraConfig = CURRENT_ERA,
     viewer: Optional[Character] = None,
 ) -> PraxisOut:
     """Build a PraxisOut for any praxis type.
 
     ``viewer`` is the authenticated viewer's character, used to compute
-    viewer-relative flags such as ``can_flag``. ``viewer_character_id`` is
-    retained for backward compatibility (invite visibility check). When
-    ``viewer`` is given, its id wins for the invite visibility check too.
+    viewer-relative flags such as ``can_flag`` and invite visibility.
     """
     task_title = praxis.task.title if praxis.task else ""
     task_point_value = praxis.task.point_value if praxis.task else 0
@@ -194,7 +185,7 @@ async def build_praxis_out(
     members = [_build_member_out(m) for m in praxis.members]
 
     # Invites only visible to members
-    effective_viewer_id = viewer.id if viewer is not None else viewer_character_id
+    effective_viewer_id = viewer.id if viewer is not None else None
     member_ids = {m.character_id for m in praxis.members}
     include_invites = effective_viewer_id in member_ids if effective_viewer_id else False
     invites = [_build_invite_out(i) for i in praxis.invites] if include_invites else []
@@ -212,11 +203,23 @@ async def build_praxis_out(
 
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
+    # Query applied metatasks
+    applied_metatasks: list[TaskOut] = []
+    metatask_tasks_result = await session.execute(
+        select(Task)
+        .join(PraxisMetaTask, PraxisMetaTask.task_id == Task.id)
+        .where(PraxisMetaTask.praxis_id == praxis.id)
+    )
+    metatask_tasks = metatask_tasks_result.scalars().all()
+    if metatask_tasks:
+        applied_metatasks = [TaskOut.model_validate(t) for t in metatask_tasks]
+
     return PraxisOut(
         id=praxis.id,
         task_id=praxis.task_id,
         task_title=task_title,
         task_point_value=task_point_value,
+        task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
         type=praxis.type,
         status=praxis.status,
         title=praxis.title,
@@ -235,6 +238,7 @@ async def build_praxis_out(
         score=score,
         duel_vote_summary=duel_vote_summary,
         can_flag=can_flag,
+        applied_metatasks=applied_metatasks,
     )
 
 
@@ -342,11 +346,18 @@ async def list_praxes(
     praxis_type: Optional[PraxisType] = None,
     status: Optional[PraxisStatus] = None,
     moderation_status: Optional[str] = None,
+    faction: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[Praxis]:
     """List praxes with optional filters."""
     query = select(Praxis)
+
+    if faction is not None:
+        # Praxis has no faction of its own; it inherits the linked task's faction.
+        query = query.join(Task, Praxis.task_id == Task.id).where(
+            Task.primary_faction_slug == faction
+        )
 
     if praxis_type is not None:
         query = query.where(Praxis.type == praxis_type)

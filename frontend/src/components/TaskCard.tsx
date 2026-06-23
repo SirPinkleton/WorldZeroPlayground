@@ -3,13 +3,14 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { updateTaskStatus } from '../api/admin'
 import TaskCardUA from './cards/TaskCardUA'
-import TaskCardAnalog from './cards/TaskCardAnalog'
 import TaskCardGestalt from './cards/TaskCardGestalt'
 import TaskCardSNIDE from './cards/TaskCardSNIDE'
-import TaskCardJourneymen from './cards/TaskCardJourneymen'
+import TaskCardEphemerists from './cards/TaskCardEphemerists'
 import TaskCardSingularity from './cards/TaskCardSingularity'
 import TaskCardUAMasters from './cards/TaskCardUAMasters'
+import TaskCardEverymen from './cards/TaskCardEverymen'
 import { factionCssVar, factionName } from '../utils/factions'
+import { pickVariant } from '../utils/factionDispatch'
 import type { ComponentType } from 'react'
 
 interface CardProps {
@@ -21,10 +22,10 @@ interface CardProps {
 /** Style Guide §6 — one card archetype per faction. */
 const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   ua: TaskCardUA,
-  analog: TaskCardAnalog,
+  analog: TaskCardEverymen,
   gestalt: TaskCardGestalt,
   snide: TaskCardSNIDE,
-  journeymen: TaskCardJourneymen,
+  journeymen: TaskCardEphemerists,
   singularity: TaskCardSingularity,
   ua_masters: TaskCardUAMasters,
 }
@@ -41,7 +42,7 @@ export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
     window.location.reload()
   }
 
-  const Card = CARD_COMPONENTS[task.primary_faction_slug ?? ''] ?? DEFAULT_CARD
+  const Card = pickVariant(CARD_COMPONENTS, task.primary_faction_slug, DEFAULT_CARD)
   const isMetatask = task.task_type === 'metatask'
   return (
     <div style={{ position: 'relative' }}>

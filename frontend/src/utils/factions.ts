@@ -26,10 +26,12 @@ export interface FactionConfig {
  *  before the API response arrives. Do not use these values directly; call factionColor(). */
 const FACTION_FALLBACKS: Record<string, FactionConfig> = {
   ua: { slug: "ua", name: "UA", color: "#7c3aed" },
-  analog: { slug: "analog", name: "Analog", color: "#ca8a04" },
-  gestalt: { slug: "gestalt", name: "Gestalt", color: "#be185d" },
-  snide: { slug: "snide", name: "S.N.I.D.E.", color: "#16a34a" },
-  journeymen: { slug: "journeymen", name: "Journeymen", color: "#0e7490" },
+  // Analog is reskinned/rebranded as Everymen (slug kept to avoid new-faction plumbing).
+  analog: { slug: "analog", name: "Everymen", color: "#c1272d" },
+  gestalt: { slug: "gestalt", name: "Gestalt", color: "#ec5f99" },
+  snide: { slug: "snide", name: "S.N.I.D.E.", color: "#6fae00" },
+  // Journeymen is reskinned/rebranded as The Ephemerists (slug kept to avoid new-faction plumbing).
+  journeymen: { slug: "journeymen", name: "The Ephemerists", color: "#1d6e72" },
   singularity: { slug: "singularity", name: "Singularity", color: "#2563eb" },
   ua_masters: { slug: "ua_masters", name: "UA Masters", color: "#c2410c" },
   albescent: { slug: "albescent", name: "/Albescent", color: "#7c3aed" },
@@ -53,6 +55,18 @@ export function populateFactionRegistry(
 }
 
 /**
+ * Faction-identity aliases: derived/retired factions render with their
+ * canonical faction's identity (archetype + CSS theme). Single source of truth
+ * for the relationship — consumed here by factionCssVar and by pickVariant in
+ * utils/factionDispatch.ts. (FACTION_FALLBACKS still carries their distinct
+ * display names; only the visual identity aliases.)
+ */
+export const FACTION_ALIASES: Record<string, string> = {
+  albescent: "ua",
+  aged_out: "ua",
+};
+
+/**
  * Slug-to-CSS-variable-key mapping.
  * Faction slugs use underscores in the DB but CSS variables use hyphens.
  */
@@ -63,9 +77,8 @@ const CSS_KEY: Record<string, string> = {
   snide: "snide",
   journeymen: "journeymen",
   singularity: "singularity",
+  everymen: "everymen",
   ua_masters: "ua-masters",
-  albescent: "ua",
-  aged_out: "ua",
 };
 
 /**
@@ -85,7 +98,8 @@ export function factionCssVar(
   slug: string | null | undefined,
   suffix?: string,
 ): string {
-  const key = CSS_KEY[slug ?? ""] ?? "ua";
+  const resolved = FACTION_ALIASES[slug ?? ""] ?? slug ?? "";
+  const key = CSS_KEY[resolved] ?? "ua";
   const prop = suffix ? `--faction-${key}-${suffix}` : `--faction-${key}`;
   return `var(${prop})`;
 }

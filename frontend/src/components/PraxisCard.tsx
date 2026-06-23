@@ -1,210 +1,35 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import type { ComponentType } from "react";
 import type { PraxisCardOut } from "../api/praxis";
-import { useAuth } from "../auth/AuthContext";
-import { useAdminMode } from "../auth/AdminModeContext";
-import { moderatePraxis } from "../api/admin";
 import { factionCssVar } from "../utils/factions";
-import { extractError } from "../utils/errors";
+import { pickVariant } from "../utils/factionDispatch";
+import SnideMasthead from "./cards/SnideMasthead";
+import { EphMark, Foxing } from "./cards/ephemeristsAtoms";
+import {
+  AdminOverlay,
+  PraxisContent,
+  type AdminProps,
+} from "./praxisCard/shared";
+import { usePraxisCard } from "./praxisCard/usePraxisCard";
 
 interface Props {
   praxis: PraxisCardOut;
   onModerated?: () => void;
 }
 
-// ─── Shared praxis content ────────────────────────────────────────────────────
-
-interface ContentProps {
-  praxis: PraxisCardOut;
-  titleStyle?: React.CSSProperties;
-  bodyStyle?: React.CSSProperties;
-  metaStyle?: React.CSSProperties;
-}
-
-function PraxisContent({ praxis, titleStyle, metaStyle }: ContentProps) {
-  return (
-    <>
-      <Link to={`/praxes/${praxis.id}`}>
-        <h3
-          className="font-display font-semibold leading-tight hover:underline"
-          style={{ fontSize: "var(--text-lg)", marginBottom: 6, ...titleStyle }}
-        >
-          {praxis.title}
-        </h3>
-      </Link>
-      <Link
-        to={`/tasks/${praxis.task_id}`}
-        className="font-body hover:underline"
-        style={{ fontSize: "var(--text-xs)", ...metaStyle }}
-      >
-        {praxis.task_title}
-      </Link>
-      <div
-        className="flex justify-between items-center font-body"
-        style={{
-          fontSize: "var(--text-xs)",
-          marginTop: 8,
-          paddingTop: 6,
-          borderTop: "1px dashed rgba(128,128,128,0.3)",
-          ...metaStyle,
-        }}
-      >
-        <Link
-          to={`/characters/${praxis.created_by_id}`}
-          className="hover:underline"
-        >
-          {praxis.created_by_display_name || `#${praxis.created_by_id}`}
-        </Link>
-        {praxis.score !== null && (
-          <span
-            className="font-display font-bold"
-            style={{ fontSize: "var(--text-sm)", color: "inherit" }}
-          >
-            {praxis.score.toFixed(1)}
-          </span>
-        )}
-      </div>
-    </>
-  );
-}
-
-// ─── Admin overlay ────────────────────────────────────────────────────────────
-
-interface AdminProps {
-  praxis: PraxisCardOut;
-  showAdminControls: boolean;
-  onHide: (e: React.MouseEvent) => void;
-  onFail: (e: React.MouseEvent) => void;
-  moderateError: string | null;
-}
-
-function AdminOverlay({
-  praxis,
-  showAdminControls,
-  onHide,
-  onFail,
-  moderateError,
-}: AdminProps) {
-  return (
-    <>
-      {praxis.moderation_status === "flagged" && (
-        <span
-          className="eyebrow"
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            fontSize: 7,
-            padding: "1px 5px",
-            border: "1px solid rgba(220,38,38,0.4)",
-            color: "var(--color-danger)",
-            background: "rgba(220,38,38,0.05)",
-          }}
-        >
-          under review
-        </span>
-      )}
-      {praxis.moderation_status === "failed" && (
-        <span
-          className="eyebrow"
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            fontSize: 7,
-            padding: "1px 5px",
-            border: "1px solid rgba(245,158,11,0.4)",
-            color: "var(--color-warning)",
-            background: "rgba(245,158,11,0.05)",
-          }}
-        >
-          failed
-        </span>
-      )}
-      {praxis.moderation_status === "hidden" && (
-        <span
-          className="eyebrow"
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            fontSize: 7,
-            padding: "1px 5px",
-            border: "1px solid rgba(107,114,128,0.4)",
-            color: "var(--color-text-secondary)",
-            background: "rgba(107,114,128,0.05)",
-          }}
-        >
-          hidden
-        </span>
-      )}
-      {moderateError && (
-        <p
-          className="font-body"
-          style={{
-            fontSize: "var(--text-xs)",
-            color: "var(--color-danger)",
-            marginBottom: 4,
-          }}
-        >
-          {moderateError}
-        </p>
-      )}
-      {showAdminControls && praxis.moderation_status === "visible" && (
-        <div
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            display: "flex",
-            gap: 4,
-          }}
-        >
-          <button
-            onClick={onHide}
-            className="eyebrow"
-            style={{
-              fontSize: 7,
-              padding: "1px 5px",
-              border: "1px solid rgba(220,38,38,0.3)",
-              color: "var(--color-danger)",
-              background: "rgba(220,38,38,0.05)",
-              cursor: "pointer",
-            }}
-          >
-            hide
-          </button>
-          <button
-            onClick={onFail}
-            className="eyebrow"
-            style={{
-              fontSize: 7,
-              padding: "1px 5px",
-              border: "1px solid rgba(245,158,11,0.3)",
-              color: "var(--color-warning)",
-              background: "rgba(245,158,11,0.05)",
-              cursor: "pointer",
-            }}
-          >
-            fail
-          </button>
-        </div>
-      )}
-    </>
-  );
-}
+/**
+ * Each faction's praxis card owns a bespoke frame. The content inside is
+ * composed from the shared structural slots in ./praxisCard/shared (an archetype
+ * may rearrange them; today every archetype uses the default PraxisContent
+ * composition). Admin moderation + the optimistic local praxis come from
+ * usePraxisCard; the frame is selected by task faction via pickVariant.
+ */
+type ArchetypeProps = { praxis: PraxisCardOut; adminProps: AdminProps };
 
 // ─── Per-faction archetypes ───────────────────────────────────────────────────
 
 const ROTATIONS = [-2, 1.5, -1, 2.5];
 
-function UAPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+function UAPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   const rotation =
     ROTATIONS[(praxis.task_faction_slug ?? "").length % ROTATIONS.length];
   return (
@@ -240,20 +65,13 @@ function UAPraxisCard({
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("ua", "card-muted") }}
         metaStyle={{ color: factionCssVar("ua", "card-muted") }}
       />
     </div>
   );
 }
 
-function AnalogPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+function AnalogPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   return (
     <div
       style={{
@@ -287,20 +105,13 @@ function AnalogPraxisCard({
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("analog", "card-muted") }}
         metaStyle={{ color: factionCssVar("analog", "card-muted") }}
       />
     </div>
   );
 }
 
-function GestaltPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+function GestaltPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   return (
     <div
       style={{
@@ -367,7 +178,6 @@ function GestaltPraxisCard({
         <AdminOverlay {...adminProps} />
         <PraxisContent
           praxis={praxis}
-          bodyStyle={{ color: factionCssVar("gestalt", "card-muted") }}
           metaStyle={{ color: factionCssVar("gestalt", "card-muted") }}
         />
       </div>
@@ -378,13 +188,7 @@ function GestaltPraxisCard({
 const SNIDE_TORN_CLIP =
   "polygon(0% 0%, 4% 100%, 8% 20%, 12% 90%, 16% 10%, 20% 80%, 24% 0%, 28% 100%, 32% 15%, 36% 85%, 40% 5%, 44% 95%, 48% 20%, 52% 80%, 56% 0%, 60% 100%, 64% 15%, 68% 90%, 72% 5%, 76% 85%, 80% 0%, 84% 100%, 88% 20%, 92% 80%, 96% 10%, 100% 0%)";
 
-function SnidePraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+function SnidePraxisCard({ praxis, adminProps }: ArchetypeProps) {
   return (
     <div
       style={{
@@ -422,99 +226,73 @@ function SnidePraxisCard({
           clipPath: SNIDE_TORN_CLIP,
         }}
       />
-      <div
-        style={{
-          fontSize: 7,
-          textTransform: "uppercase",
-          letterSpacing: "0.25em",
-          color: factionCssVar("snide", "card-muted"),
-          borderBottom: `1.5px solid ${factionCssVar("snide", "card-accent")}`,
-          paddingBottom: 3,
-          marginBottom: 6,
-        }}
-      >
-        The Daily Snide Gazette
-      </div>
+      <div className="snide-tape" style={{ top: -10, left: 22, transform: "rotate(-8deg)" }} />
+      <SnideMasthead subtitle="evidence locker" />
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("snide", "card-muted") }}
         metaStyle={{ color: factionCssVar("snide", "card-muted") }}
       />
     </div>
   );
 }
 
-function JourneymenPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+/**
+ * The Ephemerists (journeymen slug) — a sealed ephemeris entry. A foxed vellum
+ * leaf with a lapis-ruled running head, the sigil, and rubric-accented text.
+ */
+function EphemeristsPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   return (
     <div
       style={{
-        paddingTop: 26,
         position: "relative",
         width: "100%",
         flex: "1 1 280px",
         minWidth: 280,
         boxSizing: "border-box",
+        overflow: "hidden",
+        background: "var(--eph-vellum)",
+        color: "var(--eph-vellum-text)",
+        border: "1px solid color-mix(in srgb, var(--eph-vellum-text) 30%, transparent)",
+        fontFamily: "var(--eph-serif)",
+        boxShadow: "0 1px 0 rgba(0,0,0,0.04), 0 8px 20px -16px rgba(0,0,0,0.6)",
+        transition: "background 150ms, color 150ms",
       }}
     >
+      <Foxing opacity={0.4} />
+      {/* running head — sigil + ephemeris label, lapis-ruled */}
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 0,
-            height: 14,
-            borderLeft: `2px dashed ${factionCssVar("journeymen", "card-accent")}`,
-          }}
-        />
-        <div
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            border: `2px solid ${factionCssVar("journeymen", "card-accent")}`,
-            background: "var(--color-bg-page)",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          border: `2px solid ${factionCssVar("journeymen", "card-accent")}`,
-          background: factionCssVar("journeymen", "card-bg"),
-          fontFamily: "'Courier Prime', monospace",
-          color: factionCssVar("journeymen", "card-text"),
           position: "relative",
-          transition: "background 150ms, color 150ms",
+          zIndex: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "7px 14px 6px",
+          borderBottom: "1px solid var(--eph-gold-deep)",
+          boxShadow: "0 2px 0 -1px color-mix(in srgb, var(--eph-lapis) 55%, transparent)",
         }}
       >
-        <div
+        <EphMark size={13} color="var(--eph-lapis)" />
+        <span
           style={{
-            height: 4,
-            backgroundImage: `repeating-linear-gradient(90deg, var(--faction-journeymen-stripe-red) 0, var(--faction-journeymen-stripe-red) 8px, ${factionCssVar("journeymen", "card-bg")} 8px, ${factionCssVar("journeymen", "card-bg")} 16px, var(--faction-journeymen-stripe-amber) 16px, var(--faction-journeymen-stripe-amber) 24px, ${factionCssVar("journeymen", "card-bg")} 24px, ${factionCssVar("journeymen", "card-bg")} 32px)`,
+            fontFamily: "var(--eph-serif)",
+            fontSize: 8.5,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--eph-rubric)",
           }}
+        >
+          Ephemeris · sealed entry
+        </span>
+      </div>
+      <div style={{ position: "relative", zIndex: 2, padding: "10px 14px 14px" }}>
+        <AdminOverlay {...adminProps} />
+        <PraxisContent
+          praxis={praxis}
+          titleStyle={{ fontFamily: "var(--eph-display)", color: "var(--eph-vellum-text)" }}
+          metaStyle={{ color: "var(--eph-muted)" }}
         />
-        <div style={{ padding: "10px 14px 14px" }}>
-          <AdminOverlay {...adminProps} />
-          <PraxisContent
-            praxis={praxis}
-            bodyStyle={{ color: factionCssVar("journeymen", "card-muted") }}
-            metaStyle={{ color: factionCssVar("journeymen", "card-muted") }}
-          />
-        </div>
       </div>
     </div>
   );
@@ -547,13 +325,7 @@ function SingularityHoles() {
   );
 }
 
-function SingularityPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+function SingularityPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   return (
     <div
       style={{
@@ -652,10 +424,6 @@ function SingularityPraxisCard({
         <AdminOverlay {...adminProps} />
         <PraxisContent
           praxis={praxis}
-          bodyStyle={{
-            color: "var(--faction-singularity-card-muted)",
-            fontSize: 9,
-          }}
           metaStyle={{ color: "var(--faction-singularity-card-muted)" }}
         />
       </div>
@@ -665,13 +433,7 @@ function SingularityPraxisCard({
   );
 }
 
-function UAMastersPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+function UAMastersPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   return (
     <div
       style={{
@@ -706,20 +468,14 @@ function UAMastersPraxisCard({
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar("ua_masters", "card-muted") }}
         metaStyle={{ color: factionCssVar("ua_masters", "card-muted") }}
       />
     </div>
   );
 }
 
-function GenericPraxisCard({
-  praxis,
-  adminProps,
-}: {
-  praxis: PraxisCardOut;
-  adminProps: AdminProps;
-}) {
+/** Fallback card for `na` / unknown task factions — a plain accent-bordered slab. */
+function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   const slug = praxis.task_faction_slug ?? "ua";
   return (
     <div
@@ -738,84 +494,30 @@ function GenericPraxisCard({
       <AdminOverlay {...adminProps} />
       <PraxisContent
         praxis={praxis}
-        bodyStyle={{ color: factionCssVar(slug, "card-muted") }}
         metaStyle={{ color: factionCssVar(slug, "card-muted") }}
       />
     </div>
   );
 }
 
-// ─── Switcher ─────────────────────────────────────────────────────────────────
+// ─── Dispatcher ───────────────────────────────────────────────────────────────
+
+const PRAXIS_CARD_BY_SLUG: Record<string, ComponentType<ArchetypeProps>> = {
+  ua: UAPraxisCard,
+  analog: AnalogPraxisCard,
+  gestalt: GestaltPraxisCard,
+  snide: SnidePraxisCard,
+  journeymen: EphemeristsPraxisCard,
+  singularity: SingularityPraxisCard,
+  ua_masters: UAMastersPraxisCard,
+};
 
 export default function PraxisCard({ praxis, onModerated }: Props) {
-  const { user } = useAuth();
-  const { adminMode } = useAdminMode();
-  const showAdminControls = (user?.is_admin && adminMode) ?? false;
-  const [localPraxis, setLocalPraxis] = useState(praxis);
-  const [moderateError, setModerateError] = useState<string | null>(null);
-
-  const applyModeration = (
-    status: "hidden" | "failed" | "visible" | "flagged",
-  ) => {
-    setLocalPraxis((prev) => ({ ...prev, moderation_status: status }));
-  };
-
-  const handleHide = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setModerateError(null);
-    try {
-      const updated = await moderatePraxis(localPraxis.id, "hidden");
-      applyModeration(updated.moderation_status);
-      onModerated?.();
-    } catch (err) {
-      setModerateError(extractError(err, "Failed to hide."));
-    }
-  };
-
-  const handleFail = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setModerateError(null);
-    try {
-      const updated = await moderatePraxis(localPraxis.id, "failed");
-      applyModeration(updated.moderation_status);
-      onModerated?.();
-    } catch (err) {
-      setModerateError(extractError(err, "Failed to fail."));
-    }
-  };
-
-  const adminProps: AdminProps = {
-    praxis: localPraxis,
-    showAdminControls,
-    onHide: handleHide,
-    onFail: handleFail,
-    moderateError,
-  };
-
-  switch (localPraxis.task_faction_slug) {
-    case "ua":
-      return <UAPraxisCard praxis={localPraxis} adminProps={adminProps} />;
-    case "analog":
-      return <AnalogPraxisCard praxis={localPraxis} adminProps={adminProps} />;
-    case "gestalt":
-      return <GestaltPraxisCard praxis={localPraxis} adminProps={adminProps} />;
-    case "snide":
-      return <SnidePraxisCard praxis={localPraxis} adminProps={adminProps} />;
-    case "journeymen":
-      return (
-        <JourneymenPraxisCard praxis={localPraxis} adminProps={adminProps} />
-      );
-    case "singularity":
-      return (
-        <SingularityPraxisCard praxis={localPraxis} adminProps={adminProps} />
-      );
-    case "ua_masters":
-      return (
-        <UAMastersPraxisCard praxis={localPraxis} adminProps={adminProps} />
-      );
-    default:
-      return <GenericPraxisCard praxis={localPraxis} adminProps={adminProps} />;
-  }
+  const { localPraxis, adminProps } = usePraxisCard(praxis, onModerated);
+  const Card = pickVariant(
+    PRAXIS_CARD_BY_SLUG,
+    localPraxis.task_faction_slug,
+    DefaultPraxisCard,
+  );
+  return <Card praxis={localPraxis} adminProps={adminProps} />;
 }

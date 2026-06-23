@@ -2,7 +2,6 @@
  * Sticky Note — UA / Albescent / Aged Out / fallback.
  * Cork board, big yellow sticky as the editor surface, mini-stickies for modes.
  */
-import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
 import MarkdownPreview from "../blocks/MarkdownPreview";

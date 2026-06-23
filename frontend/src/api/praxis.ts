@@ -1,4 +1,5 @@
 import api from './axios'
+import type { TaskOut } from './tasks'
 
 // ---------------------------------------------------------------------------
 // Types — match backend schemas/praxis.py exactly
@@ -52,6 +53,7 @@ export interface PraxisOut {
   task_id: number
   task_title: string
   task_point_value: number
+  task_faction_slug: string | null
   type: PraxisType
   status: PraxisStatus
   title: string | null
@@ -70,6 +72,7 @@ export interface PraxisOut {
   score: number
   duel_vote_summary: DuelVoteSummary[] | null
   can_flag: boolean
+  applied_metatasks: TaskOut[]
 }
 
 export interface PraxisCardOut {
@@ -117,6 +120,7 @@ export async function listPraxes(filters?: {
   character_id?: number
   type?: PraxisType
   status?: PraxisStatus
+  faction?: string
   limit?: number
   offset?: number
 }): Promise<PraxisCardOut[]> {

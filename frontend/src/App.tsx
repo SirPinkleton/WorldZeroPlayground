@@ -9,6 +9,7 @@ import EditPraxis from './pages/EditPraxis'
 import CharacterProfile from './pages/CharacterProfile'
 import Leaderboard from './pages/Leaderboard'
 import Factions from './pages/Factions'
+import FactionDetail from './pages/FactionDetail'
 import Updates from './pages/Updates'
 import Praxes from './pages/Praxes'
 import Admin from './pages/Admin'
@@ -60,6 +61,7 @@ export default function App() {
         />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/factions" element={<Factions />} />
+        <Route path="/factions/:slug" element={<FactionDetail />} />
         <Route
           path="/updates"
           element={

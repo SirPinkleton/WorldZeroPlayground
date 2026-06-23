@@ -1,6 +1,7 @@
 /**
- * Paper Collage — Gestalt faction.
- * Layered torn paper, hopepunk sunrise palette, taped polaroids, walker tags.
+ * gestalt.exe — Gestalt faction edit-praxis form.
+ * Lo-fi computer-witch desktop window: pastel pink chrome, dotted grid body,
+ * notepad panels, window-tab mode chips, lo-fi pink buttons, ivy + sticker charms.
  */
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
@@ -11,8 +12,6 @@ import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import {
   Breadcrumb,
   ErrorBanner,
-  RainbowTitle,
-  RainbowUnderline,
   TaskMetaInline,
   TitleCounter,
   formatAutosave,
@@ -30,32 +29,227 @@ const MODE_OPTIONS: Array<{ key: PraxisType; label: string; desc: string }> = [
   { key: "duel", label: "duel", desc: "two paths, one prize" },
 ];
 
+/* ───────── sticker + ivy atoms (inlined from the redesign kit) ───────── */
+
+function Sparkle({
+  size = 16,
+  color,
+  style,
+}: {
+  size?: number;
+  color: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={style}>
+      <path
+        d="M12 1c.6 5.2 2.8 7.4 8 8-5.2.6-7.4 2.8-8 8-.6-5.2-2.8-7.4-8-8 5.2-.6 7.4-2.8 8-8z"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
+function Heart({
+  size = 34,
+  style,
+}: {
+  size?: number;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" style={style}>
+      <path
+        d="M18 31C7 23 3 17 6.5 11 9 6.8 14 6.5 16 10c.9 1.5 1.6 2.7 2 3.4.4-.7 1.1-1.9 2-3.4 2-3.5 7-3.2 9.5 1C33 17 29 23 18 31Z"
+        fill="#fb7aa8"
+        stroke="#fff"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function StarSticker({
+  size = 26,
+  color = "#f6c75e",
+  style,
+}: {
+  size?: number;
+  color?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 28 28" style={style}>
+      <path
+        d="M14 2l3 7.3L24.5 10l-5.5 4.6L20.7 23 14 18.6 7.3 23l1.7-8.4L3.5 10 11 9.3Z"
+        fill={color}
+        stroke="#fff"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IvyLeaf({
+  x,
+  y,
+  rot,
+  scale,
+  c,
+  leaf,
+}: {
+  x: number;
+  y: number;
+  rot: number;
+  scale: number;
+  c: string;
+  leaf: string;
+}) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${scale})`}>
+      <path
+        d="M0 0 C -9 -3 -11 -13 -6 -20 C -2 -25 2 -25 6 -20 C 11 -13 9 -3 0 0 Z"
+        fill={leaf}
+        stroke={c}
+        strokeWidth="1.1"
+      />
+      <path d="M0 -1 L0 -19" stroke={c} strokeWidth="1" opacity="0.55" />
+      <path
+        d="M0 -8 L-4 -12 M0 -8 L4 -12"
+        stroke={c}
+        strokeWidth="0.8"
+        opacity="0.45"
+        fill="none"
+      />
+    </g>
+  );
+}
+
+function Ivy({
+  height = 250,
+  c,
+  leaf,
+}: {
+  height?: number;
+  c: string;
+  leaf: string;
+}) {
+  const width = 76;
+  const segments = 60;
+  const xAt = (t: number) => 40 + 20 * Math.sin(t * Math.PI * 2.3);
+  const yAt = (t: number) => 6 + t * (height - 12);
+  let path = "";
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    path +=
+      (i === 0 ? "M" : "L") + xAt(t).toFixed(1) + " " + yAt(t).toFixed(1) + " ";
+  }
+  const leafTs = [0.07, 0.17, 0.28, 0.39, 0.5, 0.61, 0.72, 0.83, 0.93];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <path
+        d={path}
+        fill="none"
+        stroke={c}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <path
+        d={`M${xAt(0.02)} ${yAt(0.02)} q -10 -6 -4 -13 q 4 -4 8 0`}
+        fill="none"
+        stroke={c}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      {leafTs.map((t, i) => {
+        const side = i % 2 === 0 ? 1 : -1;
+        return (
+          <IvyLeaf
+            key={i}
+            x={xAt(t) + side * 7}
+            y={yAt(t)}
+            rot={side > 0 ? 38 : -38}
+            scale={i % 3 === 0 ? 1.15 : 0.95}
+            c={c}
+            leaf={leaf}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function EditPraxisPaperCollage({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
 
-  const accent = factionCssVar("gestalt");
-  const accentDeep = factionCssVar("gestalt", "card-accent");
-  const surface = factionCssVar("gestalt", "card-bg");
+  const pink = factionCssVar("gestalt");
+  const pinkDeep = factionCssVar("gestalt", "card-accent");
   const ink = factionCssVar("gestalt", "card-text");
   const muted = factionCssVar("gestalt", "card-muted");
   const lightBg = factionCssVar("gestalt", "light");
+  const cardFont = factionCssVar("gestalt", "card-font");
+
+  const winBorder = factionCssVar("gestalt", "win-border");
+  const titleFrom = factionCssVar("gestalt", "title-from");
+  const titleTo = factionCssVar("gestalt", "title-to");
+  const titleText = factionCssVar("gestalt", "title-text");
+  const bodyBg = factionCssVar("gestalt", "body-bg");
+  const notepadBg = factionCssVar("gestalt", "notepad-bg");
+  const notepadBorder = factionCssVar("gestalt", "notepad-border");
+  const dot = factionCssVar("gestalt", "dot");
+  const ivy = factionCssVar("gestalt", "ivy");
+  const ivyLeaf = factionCssVar("gestalt", "ivy-leaf");
 
   const allowedModes = task?.allowed_modes ?? ["solo", "collab", "duel"];
 
+  const eyebrowStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: "var(--font-body)",
+    fontSize: 9,
+    textTransform: "uppercase",
+    letterSpacing: "0.18em",
+    color: pinkDeep,
+  };
+
+  const notepadPanel: React.CSSProperties = {
+    background: notepadBg,
+    border: `1.5px solid ${notepadBorder}`,
+    borderRadius: 8,
+    padding: "14px 16px",
+    position: "relative",
+    zIndex: 9,
+  };
+
   return (
     <div
-      style={{
-        background: surface,
-        color: ink,
-        fontFamily: "'Lora', serif",
-        position: "relative",
-        padding: "32px 28px 48px",
-        minHeight: "100vh",
-        backgroundImage: `radial-gradient(ellipse at 80% 8%, rgba(255,138,91,.16), transparent 55%), radial-gradient(ellipse at 18% 18%, rgba(126,200,227,.14), transparent 50%), radial-gradient(ellipse at 92% 88%, rgba(47,165,106,.12), transparent 55%)`,
-      }}
+      style={
+        {
+          fontFamily: "var(--font-body)",
+          color: ink,
+          padding: "32px 20px 56px",
+          minHeight: "100vh",
+          background: lightBg,
+        } as React.CSSProperties
+      }
     >
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto", position: "relative" }}>
+        {/* ivy down the left edge, behind the window */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: -54,
+            top: 70,
+            zIndex: 0,
+            pointerEvents: "none",
+          }}
+        >
+          <Ivy height={420} c={ivy} leaf={ivyLeaf} />
+        </div>
+
         <Breadcrumb
           praxisId={praxis.id}
           taskId={praxis.task_id}
@@ -63,551 +257,592 @@ export default function EditPraxisPaperCollage({ state }: Props) {
           inkColor={muted}
         />
 
-        {/* Header — torn-paper banner */}
-        <div style={{ marginBottom: 22 }}>
-          <div
-            style={{
-              background: `linear-gradient(95deg, ${accent} 0%, ${accentDeep} 60%, ${factionCssVar("gestalt", "card-accent")} 100%)`,
-              color: "var(--color-text-on-accent)",
-              padding: "10px 18px 14px",
-              clipPath:
-                "polygon(0 0, 100% 0, 99% 88%, 94% 100%, 86% 92%, 74% 100%, 60% 90%, 46% 100%, 32% 92%, 18% 100%, 6% 92%, 0 100%)",
-              display: "inline-block",
-              transform: "rotate(-0.6deg)",
-              fontFamily: "'Caveat', cursive",
-              fontSize: 14,
-              letterSpacing: "0.04em",
-              fontWeight: 700,
-            }}
-          >
-            ☀ GESTALT FIELD NOTES · scrap 19 ☀
-          </div>
-          <div style={{ marginTop: 14 }}>
-            <RainbowTitle text="edit praxis" size={42} color={ink} />
-          </div>
-        </div>
-
-        {/* Task — torn scrap */}
+        {/* ── the .exe window ── */}
         <div
           style={{
             position: "relative",
-            marginBottom: 26,
-            background: lightBg,
-            color: ink,
-            padding: "14px 20px",
-            clipPath:
-              "polygon(2% 6%, 8% 0, 22% 4%, 38% 0, 56% 5%, 74% 1%, 92% 4%, 100% 12%, 98% 88%, 92% 100%, 76% 96%, 60% 100%, 42% 96%, 24% 100%, 10% 96%, 0 88%, 4% 40%)",
-            transform: "rotate(-1.2deg)",
-            borderLeft: `5px solid ${accent}`,
-            boxShadow: "2px 3px 6px rgba(0,0,0,.08)",
+            zIndex: 5,
+            borderRadius: 12,
+            overflow: "hidden",
+            border: `2px solid ${winBorder}`,
+            boxShadow: "0 12px 30px rgba(190,60,120,.22)",
           }}
         >
-          <span className="eyebrow" style={{ color: accentDeep }}>
-            Re: completion of
-          </span>
+          {/* title bar */}
           <div
             style={{
-              fontFamily: "'Lora', serif",
-              fontStyle: "italic",
-              fontSize: 21,
-              lineHeight: 1.25,
-              marginTop: 6,
-              marginBottom: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "9px 13px",
+              background: `linear-gradient(180deg, ${titleFrom}, ${titleTo})`,
+              borderBottom: `2px solid ${winBorder}`,
             }}
           >
-            {praxis.task_title}
-          </div>
-          <TaskMetaInline praxis={praxis} task={task} textColor={accentDeep} />
-        </div>
-
-        {/* Mode */}
-        {!state.controlsLocked && (
-          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", gap: 5 }}>
+              <span
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: "50%",
+                  background: "#fb7aa8",
+                  border: "1.5px solid rgba(255,255,255,0.7)",
+                }}
+              />
+              <span
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: "50%",
+                  background: "#f6c75e",
+                  border: "1.5px solid rgba(255,255,255,0.7)",
+                }}
+              />
+              <span
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: "50%",
+                  background: "#86cfa6",
+                  border: "1.5px solid rgba(255,255,255,0.7)",
+                }}
+              />
+            </div>
             <span
-              className="eyebrow"
-              style={{ display: "block", marginBottom: 10, color: accentDeep }}
+              style={{
+                fontSize: 11,
+                color: titleText,
+                letterSpacing: "0.03em",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
             >
-              How are you walking?
+              <Sparkle size={11} color={titleText} /> gestalt.exe — edit praxis
             </span>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map(
-                (opt, index) => {
-                  const active = praxis.type === opt.key;
-                  const disabled =
-                    state.modeIsLocked || state.switchingMode !== null;
-                  if (state.modeIsLocked && !active) return null;
-                  const palette = ["#ff8a5b", accentDeep, "#7ec8e3"];
-                  const c = palette[index % palette.length];
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => {
-                        if (!disabled) void state.changeMode(opt.key);
-                      }}
-                      disabled={disabled && !active}
-                      style={{
-                        flex: "1 1 180px",
-                        cursor: disabled ? "not-allowed" : "pointer",
-                        textAlign: "left",
-                        background: active ? c : lightBg,
-                        color: active ? "var(--color-text-on-accent)" : ink,
-                        border: `1.5px solid ${c}`,
-                        padding: "14px 14px 16px",
-                        fontFamily: "'Lora', serif",
-                        clipPath: "polygon(2% 8%, 100% 0, 98% 92%, 0 100%)",
-                        transform: `rotate(${active ? (index % 2 ? 0.8 : -0.6) : index % 2 ? -0.4 : 0.4}deg)`,
-                        position: "relative",
-                      }}
-                    >
-                      <div
+            <span
+              style={{
+                marginLeft: "auto",
+                fontSize: 11,
+                color: titleText,
+                opacity: 0.75,
+                letterSpacing: "1.5px",
+              }}
+            >
+              ▭ ✕
+            </span>
+          </div>
+
+          {/* dotted body */}
+          <div
+            style={{
+              position: "relative",
+              padding: "24px 22px 26px",
+              background: bodyBg,
+              backgroundImage: `radial-gradient(${dot} 1.4px, transparent 1.4px)`,
+              backgroundSize: "13px 13px",
+            }}
+          >
+            {/* headline */}
+            <div
+              style={{
+                fontFamily: cardFont,
+                fontSize: 40,
+                fontWeight: 700,
+                lineHeight: 1,
+                color: ink,
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              edit praxis
+              <StarSticker size={26} color="#f47aa6" />
+            </div>
+
+            {/* Task — notepad scrap */}
+            <div style={{ ...notepadPanel, marginBottom: 22 }}>
+              <span style={{ ...eyebrowStyle, marginBottom: 4 }}>
+                re: completion of
+              </span>
+              <div
+                style={{
+                  fontFamily: cardFont,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  color: ink,
+                  marginTop: 4,
+                  marginBottom: 8,
+                }}
+              >
+                {praxis.task_title}
+              </div>
+              <TaskMetaInline praxis={praxis} task={task} textColor={pinkDeep} />
+            </div>
+
+            {/* Mode — window tab chips */}
+            {!state.controlsLocked && (
+              <div style={{ marginBottom: 22 }}>
+                <span style={{ ...eyebrowStyle, marginBottom: 10 }}>
+                  how are you walking?
+                </span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {MODE_OPTIONS.filter((opt) =>
+                    allowedModes.includes(opt.key),
+                  ).map((opt) => {
+                    const active = praxis.type === opt.key;
+                    const disabled =
+                      state.modeIsLocked || state.switchingMode !== null;
+                    if (state.modeIsLocked && !active) return null;
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          if (!disabled) void state.changeMode(opt.key);
+                        }}
+                        disabled={disabled && !active}
                         style={{
-                          fontStyle: "italic",
-                          fontSize: 22,
-                          marginBottom: 4,
-                          fontWeight: 500,
+                          flex: "1 1 180px",
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          textAlign: "left",
+                          background: active
+                            ? `linear-gradient(180deg, ${pink}, ${pinkDeep})`
+                            : notepadBg,
+                          color: active
+                            ? "var(--color-text-on-accent)"
+                            : ink,
+                          border: `1.5px solid ${active ? pinkDeep : notepadBorder}`,
+                          borderRadius: 9,
+                          padding: "11px 14px 13px",
+                          fontFamily: "var(--font-body)",
+                          boxShadow: active
+                            ? "0 4px 10px rgba(236,95,153,.32)"
+                            : "none",
                         }}
                       >
-                        {opt.label}
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          fontSize: 14,
-                          opacity: 0.85,
-                        }}
-                      >
-                        {opt.desc}
-                      </div>
-                    </button>
-                  );
-                },
+                        <div
+                          style={{
+                            fontFamily: cardFont,
+                            fontSize: 22,
+                            fontWeight: 700,
+                            marginBottom: 2,
+                          }}
+                        >
+                          {opt.label}
+                        </div>
+                        <div style={{ fontSize: 10, opacity: 0.85 }}>
+                          {opt.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Invite */}
+            {state.showCollabInvite &&
+              !(praxis.type === "duel" && state.duelSlotFull) && (
+                <div
+                  style={{
+                    ...notepadPanel,
+                    marginBottom: 22,
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <span style={{ ...eyebrowStyle, marginBottom: 10 }}>
+                    ↳ {praxis.type === "duel" ? "racing" : "walking together"}
+                  </span>
+                  <InviteSearch
+                    state={state}
+                    skin={{
+                      fontFamily: "var(--font-body)",
+                      inputBg: bodyBg,
+                      inputColor: ink,
+                      inputBorder: `1.5px solid ${notepadBorder}`,
+                      pillBg: lightBg,
+                      acceptedBg: pink,
+                      acceptedColor: "var(--color-text-on-accent)",
+                      placeholder: "@ invite another walker…",
+                    }}
+                  />
+                </div>
+              )}
+
+            {/* Title — notepad panel */}
+            <div style={{ ...notepadPanel, marginBottom: 18 }}>
+              <span style={{ ...eyebrowStyle, marginBottom: 8 }}>
+                title · what gestalt arose?
+              </span>
+              <input
+                type="text"
+                maxLength={200}
+                value={state.title}
+                onChange={(event) => state.setTitle(event.target.value)}
+                placeholder="What gestalt arose?"
+                style={{
+                  width: "100%",
+                  fontFamily: cardFont,
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color: ink,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  borderBottom: `2px solid ${notepadBorder}`,
+                  padding: "4px 0 8px",
+                }}
+              />
+              <div
+                style={{
+                  marginTop: 6,
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <TitleCounter length={state.title.length} color={muted} />
+                <span style={{ ...eyebrowStyle, color: muted, fontSize: 8 }}>
+                  {state.autosaveAt
+                    ? `saved ${formatAutosave(state.autosaveAt)}`
+                    : "unsaved"}
+                </span>
+              </div>
+            </div>
+
+            {/* Body — notepad panel */}
+            <div style={{ ...notepadPanel, marginBottom: 18 }}>
+              <span style={{ ...eyebrowStyle, marginBottom: 8 }}>
+                field notes · {state.wordCount} words · markdown ok
+              </span>
+              <textarea
+                value={state.body}
+                onChange={(event) => state.setBody(event.target.value)}
+                rows={12}
+                placeholder="Tonight I walked..."
+                style={{
+                  width: "100%",
+                  fontFamily: "var(--font-body)",
+                  fontSize: 14,
+                  lineHeight: "24px",
+                  color: ink,
+                  background: bodyBg,
+                  border: `1.5px solid ${notepadBorder}`,
+                  borderRadius: 7,
+                  padding: "16px 18px",
+                  outline: "none",
+                  resize: "vertical",
+                  minHeight: 220,
+                }}
+              />
+              {state.body.trim() && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    background: bodyBg,
+                    border: `1.5px solid ${notepadBorder}`,
+                    borderRadius: 7,
+                    padding: "16px 18px",
+                  }}
+                >
+                  <span style={{ ...eyebrowStyle, marginBottom: 6 }}>
+                    preview
+                  </span>
+                  <MarkdownPreview
+                    source={state.body}
+                    className="markdown-preview"
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: 15,
+                      lineHeight: 1.65,
+                      color: ink,
+                    }}
+                  />
+                </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Invite */}
-        {state.showCollabInvite &&
-          !(praxis.type === "duel" && state.duelSlotFull) && (
-            <div
-              style={{
-                marginBottom: 24,
-                padding: "14px 16px",
-                background: `linear-gradient(180deg, ${lightBg}, transparent)`,
-                border: `1.5px dashed ${accent}`,
-              }}
-            >
-              <span
-                className="eyebrow"
+            {/* Media — notepad panel */}
+            <div style={{ ...notepadPanel, marginBottom: 18 }}>
+              <span style={{ ...eyebrowStyle, marginBottom: 12 }}>
+                scraps &amp; specimens ·{" "}
+                {state.media.length + state.newFiles.length} pasted
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+                {state.media.map((item) => {
+                  const filename =
+                    item.file_path.split("/").pop() ?? item.file_path;
+                  const src = mediaUrl(item.file_path);
+                  return (
+                    <MediaTile
+                      key={item.id}
+                      caption={filename}
+                      borderColor={notepadBorder}
+                      tileBg={notepadBg}
+                      removeColor={pink}
+                      onRemove={() => void state.removeMedia(item)}
+                    >
+                      {item.type === "image" ? (
+                        <img
+                          src={src}
+                          alt=""
+                          style={{
+                            width: 140,
+                            height: 100,
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : item.type === "video" ? (
+                        <video
+                          src={src}
+                          style={{
+                            width: 140,
+                            height: 100,
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <MediaArt art={pickArtKey(filename, "audio")} />
+                      )}
+                    </MediaTile>
+                  );
+                })}
+                {state.newFiles.map((file, index) => (
+                  <MediaTile
+                    key={index}
+                    caption={file.name}
+                    borderColor={notepadBorder}
+                    tileBg={notepadBg}
+                    removeColor={pink}
+                    onRemove={() => state.removeNewFile(index)}
+                  >
+                    <MediaArt art={mediaArtKeysFromFile(file)} />
+                  </MediaTile>
+                ))}
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <FilePicker
+                  state={state}
+                  skin={{
+                    buttonStyle: {
+                      width: 152,
+                      height: 110,
+                      background: bodyBg,
+                      border: `2px dashed ${notepadBorder}`,
+                      borderRadius: 9,
+                      cursor: "pointer",
+                      fontFamily: cardFont,
+                      fontSize: 18,
+                      fontWeight: 700,
+                      color: pink,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexDirection: "column",
+                      gap: 4,
+                    },
+                    buttonLabel: "+ paste in a scrap",
+                    helperText: "images · video · audio · max 50mb each",
+                    helperStyle: {
+                      fontSize: 9,
+                      color: muted,
+                      marginTop: 6,
+                    },
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Metatasks */}
+            {state.showMetatasks && (
+              <div
                 style={{
-                  display: "block",
-                  marginBottom: 10,
-                  color: accentDeep,
-                  fontWeight: 700,
+                  ...notepadPanel,
+                  marginBottom: 18,
+                  borderStyle: "dashed",
                 }}
               >
-                ↳ {praxis.type === "duel" ? "racing" : "walking together"}
-              </span>
-              <InviteSearch
-                state={state}
-                skin={{
-                  fontFamily: "'Caveat', cursive",
-                  inputBg: "transparent",
-                  inputColor: ink,
-                  inputBorder: `1.5px dashed ${accentDeep}`,
-                  pillBg: lightBg,
-                  acceptedBg: accent,
-                  acceptedColor: "var(--color-text-on-accent)",
-                  placeholder: "@ invite another walker…",
-                }}
-              />
-            </div>
-          )}
+                <span style={{ ...eyebrowStyle, marginBottom: 8 }}>
+                  ★ optional bonus
+                </span>
+                <MetatasksList
+                  state={state}
+                  skin={{
+                    rowStyle: (selected) => ({
+                      padding: "8px 6px",
+                      background: selected ? lightBg : "transparent",
+                      border: selected
+                        ? `1.5px solid ${pinkDeep}`
+                        : `1.5px solid transparent`,
+                      borderRadius: 6,
+                      marginBottom: 4,
+                    }),
+                    titleColor: ink,
+                    descColor: muted,
+                    pointsActiveColor: pinkDeep,
+                    pointsIdleColor: muted,
+                  }}
+                />
+              </div>
+            )}
 
-        {/* Title */}
-        <div style={{ marginBottom: 22 }}>
-          <span
-            className="eyebrow"
-            style={{ display: "block", marginBottom: 8, color: accentDeep }}
-          >
-            title{" "}
-            <span
-              style={{
-                fontFamily: "'Caveat', cursive",
-                textTransform: "none",
-                letterSpacing: 0,
-                fontSize: 14,
-              }}
-            >
-              · what gestalt arose?
-            </span>
-          </span>
-          <input
-            type="text"
-            maxLength={200}
-            value={state.title}
-            onChange={(event) => state.setTitle(event.target.value)}
-            placeholder="What gestalt arose?"
-            style={{
-              width: "100%",
-              fontFamily: "'Lora', serif",
-              fontStyle: "italic",
-              fontSize: 30,
-              color: ink,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              borderBottom: `2px solid ${accentDeep}`,
-              padding: "4px 0 8px",
-            }}
-          />
-          <RainbowUnderline opacity={0.55} />
-          <div
-            style={{
-              marginTop: 6,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <TitleCounter length={state.title.length} color={muted} />
-            <span className="eyebrow" style={{ color: muted, fontSize: 8 }}>
-              {state.autosaveAt
-                ? `pasted in ${formatAutosave(state.autosaveAt)}`
-                : "unpasted"}
-            </span>
-          </div>
-        </div>
+            <ErrorBanner message={state.error} />
 
-        {/* Body */}
-        <div style={{ marginBottom: 22 }}>
-          <span
-            className="eyebrow"
-            style={{ display: "block", marginBottom: 8, color: accentDeep }}
-          >
-            field notes ·{" "}
-            <span
-              style={{
-                fontFamily: "'Caveat', cursive",
-                textTransform: "none",
-                letterSpacing: 0,
-                fontSize: 13,
-              }}
-            >
-              {state.wordCount} words · markdown ok
-            </span>
-          </span>
-          <textarea
-            value={state.body}
-            onChange={(event) => state.setBody(event.target.value)}
-            rows={12}
-            placeholder="Tonight I walked..."
-            style={{
-              width: "100%",
-              fontFamily: "'Lora', serif",
-              fontSize: 14,
-              lineHeight: "24px",
-              color: ink,
-              background: lightBg,
-              border: `1.5px solid ${accentDeep}`,
-              padding: "20px 22px",
-              outline: "none",
-              resize: "vertical",
-              minHeight: 220,
-              backgroundImage:
-                "repeating-linear-gradient(to bottom, transparent 0, transparent 23px, rgba(90,122,74,.18) 24px)",
-              boxShadow: "2px 3px 4px rgba(0,0,0,.06)",
-            }}
-          />
-          {state.body.trim() && (
+            {/* CTAs — lo-fi pink buttons */}
             <div
               style={{
-                marginTop: 14,
-                background: lightBg,
-                border: `1.5px solid ${accentDeep}`,
-                padding: "20px 22px",
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                marginTop: 22,
+                paddingTop: 20,
+                borderTop: `1.5px dashed ${notepadBorder}`,
+                flexWrap: "wrap",
               }}
             >
-              <span
-                className="eyebrow"
-                style={{ color: accentDeep, display: "block", marginBottom: 6 }}
-              >
-                Preview
-              </span>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{
-                  fontFamily: "'Lora', serif",
-                  fontSize: 15,
-                  lineHeight: 1.65,
-                  color: ink,
-                }}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Media — polaroids */}
-        <div style={{ marginBottom: 24 }}>
-          <span
-            className="eyebrow"
-            style={{ display: "block", marginBottom: 12, color: accentDeep }}
-          >
-            scraps & specimens · {state.media.length + state.newFiles.length}{" "}
-            pasted
-          </span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
-            {state.media.map((item, index) => {
-              const filename =
-                item.file_path.split("/").pop() ?? item.file_path;
-              const src = mediaUrl(item.file_path);
-              return (
-                <PolaroidScrap
-                  key={item.id}
-                  caption={filename}
-                  rotation={[-2.6, 1.8, -1.4, 2.2][index % 4]}
-                  borderColor={accentDeep}
-                  paperBg="#fff5d9"
-                  removeColor={accent}
-                  paperBorder={accent}
-                  onRemove={() => void state.removeMedia(item)}
+              {!state.isPublished && (
+                <button
+                  type="button"
+                  onClick={() => void state.publish()}
+                  disabled={
+                    state.saving ||
+                    state.submitting ||
+                    state.switchingMode !== null
+                  }
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: `linear-gradient(180deg, ${pink}, ${pinkDeep})`,
+                    color: "var(--color-text-on-accent)",
+                    fontFamily: "var(--font-body)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    padding: "11px 22px",
+                    border: `1.5px solid ${pinkDeep}`,
+                    borderRadius: 9,
+                    cursor: state.submitting ? "wait" : "pointer",
+                    boxShadow: "0 4px 12px rgba(236,95,153,.32)",
+                  }}
                 >
-                  {item.type === "image" ? (
-                    <img
-                      src={src}
-                      alt=""
-                      style={{ width: 140, height: 100, objectFit: "cover" }}
-                    />
-                  ) : item.type === "video" ? (
-                    <video
-                      src={src}
-                      style={{ width: 140, height: 100, objectFit: "cover" }}
-                    />
-                  ) : (
-                    <MediaArt art={pickArtKey(filename, "audio")} />
-                  )}
-                </PolaroidScrap>
-              );
-            })}
-            {state.newFiles.map((file, index) => (
-              <PolaroidScrap
-                key={index}
-                caption={file.name}
-                rotation={[1.6, -2.2, 2.6, -1.4][index % 4]}
-                borderColor={accentDeep}
-                paperBg="#fff5d9"
-                removeColor={accent}
-                paperBorder={accent}
-                onRemove={() => state.removeNewFile(index)}
+                  <Sparkle size={12} color="var(--color-text-on-accent)" />
+                  {state.submitting ? "publishing..." : "publish"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => void state.save()}
+                disabled={state.saving || state.submitting}
+                style={{
+                  background: notepadBg,
+                  color: ink,
+                  fontFamily: "var(--font-body)",
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  border: `1.5px solid ${notepadBorder}`,
+                  borderRadius: 7,
+                  padding: "10px 18px",
+                  cursor: state.saving ? "wait" : "pointer",
+                }}
               >
-                <MediaArt art={mediaArtKeysFromFile(file)} />
-              </PolaroidScrap>
-            ))}
-          </div>
-          <div style={{ marginTop: 14 }}>
-            <FilePicker
-              state={state}
-              skin={{
-                buttonStyle: {
-                  width: 152,
-                  height: 110,
+                {state.saving ? "saving..." : "save draft"}
+              </button>
+              <div style={{ flex: 1 }} />
+              <button
+                type="button"
+                onClick={state.cancel}
+                style={{
                   background: "transparent",
-                  border: `2px dashed ${accentDeep}`,
-                  cursor: "pointer",
-                  fontFamily: "'Caveat', cursive",
-                  fontSize: 16,
-                  color: accent,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexDirection: "column",
-                  gap: 4,
-                },
-                buttonLabel: "+ paste in a scrap",
-                helperText: "images · video · audio · max 50mb each",
-                helperStyle: {
-                  fontSize: 9,
                   color: muted,
-                  marginTop: 6,
-                  fontStyle: "italic",
-                },
-              }}
-            />
+                  fontFamily: cardFont,
+                  fontSize: 18,
+                  fontWeight: 700,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                cancel
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Metatasks */}
-        {state.showMetatasks && (
-          <div
-            style={{
-              marginBottom: 22,
-              padding: "14px 16px",
-              background: lightBg,
-              border: `1.5px dashed ${accentDeep}`,
-            }}
-          >
-            <span
-              className="eyebrow"
-              style={{ display: "block", marginBottom: 8, color: accentDeep }}
-            >
-              ★ optional bonus
-            </span>
-            <MetatasksList
-              state={state}
-              skin={{
-                rowStyle: (selected) => ({
-                  padding: "8px 6px",
-                  background: selected ? "#fff5d9" : "transparent",
-                  border: selected
-                    ? `1.5px solid ${accentDeep}`
-                    : `1.5px solid transparent`,
-                  marginBottom: 4,
-                }),
-                titleColor: ink,
-                descColor: muted,
-                pointsActiveColor: accentDeep,
-                pointsIdleColor: muted,
-              }}
-            />
-          </div>
-        )}
-
-        <ErrorBanner message={state.error} />
-
-        {/* CTAs */}
+        {/* sticker charms peeking off the window edges */}
         <div
+          aria-hidden
           style={{
-            display: "flex",
-            gap: 14,
-            alignItems: "center",
-            marginTop: 24,
-            paddingTop: 22,
-            borderTop: `1px dashed ${accentDeep}`,
-            flexWrap: "wrap",
+            position: "absolute",
+            top: 4,
+            right: 6,
+            transform: "rotate(14deg)",
+            filter: "drop-shadow(0 2px 2.5px rgba(120,40,80,0.28))",
+            zIndex: 12,
+            pointerEvents: "none",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={
-                state.saving || state.submitting || state.switchingMode !== null
-              }
-              style={{
-                position: "relative",
-                background: `linear-gradient(95deg, #ff8a5b, ${accent})`,
-                color: "var(--color-text-on-accent)",
-                fontFamily: "'Lora', serif",
-                fontStyle: "italic",
-                fontSize: 18,
-                fontWeight: 700,
-                padding: "14px 30px",
-                border: `3px solid ${ink}`,
-                borderRadius: 0,
-                cursor: state.submitting ? "wait" : "pointer",
-                transform: "rotate(-1deg)",
-                boxShadow: `3px 4px 0 ${accentDeep}`,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 4,
-                  border: `1px dashed rgba(255,255,255,.5)`,
-                  pointerEvents: "none",
-                }}
-              />
-              {state.submitting ? "pressing..." : "☀ press & publish →"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={state.saving || state.submitting}
-            style={{
-              background: "transparent",
-              color: accentDeep,
-              fontFamily: "'Courier Prime', monospace",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-              border: `1.5px solid ${accentDeep}`,
-              padding: "10px 18px",
-              cursor: state.saving ? "wait" : "pointer",
-            }}
-          >
-            {state.saving ? "saving..." : "save draft"}
-          </button>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            onClick={state.cancel}
-            style={{
-              background: "transparent",
-              color: muted,
-              fontFamily: "'Caveat', cursive",
-              fontSize: 16,
-              border: "none",
-              cursor: "pointer",
-              fontStyle: "italic",
-            }}
-          >
-            cancel
-          </button>
+          <Heart size={34} />
+        </div>
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            bottom: -6,
+            left: 30,
+            transform: "rotate(-9deg)",
+            filter: "drop-shadow(0 2px 2.5px rgba(120,40,80,0.28))",
+            zIndex: 12,
+            pointerEvents: "none",
+          }}
+        >
+          <StarSticker size={30} color="#f6c75e" />
         </div>
       </div>
     </div>
   );
 }
 
-interface PolaroidScrapProps {
+interface MediaTileProps {
   children: React.ReactNode;
   caption: string;
-  rotation: number;
   borderColor: string;
-  paperBg: string;
+  tileBg: string;
   removeColor: string;
-  paperBorder: string;
   onRemove: () => void;
 }
 
-function PolaroidScrap({
+function MediaTile({
   children,
   caption,
-  rotation,
   borderColor,
-  paperBg,
+  tileBg,
   removeColor,
-  paperBorder,
   onRemove,
-}: PolaroidScrapProps) {
+}: MediaTileProps) {
   return (
     <div
       style={{
         position: "relative",
-        background: paperBg,
+        background: tileBg,
         padding: "6px 6px 22px",
-        boxShadow: "2px 3px 5px rgba(0,0,0,.12)",
-        transform: `rotate(${rotation}deg)`,
-        border: `1px solid ${paperBorder}`,
+        borderRadius: 9,
+        border: `1.5px solid ${borderColor}`,
+        boxShadow: "0 3px 7px rgba(190,60,120,.16)",
       }}
     >
-      <span
-        aria-hidden
+      <div
         style={{
-          position: "absolute",
-          top: -8,
-          left: "50%",
-          transform: "translateX(-50%) rotate(-2deg)",
-          width: 56,
-          height: 14,
-          background: "rgba(168,198,154,.6)",
+          width: 140,
+          height: 100,
+          overflow: "hidden",
+          borderRadius: 5,
         }}
-      />
-      <div style={{ width: 140, height: 100, overflow: "hidden" }}>
+      >
         {children}
       </div>
       <div
@@ -617,9 +852,12 @@ function PolaroidScrap({
           left: 8,
           right: 8,
           fontSize: 10,
-          fontFamily: "'Caveat', cursive",
-          color: "#1a1f15",
+          fontFamily: "var(--font-body)",
+          color: borderColor,
           textAlign: "center",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}
       >
         {caption}
@@ -635,8 +873,8 @@ function PolaroidScrap({
           width: 22,
           height: 22,
           borderRadius: "50%",
-          background: "#fff8e8",
-          border: `1.5px solid ${borderColor}`,
+          background: tileBg,
+          border: `1.5px solid ${removeColor}`,
           color: removeColor,
           fontSize: 11,
           fontWeight: 700,

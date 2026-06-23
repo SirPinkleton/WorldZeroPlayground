@@ -86,8 +86,8 @@ All fonts loaded from Google Fonts.
 | UA          | `IM Fell English`  | `--faction-ua-card-font`          |
 | Analog      | `Special Elite`    | `--faction-analog-card-font`      |
 | Gestalt     | `Caveat`           | `--faction-gestalt-card-font`     |
-| S.N.I.D.E.  | `Permanent Marker` | `--faction-snide-card-font`       |
-| Journeymen  | `Cutive Mono`      | `--faction-journeymen-card-font`  |
+| S.N.I.D.E.  | `Permanent Marker` (+ a punk set: Anton / Bebas Neue / Archivo Black / Special Elite, via `--faction-snide-font-*`) | `--faction-snide-card-font`       |
+| Ephemerists | `Cinzel`           | `--faction-journeymen-card-font`  |
 | Singularity | `Share Tech Mono`  | `--faction-singularity-card-font` |
 | UA Masters  | `UnifrakturCook`   | `--faction-ua-masters-card-font`  |
 
@@ -126,8 +126,8 @@ Cards are arranged in a `flex-wrap` container with varied heights and slight rot
 | UA          | Sticky note        | `#7c3aed` purple  | Push pin, clipped corner, faded lavender            | IM Fell English  |
 | Analog      | Field journal page | `#ca8a04` yellow  | Red margin rule, horizontal lines, torn bottom edge | Special Elite    |
 | Gestalt     | Paper collage      | `#be185d` magenta | 3 layered scraps, scotch tape strip                 | Caveat           |
-| S.N.I.D.E.  | Newspaper clipping | `#16a34a` green   | Torn edges, two columns, cutout ransom letters      | Permanent Marker |
-| Journeymen  | Luggage tag        | `#0e7490` teal    | Hanging string, eyelet, teal/cyan hazard stripe     | Cutive Mono      |
+| S.N.I.D.E.  | Ransom dispatch    | `#6fae00` acid green | Photocopier-ink demand note, cut-out ransom letters, halftone + scotch tape; intentionally the loudest, largest card | Permanent Marker (+ punk set) |
+| Ephemerists | Discordant map     | `#1d6e72` lapis   | Three irreconcilable coordinate grids, one word in the lapis, House-of-Leaves apparatus on aged vellum | Cinzel           |
 | Singularity | Terminal printout  | `#2563eb` blue    | Always dark, green text, sprocket holes, scanlines  | Share Tech Mono  |
 | UA Masters  | Gazette article    | `#c2410c` orange  | Corner-snipped edges, proper masthead, two columns  | UnifrakturCook   |
 
