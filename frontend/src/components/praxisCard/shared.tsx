@@ -101,6 +101,82 @@ export function PraxisByline({
 }
 
 /**
+ * Slot: the score "seal" — the hero of a completed praxis, a stamped badge
+ * showing the vote-weighted score instead of the buried byline number.
+ *
+ * ponytail: placeholder hero, shows the computed `score`; the canonical
+ * per-faction cards replace it with the faction's vote reframe (Concordance,
+ * heart ramp, ink stamps) at the rated tier — swap out when those land.
+ */
+export function PraxisSeal({
+  praxis,
+  color,
+  border,
+  label = "sealed",
+}: {
+  praxis: PraxisCardOut;
+  color?: string;
+  border?: string;
+  label?: string;
+}) {
+  if (praxis.score === null || praxis.score === undefined) return null;
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        minWidth: 50,
+        padding: "5px 8px",
+        border: `2px solid ${border ?? "currentColor"}`,
+        borderRadius: 4,
+        transform: "rotate(-3deg)",
+        color: color ?? "inherit",
+        lineHeight: 1,
+      }}
+    >
+      <span className="font-display" style={{ fontWeight: 800, fontSize: "var(--text-lg)" }}>
+        {praxis.score.toFixed(0)}
+      </span>
+      <span
+        style={{
+          fontSize: 7,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          marginTop: 3,
+          opacity: 0.8,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/** Slot: base points + collaboration mode — a compact stat line. */
+export function PraxisStats({
+  praxis,
+  style,
+}: {
+  praxis: PraxisCardOut;
+  style?: CSSProperties;
+}) {
+  const collaborators = praxis.member_count - 1;
+  return (
+    <div
+      className="flex items-center gap-2 font-body"
+      style={{ fontSize: "var(--text-xs)", ...style }}
+    >
+      <span style={{ fontWeight: 700 }}>{praxis.task_point_value} pts</span>
+      <span aria-hidden>·</span>
+      <span>{collaborators > 0 ? `+${collaborators} crew` : "solo"}</span>
+    </div>
+  );
+}
+
+/**
  * Default content composition — title, task link, byline. Visually identical to
  * the pre-refactor `PraxisContent`. An archetype that wants a different content
  * structure composes the slots above directly instead of calling this.

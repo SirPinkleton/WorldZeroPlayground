@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import type { PraxisCardOut } from "../api/praxis";
 import { factionCssVar } from "../utils/factions";
 import { pickVariant } from "../utils/factionDispatch";
@@ -7,6 +7,11 @@ import { EphMark, Foxing } from "./cards/ephemeristsAtoms";
 import {
   AdminOverlay,
   PraxisContent,
+  PraxisTitle,
+  PraxisTaskLink,
+  PraxisByline,
+  PraxisSeal,
+  PraxisStats,
   type AdminProps,
 } from "./praxisCard/shared";
 import { usePraxisCard } from "./praxisCard/usePraxisCard";
@@ -23,9 +28,56 @@ interface Props {
  * composition). Admin moderation + the optimistic local praxis come from
  * usePraxisCard; the frame is selected by task faction via pickVariant.
  */
-type ArchetypeProps = { praxis: PraxisCardOut; adminProps: AdminProps };
+export type ArchetypeProps = { praxis: PraxisCardOut; adminProps: AdminProps };
 
 // ─── Per-faction archetypes ───────────────────────────────────────────────────
+
+/**
+ * Shared interim content body for every faction's praxis card: title + task link
+ * on the left, the score "seal" (hero) on the right, then a points/mode line and
+ * the byline. Each faction's own frame wraps this; tint / muted / sealLabel carry
+ * the faction voice (e.g. snide "case", ephemerists "concord", singularity
+ * "verified").
+ *
+ * ponytail: the seal is a placeholder hero showing the computed score. The fully
+ * designed per-faction cards — and the vote-reframe summary (Concordance, Signal,
+ * heart/ink ramps) that replaces the seal — supersede this once the design and
+ * the rating/level/date API fields land. See docs/adr/0005.
+ */
+function PlaceholderPraxisBody({
+  praxis,
+  tint,
+  muted,
+  sealLabel = "sealed",
+  titleStyle,
+}: {
+  praxis: PraxisCardOut;
+  tint: string;
+  muted: string;
+  sealLabel?: string;
+  titleStyle?: CSSProperties;
+}) {
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 10,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <PraxisTitle praxis={praxis} style={titleStyle} />
+          <PraxisTaskLink praxis={praxis} style={{ color: muted }} />
+        </div>
+        <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />
+      </div>
+      <PraxisStats praxis={praxis} style={{ color: muted, marginTop: 8 }} />
+      <PraxisByline praxis={praxis} style={{ color: muted }} />
+    </>
+  );
+}
 
 const ROTATIONS = [-2, 1.5, -1, 2.5];
 
@@ -63,9 +115,10 @@ function UAPraxisCard({ praxis, adminProps }: ArchetypeProps) {
         }}
       />
       <AdminOverlay {...adminProps} />
-      <PraxisContent
+      <PlaceholderPraxisBody
         praxis={praxis}
-        metaStyle={{ color: factionCssVar("ua", "card-muted") }}
+        tint={factionCssVar("ua", "card-accent")}
+        muted={factionCssVar("ua", "card-muted")}
       />
     </div>
   );
@@ -103,9 +156,10 @@ function AnalogPraxisCard({ praxis, adminProps }: ArchetypeProps) {
         }}
       />
       <AdminOverlay {...adminProps} />
-      <PraxisContent
+      <PlaceholderPraxisBody
         praxis={praxis}
-        metaStyle={{ color: factionCssVar("analog", "card-muted") }}
+        tint={factionCssVar("analog", "card-accent")}
+        muted={factionCssVar("analog", "card-muted")}
       />
     </div>
   );
@@ -176,9 +230,10 @@ function GestaltPraxisCard({ praxis, adminProps }: ArchetypeProps) {
           }}
         />
         <AdminOverlay {...adminProps} />
-        <PraxisContent
+        <PlaceholderPraxisBody
           praxis={praxis}
-          metaStyle={{ color: factionCssVar("gestalt", "card-muted") }}
+          tint={factionCssVar("gestalt", "card-accent")}
+          muted={factionCssVar("gestalt", "card-muted")}
         />
       </div>
     </div>
@@ -229,9 +284,11 @@ function SnidePraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <div className="snide-tape" style={{ top: -10, left: 22, transform: "rotate(-8deg)" }} />
       <SnideMasthead subtitle="evidence locker" />
       <AdminOverlay {...adminProps} />
-      <PraxisContent
+      <PlaceholderPraxisBody
         praxis={praxis}
-        metaStyle={{ color: factionCssVar("snide", "card-muted") }}
+        tint={factionCssVar("snide", "card-accent")}
+        muted={factionCssVar("snide", "card-muted")}
+        sealLabel="case"
       />
     </div>
   );
@@ -288,10 +345,12 @@ function EphemeristsPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       </div>
       <div style={{ position: "relative", zIndex: 2, padding: "10px 14px 14px" }}>
         <AdminOverlay {...adminProps} />
-        <PraxisContent
+        <PlaceholderPraxisBody
           praxis={praxis}
+          tint="var(--eph-rubric)"
+          muted="var(--eph-muted)"
+          sealLabel="concord"
           titleStyle={{ fontFamily: "var(--eph-display)", color: "var(--eph-vellum-text)" }}
-          metaStyle={{ color: "var(--eph-muted)" }}
         />
       </div>
     </div>
@@ -422,9 +481,11 @@ function SingularityPraxisCard({ praxis, adminProps }: ArchetypeProps) {
           />
         </div>
         <AdminOverlay {...adminProps} />
-        <PraxisContent
+        <PlaceholderPraxisBody
           praxis={praxis}
-          metaStyle={{ color: "var(--faction-singularity-card-muted)" }}
+          tint="var(--faction-singularity-card-text)"
+          muted="var(--faction-singularity-card-muted)"
+          sealLabel="verified"
         />
       </div>
       <SingularityHoles />
@@ -475,7 +536,7 @@ function UAMastersPraxisCard({ praxis, adminProps }: ArchetypeProps) {
 }
 
 /** Fallback card for `na` / unknown task factions — a plain accent-bordered slab. */
-function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
+export function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   const slug = praxis.task_faction_slug ?? "ua";
   return (
     <div
@@ -502,7 +563,7 @@ function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
-const PRAXIS_CARD_BY_SLUG: Record<string, ComponentType<ArchetypeProps>> = {
+export const PRAXIS_CARD_BY_SLUG: Record<string, ComponentType<ArchetypeProps>> = {
   ua: UAPraxisCard,
   analog: AnalogPraxisCard,
   gestalt: GestaltPraxisCard,

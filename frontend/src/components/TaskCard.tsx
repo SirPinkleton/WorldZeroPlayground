@@ -13,14 +13,14 @@ import { factionCssVar, factionName } from '../utils/factions'
 import { pickVariant } from '../utils/factionDispatch'
 import type { ComponentType } from 'react'
 
-interface CardProps {
+export interface CardProps {
   task: TaskOut
   displayPoints: number
   onSignup?: (id: number) => void
 }
 
 /** Style Guide §6 — one card archetype per faction. */
-const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
+export const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   ua: TaskCardUA,
   analog: TaskCardEverymen,
   gestalt: TaskCardGestalt,
@@ -30,7 +30,7 @@ const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   ua_masters: TaskCardUAMasters,
 }
 
-const DEFAULT_CARD = TaskCardUA
+export const DEFAULT_CARD = TaskCardUA
 
 export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
   const { user } = useAuth()

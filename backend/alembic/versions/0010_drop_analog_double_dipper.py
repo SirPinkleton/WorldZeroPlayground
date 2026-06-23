@@ -1,14 +1,16 @@
-"""Drop the unused ``analog_double_dipper`` table.
+"""Drop the orphaned ``analog_double_dipper`` table.
 
-The Analog Double Dipper feature was created in ``0001_squashed`` but the
-service functions (``designate_double_dipper`` / ``get_double_dipper_for_level``)
-had zero callers and were removed along with the ORM class. This migration
-drops the now-orphaned table so the schema matches the models — without it,
-``Base.metadata.drop_all`` (used in tests) can no longer drop ``task`` because
-the orphaned ``analog_double_dipper_task_id_fkey`` still depends on it.
+PR #147 deleted the ``analog_double_dipper`` model as dead code but left the
+table behind: the squashed baseline (``0001``) still creates it, so a fresh
+``alembic upgrade head`` produces a table with no model. Because nothing maps
+it onto ``Base.metadata`` anymore, the integration suite's
+``Base.metadata.drop_all`` teardown skips it, and the lingering
+``analog_double_dipper_task_id_fkey`` then blocks ``DROP TABLE task`` —
+failing CI on a teardown error.
 
-The downgrade recreates the original schema so we can bisect across this
-revision (the table was always empty in practice, so no DML is needed).
+Forward migration on top of head (the baseline is intentionally untouched —
+see ADR-0004 / issue #145). Drops the table; ``downgrade`` recreates it from
+the original ``0001`` definition for reversibility.
 
 Revision ID: 0010_drop_analog_double_dipper
 Revises: 0009_nullability_alignment
@@ -27,7 +29,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute(sa.text("DROP TABLE IF EXISTS analog_double_dipper"))
+    op.drop_table("analog_double_dipper")
 
 
 def downgrade() -> None:
