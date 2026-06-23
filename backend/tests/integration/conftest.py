@@ -182,6 +182,23 @@ async def faction_ua(db_session: AsyncSession) -> Faction:
 
 
 @pytest_asyncio.fixture
+async def faction_ephemerists(db_session: AsyncSession) -> Faction:
+    """Seed the 'ephemerists' faction row required by Task Vision carve-out tests."""
+    from models.faction import FactionStatus
+    from sqlalchemy import select
+
+    result = await db_session.execute(select(Faction).where(Faction.slug == "ephemerists"))
+    existing = result.scalar_one_or_none()
+    if existing is None:
+        faction = Faction(slug="ephemerists", name="The Ephemerists", description="Task Vision perk", status=FactionStatus.visible)
+        db_session.add(faction)
+        await db_session.commit()
+        result = await db_session.execute(select(Faction).where(Faction.slug == "ephemerists"))
+        existing = result.scalar_one()
+    return existing
+
+
+@pytest_asyncio.fixture
 async def character(db_session: AsyncSession, account: Account, era: Era, faction_ua: Faction) -> Character:
     ch = Character(
         account_id=account.id,

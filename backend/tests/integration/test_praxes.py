@@ -17,7 +17,7 @@ from models.character import Character
 from models.character_stats import CharacterStats
 from models.era import Era
 from models.praxis import ModerationStatus, Praxis, PraxisMember, PraxisStatus
-from models.task import Task
+from models.task import Task, TaskStatus
 
 
 # ---------------------------------------------------------------------------
@@ -1299,3 +1299,73 @@ async def test_create_minimal_draft_blocks_duplicate_non_analog(
     )
     assert second_resp.status_code == 409
     assert "already submitted" in second_resp.json()["detail"].lower()
+
+
+# ---------------------------------------------------------------------------
+# Issue #165 — task-must-be-active gate in create_praxis
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("task_status", [TaskStatus.pending, TaskStatus.retired])
+async def test_create_praxis_non_active_task_returns_403(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    auth_headers: dict,
+    task_status: TaskStatus,
+):
+    """Praxis creation against a pending or retired task is rejected for non-carve-out factions."""
+    task = Task(
+        title="Not Open",
+        description="",
+        point_value=10,
+        level_required=0,
+        status=task_status,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    db_session.add(task)
+    await db_session.commit()
+    await db_session.refresh(task)
+
+    resp = await client.post(
+        "/praxes",
+        json={"task_id": task.id, "type": "solo", "title": "Blocked Praxis"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
+    assert task_status.value in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_create_praxis_retired_task_allowed_for_ephemerists(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    faction_ephemerists,
+    auth_headers: dict,
+):
+    """Ephemerists may create praxes on retired tasks (Task Vision carve-out in Era 1)."""
+    character.faction_slug = "ephemerists"
+    await db_session.commit()
+
+    retired_task = Task(
+        title="Ephemerists Can Do This",
+        description="",
+        point_value=10,
+        level_required=0,
+        status=TaskStatus.retired,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    db_session.add(retired_task)
+    await db_session.commit()
+    await db_session.refresh(retired_task)
+
+    resp = await client.post(
+        "/praxes",
+        json={"task_id": retired_task.id, "type": "solo", "title": "Task Vision Praxis"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
