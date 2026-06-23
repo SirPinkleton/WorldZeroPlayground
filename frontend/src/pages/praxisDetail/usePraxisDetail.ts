@@ -15,6 +15,8 @@ import {
   withdrawPraxis,
   resubmitPraxis,
   flagPraxis,
+  applyMetatask,
+  removeMetatask,
   type PraxisOut,
 } from "../../api/praxis";
 import { getVotes, type VoteSummary } from "../../api/votes";
@@ -22,6 +24,8 @@ import { useAuth } from "../../auth/AuthContext";
 import { useAdminMode } from "../../auth/AdminModeContext";
 import { moderatePraxis } from "../../api/admin";
 import { extractError } from "../../utils/errors";
+import type { CurrentUser } from "../../api/auth";
+import { listTasks, type TaskOut } from "../../api/tasks";
 
 export interface PraxisDetailState {
   // Routing / loading
@@ -35,6 +39,8 @@ export interface PraxisDetailState {
   // Derived
   isOwner: boolean;
   showAdminBar: boolean;
+  // Authenticated viewer character (null when anonymous)
+  user: CurrentUser | null;
 
   // Withdraw / resubmit
   withdrawing: boolean;
@@ -65,6 +71,15 @@ export interface PraxisDetailState {
   handleWithdraw: () => Promise<void>;
   handleResubmit: () => Promise<void>;
   handleFlag: () => Promise<void>;
+
+  // Metatasks
+  metatasks: TaskOut[];
+  metataskLoading: boolean;
+  metataskError: string | null;
+  applyingMetataskId: number | null;
+  removingMetataskId: number | null;
+  handleApplyMetatask: (taskId: number) => Promise<void>;
+  handleRemoveMetatask: (taskId: number) => Promise<void>;
 }
 
 export function usePraxisDetail(idParam: string | undefined): PraxisDetailState {
@@ -73,6 +88,12 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
 
   const [praxis, setPraxis] = useState<PraxisOut | null>(null);
   const [votes, setVotes] = useState<VoteSummary | null>(null);
+  const [metatasks, setMetatasks] = useState<TaskOut[]>([]);
+  const [metataskLoading, setMetataskLoading] = useState(false);
+  const [metataskError, setMetataskError] = useState<string | null>(null);
+  const [applyingMetataskId, setApplyingMetataskId] = useState<number | null>(null);
+  const [removingMetataskId, setRemovingMetataskId] = useState<number | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -119,6 +140,44 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
       )
       .finally(() => setLoading(false));
   }, [idParam]);
+
+  useEffect(() => {
+    if (!praxis) return;
+    setMetataskLoading(true);
+    listTasks({ task_type: "metatask" })
+      .then(setMetatasks)
+      .catch((err) => setMetataskError(extractError(err, "Failed to load metatasks.")))
+      .finally(() => setMetataskLoading(false));
+  }, [praxis?.id]);
+
+  const handleApplyMetataskFn = async (taskId: number) => {
+    if (!praxis) return;
+    setApplyingMetataskId(taskId);
+    setMetataskError(null);
+    try {
+      const updated = await applyMetatask(praxis.id, taskId);
+      setPraxis(updated);
+    } catch (err) {
+      setMetataskError(extractError(err, "Failed to apply metatask."));
+    } finally {
+      setApplyingMetataskId(null);
+    }
+  };
+
+  const handleRemoveMetataskFn = async (taskId: number) => {
+    if (!praxis) return;
+    setRemovingMetataskId(taskId);
+    setMetataskError(null);
+    try {
+      await removeMetatask(praxis.id, taskId);
+      const updated = await getPraxis(praxis.id);
+      setPraxis(updated);
+    } catch (err) {
+      setMetataskError(extractError(err, "Failed to remove metatask."));
+    } finally {
+      setRemovingMetataskId(null);
+    }
+  };
 
   const handleWithdraw = async () => {
     if (!praxis) return;
@@ -182,6 +241,8 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
 
     votes,
 
+    user,
+
     isOwner,
     showAdminBar,
 
@@ -205,6 +266,14 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
     flagError,
     setFlagError,
     flagSubmitted,
+
+    metatasks,
+    metataskLoading,
+    metataskError,
+    applyingMetataskId,
+    removingMetataskId,
+    handleApplyMetatask: handleApplyMetataskFn,
+    handleRemoveMetatask: handleRemoveMetataskFn,
 
     handleModerate,
     handleWithdraw,

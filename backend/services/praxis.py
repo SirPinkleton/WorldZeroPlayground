@@ -28,6 +28,7 @@ from models.praxis import (
 )
 from models.task import Task, TaskType
 from models.vote import Vote
+from schemas.task import TaskOut
 from schemas.praxis import (
     DuelVoteSummary,
     MediaItemOut,
@@ -212,6 +213,17 @@ async def build_praxis_out(
 
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
+    # Query applied metatasks
+    applied_metatasks: list[TaskOut] = []
+    metatask_tasks_result = await session.execute(
+        select(Task)
+        .join(PraxisMetaTask, PraxisMetaTask.task_id == Task.id)
+        .where(PraxisMetaTask.praxis_id == praxis.id)
+    )
+    metatask_tasks = metatask_tasks_result.scalars().all()
+    if metatask_tasks:
+        applied_metatasks = [TaskOut.model_validate(t) for t in metatask_tasks]
+
     return PraxisOut(
         id=praxis.id,
         task_id=praxis.task_id,
@@ -236,6 +248,7 @@ async def build_praxis_out(
         score=score,
         duel_vote_summary=duel_vote_summary,
         can_flag=can_flag,
+        applied_metatasks=applied_metatasks,
     )
 
 
