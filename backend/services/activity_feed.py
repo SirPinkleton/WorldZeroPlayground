@@ -129,7 +129,6 @@ async def _get_my_task_ids(
         .where(
             PraxisMember.character_id == character_id,
             Praxis.status == PraxisStatus.in_progress,
-            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     return list(result.scalars().all())
@@ -212,7 +211,6 @@ async def _fetch_completions(
         .join(Character, Praxis.created_by_id == Character.id)
         .where(
             Praxis.created_by_id.in_(character_ids),
-            Praxis.is_withdrawn == False,  # noqa: E712
             Praxis.status == PraxisStatus.submitted,
         )
     )
@@ -443,7 +441,6 @@ async def _fetch_friend_signups(
         .where(
             PraxisMember.character_id.in_(friend_ids),
             Praxis.task_id.in_(my_task_ids),
-            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     if before is not None:
@@ -599,8 +596,7 @@ async def _compute_counts(
             .select_from(Praxis)
             .where(
                 Praxis.created_by_id.in_(friend_ids),
-                Praxis.is_withdrawn == False,  # noqa: E712
-                Praxis.status == PraxisStatus.submitted,
+                    Praxis.status == PraxisStatus.submitted,
             )
         )
         return result.scalar_one()
@@ -615,8 +611,7 @@ async def _compute_counts(
             .where(
                 PraxisMember.character_id.in_(friend_ids),
                 Praxis.task_id.in_(my_task_ids),
-                Praxis.is_withdrawn == False,  # noqa: E712
-            )
+                )
         )
         return result.scalar_one()
 
@@ -701,8 +696,7 @@ async def _compute_counts(
             .select_from(Praxis)
             .where(
                 Praxis.created_by_id.in_(foe_ids_for_count),
-                Praxis.is_withdrawn == False,  # noqa: E712
-                Praxis.status == PraxisStatus.submitted,
+                    Praxis.status == PraxisStatus.submitted,
             )
         )
         foe_completions_count = foe_completions_result.scalar_one()

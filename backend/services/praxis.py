@@ -93,7 +93,6 @@ async def _count_in_progress_praxes(character_id: int, session: AsyncSession) ->
         .where(
             PraxisMember.character_id == character_id,
             Praxis.status == PraxisStatus.in_progress,
-            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     return result.scalar_one()
@@ -224,7 +223,6 @@ async def build_praxis_out(
         status=praxis.status,
         title=praxis.title,
         body_text=praxis.body_text,
-        is_withdrawn=praxis.is_withdrawn,
         moderation_status=praxis.moderation_status,
         admin_note=praxis.admin_note,
         flagged_at=praxis.flagged_at,
@@ -262,7 +260,6 @@ async def build_praxis_card_out(
         type=praxis.type,
         status=praxis.status,
         title=praxis.title,
-        is_withdrawn=praxis.is_withdrawn,
         moderation_status=praxis.moderation_status,
         created_by_id=praxis.created_by_id,
         created_by_display_name=created_by_display_name,
@@ -475,7 +472,6 @@ async def create_praxis(
         status=PraxisStatus.in_progress,
         title=title,
         body_text=body_text or "",
-        is_withdrawn=False,
         moderation_status=ModerationStatus.visible,
         created_by_id=character_id,
     )
@@ -520,36 +516,21 @@ async def withdraw_praxis(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
-    """Mark praxis as withdrawn. Creator only."""
+    """Move praxis back to editing (in_progress). Creator only.
+
+    Votes are preserved but stop contributing to score until resubmitted via
+    ``submit_praxis``. For collabs/duels, member submission flags are reset so
+    the full group must re-submit.
+    """
     praxis = await get_praxis(praxis_id, session)
     if praxis.created_by_id != character_id:
-        raise HTTPException(status_code=403, detail="Cannot withdraw another character's praxis.")
-    if praxis.is_withdrawn:
-        raise HTTPException(status_code=422, detail="Praxis is already withdrawn.")
+        raise HTTPException(status_code=403, detail="Cannot edit another character's praxis.")
+    if praxis.status == PraxisStatus.in_progress:
+        raise HTTPException(status_code=422, detail="Praxis is already in editing mode.")
 
-    praxis.is_withdrawn = True
     praxis.status = PraxisStatus.in_progress
-    await session.flush()
-
-    await recalculate_character_stats(character_id, session, era)
-    await session.flush()
-    return await get_praxis(praxis_id, session)
-
-
-async def resubmit_praxis(
-    praxis_id: int,
-    character_id: int,
-    session: AsyncSession,
-    era: EraConfig = CURRENT_ERA,
-) -> Praxis:
-    """Re-submit a withdrawn praxis."""
-    praxis = await get_praxis(praxis_id, session)
-    if praxis.created_by_id != character_id:
-        raise HTTPException(status_code=403, detail="Cannot resubmit another character's praxis.")
-    if not praxis.is_withdrawn:
-        raise HTTPException(status_code=422, detail="Praxis is not withdrawn.")
-
-    praxis.is_withdrawn = False
+    for member in praxis.members:
+        member.has_submitted = False
     await session.flush()
 
     await recalculate_character_stats(character_id, session, era)
@@ -562,14 +543,14 @@ async def delete_praxis(
     character_id: int,
     session: AsyncSession,
 ) -> None:
-    """Delete a praxis. Creator only. Must be in_progress or withdrawn."""
+    """Delete a praxis. Creator only. Must be in_progress."""
     praxis = await get_praxis(praxis_id, session)
     if praxis.created_by_id != character_id:
         raise HTTPException(status_code=403, detail="Cannot delete another character's praxis.")
-    if praxis.status == PraxisStatus.submitted and not praxis.is_withdrawn:
+    if praxis.status == PraxisStatus.submitted:
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete a submitted praxis. Withdraw it first.",
+            detail="Cannot delete a submitted praxis. Move it to editing first.",
         )
     await session.delete(praxis)
     await session.flush()
@@ -624,7 +605,6 @@ async def can_submit_praxis_for_task(
         select(Praxis.id).where(
             Praxis.created_by_id == character.id,
             Praxis.task_id == task.id,
-            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     return result.scalar_one_or_none() is None
@@ -754,7 +734,6 @@ async def _check_invitee_task_eligibility(
             Praxis.type == PraxisType.solo,
             Praxis.created_by_id == invitee_id,
             Praxis.task_id == task_id,
-            Praxis.is_withdrawn == False,  # noqa: E712
         )
     )
     if existing_praxis_result.scalar_one_or_none() is not None:
@@ -975,25 +954,6 @@ async def submit_praxis(
     return await get_praxis(praxis_id, session)
 
 
-async def reopen_praxis(
-    praxis_id: int,
-    character_id: int,
-    session: AsyncSession,
-) -> Praxis:
-    """Set praxis back to in_progress. Creator only."""
-    praxis = await get_praxis(praxis_id, session)
-
-    if praxis.created_by_id != character_id:
-        raise HTTPException(status_code=403, detail="Only the creator can reopen a praxis.")
-
-    praxis.status = PraxisStatus.in_progress
-    for member in praxis.members:
-        member.has_submitted = False
-
-    await session.flush()
-    return await get_praxis(praxis_id, session)
-
-
 async def moderate_praxis(
     praxis_id: int,
     new_status: str,
@@ -1183,8 +1143,6 @@ __all__ = [
     "list_praxes",
     "moderate_praxis",
     "remove_metatask",
-    "reopen_praxis",
-    "resubmit_praxis",
     "respond_to_invite",
     "submit_praxis",
     "update_praxis",

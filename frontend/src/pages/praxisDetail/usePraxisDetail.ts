@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import {
   getPraxis,
   withdrawPraxis,
-  resubmitPraxis,
+  submitPraxis,
   flagPraxis,
   applyMetatask,
   removeMetatask,
@@ -200,7 +200,7 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
     setWithdrawing(true);
     setWithdrawError(null);
     try {
-      const updated = await resubmitPraxis(praxis.id);
+      const updated = await submitPraxis(praxis.id);
       setPraxis(updated);
       void refetch();
     } catch (err) {

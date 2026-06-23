@@ -51,8 +51,6 @@ from services.praxis import (
     kick_member,
     list_praxes,
     remove_metatask,
-    reopen_praxis,
-    resubmit_praxis,
     respond_to_invite,
     submit_praxis,
     update_praxis,
@@ -202,21 +200,6 @@ async def withdraw_praxis_route(
     return await build_praxis_out(praxis, session, viewer=character)
 
 
-@router.post("/{praxis_id}/resubmit", response_model=PraxisOut)
-async def resubmit_praxis_route(
-    praxis_id: int,
-    character: Character = Depends(get_current_character),
-    session: AsyncSession = Depends(get_db),
-):
-    praxis = await resubmit_praxis(
-        praxis_id=praxis_id,
-        character_id=character.id,
-        session=session,
-        era=CURRENT_ERA,
-    )
-    return await build_praxis_out(praxis, session, viewer=character)
-
-
 @router.post("/{praxis_id}/submit", response_model=PraxisOut)
 async def submit_praxis_route(
     praxis_id: int,
@@ -228,20 +211,6 @@ async def submit_praxis_route(
         character_id=character.id,
         session=session,
         era=CURRENT_ERA,
-    )
-    return await build_praxis_out(praxis, session, viewer=character)
-
-
-@router.post("/{praxis_id}/reopen", response_model=PraxisOut)
-async def reopen_praxis_route(
-    praxis_id: int,
-    character: Character = Depends(get_current_character),
-    session: AsyncSession = Depends(get_db),
-):
-    praxis = await reopen_praxis(
-        praxis_id=praxis_id,
-        character_id=character.id,
-        session=session,
     )
     return await build_praxis_out(praxis, session, viewer=character)
 

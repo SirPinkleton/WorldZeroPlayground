@@ -652,10 +652,7 @@ async def test_my_tasks_with_status_filter(
 ):
     """GET /praxes?character_id=X with status filter returns the right subset.
 
-    The new praxis model has no `abandoned` status — the closest analog is
-    `is_withdrawn=True` on an in_progress praxis. This test covers the two
-    real statuses exposed by PraxisStatus: in_progress and submitted, plus
-    the withdrawal flag.
+    Covers the two statuses exposed by PraxisStatus: in_progress and submitted.
     """
     from models.task import TaskStatus
 
@@ -695,13 +692,6 @@ async def test_my_tasks_with_status_filter(
     )
     assert submit_resp.status_code == 200
 
-    # Withdraw the second praxis
-    withdraw_resp = await client.post(
-        f"/praxes/{praxis_ids[1]}/withdraw",
-        headers=auth_headers2,
-    )
-    assert withdraw_resp.status_code == 200
-
     # status=submitted returns only the first praxis
     resp_submitted = await client.get(
         "/praxes",
@@ -713,8 +703,7 @@ async def test_my_tasks_with_status_filter(
     assert praxis_ids[1] not in submitted_ids
     assert praxis_ids[2] not in submitted_ids
 
-    # status=in_progress returns the remaining two (withdrawn one stays
-    # in_progress but has is_withdrawn=True; third is fresh in_progress)
+    # status=in_progress returns the remaining two
     resp_ip = await client.get(
         "/praxes",
         params={"character_id": character2.id, "status": "in_progress"},
@@ -722,10 +711,8 @@ async def test_my_tasks_with_status_filter(
     assert resp_ip.status_code == 200
     ip_ids = [p["id"] for p in resp_ip.json()]
     assert praxis_ids[0] not in ip_ids
-    assert praxis_ids[2] in ip_ids
-    # The withdrawn praxis should also still appear under in_progress
-    # because PraxisStatus doesn't change on withdraw.
     assert praxis_ids[1] in ip_ids
+    assert praxis_ids[2] in ip_ids
 
     # No status filter returns all three
     resp_all = await client.get(
