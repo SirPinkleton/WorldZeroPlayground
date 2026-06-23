@@ -266,30 +266,6 @@ async def list_characters_for_viewer(
     return list(result.all())
 
 
-async def list_leaderboard(
-    session: AsyncSession,
-    *,
-    faction_slug: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0,
-) -> list[tuple[Character, CharacterStats | None]]:
-    """Top active characters by current-era score, optionally faction-filtered."""
-    era_row = await get_current_era_row_safe(session)
-    era_id = era_row.id if era_row else None
-
-    query = _character_stats_era_join(era_id)
-    if faction_slug:
-        query = query.where(Character.faction_slug == faction_slug)
-    query = (
-        query.order_by(CharacterStats.score.desc().nulls_last())
-        .limit(limit)
-        .offset(offset)
-    )
-
-    result = await session.execute(query)
-    return list(result.all())
-
-
 def check_faction_graduation(
     character: Character,
     stats: CharacterStats,

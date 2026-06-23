@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from schemas.character import CharacterOut
-from services.character import build_character_out, list_leaderboard
+from services.character import build_character_out, list_characters_for_viewer
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ async def get_leaderboard(
     session: AsyncSession = Depends(get_db),
 ):
     """Top characters by current era score, optionally filtered by faction."""
-    rows = await list_leaderboard(
+    rows = await list_characters_for_viewer(
         session, faction_slug=faction, limit=limit, offset=offset
     )
     return [build_character_out(character, stats) for character, stats in rows]
