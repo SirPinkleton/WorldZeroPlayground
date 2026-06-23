@@ -26,7 +26,7 @@ from schemas.admin import (
     OverviewStats,
 )
 from services.era import get_current_era_row, get_or_create_stats
-from services.scoring import compute_votes_available
+from services.scoring import compute_vote_budget, compute_votes_available
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ async def get_account_detail(account_id: int, session: AsyncSession) -> AccountD
 async def list_characters(
     session: AsyncSession,
     faction: str | None = None,
-    status: str | None = None,
+    status: CharacterStatus | None = None,
     era: EraConfig = CURRENT_ERA,
 ) -> list[CharacterSummary]:
     era_row = await get_current_era_row(session)
@@ -102,11 +102,7 @@ async def list_characters(
     if faction:
         query = query.where(Character.faction_slug == faction)
     if status:
-        try:
-            status_enum = CharacterStatus(status)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
-        query = query.where(Character.status == status_enum)
+        query = query.where(Character.status == status)
 
     result = await session.execute(query)
     rows = result.all()
@@ -286,7 +282,7 @@ async def set_character_stats(
         # so the on-read formula lands on the requested value.
         # votes_spent = cap - desired (clamped at 0).
         score_for_cap = patch.score if patch.score is not None else stats.score
-        cap = era.vote_budget_base + int(era.vote_budget_multiplier * score_for_cap)
+        cap = compute_vote_budget(score_for_cap, era)
         stats.votes_spent_this_era = max(0, cap - patch.votes_available)
 
     await session.flush()
@@ -325,43 +321,34 @@ async def assign_or_revoke_role(
     role_result = await session.execute(select(Role).where(Role.name == role_name))
     role = role_result.scalar_one_or_none()
 
-    if action == "grant":
-        if role is None:
-            role = Role(name=role_name, description="")
-            session.add(role)
-            await session.flush()
+    if role is None:
+        if action == "revoke":
+            raise HTTPException(status_code=404, detail=f"Role '{role_name}' does not exist.")
+        role = Role(name=role_name, description="")
+        session.add(role)
+        await session.flush()
 
-        existing_result = await session.execute(
-            select(AccountRole).where(
-                AccountRole.account_id == account_id,
-                AccountRole.role_id == role.id,
-            )
+    existing_result = await session.execute(
+        select(AccountRole).where(
+            AccountRole.account_id == account_id,
+            AccountRole.role_id == role.id,
         )
-        if existing_result.scalar_one_or_none() is not None:
-            return  # Already has the role — idempotent
+    )
+    account_role = existing_result.scalar_one_or_none()
 
-        account_role = AccountRole(
+    if action == "grant":
+        if account_role is not None:
+            return  # Already has the role — idempotent
+        session.add(AccountRole(
             account_id=account_id,
             role_id=role.id,
             granted_by=admin_account_id,
-        )
-        session.add(account_role)
+        ))
         await session.flush()
 
     elif action == "revoke":
-        if role is None:
-            raise HTTPException(status_code=404, detail=f"Role '{role_name}' does not exist.")
-
-        existing_result = await session.execute(
-            select(AccountRole).where(
-                AccountRole.account_id == account_id,
-                AccountRole.role_id == role.id,
-            )
-        )
-        account_role = existing_result.scalar_one_or_none()
         if account_role is None:
             return  # Doesn't have the role — idempotent
-
         await session.delete(account_role)
         await session.flush()
 

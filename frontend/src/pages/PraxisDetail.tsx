@@ -8,16 +8,11 @@
  * not-found guards live here so archetypes can assume a non-null praxis.
  */
 import { useParams } from 'react-router-dom'
-import { pickVariant } from '../utils/factionDispatch'
-import { usePraxisDetail, type PraxisDetailState } from './praxisDetail/usePraxisDetail'
+import { usePraxisDetail } from './praxisDetail/usePraxisDetail'
 import DefaultPraxisDetail from './praxisDetail/archetypes/DefaultPraxisDetail'
 
-type Archetype = (props: { state: PraxisDetailState }) => JSX.Element | null
-
-// Only factions with a bespoke archetype are listed; everything else (incl.
-// albescent / aged_out) falls through to DefaultPraxisDetail.
-const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {}
-
+// ponytail: no faction has a bespoke archetype yet — everyone renders
+// DefaultPraxisDetail. Add a pickVariant dispatch here when one does.
 export default function PraxisDetail() {
   const { id } = useParams<{ id: string }>()
   const state = usePraxisDetail(id)
@@ -33,8 +28,5 @@ export default function PraxisDetail() {
   )
   if (!state.praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
-  const slug = state.praxis.task_faction_slug ?? null
-  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, slug, DefaultPraxisDetail)
-
-  return <Archetype state={state} />
+  return <DefaultPraxisDetail state={state} />
 }

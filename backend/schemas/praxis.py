@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
+from schemas.task import TaskOut
 from models.praxis import PraxisType, PraxisStatus, PraxisInviteStatus, MediaType, ModerationStatus
 
 
@@ -70,6 +71,7 @@ class PraxisOut(BaseModel):
     media_items: List[MediaItemOut]
     score: float                # populated by build_praxis_out
     duel_vote_summary: Optional[List[DuelVoteSummary]]  # only for duels
+    applied_metatasks: List[TaskOut] = []
     can_flag: bool = False      # populated by build_praxis_out; viewer-relative
 
     model_config = {"from_attributes": True}
