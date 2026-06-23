@@ -55,6 +55,18 @@ export function populateFactionRegistry(
 }
 
 /**
+ * Faction-identity aliases: derived/retired factions render with their
+ * canonical faction's identity (archetype + CSS theme). Single source of truth
+ * for the relationship — consumed here by factionCssVar and by pickVariant in
+ * utils/factionDispatch.ts. (FACTION_FALLBACKS still carries their distinct
+ * display names; only the visual identity aliases.)
+ */
+export const FACTION_ALIASES: Record<string, string> = {
+  albescent: "ua",
+  aged_out: "ua",
+};
+
+/**
  * Slug-to-CSS-variable-key mapping.
  * Faction slugs use underscores in the DB but CSS variables use hyphens.
  */
@@ -67,8 +79,6 @@ const CSS_KEY: Record<string, string> = {
   singularity: "singularity",
   everymen: "everymen",
   ua_masters: "ua-masters",
-  albescent: "ua",
-  aged_out: "ua",
 };
 
 /**
@@ -88,7 +98,8 @@ export function factionCssVar(
   slug: string | null | undefined,
   suffix?: string,
 ): string {
-  const key = CSS_KEY[slug ?? ""] ?? "ua";
+  const resolved = FACTION_ALIASES[slug ?? ""] ?? slug ?? "";
+  const key = CSS_KEY[resolved] ?? "ua";
   const prop = suffix ? `--faction-${key}-${suffix}` : `--faction-${key}`;
   return `var(${prop})`;
 }

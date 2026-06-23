@@ -132,7 +132,7 @@ async def admin_get_account(
 @router.get("/characters", response_model=list[CharacterSummary])
 async def admin_list_characters(
     faction: str | None = None,
-    status: str | None = None,
+    status: CharacterStatus | None = None,
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> list[CharacterSummary]:

@@ -12,8 +12,6 @@ from models.character import Character
 from schemas.activity_feed import ActivityFeedResponse
 from services.activity_feed import get_activity_feed
 
-VALID_FILTERS = {"all", "friends", "foes", "your_stuff", "global", "requests"}
-
 router = APIRouter()
 
 
@@ -26,8 +24,7 @@ async def activity_feed(
     session: AsyncSession = Depends(get_db),
 ) -> ActivityFeedResponse:
     """Return a unified, paginated activity feed for the current character."""
-    feed_filter = filter if filter in VALID_FILTERS else "all"
-
+    # Unknown filters fall back to "all" in the service (FILTER_QUERIES.get default).
     before_cursor: Optional[datetime] = None
     if before:
         before_cursor = datetime.fromisoformat(before)
@@ -35,7 +32,7 @@ async def activity_feed(
     dc_response = await get_activity_feed(
         character_id=character.id,
         session=session,
-        feed_filter=feed_filter,
+        feed_filter=filter,
         before_cursor=before_cursor,
         limit=limit,
     )
