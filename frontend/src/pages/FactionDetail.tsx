@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import PageTitle from "../components/ui/PageTitle";
 import { factionCssVar } from "../utils/factions";
 import { pickVariant } from "../utils/factionDispatch";
-import { useFactionDetail, type FactionDetailState } from "./factionDetail/useFactionDetail";
+import { useFactionDetail } from "./factionDetail/useFactionDetail";
 import DefaultFactionBody from "./factionDetail/archetypes/DefaultFactionBody";
 import EphemeristsFactionHero from "../components/cards/EphemeristsFactionHero";
 import SnideFactionHero from "../components/cards/SnideFactionHero";
@@ -13,16 +13,14 @@ import SnideFactionHero from "../components/cards/SnideFactionHero";
  * SPEC-faction-ui-profile.md: shows the faction's description, its members, its
  * tasks, and recently completed praxis.
  *
- * Two independent per-faction dispatchers cover the page:
- *   - FACTION_HEROES — the frontispiece. A faction opts into a bespoke hero by
- *     registering here; otherwise the shared title + description chrome is used.
- *   - FACTION_BODY — the members / tasks / recent-praxis sections. A faction
- *     opts into a bespoke body the same way; otherwise DefaultFactionBody (the
- *     original placeholder layout) is used. Both fall back faction-agnostically
- *     via pickVariant.
+ * The frontispiece is dispatched per-faction via FACTION_HEROES: a faction opts
+ * into a bespoke hero by registering here; otherwise the shared title +
+ * description chrome is used. The body (members / tasks / recent-praxis) is
+ * always DefaultFactionBody for now — add a pickVariant dispatch here when a
+ * faction wants a bespoke body.
  *
  * Data + the page backdrop come from useFactionDetail; this component only
- * routes the loading / error / not-found guards and the two dispatches.
+ * routes the loading / error / not-found guards and the hero dispatch.
  */
 export interface FactionHeroProps {
   name: string;
@@ -37,12 +35,6 @@ const FACTION_HEROES: Record<string, ComponentType<FactionHeroProps>> = {
   journeymen: EphemeristsFactionHero,
   snide: SnideFactionHero,
 };
-
-type BodyArchetype = (props: { state: FactionDetailState }) => JSX.Element | null;
-
-// Only factions with a bespoke body are listed; everything else (incl.
-// albescent / aged_out) falls through to DefaultFactionBody.
-const FACTION_BODY: Record<string, BodyArchetype> = {};
 
 export default function FactionDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -78,7 +70,6 @@ export default function FactionDetail() {
   // (Hero is undefined) the shared title + description chrome is used. The page
   // backdrop is themed per-faction by useFactionDetail either way.
   const Hero = pickVariant(FACTION_HEROES, faction.slug);
-  const Body = pickVariant(FACTION_BODY, faction.slug, DefaultFactionBody);
 
   return (
     <div className="py-8">
@@ -106,7 +97,7 @@ export default function FactionDetail() {
         </>
       )}
 
-      <Body state={state} />
+      <DefaultFactionBody state={state} />
     </div>
   );
 }

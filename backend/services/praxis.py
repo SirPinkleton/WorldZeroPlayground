@@ -113,6 +113,11 @@ async def compute_praxis_score_from_db(
     if task is None:
         return 0.0
 
+    sum_result = await session.execute(
+        select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
+    )
+    total_stars = int(sum_result.scalar_one_or_none() or 0)
+
     if praxis.type == PraxisType.solo:
         creator = praxis.created_by
         character_faction_slug = creator.faction_slug if creator else "na"
@@ -130,10 +135,6 @@ async def compute_praxis_score_from_db(
         else:
             creator_level = 0
         meta_task_points = await get_meta_task_points(praxis.id, creator_level, session)
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars, meta_task_points)
 
     elif praxis.type == PraxisType.collab:
@@ -151,18 +152,10 @@ async def compute_praxis_score_from_db(
             era,
             collaboration_mode=COLLABORATION_MODE_COLLAB,
         )
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 
     elif praxis.type == PraxisType.duel:
         # For a duel, return the combined star total across members
-        sum_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-        )
-        total_stars = int(sum_result.scalar_one_or_none() or 0)
         faction_multiplier = 1.0
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 

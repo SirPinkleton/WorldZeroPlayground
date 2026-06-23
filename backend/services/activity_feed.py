@@ -102,30 +102,16 @@ FILTER_QUERIES: dict[str, set[str]] = {
 SUB_QUERY_LIMIT = 50
 
 
-async def _get_friend_ids(
+async def _get_related_ids(
     character_id: int,
+    rel_type: RelationshipType,
     session: AsyncSession,
 ) -> list[int]:
-    """Get IDs of characters the current character has declared as friends."""
+    """Get IDs of characters the current character has declared with this relationship type."""
     result = await session.execute(
         select(Relationship.to_character_id).where(
             Relationship.from_character_id == character_id,
-            Relationship.type == RelationshipType.friend,
-            Relationship.status == RelationshipStatus.active,
-        )
-    )
-    return list(result.scalars().all())
-
-
-async def _get_foe_ids(
-    character_id: int,
-    session: AsyncSession,
-) -> list[int]:
-    """Get IDs of characters the current character has declared as foes."""
-    result = await session.execute(
-        select(Relationship.to_character_id).where(
-            Relationship.from_character_id == character_id,
-            Relationship.type == RelationshipType.foe,
+            Relationship.type == rel_type,
             Relationship.status == RelationshipStatus.active,
         )
     )
@@ -199,13 +185,14 @@ async def _fetch_votes_on_mine(
     return items
 
 
-async def _fetch_friend_completions(
-    friend_ids: list[int],
+async def _fetch_completions(
+    character_ids: list[int],
+    item_type: str,
     session: AsyncSession,
     before: Optional[datetime],
 ) -> list[ActivityFeedItemDC]:
-    """Recent praxis (completions) from friends."""
-    if not friend_ids:
+    """Recent praxis (completions) from the given characters (friends or foes)."""
+    if not character_ids:
         return []
 
     query = (
@@ -224,7 +211,7 @@ async def _fetch_friend_completions(
         .join(Task, Praxis.task_id == Task.id)
         .join(Character, Praxis.created_by_id == Character.id)
         .where(
-            Praxis.created_by_id.in_(friend_ids),
+            Praxis.created_by_id.in_(character_ids),
             Praxis.is_withdrawn == False,  # noqa: E712
             Praxis.status == PraxisStatus.submitted,
         )
@@ -237,7 +224,7 @@ async def _fetch_friend_completions(
     items: list[ActivityFeedItemDC] = []
     for row in result.all():
         items.append(ActivityFeedItemDC(
-            type=FEED_ITEM_TYPE_FRIEND_COMPLETION,
+            type=item_type,
             timestamp=row.created_at,
             actor_display_name=row.author_display_name,
             actor_faction_slug=row.author_faction_slug,
@@ -288,61 +275,6 @@ async def _fetch_foe_taunts(
                 "message": taunt.message,
                 "trigger_type": taunt.trigger_type.value,
                 "from_character_id": taunt.from_character_id,
-            },
-        ))
-    return items
-
-
-async def _fetch_foe_completions(
-    foe_ids: list[int],
-    session: AsyncSession,
-    before: Optional[datetime],
-) -> list[ActivityFeedItemDC]:
-    """Recent praxis (completions) from foes."""
-    if not foe_ids:
-        return []
-
-    query = (
-        select(
-            Praxis.id,
-            Praxis.title,
-            Praxis.created_at,
-            Praxis.created_by_id.label("character_id"),
-            Task.title.label("task_title"),
-            Task.point_value.label("task_point_value"),
-            Task.primary_faction_slug.label("task_faction_slug"),
-            Character.display_name.label("author_display_name"),
-            Character.faction_slug.label("author_faction_slug"),
-            Character.avatar_url.label("author_avatar_url"),
-        )
-        .join(Task, Praxis.task_id == Task.id)
-        .join(Character, Praxis.created_by_id == Character.id)
-        .where(
-            Praxis.created_by_id.in_(foe_ids),
-            Praxis.is_withdrawn == False,  # noqa: E712
-            Praxis.status == PraxisStatus.submitted,
-        )
-    )
-    if before is not None:
-        query = query.where(Praxis.created_at < before)
-    query = query.order_by(Praxis.created_at.desc()).limit(SUB_QUERY_LIMIT)
-
-    result = await session.execute(query)
-    items: list[ActivityFeedItemDC] = []
-    for row in result.all():
-        items.append(ActivityFeedItemDC(
-            type=FEED_ITEM_TYPE_FOE_COMPLETION,
-            timestamp=row.created_at,
-            actor_display_name=row.author_display_name,
-            actor_faction_slug=row.author_faction_slug,
-            actor_avatar_url=row.author_avatar_url,
-            payload={
-                "praxis_id": row.id,
-                "praxis_title": row.title,
-                "task_title": row.task_title,
-                "task_point_value": row.task_point_value,
-                "task_faction_slug": row.task_faction_slug,
-                "character_id": row.character_id,
             },
         ))
     return items
@@ -417,13 +349,16 @@ async def _fetch_era_announcements(
     return items
 
 
-async def _fetch_collab_invites(
+async def _fetch_praxis_invites(
     character_id: int,
+    praxis_type: PraxisType,
+    item_type: str,
+    actor_id_key: str,
     session: AsyncSession,
     before: Optional[datetime],
     pending_only: bool = False,
 ) -> list[ActivityFeedItemDC]:
-    """Collab invites sent to the current character."""
+    """Praxis invites (collab invites / duel challenges) sent to the current character."""
     query = (
         select(
             PraxisInvite.id,
@@ -435,16 +370,16 @@ async def _fetch_collab_invites(
             Task.point_value.label("task_point_value"),
             Task.primary_faction_slug.label("task_faction_slug"),
             Task.level_required.label("task_level_required"),
-            Character.display_name.label("inviter_display_name"),
-            Character.faction_slug.label("inviter_faction_slug"),
-            Character.avatar_url.label("inviter_avatar_url"),
+            Character.display_name.label("actor_display_name"),
+            Character.faction_slug.label("actor_faction_slug"),
+            Character.avatar_url.label("actor_avatar_url"),
         )
         .join(Praxis, PraxisInvite.praxis_id == Praxis.id)
         .join(Task, Praxis.task_id == Task.id)
         .join(Character, PraxisInvite.inviter_id == Character.id)
         .where(
             PraxisInvite.invitee_id == character_id,
-            Praxis.type == PraxisType.collab,
+            Praxis.type == praxis_type,
         )
     )
     if pending_only:
@@ -456,79 +391,25 @@ async def _fetch_collab_invites(
     result = await session.execute(query)
     items: list[ActivityFeedItemDC] = []
     for row in result.all():
+        payload = {
+            "invite_id": row.id,
+            "praxis_id": row.praxis_id,
+            "task_title": row.task_title,
+            "task_point_value": row.task_point_value,
+            "task_faction_slug": row.task_faction_slug,
+            "invite_status": row.status.value,
+            actor_id_key: row.inviter_id,
+        }
+        # ponytail: only collab cards render a level badge; duel payload omits it
+        if praxis_type == PraxisType.collab:
+            payload["task_level_required"] = row.task_level_required
         items.append(ActivityFeedItemDC(
-            type=FEED_ITEM_TYPE_COLLAB_INVITE,
+            type=item_type,
             timestamp=row.created_at,
-            actor_display_name=row.inviter_display_name,
-            actor_faction_slug=row.inviter_faction_slug,
-            actor_avatar_url=row.inviter_avatar_url,
-            payload={
-                "invite_id": row.id,
-                "praxis_id": row.praxis_id,
-                "task_title": row.task_title,
-                "task_point_value": row.task_point_value,
-                "task_faction_slug": row.task_faction_slug,
-                "task_level_required": row.task_level_required,
-                "invite_status": row.status.value,
-                "inviter_character_id": row.inviter_id,
-            },
-        ))
-    return items
-
-
-async def _fetch_duel_challenges(
-    character_id: int,
-    session: AsyncSession,
-    before: Optional[datetime],
-    pending_only: bool = False,
-) -> list[ActivityFeedItemDC]:
-    """Duel challenges sent to the current character."""
-    query = (
-        select(
-            PraxisInvite.id,
-            PraxisInvite.created_at,
-            PraxisInvite.status,
-            PraxisInvite.inviter_id,
-            PraxisInvite.praxis_id,
-            Task.title.label("task_title"),
-            Task.point_value.label("task_point_value"),
-            Task.primary_faction_slug.label("task_faction_slug"),
-            Character.display_name.label("challenger_display_name"),
-            Character.faction_slug.label("challenger_faction_slug"),
-            Character.avatar_url.label("challenger_avatar_url"),
-        )
-        .join(Praxis, PraxisInvite.praxis_id == Praxis.id)
-        .join(Task, Praxis.task_id == Task.id)
-        .join(Character, PraxisInvite.inviter_id == Character.id)
-        .where(
-            PraxisInvite.invitee_id == character_id,
-            Praxis.type == PraxisType.duel,
-        )
-    )
-    if pending_only:
-        query = query.where(PraxisInvite.status == PraxisInviteStatus.pending)
-    if before is not None:
-        query = query.where(PraxisInvite.created_at < before)
-    query = query.order_by(PraxisInvite.created_at.desc()).limit(SUB_QUERY_LIMIT)
-
-    result = await session.execute(query)
-    items: list[ActivityFeedItemDC] = []
-    for row in result.all():
-        items.append(ActivityFeedItemDC(
-            type=FEED_ITEM_TYPE_DUEL_CHALLENGE,
-            timestamp=row.created_at,
-            actor_display_name=row.challenger_display_name,
-            actor_faction_slug=row.challenger_faction_slug,
-            actor_avatar_url=row.challenger_avatar_url,
-            payload={
-                "invite_id": row.id,
-                "praxis_id": row.praxis_id,
-                "task_title": row.task_title,
-                "task_point_value": row.task_point_value,
-                "task_faction_slug": row.task_faction_slug,
-                "invite_status": row.status.value,
-                "challenger_character_id": row.inviter_id,
-            },
+            actor_display_name=row.actor_display_name,
+            actor_faction_slug=row.actor_faction_slug,
+            actor_avatar_url=row.actor_avatar_url,
+            payload=payload,
         ))
     return items
 
@@ -818,7 +699,7 @@ async def _compute_counts(
     friend_signups_count = await count_friend_signups()
     friend_defections_count = await count_friend_defections()
     friends_count = friend_completions_count + friend_signups_count + friend_defections_count
-    foe_ids_for_count = await _get_foe_ids(character_id, session)
+    foe_ids_for_count = await _get_related_ids(character_id, RelationshipType.foe, session)
     foe_completions_count = 0
     if foe_ids_for_count:
         foe_completions_result = await session.execute(
@@ -881,9 +762,9 @@ async def get_activity_feed(
     needs_my_tasks = FEED_ITEM_TYPE_FRIEND_SIGNUP in allowed_types
 
     if needs_friends:
-        friend_ids = await _get_friend_ids(character_id, session)
+        friend_ids = await _get_related_ids(character_id, RelationshipType.friend, session)
     if needs_foes:
-        foe_ids = await _get_foe_ids(character_id, session)
+        foe_ids = await _get_related_ids(character_id, RelationshipType.foe, session)
     if needs_my_tasks:
         my_task_ids = await _get_my_task_ids(character_id, session)
 
@@ -894,13 +775,13 @@ async def get_activity_feed(
         fetch_tasks.append(_fetch_votes_on_mine(character_id, session, before_cursor))
 
     if FEED_ITEM_TYPE_FRIEND_COMPLETION in allowed_types:
-        fetch_tasks.append(_fetch_friend_completions(friend_ids, session, before_cursor))
+        fetch_tasks.append(_fetch_completions(friend_ids, FEED_ITEM_TYPE_FRIEND_COMPLETION, session, before_cursor))
 
     if FEED_ITEM_TYPE_FOE_TAUNT in allowed_types:
         fetch_tasks.append(_fetch_foe_taunts(character_id, session, before_cursor))
 
     if FEED_ITEM_TYPE_FOE_COMPLETION in allowed_types:
-        fetch_tasks.append(_fetch_foe_completions(foe_ids, session, before_cursor))
+        fetch_tasks.append(_fetch_completions(foe_ids, FEED_ITEM_TYPE_FOE_COMPLETION, session, before_cursor))
 
     if FEED_ITEM_TYPE_GLOBAL_TASK in allowed_types:
         fetch_tasks.append(_fetch_global_tasks(session, before_cursor))
@@ -909,13 +790,15 @@ async def get_activity_feed(
         fetch_tasks.append(_fetch_era_announcements(session, before_cursor))
 
     if FEED_ITEM_TYPE_COLLAB_INVITE in allowed_types:
-        fetch_tasks.append(_fetch_collab_invites(
-            character_id, session, before_cursor, pending_only=is_requests_filter,
+        fetch_tasks.append(_fetch_praxis_invites(
+            character_id, PraxisType.collab, FEED_ITEM_TYPE_COLLAB_INVITE,
+            "inviter_character_id", session, before_cursor, pending_only=is_requests_filter,
         ))
 
     if FEED_ITEM_TYPE_DUEL_CHALLENGE in allowed_types:
-        fetch_tasks.append(_fetch_duel_challenges(
-            character_id, session, before_cursor, pending_only=is_requests_filter,
+        fetch_tasks.append(_fetch_praxis_invites(
+            character_id, PraxisType.duel, FEED_ITEM_TYPE_DUEL_CHALLENGE,
+            "challenger_character_id", session, before_cursor, pending_only=is_requests_filter,
         ))
 
     if FEED_ITEM_TYPE_FRIEND_SIGNUP in allowed_types:

@@ -8,17 +8,12 @@
  * eligibility gates live here so archetypes only ever render the happy-path
  * form (or its success screen).
  */
-import { useProposeTask, type ProposeTaskState } from "./proposeTask/useProposeTask";
+import { useProposeTask } from "./proposeTask/useProposeTask";
 import PageTitle from "../components/ui/PageTitle";
-import { pickVariant } from "../utils/factionDispatch";
 import DefaultProposeTask from "./proposeTask/archetypes/DefaultProposeTask";
 
-type Archetype = (props: { state: ProposeTaskState }) => JSX.Element | null;
-
-// Only factions with a bespoke proposal form are listed; everything else
-// (incl. albescent / aged_out) falls through to DefaultProposeTask.
-const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {};
-
+// ponytail: no faction has a bespoke proposal form yet — everyone renders
+// DefaultProposeTask. Add a pickVariant dispatch here when one does.
 export default function ProposeTask() {
   const state = useProposeTask();
 
@@ -48,6 +43,5 @@ export default function ProposeTask() {
     );
   }
 
-  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, state.factionSlug, DefaultProposeTask);
-  return <Archetype state={state} />;
+  return <DefaultProposeTask state={state} />;
 }
