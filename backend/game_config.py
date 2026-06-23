@@ -98,6 +98,10 @@ class EraConfig:
     # Taunt templates for this era
     taunt_templates: dict = field(default_factory=dict)  # faction slug → trigger → templates
 
+    # Faction slugs allowed to create praxes for non-active (pending/retired) tasks.
+    # Empty by default; set per-era in eras/*.py.
+    allow_praxis_on_inactive_task_factions: frozenset = field(default_factory=frozenset)
+
 
 # -- Era configs live in backend/eras/ (one file per era) --------------------
 # To create a new era, copy eras/_template.py and fill it in.

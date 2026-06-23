@@ -26,7 +26,7 @@ from models.praxis import (
     PraxisStatus,
     PraxisType,
 )
-from models.task import Task, TaskType
+from models.task import Task, TaskStatus, TaskType
 from models.vote import Vote
 from schemas.task import TaskOut
 from schemas.praxis import (
@@ -412,6 +412,14 @@ async def _check_create_preconditions(
     character = await session.get(Character, character_id)
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
+
+    if task.status != TaskStatus.active:
+        if character.faction_slug not in era.allow_praxis_on_inactive_task_factions:
+            raise HTTPException(
+                status_code=403,
+                detail=f"This task is {task.status.value} and is not open for new praxes.",
+            )
+
     if not await can_submit_praxis_for_task(character, task, session):
         raise HTTPException(
             status_code=409,
