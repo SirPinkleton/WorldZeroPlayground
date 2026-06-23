@@ -79,7 +79,6 @@ async def list_praxes_route(
     status: Optional[str] = None,
     moderation_status: Optional[str] = None,
     faction: Optional[str] = None,
-    sort: Optional[str] = "recent",
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
@@ -313,7 +312,6 @@ async def invite_member_route(
     character: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    from schemas.praxis import PraxisInviteOut
     invite = await invite_to_praxis(
         praxis_id=praxis_id,
         invitee_id=data.invitee_id,

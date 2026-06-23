@@ -1,11 +1,10 @@
-"""Faction lifecycle: defection, invitation letters, and Analog Double Dipper."""
+"""Faction lifecycle: defection and invitation letters."""
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
-from models.analog_double_dipper import AnalogDoubleDipper
 from models.character import Character
 from models.character_stats import CharacterStats
 from models.faction_defection_history import FactionDefectionHistory
@@ -13,7 +12,6 @@ from models.invitation_letter import InvitationLetter
 from models.task import Task
 from services.era import clear_defection_history_for_era, get_current_era_row, get_or_create_stats
 
-ANALOG_FACTION_SLUG: str = "analog"
 UA_MASTERS_FACTION_SLUG: str = "ua_masters"
 UA_FACTION_SLUG: str = "ua"
 UNAFFILIATED_FACTION_SLUG: str = "na"
@@ -125,68 +123,6 @@ async def get_defection_history(
 # ---------------------------------------------------------------------------
 
 
-async def check_and_deliver_invitations(
-    character: Character,
-    task: Task,
-    session: AsyncSession,
-    era: EraConfig = CURRENT_ERA,
-) -> list[InvitationLetter]:
-    """Deliver invitation letters if the character qualifies.
-
-    Trigger conditions (all must be true):
-    - Character level >= ``era.faction_graduation_level``
-    - Character score >= ``era.invitation_point_threshold``
-
-    When conditions are met, delivers a letter for the task's faction. UA Masters
-    always sends an invitation to every qualifying player.
-    """
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, character.id, era_row.id)
-
-    if stats.level < era.faction_graduation_level:
-        return []
-    if stats.score < era.invitation_point_threshold:
-        return []
-
-    task_faction_slug = task.primary_faction_slug or UNAFFILIATED_FACTION_SLUG
-    factions_to_invite: set[str] = set()
-
-    # Always invite to UA Masters if qualifying
-    if UA_MASTERS_FACTION_SLUG in era.factions:
-        factions_to_invite.add(UA_MASTERS_FACTION_SLUG)
-
-    # Invite to the task's faction if it's a real selectable faction
-    if task_faction_slug != UNAFFILIATED_FACTION_SLUG:
-        faction_config = era.factions.get(task_faction_slug)
-        if faction_config is not None and faction_config.is_selectable:
-            factions_to_invite.add(task_faction_slug)
-
-    delivered: list[InvitationLetter] = []
-    for slug in factions_to_invite:
-        existing = await session.execute(
-            select(InvitationLetter).where(
-                InvitationLetter.character_id == character.id,
-                InvitationLetter.faction_slug == slug,
-                InvitationLetter.era_id == era_row.id,
-            )
-        )
-        if existing.scalar_one_or_none() is not None:
-            continue
-
-        letter = InvitationLetter(
-            character_id=character.id,
-            faction_slug=slug,
-            era_id=era_row.id,
-        )
-        session.add(letter)
-        delivered.append(letter)
-
-    if delivered:
-        await session.flush()
-
-    return delivered
-
-
 async def get_invitation_status(
     character_id: int,
     era_id: int,
@@ -230,67 +166,3 @@ async def get_invitation_status(
             status_map[slug] = "not_invited"
 
     return status_map
-
-
-# ---------------------------------------------------------------------------
-# Analog Double Dipper
-# ---------------------------------------------------------------------------
-
-
-async def designate_double_dipper(
-    character: Character,
-    task: Task,
-    session: AsyncSession,
-    era: EraConfig = CURRENT_ERA,
-) -> AnalogDoubleDipper:
-    """Designate a task as the character's repeatable task for their current level.
-
-    Only available to Analog faction members. One designation per level tier,
-    locked on insert (cannot be changed).
-    """
-    if character.faction_slug != ANALOG_FACTION_SLUG:
-        raise HTTPException(
-            status_code=403,
-            detail="Only Analog faction members can use Double Dipper.",
-        )
-
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, character.id, era_row.id)
-    current_level = stats.level
-
-    existing = await session.execute(
-        select(AnalogDoubleDipper).where(
-            AnalogDoubleDipper.character_id == character.id,
-            AnalogDoubleDipper.level_tier == current_level,
-        )
-    )
-    if existing.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=409,
-            detail="Already designated a repeated task for this level.",
-        )
-
-    designation = AnalogDoubleDipper(
-        character_id=character.id,
-        level_tier=current_level,
-        task_id=task.id,
-    )
-    session.add(designation)
-    await session.flush()
-    await session.refresh(designation)
-    return designation
-
-
-async def get_double_dipper_for_level(
-    character_id: int,
-    level_tier: int,
-    session: AsyncSession,
-) -> AnalogDoubleDipper | None:
-    """Return the Double Dipper designation for a character at a given level, or None."""
-    result = await session.execute(
-        select(AnalogDoubleDipper).where(
-            AnalogDoubleDipper.character_id == character_id,
-            AnalogDoubleDipper.level_tier == level_tier,
-        )
-    )
-    return result.scalar_one_or_none()
