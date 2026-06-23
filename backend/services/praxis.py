@@ -178,16 +178,13 @@ async def compute_praxis_score_from_db(
 async def build_praxis_out(
     praxis: Praxis,
     session: AsyncSession,
-    viewer_character_id: Optional[int] = None,
     era: EraConfig = CURRENT_ERA,
     viewer: Optional[Character] = None,
 ) -> PraxisOut:
     """Build a PraxisOut for any praxis type.
 
     ``viewer`` is the authenticated viewer's character, used to compute
-    viewer-relative flags such as ``can_flag``. ``viewer_character_id`` is
-    retained for backward compatibility (invite visibility check). When
-    ``viewer`` is given, its id wins for the invite visibility check too.
+    viewer-relative flags such as ``can_flag`` and invite visibility.
     """
     task_title = praxis.task.title if praxis.task else ""
     task_point_value = praxis.task.point_value if praxis.task else 0
@@ -195,7 +192,7 @@ async def build_praxis_out(
     members = [_build_member_out(m) for m in praxis.members]
 
     # Invites only visible to members
-    effective_viewer_id = viewer.id if viewer is not None else viewer_character_id
+    effective_viewer_id = viewer.id if viewer is not None else None
     member_ids = {m.character_id for m in praxis.members}
     include_invites = effective_viewer_id in member_ids if effective_viewer_id else False
     invites = [_build_invite_out(i) for i in praxis.invites] if include_invites else []
