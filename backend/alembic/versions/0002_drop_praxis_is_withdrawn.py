@@ -16,7 +16,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_column("praxis", "is_withdrawn")
+    # IF EXISTS: a fresh DB built from 0001_squashed won't have this column
+    # because the squashed baseline reflects the post-drop ORM model.
+    op.execute(sa.text("ALTER TABLE praxis DROP COLUMN IF EXISTS is_withdrawn"))
 
 
 def downgrade() -> None:
