@@ -3,8 +3,8 @@
  * bespoke component, falling back to a default when no variant is registered.
  *
  * Before this helper, ~10 dispatchers (TaskCard, PraxisCard, EditPraxis,
- * TaskDetail, VoteUI, Progression, FactionAvatar, FactionBackdrop,
- * FactionFeedFrame, FactionDetail heroes) each spelled "look up slug, else
+ * TaskDetail, VoteUI, FactionAvatar, FactionBackdrop,
+ * FactionDetail heroes) each spelled "look up slug, else
  * default" three different ways and none of them handled the albescent /
  * aged_out aliases. Routing every dispatcher through `pickVariant` makes
  * slug-normalization, alias handling, and unknown-slug behaviour live in one
