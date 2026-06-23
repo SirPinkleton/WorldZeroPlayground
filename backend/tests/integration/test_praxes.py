@@ -1164,13 +1164,13 @@ async def test_create_praxis_duplicate_allowed_for_analog(
 
 
 @pytest.mark.asyncio
-async def test_create_praxis_after_withdraw_allowed(
+async def test_create_praxis_after_delete_allowed(
     client: AsyncClient,
     character: Character,
     active_task: Task,
     auth_headers: dict,
 ):
-    """A withdrawn prior praxis does not block a fresh submission for the same task."""
+    """Deleting (abandoning) an in-progress praxis frees the slot for a fresh one."""
     first_resp = await client.post(
         "/praxes",
         json={"task_id": active_task.id, "type": "solo", "title": "First"},
@@ -1179,10 +1179,10 @@ async def test_create_praxis_after_withdraw_allowed(
     assert first_resp.status_code == 201
     praxis_id = first_resp.json()["id"]
 
-    withdraw_resp = await client.post(
-        f"/praxes/{praxis_id}/withdraw", headers=auth_headers
+    delete_resp = await client.delete(
+        f"/praxes/{praxis_id}", headers=auth_headers
     )
-    assert withdraw_resp.status_code == 200
+    assert delete_resp.status_code == 204
 
     second_resp = await client.post(
         "/praxes",

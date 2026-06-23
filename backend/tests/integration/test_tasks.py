@@ -584,7 +584,7 @@ async def test_list_task_signups_only_in_progress(
     auth_headers: dict,
     db_session: AsyncSession,
 ):
-    """GET /tasks/{id}/signups only returns characters with in_progress praxes (not withdrawn)."""
+    """GET /tasks/{id}/signups excludes characters whose praxis has been deleted."""
     # Create a praxis for character via the API
     create_resp = await client.post(
         "/praxes",
@@ -594,12 +594,12 @@ async def test_list_task_signups_only_in_progress(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    # Withdraw the praxis — it should then be absent from signups
-    withdraw_resp = await client.post(
-        f"/praxes/{praxis_id}/withdraw",
+    # Delete (abandon) the praxis — it should then be absent from signups
+    delete_resp = await client.delete(
+        f"/praxes/{praxis_id}",
         headers=auth_headers,
     )
-    assert withdraw_resp.status_code in (200, 204)
+    assert delete_resp.status_code == 204
 
     resp = await client.get(f"/tasks/{active_task.id}/signups")
     assert resp.status_code == 200

@@ -167,7 +167,7 @@ async def test_vote_updates_author_stats(
     After character casts 4 stars on character2's praxis, the recalculated
     score should include task.point_value + 4 stars.
     """
-    # character2 creates a praxis (no score recalculation yet)
+    # character2 creates and submits a praxis (only submitted praxes count toward score)
     create_resp = await client.post(
         "/praxes",
         json={"task_id": active_task.id, "type": "solo", "title": "Score via vote"},
@@ -175,6 +175,9 @@ async def test_vote_updates_author_stats(
     )
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
+
+    submit_resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+    assert submit_resp.status_code == 200
 
     # character votes 4 stars — triggers recalculate_character_stats for character2
     vote_resp = await client.post(
