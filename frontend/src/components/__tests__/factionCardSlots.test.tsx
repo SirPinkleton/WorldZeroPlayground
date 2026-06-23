@@ -1,0 +1,114 @@
+/**
+ * Content-slot invariant guard (ADR-0002, issue #151).
+ *
+ * Every per-faction surface — praxis card and task card — must render the same
+ * CONTENT slots while looking wildly different. The slots are convention-only
+ * (no rigid wrapper, by design — archetypes must stay free to *arrange* them),
+ * so this test walks each dispatcher map and asserts every registered archetype
+ * still emits the invariant slots. A new archetype that drops a slot fails here.
+ *
+ * We render to static markup (no DOM needed) and assert on the structural
+ * anchors a slot leaves behind: the slot's text, and for the task link the
+ * `/tasks/:id` href. Distinctive fixture values (id 7, points 4242, single-word
+ * title) keep the substring checks from colliding with incidental markup.
+ */
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
+import type { ReactElement } from "react";
+import { describe, it, expect } from "vitest";
+import { PRAXIS_CARD_BY_SLUG, DefaultPraxisCard } from "../PraxisCard";
+import { CARD_COMPONENTS, DEFAULT_CARD } from "../TaskCard";
+import type { PraxisCardOut } from "../../api/praxis";
+import type { TaskOut } from "../../api/tasks";
+
+function markup(element: ReactElement): { html: string; text: string } {
+  const html = renderToStaticMarkup(<MemoryRouter>{element}</MemoryRouter>);
+  // Tag-stripped text — some archetypes split the title across spans (SNIDE's
+  // ransom-note letters, the Ephemerists' lapis last-word), so the title slot
+  // only reads contiguously once the wrapping tags are removed.
+  return { html, text: html.replace(/<[^>]*>/g, "") };
+}
+
+// ─── Praxis cards ─────────────────────────────────────────────────────────────
+
+const PRAXIS: PraxisCardOut = {
+  id: 1,
+  task_id: 7,
+  task_title: "Reforestation",
+  task_point_value: 10,
+  type: "solo",
+  status: "submitted",
+  title: "Photosynthesis",
+  is_withdrawn: false,
+  moderation_status: "visible",
+  created_by_id: 3,
+  created_by_display_name: "Ada",
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+  member_count: 1,
+  score: 4.2,
+  task_faction_slug: "ua",
+};
+
+const PRAXIS_ADMIN = {
+  praxis: PRAXIS,
+  showAdminControls: false,
+  onHide: () => {},
+  onFail: () => {},
+  moderateError: null,
+};
+
+// Default fallback is a registered renderable too — guard it alongside the map.
+const praxisArchetypes = {
+  ...PRAXIS_CARD_BY_SLUG,
+  __default__: DefaultPraxisCard,
+};
+
+describe("praxis-card content-slot invariant", () => {
+  for (const [slug, Card] of Object.entries(praxisArchetypes)) {
+    it(`${slug} renders title, task link, and score`, () => {
+      const { html, text } = markup(
+        <Card praxis={PRAXIS} adminProps={PRAXIS_ADMIN} />,
+      );
+      expect(text, "title slot").toContain("Photosynthesis"); // PraxisTitle
+      expect(html, "task-link slot").toContain('href="/tasks/7"'); // PraxisTaskLink
+      expect(html, "score slot").toContain("4.2"); // PraxisByline score
+    });
+  }
+});
+
+// ─── Task cards ───────────────────────────────────────────────────────────────
+
+const TASK: TaskOut = {
+  id: 7,
+  title: "Photosynthesis",
+  description: null,
+  point_value: 4242,
+  level_required: 3,
+  status: "active",
+  task_type: "standard",
+  created_by: 3,
+  primary_faction_slug: "ua",
+  metatask_faction_slug: null,
+  is_task_vision_eligible: false,
+  created_at: "2026-01-01T00:00:00Z",
+  can_submit_praxis: true,
+  allowed_modes: ["solo"],
+  eligible_for_current_user: true,
+};
+
+const taskArchetypes = {
+  ...CARD_COMPONENTS,
+  __default__: DEFAULT_CARD,
+};
+
+describe("task-card content-slot invariant", () => {
+  for (const [slug, Card] of Object.entries(taskArchetypes)) {
+    it(`${slug} renders title, task link, and points`, () => {
+      const { html, text } = markup(<Card task={TASK} displayPoints={4242} />);
+      expect(text, "title slot").toContain("Photosynthesis");
+      expect(html, "task-link slot").toContain('href="/tasks/7"');
+      expect(html, "points slot").toContain("4242");
+    });
+  }
+});

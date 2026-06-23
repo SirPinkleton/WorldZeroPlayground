@@ -23,7 +23,7 @@ interface Props {
  * composition). Admin moderation + the optimistic local praxis come from
  * usePraxisCard; the frame is selected by task faction via pickVariant.
  */
-type ArchetypeProps = { praxis: PraxisCardOut; adminProps: AdminProps };
+export type ArchetypeProps = { praxis: PraxisCardOut; adminProps: AdminProps };
 
 // ─── Per-faction archetypes ───────────────────────────────────────────────────
 
@@ -475,7 +475,7 @@ function UAMastersPraxisCard({ praxis, adminProps }: ArchetypeProps) {
 }
 
 /** Fallback card for `na` / unknown task factions — a plain accent-bordered slab. */
-function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
+export function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
   const slug = praxis.task_faction_slug ?? "ua";
   return (
     <div
@@ -502,7 +502,7 @@ function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
-const PRAXIS_CARD_BY_SLUG: Record<string, ComponentType<ArchetypeProps>> = {
+export const PRAXIS_CARD_BY_SLUG: Record<string, ComponentType<ArchetypeProps>> = {
   ua: UAPraxisCard,
   analog: AnalogPraxisCard,
   gestalt: GestaltPraxisCard,
