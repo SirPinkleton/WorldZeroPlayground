@@ -16,14 +16,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "praxis",
-        sa.Column(
-            "submitted_at",
-            sa.DateTime(timezone=True),
-            nullable=True,
-        ),
-    )
+    # IF NOT EXISTS: fresh DBs built from 0001_squashed already have this column
+    # because the squashed baseline reflects the post-add ORM model.
+    op.execute(sa.text(
+        "ALTER TABLE praxis ADD COLUMN IF NOT EXISTS"
+        " submitted_at TIMESTAMP WITH TIME ZONE"
+    ))
 
 
 def downgrade() -> None:
