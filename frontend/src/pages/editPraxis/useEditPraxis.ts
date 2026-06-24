@@ -190,8 +190,7 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
     if (
       praxis.status === "submitted" ||
       praxis.moderation_status === "hidden" ||
-      praxis.moderation_status === "failed" ||
-      praxis.is_withdrawn
+      praxis.moderation_status === "failed"
     ) {
       return;
     }
@@ -468,7 +467,7 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
   const isModerated =
     praxis?.moderation_status === "hidden" ||
     praxis?.moderation_status === "failed";
-  const controlsLocked = !!(isPublished || isModerated || praxis?.is_withdrawn);
+  const controlsLocked = !!(isPublished || isModerated);
   const modeIsLocked = !!(
     controlsLocked ||
     (praxis && praxis.members.length > 1)

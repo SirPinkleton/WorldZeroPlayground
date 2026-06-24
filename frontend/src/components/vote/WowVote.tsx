@@ -24,7 +24,7 @@ const VOTE_FILLS = ['#f6b8cf', '#f489b0', '#ec5f99', '#df3f86', '#c52470'] as co
 
 const HEART_TILE = 40
 
-const HEARTS: HeartConfig[] = [
+export const HEARTS: HeartConfig[] = [
   { value: 1, label: 'a start',   fill: VOTE_FILLS[0] },
   { value: 2, label: 'solid',     fill: VOTE_FILLS[1] },
   { value: 3, label: 'good',      fill: VOTE_FILLS[2] },
@@ -33,9 +33,9 @@ const HEARTS: HeartConfig[] = [
 ]
 
 /** Inline heart glyph — filled (ramp color) or outline-only when empty. */
-function HeartGlyph({ filled, color }: { filled: boolean; color: string }) {
+function HeartGlyph({ filled, color, size = 30 }: { filled: boolean; color: string; size?: number }) {
   return (
-    <svg width="30" height="30" viewBox="0 0 36 36" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 36 36" aria-hidden="true">
       <path
         d="M18 31C7 23 3 17 6.5 11 9 6.8 14 6.5 16 10c.9 1.5 1.6 2.7 2 3.4.4-.7 1.1-1.9 2-3.4 2-3.5 7-3.2 9.5 1C33 17 29 23 18 31Z"
         fill={filled ? color : 'none'}
@@ -47,8 +47,24 @@ function HeartGlyph({ filled, color }: { filled: boolean; color: string }) {
   )
 }
 
-export default function WowVote({ praxisId, currentStars, averageStars, totalVotes }: VoteUIProps) {
+export default function WowVote({ praxisId, currentStars, averageStars, totalVotes, mode = 'caster' }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
+
+  if (mode === 'summary') {
+    const roundedAvg = Math.round(averageStars ?? 0)
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {HEARTS.map((heart) => (
+            <HeartGlyph key={heart.value} filled={heart.value <= roundedAvg} color={heart.fill} size={20} />
+          ))}
+        </div>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--faction-wow-card-muted)', textAlign: 'center' }}>
+          {totalVotes ?? 0} votes
+        </span>
+      </div>
+    )
+  }
 
   if (!user) {
     return <VoteLoginGate />

@@ -58,7 +58,6 @@ export interface PraxisOut {
   status: PraxisStatus
   title: string | null
   body_text: string | null
-  is_withdrawn: boolean
   moderation_status: ModerationStatus
   admin_note: string | null
   flagged_at: string | null
@@ -80,18 +79,25 @@ export interface PraxisCardOut {
   task_id: number
   task_title: string
   task_point_value: number
+  task_level_required: number
   type: PraxisType
   status: PraxisStatus
   title: string | null
-  is_withdrawn: boolean
   moderation_status: ModerationStatus
   created_by_id: number
   created_by_display_name: string
   created_at: string
   updated_at: string
+  submitted_at: string | null
   member_count: number
   score: number
+  average_stars: number | null
+  total_votes: number
   task_faction_slug: string | null
+  task_level_required: number
+  average_stars: number | null
+  total_votes: number
+  submitted_at: string | null
 }
 
 export interface PraxisCreate {
@@ -160,18 +166,8 @@ export async function withdrawPraxis(id: number): Promise<PraxisOut> {
   return data
 }
 
-export async function resubmitPraxis(id: number): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>(`/praxes/${id}/resubmit`)
-  return data
-}
-
 export async function submitPraxis(id: number): Promise<PraxisOut> {
   const { data } = await api.post<PraxisOut>(`/praxes/${id}/submit`)
-  return data
-}
-
-export async function reopenPraxis(id: number): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>(`/praxes/${id}/reopen`)
   return data
 }
 

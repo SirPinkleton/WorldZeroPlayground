@@ -19,7 +19,7 @@ import {
 import {
   listPraxes,
   createPraxis,
-  withdrawPraxis,
+  deletePraxis,
   type PraxisCardOut,
 } from "../../api/praxis";
 import { listRelationships } from "../../api/relationships";
@@ -147,11 +147,11 @@ export function useTaskDetail(idParam: string | undefined): TaskDetailState {
         if (myTasks) {
           const praxes = myTasks as PraxisCardOut[];
           const activeForThisTask = praxes.find(
-            (p) => p.task_id === taskId && !p.is_withdrawn,
+            (p) => p.task_id === taskId,
           );
           setIsInProgress(activeForThisTask !== undefined);
           setInProgressPraxisId(activeForThisTask?.id ?? null);
-          setTaskSlotCount(praxes.filter((p) => !p.is_withdrawn).length);
+          setTaskSlotCount(praxes.length);
         }
         if (friendSet) setFriends(friendSet as Set<number>);
         if (foeSet) setFoes(foeSet as Set<number>);
@@ -167,7 +167,7 @@ export function useTaskDetail(idParam: string | undefined): TaskDetailState {
 
   const mySubmission = user?.character
     ? submissions.find(
-        (s) => s.created_by_id === user.character!.id && !s.is_withdrawn,
+        (s) => s.created_by_id === user.character!.id,
       )
     : undefined;
 
@@ -190,14 +190,10 @@ export function useTaskDetail(idParam: string | undefined): TaskDetailState {
     if (!window.confirm("Drop this task? You can sign up again later.")) return;
     setSignupError(null);
     try {
-      await withdrawPraxis(targetPraxisId);
+      await deletePraxis(targetPraxisId);
       setIsInProgress(false);
       setInProgressPraxisId(null);
-      setSubmissions((prev) =>
-        prev.map((s) =>
-          s.id === targetPraxisId ? { ...s, is_withdrawn: true } : s,
-        ),
-      );
+      setSubmissions((prev) => prev.filter((s) => s.id !== targetPraxisId));
     } catch (err) {
       setSignupError(extractError(err, "Could not drop this task."));
     }

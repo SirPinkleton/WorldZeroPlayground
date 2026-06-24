@@ -507,4 +507,6 @@ ERA_1 = EraConfig(
     factions=ERA_1_FACTIONS,
     tasks=ERA_1_TASKS,
     taunt_templates=ERA_1_TAUNT_TEMPLATES,
+    # Ephemerists' Task Vision perk: they may create praxes on retired tasks.
+    allow_praxis_on_retired_task_factions=frozenset({"ephemerists"}),
 )

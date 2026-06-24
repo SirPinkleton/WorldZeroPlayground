@@ -15,8 +15,9 @@ import EphemeristsVote from './EphemeristsVote'
 export interface VoteUIProps {
   praxisId: number
   currentStars?: number
-  averageStars?: number
+  averageStars?: number | null
   totalVotes?: number
+  mode?: 'caster' | 'summary'
 }
 
 const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {

@@ -154,7 +154,6 @@ async def list_signups_for_task(
         .where(
             Praxis.task_id == task_id,
             Praxis.status == PraxisStatus.in_progress,
-            Praxis.is_withdrawn == False,  # noqa: E712
         )
         .order_by(PraxisMember.joined_at.asc())
     )
@@ -235,7 +234,6 @@ async def list_tasks(
             .where(
                 PraxisMember.character_id == exclude_character_id,
                 Praxis.status.in_([PraxisStatus.in_progress, PraxisStatus.submitted]),
-                Praxis.is_withdrawn == False,  # noqa: E712
             )
         )
         query = query.where(Task.id.notin_(active_task_ids))

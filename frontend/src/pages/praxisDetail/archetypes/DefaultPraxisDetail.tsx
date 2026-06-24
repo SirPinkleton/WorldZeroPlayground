@@ -65,8 +65,8 @@ export default function DefaultPraxisDetail({
         <span style={{ color: 'var(--color-text-primary)' }}>Praxis</span>
       </nav>
 
-      {/* Withdrawn banner */}
-      {praxis.is_withdrawn && (
+      {/* Editing banner */}
+      {praxis.status === 'in_progress' && (
         <div
           style={{
             background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)',
@@ -74,9 +74,9 @@ export default function DefaultPraxisDetail({
             display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
-          <span className="eyebrow">WITHDRAWN</span>
+          <span className="eyebrow">IN EDITING</span>
           <span className="font-body" style={{ fontSize: 11, color: 'var(--color-warning)', fontWeight: 700 }}>
-            This praxis has been withdrawn. Points and votes are paused until resubmitted.
+            This praxis is in editing mode. Points and votes are paused until submitted.
           </span>
         </div>
       )}
@@ -281,7 +281,7 @@ export default function DefaultPraxisDetail({
           >
             edit this praxis
           </Link>
-          {praxis.is_withdrawn ? (
+          {praxis.status === 'in_progress' ? (
             <button
               onClick={handleResubmit}
               disabled={withdrawing}
@@ -293,7 +293,7 @@ export default function DefaultPraxisDetail({
                 opacity: withdrawing ? 0.5 : 1,
               }}
             >
-              {withdrawing ? '...' : 'Resubmit'}
+              {withdrawing ? '...' : 'Submit'}
             </button>
           ) : !showWithdrawConfirm ? (
             <button

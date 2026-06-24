@@ -61,9 +61,6 @@ class Praxis(TimestampMixin, Base):
     )
     title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     body_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    is_withdrawn: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false"
-    )
     moderation_status: Mapped[ModerationStatus] = mapped_column(
         Enum(ModerationStatus, create_type=False),
         nullable=False,
@@ -73,6 +70,10 @@ class Praxis(TimestampMixin, Base):
     admin_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # flagged_at is nullable: NULL means "not yet flagged" — semantic NULL, not missing data
     flagged_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # submitted_at is set once on the in_progress → submitted transition; NULL means not yet sealed
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     created_by_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
