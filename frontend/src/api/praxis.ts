@@ -90,6 +90,10 @@ export interface PraxisCardOut {
   member_count: number
   score: number
   task_faction_slug: string | null
+  task_level_required: number
+  average_stars: number | null
+  total_votes: number
+  submitted_at: string | null
 }
 
 export interface PraxisCreate {

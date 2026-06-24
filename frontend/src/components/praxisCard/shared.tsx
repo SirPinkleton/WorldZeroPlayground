@@ -164,6 +164,9 @@ export function PraxisStats({
   style?: CSSProperties;
 }) {
   const collaborators = praxis.member_count - 1;
+  const sealDate = praxis.submitted_at
+    ? new Date(praxis.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+    : null;
   return (
     <div
       className="flex items-center gap-2 font-body"
@@ -171,7 +174,19 @@ export function PraxisStats({
     >
       <span style={{ fontWeight: 700 }}>{praxis.task_point_value} pts</span>
       <span aria-hidden>·</span>
+      {praxis.task_level_required > 0 && (
+        <>
+          <span>L{praxis.task_level_required}</span>
+          <span aria-hidden>·</span>
+        </>
+      )}
       <span>{collaborators > 0 ? `+${collaborators} crew` : "solo"}</span>
+      {sealDate && (
+        <>
+          <span aria-hidden>·</span>
+          <span>{sealDate}</span>
+        </>
+      )}
     </div>
   );
 }

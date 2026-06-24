@@ -47,6 +47,10 @@ const PRAXIS: PraxisCardOut = {
   member_count: 1,
   score: 4.2,
   task_faction_slug: "ua",
+  task_level_required: 0,
+  average_stars: null,
+  total_votes: 0,
+  submitted_at: null,
 };
 
 const PRAXIS_ADMIN = {

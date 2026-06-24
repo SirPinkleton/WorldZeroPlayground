@@ -25,7 +25,7 @@ interface StampConfig {
   fontSize: number
 }
 
-const STAMPS: StampConfig[] = [
+export const SNIDE_STAMPS: StampConfig[] = [
   { value: 1, label: 'meh', color: 'var(--color-text-tertiary)', font: 'var(--font-body)', radius: 2, rot: -3, fontSize: 10 },
   { value: 2, label: 'not bad', color: '#b59a3a', font: 'var(--font-body)', radius: 2, rot: 2, fontSize: 10 },
   { value: 3, label: 'rad', color: 'var(--faction-snide)', font: 'var(--faction-snide-font-cond)', radius: '50%', rot: -2, fontSize: 13 },
@@ -33,8 +33,40 @@ const STAMPS: StampConfig[] = [
   { value: 5, label: 'ANARCHY', color: 'var(--color-text-primary)', font: 'var(--faction-snide-font-black)', radius: 4, rot: -4, fontSize: 12 },
 ]
 
-export default function SnideVote({ praxisId, currentStars, averageStars, totalVotes }: VoteUIProps) {
+export default function SnideVote({ praxisId, currentStars, averageStars, totalVotes, mode = 'caster' }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
+
+  if (mode === 'summary') {
+    const tier = SNIDE_STAMPS[Math.max(0, Math.round((averageStars ?? 0)) - 1)] ?? SNIDE_STAMPS[0]
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div
+          style={{
+            minWidth: 46,
+            height: 30,
+            padding: '0 8px',
+            border: `2.5px solid ${tier.color}`,
+            borderRadius: tier.radius,
+            background: `color-mix(in srgb, ${tier.color} 20%, transparent)`,
+            color: tier.color,
+            fontFamily: tier.font,
+            fontSize: tier.fontSize,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: `rotate(${tier.rot}deg)`,
+          }}
+        >
+          {tier.label}
+        </div>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+          {totalVotes ?? 0} votes
+        </span>
+      </div>
+    )
+  }
 
   if (!user) {
     return <VoteLoginGate />
@@ -43,7 +75,7 @@ export default function SnideVote({ praxisId, currentStars, averageStars, totalV
   return (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, alignItems: 'center' }}>
-        {STAMPS.map((stamp) => {
+        {SNIDE_STAMPS.map((stamp) => {
           const active = selected === stamp.value
           const reached = selected >= stamp.value
           return (

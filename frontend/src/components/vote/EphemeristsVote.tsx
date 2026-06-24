@@ -16,8 +16,41 @@ export default function EphemeristsVote({
   currentStars,
   averageStars,
   totalVotes,
+  mode = 'caster',
 }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentStars);
+
+  if (mode === 'summary') {
+    const tier = CONCORD[Math.max(0, Math.round((averageStars ?? 0)) - 1)] ?? CONCORD[0];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            border: '2px solid var(--eph-ink)',
+            background: tier.fill,
+            color: tier.ink,
+            fontFamily: 'var(--eph-display)',
+            fontWeight: 700,
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {toRoman(tier.v)}
+        </div>
+        <span style={{ fontFamily: 'var(--eph-serif)', fontSize: 8, fontStyle: 'italic', color: 'var(--eph-muted)', textAlign: 'center' }}>
+          {tier.label}
+        </span>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--eph-muted)', textAlign: 'center' }}>
+          {totalVotes ?? 0} votes
+        </span>
+      </div>
+    );
+  }
 
   if (!user) {
     return <VoteLoginGate />;

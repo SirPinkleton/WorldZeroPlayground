@@ -252,6 +252,14 @@ async def build_praxis_card_out(
     score = await compute_praxis_score_from_db(praxis, session, era)
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
+    vote_result = await session.execute(
+        select(func.avg(Vote.stars), func.count(Vote.id)).where(Vote.praxis_id == praxis.id)
+    )
+    avg_row = vote_result.one()
+    average_stars: Optional[float] = float(avg_row[0]) if avg_row[0] is not None else None
+    total_votes: int = int(avg_row[1])
+    task_level_required: int = praxis.task.level_required if praxis.task else 0
+
     return PraxisCardOut(
         id=praxis.id,
         task_id=praxis.task_id,
@@ -268,6 +276,10 @@ async def build_praxis_card_out(
         member_count=len(praxis.members),
         score=score,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
+        task_level_required=task_level_required,
+        average_stars=average_stars,
+        total_votes=total_votes,
+        submitted_at=praxis.submitted_at,
     )
 
 
@@ -943,6 +955,7 @@ async def submit_praxis(
 
     if all(m.has_submitted for m in praxis.members):
         praxis.status = PraxisStatus.submitted
+        praxis.submitted_at = datetime.now(timezone.utc)
         await session.flush()
         era_row = await get_current_era_row(session)
         for member in praxis.members:

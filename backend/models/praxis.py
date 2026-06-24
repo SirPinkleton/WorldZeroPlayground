@@ -72,6 +72,9 @@ class Praxis(TimestampMixin, Base):
     flagged_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_by_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
 
     task: Mapped["Task"] = relationship(

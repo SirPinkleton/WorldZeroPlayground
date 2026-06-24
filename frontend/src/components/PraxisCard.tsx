@@ -15,6 +15,7 @@ import {
   type AdminProps,
 } from "./praxisCard/shared";
 import { usePraxisCard } from "./praxisCard/usePraxisCard";
+import VoteUI from "./vote/VoteUI";
 
 interface Props {
   praxis: PraxisCardOut;
@@ -71,7 +72,17 @@ function PlaceholderPraxisBody({
           <PraxisTitle praxis={praxis} style={titleStyle} />
           <PraxisTaskLink praxis={praxis} style={{ color: muted }} />
         </div>
-        <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />
+        {praxis.average_stars != null && praxis.total_votes > 0 ? (
+          <VoteUI
+            praxisId={praxis.id}
+            averageStars={praxis.average_stars}
+            totalVotes={praxis.total_votes}
+            factionSlug={praxis.task_faction_slug}
+            mode="summary"
+          />
+        ) : (
+          <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />
+        )}
       </div>
       <PraxisStats praxis={praxis} style={{ color: muted, marginTop: 8 }} />
       <PraxisByline praxis={praxis} style={{ color: muted }} />
