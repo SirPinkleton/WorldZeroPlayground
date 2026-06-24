@@ -84,7 +84,7 @@ Per-faction fields on `FactionConfig` (all configurable per era):
 | Collaboration minimum level | 1 | `services/praxis.py::COLLABORATION_LEVEL_REQUIRED` |
 | Duel minimum level | 2 | `services/praxis.py::DUEL_LEVEL_REQUIRED` |
 | Flagging minimum level | 4 | `services/praxis.py::flag_praxis` |
-| Second character requires level | 4 on any existing character | ⚠️ Currently enforces 3 — update in SESSION R |
+| Second character requires level | 4 on any existing character | `era.second_character_level_required` in `eras/era_1.py` |
 | Albescent faction choosable for new characters | Requires account to have at least one character at level 8 who has completed at least one task from each faction | ⚠️ Not yet enforced — see SESSION R |
 | Faction choice | Level 3+ with a valid faction invite may optionally join a faction. No forced graduation — opt-in only. | ⚠️ `check_faction_graduation` creates `aged_out` state — disable before launch |
 | Stars range | 1–5 | `services/vote.py` |
