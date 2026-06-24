@@ -281,10 +281,6 @@ async def build_praxis_card_out(
         average_stars=average_stars,
         total_votes=total_votes,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
-        task_level_required=task_level_required,
-        average_stars=average_stars,
-        total_votes=total_votes,
-        submitted_at=praxis.submitted_at,
     )
 
 
