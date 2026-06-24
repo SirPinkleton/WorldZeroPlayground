@@ -82,6 +82,7 @@ class PraxisCardOut(BaseModel):
     task_id: int
     task_title: str
     task_point_value: int
+    task_level_required: int
     type: PraxisType
     status: PraxisStatus
     title: Optional[str]
@@ -90,8 +91,11 @@ class PraxisCardOut(BaseModel):
     created_by_display_name: str
     created_at: datetime
     updated_at: datetime
+    submitted_at: Optional[datetime] = None
     member_count: int
     score: float
+    average_stars: Optional[float] = None
+    total_votes: int = 0
     task_faction_slug: Optional[str] = None
 
     model_config = {"from_attributes": True}
