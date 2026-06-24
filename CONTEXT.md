@@ -28,16 +28,16 @@ faction slug into its archetype, falling back to the default. One dispatcher per
 
 **Slug**:
 The faction's stable identifier in the DB and code. Slugs **match faction identity** —
-the rename `analog→everymen`, `gestalt→wow`, `journeymen→ephemerists` is being applied
+the rename `analog→everymen`, `gestalt→wow`, `journeymen→ephemerists` has been applied
 (see ADR-0004), retiring the legacy-slug reuse trick.
 _Avoid_: faction id, key (CSS uses a separate hyphenated "css key").
 
 **Legacy slug** *(being retired — ADR-0004)*:
 A slug kept after a rebrand to dodge DB/plumbing churn: `analog` shown as "Everymen",
-`gestalt` as "Warriors of Whimsy", `journeymen` as "The Ephemerists". This trick is the
-top source of doc/code drift and is being reversed — slugs renamed to match identity even
-at the cost of breaking the (test-only) live site. Historical term; do not introduce new
-legacy slugs.
+`gestalt` as "Warriors of Whimsy", `journeymen` as "The Ephemerists". This trick was the
+top source of doc/code drift and has been reversed (ADR-0004) — slugs renamed to match
+identity even at the cost of breaking the (test-only) live site. Historical term; do not
+introduce new legacy slugs.
 
 **Alias slug**:
 A slug that inherits another faction's archetype by design rather than rebrand:
