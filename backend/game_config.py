@@ -51,7 +51,6 @@ class EraConfig:
     # Task rules
     max_task_signups: int            # max concurrent in_progress praxes per character
     max_duel_participants: int       # max members in a duel praxis
-    max_collab_participants: int     # max members in a collab praxis
 
     # Vote budget: available = base + (multiplier x score)
     vote_budget_base: int

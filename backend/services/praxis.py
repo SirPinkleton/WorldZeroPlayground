@@ -727,15 +727,6 @@ def _check_duel_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
         )
 
 
-def _check_collab_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
-    """Raise 400 when a collab praxis is already at its max_collab_participants cap."""
-    if len(praxis.members) >= era.max_collab_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Collaboration is full (max {era.max_collab_participants} participants).",
-        )
-
-
 async def _check_invitee_task_eligibility(
     invitee_id: int,
     task_id: int,
@@ -792,8 +783,6 @@ async def invite_to_praxis(
 
     if praxis.type == PraxisType.duel:
         _check_duel_invite_eligibility(praxis, era)
-    elif praxis.type == PraxisType.collab:
-        _check_collab_invite_eligibility(praxis, era)
 
     if invitee_id == inviter_id:
         raise HTTPException(status_code=400, detail="Cannot invite yourself.")
@@ -865,14 +854,6 @@ async def respond_to_invite(
 
     if praxis.status == PraxisStatus.submitted:
         raise HTTPException(status_code=400, detail="Cannot join a submitted praxis.")
-
-    # Collab capacity cap (enforced at accept, not just invite — avoids races
-    # where multiple pending invites push the praxis past its max).
-    if praxis.type == PraxisType.collab and len(praxis.members) >= era.max_collab_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Collaboration is full (max {era.max_collab_participants} participants).",
-        )
 
     # Check bank capacity
     in_progress_count = await _count_in_progress_praxes(character_id, session)
