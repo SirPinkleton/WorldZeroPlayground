@@ -341,8 +341,68 @@ async def test_second_character_allowed_at_level5(
     assert "account_id" not in data
 
 
+async def _seed_all_faction_completions(
+    db_session: AsyncSession,
+    character: Character,
+) -> None:
+    """Seed one submitted praxis per non-sentinel era faction for the given character.
+
+    Creates faction DB rows, tasks, and submitted praxes as needed. Safe to
+    call multiple times — skips faction rows that already exist.
+    """
+    from game_config import CURRENT_ERA
+    from models.faction import Faction, FactionStatus
+    from models.praxis import Praxis, PraxisStatus, PraxisType
+    from models.task import Task, TaskStatus
+    from sqlalchemy import select
+
+    sentinel_slugs = frozenset({"na", "aged_out", "albescent"})
+    required_slugs = [
+        slug for slug in CURRENT_ERA.factions if slug not in sentinel_slugs
+    ]
+
+    for faction_slug in required_slugs:
+        result = await db_session.execute(
+            select(Faction).where(Faction.slug == faction_slug)
+        )
+        if result.scalar_one_or_none() is None:
+            db_session.add(
+                Faction(
+                    slug=faction_slug,
+                    name=faction_slug,
+                    description=f"{faction_slug} test faction",
+                    status=FactionStatus.visible,
+                )
+            )
+            await db_session.flush()
+
+        task = Task(
+            title=f"Albescent gate task: {faction_slug}",
+            description="test",
+            point_value=5,
+            level_required=0,
+            status=TaskStatus.active,
+            created_by=character.id,
+            primary_faction_slug=faction_slug,
+        )
+        db_session.add(task)
+        await db_session.flush()
+
+        praxis = Praxis(
+            task_id=task.id,
+            created_by_id=character.id,
+            type=PraxisType.solo,
+            title=f"Albescent gate praxis: {faction_slug}",
+            body_text="proof",
+            status=PraxisStatus.submitted,
+        )
+        db_session.add(praxis)
+
+    await db_session.commit()
+
+
 @pytest.mark.asyncio
-async def test_albescent_requires_level8_character_on_account(
+async def test_albescent_requires_level8_and_faction_completions(
     client: AsyncClient,
     db_session: AsyncSession,
     account2: Account,
@@ -351,20 +411,22 @@ async def test_albescent_requires_level8_character_on_account(
     faction_ua: Faction,
     auth_headers2: dict,
 ):
-    """Creating an Albescent second character requires a level-8 character on the account (R.7)."""
+    """Creating an Albescent character requires a level-8 character who has
+    completed a task from every non-sentinel faction (R.7)."""
     from models.faction import FactionStatus
     from sqlalchemy import select
 
     # Ensure the albescent faction exists (required FK)
     result = await db_session.execute(select(Faction).where(Faction.slug == "albescent"))
     if result.scalar_one_or_none() is None:
-        albescent = Faction(
-            slug="albescent",
-            name="Albescent",
-            description="Albescent faction",
-            status=FactionStatus.visible,
+        db_session.add(
+            Faction(
+                slug="albescent",
+                name="Albescent",
+                description="Albescent faction",
+                status=FactionStatus.visible,
+            )
         )
-        db_session.add(albescent)
         await db_session.commit()
 
     # character2 is level 5 — raise to 7 (still below 8)
@@ -378,7 +440,7 @@ async def test_albescent_requires_level8_character_on_account(
     stats.level = 7
     await db_session.commit()
 
-    # Level 7 — Albescent should be blocked
+    # Level 7 — Albescent should be blocked (fails the level gate first)
     resp_blocked = await client.post(
         "/characters",
         json={
@@ -391,9 +453,10 @@ async def test_albescent_requires_level8_character_on_account(
     assert resp_blocked.status_code == 403
     assert "8" in resp_blocked.json()["detail"]
 
-    # Raise to level 8 — Albescent should succeed
+    # Raise to level 8 and seed all faction completions
     stats.level = 8
     await db_session.commit()
+    await _seed_all_faction_completions(db_session, character2)
 
     resp_allowed = await client.post(
         "/characters",
@@ -425,16 +488,17 @@ async def test_albescent_character_starts_in_albescent_faction(
     # Ensure the albescent faction exists
     result = await db_session.execute(select(Faction).where(Faction.slug == "albescent"))
     if result.scalar_one_or_none() is None:
-        albescent = Faction(
-            slug="albescent",
-            name="Albescent",
-            description="Albescent faction",
-            status=FactionStatus.visible,
+        db_session.add(
+            Faction(
+                slug="albescent",
+                name="Albescent",
+                description="Albescent faction",
+                status=FactionStatus.visible,
+            )
         )
-        db_session.add(albescent)
         await db_session.commit()
 
-    # Raise character2 to level 8 so Albescent is unlocked
+    # Raise character2 to level 8 and seed all faction completions
     stats_result = await db_session.execute(
         select(CharacterStats).where(
             CharacterStats.character_id == character2.id,
@@ -444,6 +508,7 @@ async def test_albescent_character_starts_in_albescent_faction(
     stats = stats_result.scalar_one()
     stats.level = 8
     await db_session.commit()
+    await _seed_all_faction_completions(db_session, character2)
 
     resp = await client.post(
         "/characters",
@@ -459,6 +524,107 @@ async def test_albescent_character_starts_in_albescent_faction(
     # Must land directly in Albescent, not UA
     assert data["faction_slug"] == "albescent"
     assert data["faction_slug"] != "ua"
+
+
+@pytest.mark.asyncio
+async def test_albescent_blocked_when_one_faction_missing(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    account2: Account,
+    character2: Character,
+    era: Era,
+    faction_ua: Faction,
+    auth_headers2: dict,
+):
+    """Albescent is blocked when a level-8 character is missing a completion
+    from exactly one non-sentinel faction."""
+    from game_config import CURRENT_ERA
+    from models.faction import Faction, FactionStatus
+    from models.praxis import Praxis, PraxisStatus, PraxisType
+    from models.task import Task, TaskStatus
+    from sqlalchemy import select
+
+    # Ensure albescent faction row exists
+    result = await db_session.execute(select(Faction).where(Faction.slug == "albescent"))
+    if result.scalar_one_or_none() is None:
+        db_session.add(
+            Faction(
+                slug="albescent",
+                name="Albescent",
+                description="Albescent faction",
+                status=FactionStatus.visible,
+            )
+        )
+        await db_session.commit()
+
+    # Raise character2 to level 8
+    stats_result = await db_session.execute(
+        select(CharacterStats).where(
+            CharacterStats.character_id == character2.id,
+            CharacterStats.era_id == era.id,
+        )
+    )
+    stats = stats_result.scalar_one()
+    stats.level = 8
+    await db_session.commit()
+
+    sentinel_slugs = frozenset({"na", "aged_out", "albescent"})
+    required_slugs = [
+        slug for slug in CURRENT_ERA.factions if slug not in sentinel_slugs
+    ]
+    # Seed completions for all factions except the last one
+    slugs_to_seed = required_slugs[:-1]
+
+    for faction_slug in slugs_to_seed:
+        result = await db_session.execute(
+            select(Faction).where(Faction.slug == faction_slug)
+        )
+        if result.scalar_one_or_none() is None:
+            db_session.add(
+                Faction(
+                    slug=faction_slug,
+                    name=faction_slug,
+                    description=f"{faction_slug} test faction",
+                    status=FactionStatus.visible,
+                )
+            )
+            await db_session.flush()
+
+        task = Task(
+            title=f"Albescent gate task: {faction_slug}",
+            description="test",
+            point_value=5,
+            level_required=0,
+            status=TaskStatus.active,
+            created_by=character2.id,
+            primary_faction_slug=faction_slug,
+        )
+        db_session.add(task)
+        await db_session.flush()
+
+        praxis = Praxis(
+            task_id=task.id,
+            created_by_id=character2.id,
+            type=PraxisType.solo,
+            title=f"Albescent gate praxis: {faction_slug}",
+            body_text="proof",
+            status=PraxisStatus.submitted,
+        )
+        db_session.add(praxis)
+
+    await db_session.commit()
+
+    # One faction missing — Albescent must still be blocked
+    resp = await client.post(
+        "/characters",
+        json={
+            "username": "alb_almost",
+            "display_name": "Alb Almost",
+            "faction_slug": "albescent",
+        },
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio

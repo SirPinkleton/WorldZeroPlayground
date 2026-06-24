@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character, CharacterStatus
 from models.character_stats import CharacterStats
+from models.praxis import ModerationStatus, Praxis, PraxisStatus
+from models.task import Task
 from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
 from services.era import get_current_era_row, get_current_era_row_safe, get_or_create_stats
 from services.scoring import compute_level, compute_vote_budget, compute_votes_available
@@ -56,6 +58,8 @@ async def get_character_by_id(character_id: int, session: AsyncSession) -> Chara
 
 
 ALBESCENT_FACTION_SLUG = "albescent"
+
+_ALBESCENT_SENTINEL_SLUGS: frozenset[str] = frozenset({"na", "aged_out", "albescent"})
 
 
 async def _account_has_character_at_level(
@@ -105,12 +109,57 @@ async def can_start_as_albescent(
 ) -> bool:
     """True when this account may create a new character in the Albescent faction.
 
-    Requires at least one existing active character at level
-    ``era.albescent_level_required`` or above in the current era.
+    Both conditions must hold on the *same* character:
+    (a) active and at level ``era.albescent_level_required`` or above, and
+    (b) has a submitted, non-hidden qualifying praxis for every non-sentinel
+        faction in the era (i.e. every faction except ``na``, ``aged_out``,
+        and ``albescent``).
     """
-    return await _account_has_character_at_level(
-        account_id, era.albescent_level_required, session
+    required_faction_slugs = frozenset(
+        slug for slug in era.factions if slug not in _ALBESCENT_SENTINEL_SLUGS
     )
+    era_row = await get_current_era_row(session)
+
+    level_result = await session.execute(
+        select(Character.id)
+        .join(
+            CharacterStats,
+            (CharacterStats.character_id == Character.id)
+            & (CharacterStats.era_id == era_row.id),
+        )
+        .where(
+            Character.account_id == account_id,
+            Character.status == CharacterStatus.active,
+            CharacterStats.level >= era.albescent_level_required,
+        )
+    )
+    qualifying_character_ids = [row[0] for row in level_result.all()]
+
+    if not qualifying_character_ids:
+        return False
+
+    if not required_faction_slugs:
+        return True
+
+    for character_id in qualifying_character_ids:
+        covered_result = await session.execute(
+            select(Task.primary_faction_slug)
+            .distinct()
+            .join(Praxis, Praxis.task_id == Task.id)
+            .where(
+                Praxis.created_by_id == character_id,
+                Praxis.status == PraxisStatus.submitted,
+                Praxis.moderation_status.in_(
+                    [ModerationStatus.visible, ModerationStatus.flagged]
+                ),
+                Task.primary_faction_slug.in_(list(required_faction_slugs)),
+            )
+        )
+        covered_slugs = frozenset(row[0] for row in covered_result.all())
+        if covered_slugs >= required_faction_slugs:
+            return True
+
+    return False
 
 
 async def create_character(
@@ -151,7 +200,7 @@ async def create_character(
                 status_code=403,
                 detail=(
                     f"Albescent characters require a level-{era.albescent_level_required} "
-                    "character on the account."
+                    "character on the account who has completed a task from each faction."
                 ),
             )
         starting_faction_slug = ALBESCENT_FACTION_SLUG
