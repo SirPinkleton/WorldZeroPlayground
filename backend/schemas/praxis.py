@@ -97,6 +97,10 @@ class PraxisCardOut(BaseModel):
     average_stars: Optional[float] = None
     total_votes: int = 0
     task_faction_slug: Optional[str] = None
+    task_level_required: int = 0
+    average_stars: Optional[float] = None
+    total_votes: int = 0
+    submitted_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

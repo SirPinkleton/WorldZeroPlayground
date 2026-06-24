@@ -28,7 +28,7 @@ export function VoteSummary({
   theme,
 }: {
   selected: number
-  averageStars?: number
+  averageStars?: number | null
   totalVotes?: number
   error: string
   theme: VoteSummaryTheme
@@ -41,7 +41,7 @@ export function VoteSummary({
         </p>
       )}
 
-      {averageStars !== undefined && (
+      {averageStars != null && (
         <p
           className="font-body"
           style={{

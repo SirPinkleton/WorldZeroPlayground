@@ -21,7 +21,7 @@ interface StampConfig {
 
 const STAMP_SIZE = 40
 
-const STAMPS: StampConfig[] = [
+export const STAMPS: StampConfig[] = [
   { value: 1, label: 'a start',   fill: 'var(--everymen-gold)',      ink: 'var(--everymen-ink)' },
   { value: 2, label: 'solid',     fill: 'var(--everymen-gold-deep)', ink: 'var(--everymen-cream)' },
   { value: 3, label: 'good',      fill: 'var(--everymen-red)',       ink: 'var(--everymen-cream)' },
@@ -29,8 +29,39 @@ const STAMPS: StampConfig[] = [
   { value: 5, label: 'legendary', fill: 'var(--everymen-ink)',       ink: 'var(--everymen-gold)' },
 ]
 
-export default function EverymenVote({ praxisId, currentStars, averageStars, totalVotes }: VoteUIProps) {
+export default function EverymenVote({ praxisId, currentStars, averageStars, totalVotes, mode = 'caster' }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
+
+  if (mode === 'summary') {
+    const tier = STAMPS[Math.max(0, Math.round((averageStars ?? 0)) - 1)] ?? STAMPS[0]
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            background: tier.fill,
+            color: tier.ink,
+            border: '2px solid var(--everymen-ink)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--faction-everymen-card-font)',
+            fontSize: 18,
+            fontWeight: 700,
+          }}
+        >
+          {tier.value}
+        </div>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7.5, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--everymen-muted)', textAlign: 'center' }}>
+          {tier.label}
+        </span>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--everymen-muted)', textAlign: 'center' }}>
+          {totalVotes ?? 0} votes
+        </span>
+      </div>
+    )
+  }
 
   if (!user) {
     return <VoteLoginGate />
