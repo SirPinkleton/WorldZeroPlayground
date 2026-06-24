@@ -155,6 +155,64 @@ export function PraxisSeal({
   );
 }
 
+/**
+ * Slot: compact read-only vote summary — the card hero once the praxis has been
+ * rated. Replaces PraxisSeal when average_stars is present.
+ *
+ * Shows the average star rating (1–5) + vote count in a compact badge. Per-faction
+ * reframe labels (Concordance, Signal, etc.) are wired per archetype when their
+ * designs land; this is the generic fallback that drives the slot.
+ */
+export function VoteUISummary({
+  praxis,
+  color,
+  border,
+}: {
+  praxis: PraxisCardOut;
+  color?: string;
+  border?: string;
+}) {
+  if (praxis.average_stars === null || praxis.average_stars === undefined) return null;
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        minWidth: 50,
+        padding: "5px 8px",
+        border: `2px solid ${border ?? "currentColor"}`,
+        borderRadius: 4,
+        transform: "rotate(-3deg)",
+        color: color ?? "inherit",
+        lineHeight: 1,
+        gap: 2,
+      }}
+    >
+      <span className="font-display" style={{ fontWeight: 800, fontSize: "var(--text-lg)" }}>
+        {praxis.average_stars.toFixed(1)}
+      </span>
+      <span
+        style={{
+          fontSize: 7,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          opacity: 0.75,
+        }}
+      >
+        ★ avg
+      </span>
+      {praxis.total_votes > 0 && (
+        <span style={{ fontSize: 7, opacity: 0.6 }}>
+          {praxis.total_votes}v
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** Slot: base points + collaboration mode — a compact stat line. */
 export function PraxisStats({
   praxis,
@@ -164,27 +222,27 @@ export function PraxisStats({
   style?: CSSProperties;
 }) {
   const collaborators = praxis.member_count - 1;
-  const sealDate = praxis.submitted_at
-    ? new Date(praxis.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+  const submittedDate = praxis.submitted_at
+    ? new Date(praxis.submitted_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
     : null;
   return (
     <div
       className="flex items-center gap-2 font-body"
       style={{ fontSize: "var(--text-xs)", ...style }}
     >
-      <span style={{ fontWeight: 700 }}>{praxis.task_point_value} pts</span>
-      <span aria-hidden>·</span>
       {praxis.task_level_required > 0 && (
         <>
-          <span>L{praxis.task_level_required}</span>
+          <span style={{ fontWeight: 600, opacity: 0.75 }}>L{praxis.task_level_required}</span>
           <span aria-hidden>·</span>
         </>
       )}
+      <span style={{ fontWeight: 700 }}>{praxis.task_point_value} pts</span>
+      <span aria-hidden>·</span>
       <span>{collaborators > 0 ? `+${collaborators} crew` : "solo"}</span>
-      {sealDate && (
+      {submittedDate && (
         <>
           <span aria-hidden>·</span>
-          <span>{sealDate}</span>
+          <span style={{ opacity: 0.65 }}>{submittedDate}</span>
         </>
       )}
     </div>

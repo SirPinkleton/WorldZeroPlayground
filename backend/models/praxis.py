@@ -72,6 +72,7 @@ class Praxis(TimestampMixin, Base):
     flagged_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # submitted_at is set once on the in_progress → submitted transition; NULL means not yet sealed
     submitted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

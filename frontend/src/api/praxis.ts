@@ -79,6 +79,7 @@ export interface PraxisCardOut {
   task_id: number
   task_title: string
   task_point_value: number
+  task_level_required: number
   type: PraxisType
   status: PraxisStatus
   title: string | null
@@ -87,8 +88,11 @@ export interface PraxisCardOut {
   created_by_display_name: string
   created_at: string
   updated_at: string
+  submitted_at: string | null
   member_count: number
   score: number
+  average_stars: number | null
+  total_votes: number
   task_faction_slug: string | null
   task_level_required: number
   average_stars: number | null

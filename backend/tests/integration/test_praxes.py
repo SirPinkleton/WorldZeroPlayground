@@ -1354,3 +1354,105 @@ async def test_create_praxis_retired_task_allowed_for_ephemerists(
         headers=auth_headers,
     )
     assert resp.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# PraxisCardOut new fields: task_level_required, average_stars, total_votes,
+# submitted_at (issue #159)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_praxis_card_includes_new_fields(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """GET /praxes list returns task_level_required, average_stars (null), total_votes (0),
+    and submitted_at (null) for a newly-created in_progress praxis."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Card Fields Test"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    list_resp = await client.get("/praxes")
+    assert list_resp.status_code == 200
+    cards = list_resp.json()
+    card = next((c for c in cards if c["id"] == praxis_id), None)
+    assert card is not None
+
+    assert "task_level_required" in card
+    assert isinstance(card["task_level_required"], int)
+    assert card["task_level_required"] == active_task.level_required
+
+    assert card["average_stars"] is None
+    assert card["total_votes"] == 0
+    assert card["submitted_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_submitted_at_set_on_submit(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """submitted_at is null before submit and non-null after the in_progress → submitted transition."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "SubmittedAt Test"},
+        headers=auth_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    pre_list = await client.get("/praxes")
+    pre_card = next(c for c in pre_list.json() if c["id"] == praxis_id)
+    assert pre_card["submitted_at"] is None
+
+    submit_resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+    assert submit_resp.status_code == 200
+    assert submit_resp.json()["status"] == "submitted"
+
+    post_list = await client.get("/praxes")
+    post_card = next(c for c in post_list.json() if c["id"] == praxis_id)
+    assert post_card["submitted_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_average_stars_and_total_votes_after_vote(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """average_stars and total_votes reflect votes cast on the praxis."""
+    # character2 creates a praxis
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Vote Fields Test"},
+        headers=auth_headers2,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    # character votes 4 stars
+    vote_resp = await client.post(
+        f"/praxes/{praxis_id}/vote",
+        json={"stars": 4},
+        headers=auth_headers,
+    )
+    assert vote_resp.status_code == 200
+
+    list_resp = await client.get("/praxes")
+    card = next(c for c in list_resp.json() if c["id"] == praxis_id)
+
+    assert card["total_votes"] == 1
+    assert card["average_stars"] is not None
+    assert abs(card["average_stars"] - 4.0) < 0.01

@@ -1,4 +1,4 @@
-"""Add submitted_at column to praxis table.
+"""Add praxis.submitted_at — sealed-date for the in_progress → submitted transition.
 
 Revision ID: 0003_add_praxis_submitted_at
 Revises: 0002_drop_praxis_is_withdrawn
@@ -16,15 +16,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute(
-        sa.text(
-            "ALTER TABLE praxis ADD COLUMN IF NOT EXISTS"
-            " submitted_at TIMESTAMP WITH TIME ZONE"
-        )
-    )
+    # IF NOT EXISTS: fresh DBs built from 0001_squashed already have this column
+    # because the squashed baseline reflects the post-add ORM model.
+    op.execute(sa.text(
+        "ALTER TABLE praxis ADD COLUMN IF NOT EXISTS"
+        " submitted_at TIMESTAMP WITH TIME ZONE"
+    ))
 
 
 def downgrade() -> None:
-    op.execute(
-        sa.text("ALTER TABLE praxis DROP COLUMN IF EXISTS submitted_at")
-    )
+    op.drop_column("praxis", "submitted_at")
