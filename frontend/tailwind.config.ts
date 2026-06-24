@@ -11,10 +11,10 @@ export default {
         accent: ["Bebas Neue", "sans-serif"],
         // Per-faction headline fonts
         "faction-ua": ["IM Fell English", "serif"],
-        "faction-analog": ["Special Elite", "serif"],
-        "faction-gestalt": ["Caveat", "cursive"],
+        "faction-everymen": ["Special Elite", "serif"],
+        "faction-wow": ["Caveat", "cursive"],
         "faction-snide": ["Permanent Marker", "cursive"],
-        "faction-journeymen": ["Cinzel", "serif"],
+        "faction-ephemerists": ["Cinzel", "serif"],
         "faction-singularity": ["Share Tech Mono", "monospace"],
         "faction-ua-masters": ["UnifrakturCook", "serif"],
         // Style-named aliases (handoff naming)
@@ -36,10 +36,10 @@ export default {
         accent: "var(--color-accent-primary)",
         // Faction palette — rainbow primaries (light mode; dark mode via CSS vars)
         ua: { DEFAULT: "#7c3aed", accent: "#a78bfa" },
-        analog: { DEFAULT: "#ca8a04", accent: "#fbbf24" },
-        gestalt: { DEFAULT: "#be185d", accent: "#f472b6" },
+        everymen: { DEFAULT: "#ca8a04", accent: "#fbbf24" },
+        wow: { DEFAULT: "#be185d", accent: "#f472b6" },
         snide: { DEFAULT: "#6fae00", accent: "#b6ff2e" },
-        journeymen: { DEFAULT: "#1d6e72", accent: "#b0863a" },
+        ephemerists: { DEFAULT: "#1d6e72", accent: "#b0863a" },
         singularity: { DEFAULT: "#2563eb", accent: "#60a5fa" },
         "ua-masters": { DEFAULT: "#c2410c", accent: "#fb923c" },
       },

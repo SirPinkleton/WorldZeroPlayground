@@ -25,19 +25,8 @@ ERA_1_FACTIONS = {
         duel_win_modifier=1.5,
         duel_loss_modifier=0.5,
     ),
-    "ua_masters": FactionConfig(
-        slug="ua_masters",
-        name="UA Masters",
-        description="Veterans who aged out of UA. Can sign up for any task at reduced points.",
-        is_selectable=True,
-        can_always_rejoin=True,       # can always be rejoined after defecting
-        own_task_modifier=0.8,
-        other_task_modifier=0.8,
-        collab_own_modifier=0.8,
-        collab_other_modifier=0.8,
-        duel_win_modifier=0.8,
-        duel_loss_modifier=0.8,
-    ),
+    # ua_masters cut from Era 1 (deferred to Era 2 per ADR-0004); its L4–L7
+    # tasks below are reassigned to ua.
     "snide": FactionConfig(
         slug="snide",
         name="S.N.I.D.E.",
@@ -234,22 +223,22 @@ ERA_1_TASKS = (
     TaskDef(
         title="The Bloom",
         description="Think about something you think you know about, but haven't actually looked into. Research that assumption, and report back what you've found. Minimum 10,000 words",
-        faction_slug="ua_masters", level_required=4, point_value=50,
+        faction_slug="ua", level_required=4, point_value=50,
     ),
     TaskDef(
         title="The Bush",
         description="Think about something you think you know about, but haven't actually looked into. Research that assumption, and report back what you've found. Minimum 15,000 words",
-        faction_slug="ua_masters", level_required=5, point_value=75,
+        faction_slug="ua", level_required=5, point_value=75,
     ),
     TaskDef(
         title="The Thicket",
         description="Think about something you think you know about, but haven't actually looked into. Research that assumption, and report back what you've found. Minimum 25,000 words",
-        faction_slug="ua_masters", level_required=6, point_value=100,
+        faction_slug="ua", level_required=6, point_value=100,
     ),
     TaskDef(
         title="The Forest",
         description="Think about something you think you know about, but haven't actually looked into. Research that assumption, and report back what you've found. Minimum 40,000 words",
-        faction_slug="ua_masters", level_required=7, point_value=500,
+        faction_slug="ua", level_required=7, point_value=500,
     ),
     TaskDef(
         title="Communication is arbitrary",
@@ -279,7 +268,7 @@ ERA_1_TASKS = (
     TaskDef(
         title="Creating Fun",
         description="Make a game.",
-        faction_slug="ua_masters", level_required=4, point_value=50,
+        faction_slug="ua", level_required=4, point_value=50,
     ),
     TaskDef(
         title="You deserve it.",

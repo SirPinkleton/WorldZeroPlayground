@@ -107,7 +107,7 @@ ERA_N_FACTIONS = {
 #                          Use "na" for cross-faction tasks
 #   level_required      -- minimum character level to sign up (0 = anyone)
 #   point_value         -- base points awarded on completion (before modifiers)
-#   is_task_vision_eligible -- True if Journeymen can see this after retirement
+#   is_task_vision_eligible -- True if Ephemerists can see this after retirement
 
 ERA_N_TASKS = (
     # TODO: Define your tasks. Example:

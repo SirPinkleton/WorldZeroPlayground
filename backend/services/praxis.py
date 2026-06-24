@@ -51,7 +51,7 @@ from services.scoring import (
 )
 
 
-ANALOG_FACTION_SLUG = "everymen"
+EVERYMEN_FACTION_SLUG = "everymen"
 ALBESCENT_FACTION_SLUG = "albescent"
 
 
@@ -416,7 +416,7 @@ async def _check_create_preconditions(
             detail=f"This task requires level {task.level_required}.",
         )
 
-    # One-praxis-per-task gate (with Analog Double Dipper carve-out).
+    # One-praxis-per-task gate (with Everymen Double Dipper carve-out).
     # Uses the same helper that powers the ``can_submit_praxis`` flag on the
     # task detail response so the rule is single-sourced.
     character = await session.get(Character, character_id)
@@ -601,7 +601,7 @@ async def can_submit_praxis_for_task(
     Mirrors the duplicate-submission rule enforced in :func:`create_praxis`:
     - Anonymous viewers never see the submit affordance (False).
     - A character that already authors a non-withdrawn ``Praxis`` for this
-      ``task`` cannot submit again, except for the Analog faction (Double
+      ``task`` cannot submit again, except for the Everymen faction (Double
       Dipper perk). Withdrawn prior praxes do not block a fresh submission.
 
     This helper intentionally stays focused on the one-praxis-per-task rule.
@@ -611,7 +611,7 @@ async def can_submit_praxis_for_task(
     if character is None:
         return False
 
-    if character.faction_slug == ANALOG_FACTION_SLUG:
+    if character.faction_slug == EVERYMEN_FACTION_SLUG:
         return True
 
     result = await session.execute(
@@ -741,7 +741,7 @@ async def _check_invitee_task_eligibility(
     task_id: int,
     session: AsyncSession,
 ) -> None:
-    """Reject invites to players who already did this task (non-Analog only)."""
+    """Reject invites to players who already did this task (non-Everymen only)."""
     existing_praxis_result = await session.execute(
         select(Praxis).where(
             Praxis.type == PraxisType.solo,
@@ -819,8 +819,8 @@ async def invite_to_praxis(
     if invitee is None:
         raise HTTPException(status_code=404, detail="Invitee not found.")
 
-    # Eligibility check: skip for Analog faction (Double Dipper perk)
-    if invitee.faction_slug != ANALOG_FACTION_SLUG:
+    # Eligibility check: skip for Everymen faction (Double Dipper perk)
+    if invitee.faction_slug != EVERYMEN_FACTION_SLUG:
         await _check_invitee_task_eligibility(invitee_id, praxis.task_id, session)
 
     invite = PraxisInvite(

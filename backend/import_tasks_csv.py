@@ -11,7 +11,7 @@ Usage:
 CSV columns expected: Name, Faction, Description, Level, Points, ImagePath
 
 Data corrections applied automatically:
-  - Faction slug typos: anolog → analog, us_masters → ua_masters
+  - Faction slug typos mapped to canonical slugs: anolog → everymen, us_masters → ua
   - "The Rotation Of Cubes In Your Mind": faction assigned to singularity
   - "One of many Cultural Bridges": level=4, point_value=40
 """
@@ -39,10 +39,14 @@ from script_utils import add_env_argument, get_settings
 
 DEFAULT_CSV_PATH = Path.home() / "Downloads" / "W0 tasks - Unsorted.csv"
 
-# Faction slug typos in the CSV → correct slugs
+# Faction slug typos / legacy slugs in the CSV → canonical slugs (ADR-0004)
 FACTION_CORRECTIONS: dict[str, str] = {
-    "anolog": "analog",
-    "us_masters": "ua_masters",
+    "anolog": "everymen",
+    "analog": "everymen",
+    "gestalt": "wow",
+    "journeymen": "ephemerists",
+    "us_masters": "ua",
+    "ua_masters": "ua",
 }
 
 # Per-task field overrides keyed by exact task name

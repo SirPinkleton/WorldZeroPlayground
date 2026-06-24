@@ -141,31 +141,31 @@ async def test_list_praxes_filter_by_faction(
     # active_task is a UA task; add a second task in another faction. The faction
     # row must exist for the FK constraint.
     existing = await db_session.execute(
-        select(Faction).where(Faction.slug == "gestalt")
+        select(Faction).where(Faction.slug == "wow")
     )
     if existing.scalar_one_or_none() is None:
         db_session.add(
             Faction(
-                slug="gestalt",
-                name="Gestalt",
+                slug="wow",
+                name="Warriors of Whimsy",
                 description="",
                 status=FactionStatus.visible,
             )
         )
         await db_session.commit()
 
-    gestalt_task = Task(
-        title="Gestalt Task",
+    wow_task = Task(
+        title="Wow Task",
         description="",
         point_value=10,
         level_required=0,
         status=TaskStatus.active,
         created_by=character.id,
-        primary_faction_slug="gestalt",
+        primary_faction_slug="wow",
     )
-    db_session.add(gestalt_task)
+    db_session.add(wow_task)
     await db_session.commit()
-    await db_session.refresh(gestalt_task)
+    await db_session.refresh(wow_task)
 
     # One praxis on each task.
     ua_resp = await client.post(
@@ -176,27 +176,27 @@ async def test_list_praxes_filter_by_faction(
     assert ua_resp.status_code == 201
     ua_praxis_id = ua_resp.json()["id"]
 
-    gestalt_resp = await client.post(
+    wow_resp = await client.post(
         "/praxes",
-        json={"task_id": gestalt_task.id, "type": "solo", "title": "Gestalt Praxis"},
+        json={"task_id": wow_task.id, "type": "solo", "title": "Wow Praxis"},
         headers=auth_headers,
     )
-    assert gestalt_resp.status_code == 201
-    gestalt_praxis_id = gestalt_resp.json()["id"]
+    assert wow_resp.status_code == 201
+    wow_praxis_id = wow_resp.json()["id"]
 
     # Filter to UA — only the UA praxis comes back.
     ua_list = await client.get("/praxes", params={"faction": "ua"})
     assert ua_list.status_code == 200
     ua_ids = {item["id"] for item in ua_list.json()}
     assert ua_praxis_id in ua_ids
-    assert gestalt_praxis_id not in ua_ids
+    assert wow_praxis_id not in ua_ids
 
-    # Filter to Gestalt — only the Gestalt praxis comes back.
-    gestalt_list = await client.get("/praxes", params={"faction": "gestalt"})
-    assert gestalt_list.status_code == 200
-    gestalt_ids = {item["id"] for item in gestalt_list.json()}
-    assert gestalt_praxis_id in gestalt_ids
-    assert ua_praxis_id not in gestalt_ids
+    # Filter to Wow — only the Wow praxis comes back.
+    wow_list = await client.get("/praxes", params={"faction": "wow"})
+    assert wow_list.status_code == 200
+    wow_ids = {item["id"] for item in wow_list.json()}
+    assert wow_praxis_id in wow_ids
+    assert ua_praxis_id not in wow_ids
 
 
 # ---------------------------------------------------------------------------

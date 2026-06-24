@@ -416,7 +416,7 @@ async def admin_toggle_task_vision(
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):
-    """Admin-only: toggle whether Journeymen/Albescent can access a retired task."""
+    """Admin-only: toggle whether Ephemerists/Albescent can access a retired task."""
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")

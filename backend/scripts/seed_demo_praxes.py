@@ -30,12 +30,12 @@ TITLE_MARKER = "[demo] "
 # cross-votes need separate accounts). username, display_name, faction_slug.
 PLAYERS = [
     ("demo_quill", "Quill", "ua"),
-    ("demo_sol", "Sol Brennan", "analog"),
-    ("demo_marigold", "Marigold", "gestalt"),
+    ("demo_sol", "Sol Brennan", "everymen"),
+    ("demo_marigold", "Marigold", "wow"),
     ("demo_riot", "Riot", "snide"),
-    ("demo_vesper", "Vesper", "journeymen"),
+    ("demo_vesper", "Vesper", "ephemerists"),
     ("demo_unit", "UNIT-7", "singularity"),
-    ("demo_almanac", "Almanac Okonkwo", "journeymen"),  # extra collaborator
+    ("demo_almanac", "Almanac Okonkwo", "ephemerists"),  # extra collaborator
 ]
 
 # faction -> (author_username, title, body, type, [stars from other players])
@@ -43,16 +43,16 @@ DEMOS = {
     "ua": ("demo_quill", "Mapped the unmarked stair",
            "Walked every floor until the numbering stopped making sense, then drew it.",
            PraxisType.solo, [4, 5, 3]),
-    "analog": ("demo_sol", "Hit the bench. Then hit it again",
+    "everymen": ("demo_sol", "Hit the bench. Then hit it again",
                "Same task, second time through — put my own oxygen mask on first.",
                PraxisType.solo, [5, 5, 4]),
-    "gestalt": ("demo_marigold", "Threw a stranger a parade",
+    "wow": ("demo_marigold", "Threw a stranger a parade",
                 "Confetti, a kazoo, one very confused commuter. The bus stop will never recover.",
                 PraxisType.solo, [5, 4, 5]),
     "snide": ("demo_riot", "Flyposted the quiet block",
               "Stuck it where they said not to. Allegedly.",
               PraxisType.solo, [3, 4, 2]),
-    "journeymen": ("demo_vesper", "Traced a myth to its road",
+    "ephemerists": ("demo_vesper", "Traced a myth to its road",
                    "Followed the old account to the actual coordinates. It was there.",
                    PraxisType.solo, [5, 4, 5]),
     "singularity": ("demo_unit", "Logged the signal at 0300",

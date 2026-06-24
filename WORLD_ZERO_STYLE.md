@@ -84,10 +84,10 @@ All fonts loaded from Google Fonts.
 | Faction     | Headline font      | CSS var                           |
 | ----------- | ------------------ | --------------------------------- |
 | UA          | `IM Fell English`  | `--faction-ua-card-font`          |
-| Analog      | `Special Elite`    | `--faction-analog-card-font`      |
-| Gestalt     | `Caveat`           | `--faction-gestalt-card-font`     |
+| Everymen    | `Special Elite`    | `--faction-everymen-card-font`    |
+| Warriors of Whimsy | `Caveat`    | `--faction-wow-card-font`         |
 | S.N.I.D.E.  | `Permanent Marker` (+ a punk set: Anton / Bebas Neue / Archivo Black / Special Elite, via `--faction-snide-font-*`) | `--faction-snide-card-font`       |
-| Ephemerists | `Cinzel`           | `--faction-journeymen-card-font`  |
+| Ephemerists | `Cinzel`           | `--faction-ephemerists-card-font` |
 | Singularity | `Share Tech Mono`  | `--faction-singularity-card-font` |
 | UA Masters  | `UnifrakturCook`   | `--faction-ua-masters-card-font`  |
 
@@ -124,8 +124,8 @@ Cards are arranged in a `flex-wrap` container with varied heights and slight rot
 | Faction     | Card type          | Primary color     | Key visual metaphor                                 | Headline font    |
 | ----------- | ------------------ | ----------------- | --------------------------------------------------- | ---------------- |
 | UA          | Sticky note        | `#7c3aed` purple  | Push pin, clipped corner, faded lavender            | IM Fell English  |
-| Analog      | Field journal page | `#ca8a04` yellow  | Red margin rule, horizontal lines, torn bottom edge | Special Elite    |
-| Gestalt     | Paper collage      | `#be185d` magenta | 3 layered scraps, scotch tape strip                 | Caveat           |
+| Everymen    | Field journal page | `#ca8a04` yellow  | Red margin rule, horizontal lines, torn bottom edge | Special Elite    |
+| Warriors of Whimsy | Paper collage | `#be185d` magenta | 3 layered scraps, scotch tape strip               | Caveat           |
 | S.N.I.D.E.  | Ransom dispatch    | `#6fae00` acid green | Photocopier-ink demand note, cut-out ransom letters, halftone + scotch tape; intentionally the loudest, largest card | Permanent Marker (+ punk set) |
 | Ephemerists | Discordant map     | `#1d6e72` lapis   | Three irreconcilable coordinate grids, one word in the lapis, House-of-Leaves apparatus on aged vellum | Cinzel           |
 | Singularity | Terminal printout  | `#2563eb` blue    | Always dark, green text, sprocket holes, scanlines  | Share Tech Mono  |
