@@ -960,6 +960,130 @@ async def test_get_task_can_submit_false_for_anonymous(
     assert resp.json()["can_submit_praxis"] is False
 
 
+@pytest.mark.asyncio
+async def test_get_task_can_submit_false_level_too_low(
+    client: AsyncClient,
+    character: Character,
+    db_session: AsyncSession,
+    auth_headers: dict,
+):
+    """Character below task.level_required sees can_submit_praxis=False."""
+    high_level_task = Task(
+        title="Hard Task",
+        description="Requires level 5",
+        point_value=50,
+        level_required=5,
+        status=TaskStatus.active,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    db_session.add(high_level_task)
+    await db_session.commit()
+    await db_session.refresh(high_level_task)
+
+    # character fixture starts at level 0, so level_required=5 blocks it
+    resp = await client.get(f"/tasks/{high_level_task.id}", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["can_submit_praxis"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_task_can_submit_false_retired_task(
+    client: AsyncClient,
+    character: Character,
+    db_session: AsyncSession,
+    auth_headers: dict,
+):
+    """Character without Task Vision sees can_submit_praxis=False on a retired task."""
+    retired_task = Task(
+        title="Retired Task",
+        description="No longer active",
+        point_value=10,
+        level_required=0,
+        status=TaskStatus.retired,
+        created_by=character.id,
+        primary_faction_slug="ua",
+    )
+    db_session.add(retired_task)
+    await db_session.commit()
+    await db_session.refresh(retired_task)
+
+    resp = await client.get(f"/tasks/{retired_task.id}", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["can_submit_praxis"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_task_can_submit_false_joined_collaborator(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    db_session: AsyncSession,
+    auth_headers2: dict,
+):
+    """A character who joined someone else's collab sees can_submit_praxis=False."""
+    from models.praxis import Praxis, PraxisMember, PraxisType
+
+    collab = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.collab,
+        title="Collab",
+        body_text="proof",
+    )
+    db_session.add(collab)
+    await db_session.flush()
+    db_session.add(PraxisMember(praxis_id=collab.id, character_id=character.id))
+    db_session.add(PraxisMember(praxis_id=collab.id, character_id=character2.id))
+    await db_session.commit()
+
+    # character2 is a joined collaborator, not the author
+    resp = await client.get(f"/tasks/{active_task.id}", headers=auth_headers2)
+    assert resp.status_code == 200
+    assert resp.json()["can_submit_praxis"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_task_can_submit_true_everymen_as_collaborator(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    db_session: AsyncSession,
+    auth_headers2: dict,
+):
+    """Everymen (Double Dipper) member of a collab still sees can_submit_praxis=True."""
+    from models.faction import FactionStatus
+    from models.praxis import Praxis, PraxisMember, PraxisType
+    from sqlalchemy import select
+
+    result = await db_session.execute(select(Faction).where(Faction.slug == "everymen"))
+    if result.scalar_one_or_none() is None:
+        db_session.add(Faction(slug="everymen", name="Everymen", description="Double Dipper", status=FactionStatus.visible))
+        await db_session.commit()
+
+    character2.faction_slug = "everymen"
+    await db_session.commit()
+
+    collab = Praxis(
+        task_id=active_task.id,
+        created_by_id=character.id,
+        type=PraxisType.collab,
+        title="Collab",
+        body_text="proof",
+    )
+    db_session.add(collab)
+    await db_session.flush()
+    db_session.add(PraxisMember(praxis_id=collab.id, character_id=character.id))
+    db_session.add(PraxisMember(praxis_id=collab.id, character_id=character2.id))
+    await db_session.commit()
+
+    resp = await client.get(f"/tasks/{active_task.id}", headers=auth_headers2)
+    assert resp.status_code == 200
+    assert resp.json()["can_submit_praxis"] is True
+
+
 # ---------------------------------------------------------------------------
 # Bug 7 — allowed_modes by viewer level
 # ---------------------------------------------------------------------------

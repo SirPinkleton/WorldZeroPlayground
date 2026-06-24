@@ -150,7 +150,7 @@ async def build_task_out_for_viewer(
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, viewer.id, era_row.id)
 
-    base.can_submit_praxis = await can_submit_praxis_for_task(viewer, task, session)
+    base.can_submit_praxis = await can_submit_praxis_for_task(viewer, task, session, era)
     base.allowed_modes = allowed_praxis_modes(viewer, task, stats.level, era)
     base.eligible_for_current_user = is_task_eligible_for_character(
         viewer, task, stats.level
