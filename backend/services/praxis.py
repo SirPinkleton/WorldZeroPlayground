@@ -434,7 +434,7 @@ async def _check_create_preconditions(
             detail="This task is pending and is not open for new praxes.",
         )
 
-    if not await can_submit_praxis_for_task(character, task, session):
+    if not await can_submit_praxis_for_task(character, task, session, era):
         raise HTTPException(
             status_code=409,
             detail="You have already submitted a praxis for this task.",
@@ -595,28 +595,43 @@ async def can_submit_praxis_for_task(
     character: Optional[Character],
     task: Task,
     session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
 ) -> bool:
-    """Return True if ``character`` may create a new praxis for ``task``.
+    """Return True if ``character`` passes every signup gate for ``task``.
 
-    Mirrors the duplicate-submission rule enforced in :func:`create_praxis`:
-    - Anonymous viewers never see the submit affordance (False).
-    - A character that already authors a non-withdrawn ``Praxis`` for this
-      ``task`` cannot submit again, except for the Everymen faction (Double
-      Dipper perk). Withdrawn prior praxes do not block a fresh submission.
-
-    This helper intentionally stays focused on the one-praxis-per-task rule.
-    Level gates, bank-cap checks, and faction-visibility are handled by the
-    caller or :func:`create_praxis` itself.
+    Mirrors all guards enforced in :func:`_check_create_preconditions` so the
+    frontend ``can_submit_praxis`` flag on ``TaskOut`` is always truthful:
+    - Anonymous viewers → False.
+    - Character level below ``task.level_required`` → False.
+    - Task is retired/pending and character's faction is not in the
+      ``allow_praxis_on_retired/pending_task_factions`` carve-out → False.
+    - Character already holds an active ``PraxisMember`` row (authored *or*
+      joined via collab invite) on a non-deleted praxis for this task → False.
+      The Everymen faction (Double Dipper perk) is exempt from this last gate
+      only — level and task-status gates still apply to everyone.
     """
     if character is None:
+        return False
+
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character.id, era_row.id)
+
+    if stats.level < task.level_required:
+        return False
+
+    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
+        return False
+    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
         return False
 
     if character.faction_slug == EVERYMEN_FACTION_SLUG:
         return True
 
     result = await session.execute(
-        select(Praxis.id).where(
-            Praxis.created_by_id == character.id,
+        select(PraxisMember.id)
+        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+        .where(
+            PraxisMember.character_id == character.id,
             Praxis.task_id == task.id,
         )
     )
