@@ -205,7 +205,7 @@ ERA_N = EraConfig(
     flag_level_required=4,
 
     # Character account / faction gates
-    second_character_level_required=5,
+    second_character_level_required=4,
     albescent_level_required=8,
     faction_graduation_level=3,
     invitation_point_threshold=20,
