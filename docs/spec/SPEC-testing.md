@@ -20,7 +20,7 @@
 │   ├── test_auth.py            # OAuth flow, JWT creation, /auth/me
 │   ├── test_characters.py      # create, level gate, anti-self-vote
 │   ├── test_tasks.py           # signup, max cap, level gate
-│   ├── test_submissions.py     # create, edit, flag
+│   ├── test_praxes.py          # praxis create, lifecycle, flag, vote
 │   ├── test_votes.py           # cast, update, budget deduction, anti-self-vote
 │   └── test_admin.py           # task approval, era reset endpoint
 └── conftest.py                 # shared fixtures: test DB, test client, seeded characters
@@ -115,12 +115,12 @@ jobs:
         run: alembic upgrade head
         working-directory: backend
         env:
-          DATABASE_URL: postgresql://worldzero:test@localhost/worldzero_test
+          DATABASE_URL: postgresql+asyncpg://worldzero:test@localhost/worldzero_test
       - name: Run tests with coverage
         run: pytest --cov=. --cov-report=term-missing --cov-fail-under=80
         working-directory: backend
         env:
-          DATABASE_URL: postgresql://worldzero:test@localhost/worldzero_test
+          DATABASE_URL: postgresql+asyncpg://worldzero:test@localhost/worldzero_test
 ```
 
 Coverage threshold starts at 80% and should increase over time.
