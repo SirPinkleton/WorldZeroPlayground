@@ -76,12 +76,12 @@ export interface EditPraxisState {
   applyingMetatask: number | null;
   toggleMetatask: (mt: TaskOut) => Promise<void>;
 
-  // Save / publish
+  // Save / publish / drop
   saving: boolean;
   submitting: boolean;
   save: (event?: React.FormEvent) => Promise<void>;
   publish: () => Promise<void>;
-  cancel: () => void;
+  cancel: () => Promise<void>;
 
   // Autosave
   autosaveAt: Date | null;
@@ -322,9 +322,24 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
     }
   }, [idParam, title, persistEdits, navigate, refetch]);
 
-  const cancel = useCallback(() => {
-    if (idParam) navigate(`/praxes/${idParam}`);
-  }, [idParam, navigate]);
+  const cancel = useCallback(async () => {
+    if (!praxis) return;
+    const confirmed = window.confirm(
+      "Drop this task? Your draft will be lost.",
+    );
+    if (!confirmed) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    try {
+      await deletePraxis(praxis.id);
+    } catch (err) {
+      setError(extractError(err, "Could not drop the task."));
+      return;
+    }
+    navigate("/tasks");
+  }, [praxis, navigate]);
 
   // ---- Mode switching ----
   const hasDraftContent = useCallback((): boolean => {

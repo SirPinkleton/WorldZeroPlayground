@@ -16,7 +16,7 @@ import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import { Breadcrumb, ErrorBanner, formatAutosave } from "./shared";
-import { FilePicker, InviteSearch, MetatasksList } from "./controls";
+import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
 import { EphMark, Foxing, LapisLastWord, toRoman } from "../../../components/cards/ephemeristsAtoms";
 import type { EditPraxisState } from "../useEditPraxis";
 
@@ -438,6 +438,23 @@ export default function EditPraxisEphemeris({ state }: Props) {
           >
             {state.saving ? "saving…" : "Keep as marginalia"}
           </button>
+          <DropButton
+            state={state}
+            skin={{
+              label: "withdraw entry",
+              style: {
+                background: "transparent",
+                border: "none",
+                color: MUTED,
+                fontFamily: "var(--eph-serif)",
+                fontSize: 11,
+                fontStyle: "italic",
+                letterSpacing: "0.06em",
+                textDecoration: "underline",
+                cursor: "pointer",
+              },
+            }}
+          />
           <span style={{ fontSize: 11, fontStyle: "italic", color: MUTED, marginLeft: "auto" }}>
             {state.autosaveAt ? `↳ entered ${formatAutosave(state.autosaveAt)}` : "↳ not yet sealed"}
           </span>

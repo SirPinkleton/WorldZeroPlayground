@@ -16,7 +16,7 @@ import {
   TitleCounter,
   formatAutosave,
 } from "./shared";
-import { FilePicker, InviteSearch, MetatasksList } from "./controls";
+import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -754,21 +754,21 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                 {state.saving ? "saving..." : "save draft"}
               </button>
               <div style={{ flex: 1 }} />
-              <button
-                type="button"
-                onClick={state.cancel}
-                style={{
-                  background: "transparent",
-                  color: muted,
-                  fontFamily: cardFont,
-                  fontSize: 18,
-                  fontWeight: 700,
-                  border: "none",
-                  cursor: "pointer",
+              <DropButton
+                state={state}
+                skin={{
+                  label: "cancel",
+                  style: {
+                    background: "transparent",
+                    color: muted,
+                    fontFamily: cardFont,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                  },
                 }}
-              >
-                cancel
-              </button>
+              />
             </div>
           </div>
         </div>

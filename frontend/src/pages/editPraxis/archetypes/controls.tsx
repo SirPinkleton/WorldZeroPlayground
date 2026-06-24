@@ -206,6 +206,29 @@ export function FilePicker({
   );
 }
 
+export interface DropButtonSkin {
+  style?: CSSProperties;
+  label?: string;
+}
+
+export function DropButton({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin?: DropButtonSkin;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => void state.cancel()}
+      style={skin?.style}
+    >
+      {skin?.label ?? "drop task"}
+    </button>
+  );
+}
+
 export interface MetataskListSkin {
   containerStyle?: CSSProperties;
   rowStyle?: (selected: boolean) => CSSProperties;
