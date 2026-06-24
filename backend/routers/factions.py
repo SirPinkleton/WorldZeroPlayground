@@ -22,6 +22,7 @@ from services.faction_service import (
     defect_to_faction,
     get_defection_history,
     get_invitation_status,
+    update_faction,
 )
 from models.invitation_letter import InvitationLetter
 
@@ -38,7 +39,7 @@ async def list_factions(session: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{slug}", response_model=FactionOut)
-async def update_faction(
+async def update_faction_route(
     slug: str,
     data: FactionUpdate,
     _: Account = Depends(require_admin),
@@ -48,11 +49,8 @@ async def update_faction(
     faction = await session.get(Faction, slug)
     if faction is None:
         raise HTTPException(status_code=404, detail="Faction not found.")
-    faction.name = data.name
-    faction.description = data.description
-    await session.flush()
-    await session.refresh(faction)
-    return FactionOut.model_validate(faction)
+    updated = await update_faction(faction, data, session)
+    return FactionOut.model_validate(updated)
 
 
 @router.post("/choose", response_model=FactionOut)
