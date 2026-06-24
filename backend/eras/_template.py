@@ -30,7 +30,7 @@ from game_config import EraConfig, FactionConfig, TaskDef
 #
 # Required system factions (include these in every era):
 #   "ua"       -- default starting faction (is_selectable=False)
-#   "aged_out" -- placeholder for characters who hit level 3 offline
+#   "aged_out" -- retired placeholder; kept for existing characters, no new assignments
 #   "na"       -- sentinel for tasks with no faction affiliation
 #
 # Modifier guide (1.0 = no change, >1.0 = bonus, <1.0 = penalty):
