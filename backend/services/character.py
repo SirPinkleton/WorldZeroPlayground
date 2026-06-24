@@ -264,17 +264,3 @@ async def list_characters_for_viewer(
 
     result = await session.execute(query)
     return list(result.all())
-
-
-def check_faction_graduation(
-    character: Character,
-    stats: CharacterStats,
-    era: EraConfig = CURRENT_ERA,
-) -> str | None:
-    """Returns 'aged_out' if the character just hit level 3 while still in 'ua', else None."""
-    if character.faction_slug != "ua":
-        return None
-    current_level = compute_level(stats.score, era)
-    if current_level >= 3:
-        return "aged_out"
-    return None
