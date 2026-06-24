@@ -82,6 +82,29 @@ async def propose_task(
     return task
 
 
+async def update_task(
+    task: Task,
+    data: TaskCreate,
+    character: Character,
+    session: AsyncSession,
+) -> Task:
+    if task.created_by != character.id or task.status != TaskStatus.pending:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the proposer can edit a pending task.",
+        )
+    task.title = data.title
+    task.description = data.description or ""
+    task.point_value = data.point_value
+    task.level_required = data.level_required
+    task.primary_faction_slug = data.primary_faction_slug or "na"
+    if task.task_type == TaskType.metatask and data.metatask_faction_slug is not None:
+        task.metatask_faction_slug = data.metatask_faction_slug
+    await session.flush()
+    await session.refresh(task)
+    return task
+
+
 def build_task_out(task: Task) -> TaskOut:
     """Convert a Task ORM instance to a TaskOut schema.
 

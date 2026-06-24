@@ -7,6 +7,7 @@ from models.account import Account
 from models.character import Character
 from models.era import Era
 from models.faction import Faction, FactionStatus
+from models.roles import AccountRole, Role
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +141,74 @@ async def test_choose_nonexistent_faction(
     resp = await client.post(
         "/factions/choose",
         json={"faction_slug": "does_not_exist"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Update faction (admin-only)
+# ---------------------------------------------------------------------------
+
+
+async def _make_admin(account: Account, session: AsyncSession) -> None:
+    role = Role(name="admin", description="Administrator")
+    session.add(role)
+    await session.flush()
+    ar = AccountRole(account_id=account.id, role_id=role.id, granted_by=account.id)
+    session.add(ar)
+    await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_update_faction_admin_success(
+    client: AsyncClient,
+    account: Account,
+    auth_headers: dict,
+    faction_ua: Faction,
+    db_session: AsyncSession,
+):
+    """Admin can update a faction's name and description."""
+    await _make_admin(account, db_session)
+    resp = await client.put(
+        "/factions/ua",
+        json={"name": "United Alliance", "description": "Updated description."},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "United Alliance"
+    assert data["description"] == "Updated description."
+    assert data["slug"] == "ua"
+
+
+@pytest.mark.asyncio
+async def test_update_faction_non_admin_forbidden(
+    client: AsyncClient,
+    auth_headers: dict,
+    faction_ua: Faction,
+):
+    """Non-admin accounts get 403 when attempting to update a faction."""
+    resp = await client.put(
+        "/factions/ua",
+        json={"name": "Hijacked", "description": "Nope."},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_update_faction_not_found(
+    client: AsyncClient,
+    account: Account,
+    auth_headers: dict,
+    db_session: AsyncSession,
+):
+    """PUT /factions/{slug} returns 404 for an unknown slug."""
+    await _make_admin(account, db_session)
+    resp = await client.put(
+        "/factions/does_not_exist",
+        json={"name": "Ghost", "description": ""},
         headers=auth_headers,
     )
     assert resp.status_code == 404

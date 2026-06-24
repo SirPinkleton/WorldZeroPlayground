@@ -11,7 +11,7 @@ from dependencies import (
 )
 from models.account import Account
 from models.character import Character
-from models.task import Task, TaskStatus, TaskType
+from models.task import Task
 from schemas.task import TaskCreate, TaskOut
 from services.auth import get_current_account
 from services.task import (
@@ -20,6 +20,7 @@ from services.task import (
     list_signups_for_task,
     list_tasks as service_list_tasks,
     propose_task,
+    update_task,
 )
 
 router = APIRouter()
@@ -113,20 +114,4 @@ async def update_task_route(
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
-    # Proposer can edit their own pending tasks only
-    if task.created_by != character.id or task.status != TaskStatus.pending:
-        raise HTTPException(
-            status_code=403,
-            detail="Only the proposer can edit a pending task.",
-        )
-    task.title = data.title
-    task.description = data.description or ""
-    task.point_value = data.point_value
-    task.level_required = data.level_required
-    task.primary_faction_slug = data.primary_faction_slug or "na"
-    # Only allow editing metatask_faction_slug for metatasks.
-    if task.task_type == TaskType.metatask and data.metatask_faction_slug is not None:
-        task.metatask_faction_slug = data.metatask_faction_slug
-    await session.flush()
-    await session.refresh(task)
-    return build_task_out(task)
+    return build_task_out(await update_task(task, data, character, session))
