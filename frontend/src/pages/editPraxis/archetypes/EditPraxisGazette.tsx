@@ -17,7 +17,7 @@ import {
   TitleCounter,
   formatAutosave,
 } from "./shared";
-import { FilePicker, InviteSearch, MetatasksList } from "./controls";
+import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -694,6 +694,22 @@ export default function EditPraxisGazette({ state }: Props) {
           >
             {state.saving ? "saving..." : "save as draft"}
           </button>
+          <DropButton
+            state={state}
+            skin={{
+              label: "abandon this story",
+              style: {
+                background: "transparent",
+                border: "none",
+                color: muted,
+                fontFamily: "'IM Fell English', serif",
+                fontStyle: "italic",
+                fontSize: 11,
+                textDecoration: "underline",
+                cursor: "pointer",
+              },
+            }}
+          />
           <div style={{ flex: 1 }} />
           <span
             style={{

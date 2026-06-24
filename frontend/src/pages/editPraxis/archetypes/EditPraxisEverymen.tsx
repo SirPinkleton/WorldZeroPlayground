@@ -19,6 +19,7 @@ import {
   TaskMetaInline,
   formatAutosave,
 } from "./shared";
+import { DropButton } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -626,23 +627,23 @@ export default function EditPraxisEverymen({ state }: Props) {
           >
             {state.saving ? "Saving…" : "Save Draft"}
           </button>
-          <button
-            type="button"
-            onClick={state.cancel}
-            style={{
-              marginLeft: "auto",
-              background: "transparent",
-              border: "none",
-              color: MUTED,
-              fontFamily: BODY_FONT,
-              fontSize: 11,
-              fontStyle: "italic",
-              textDecoration: "underline",
-              cursor: "pointer",
+          <DropButton
+            state={state}
+            skin={{
+              label: "cancel",
+              style: {
+                marginLeft: "auto",
+                background: "transparent",
+                border: "none",
+                color: MUTED,
+                fontFamily: BODY_FONT,
+                fontSize: 11,
+                fontStyle: "italic",
+                textDecoration: "underline",
+                cursor: "pointer",
+              },
             }}
-          >
-            cancel
-          </button>
+          />
         </div>
       </div>
     </div>
