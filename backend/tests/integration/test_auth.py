@@ -360,11 +360,15 @@ async def test_me_can_start_as_albescent_true_when_level_8_plus(
     auth_headers: dict,
     db_session: AsyncSession,
     era,
+    faction_ua,
 ):
-    """Account with a level-8 character: both flags true (level 8 is above 5 too)."""
-    from sqlalchemy import select
-
+    """Account with a level-8 character who has all faction completions: both flags true."""
+    from game_config import CURRENT_ERA
     from models.character_stats import CharacterStats
+    from models.faction import Faction, FactionStatus
+    from models.praxis import Praxis, PraxisStatus, PraxisType
+    from models.task import Task, TaskStatus
+    from sqlalchemy import select
 
     result = await db_session.execute(
         select(CharacterStats).where(
@@ -374,6 +378,49 @@ async def test_me_can_start_as_albescent_true_when_level_8_plus(
     )
     stats = result.scalar_one()
     stats.level = 8
+    await db_session.commit()
+
+    # Seed one submitted praxis per non-sentinel faction so the full gate passes
+    sentinel_slugs = frozenset({"na", "aged_out", "albescent"})
+    for faction_slug in CURRENT_ERA.factions:
+        if faction_slug in sentinel_slugs:
+            continue
+        faction_result = await db_session.execute(
+            select(Faction).where(Faction.slug == faction_slug)
+        )
+        if faction_result.scalar_one_or_none() is None:
+            db_session.add(
+                Faction(
+                    slug=faction_slug,
+                    name=faction_slug,
+                    description=f"{faction_slug} test faction",
+                    status=FactionStatus.visible,
+                )
+            )
+            await db_session.flush()
+
+        task = Task(
+            title=f"Albescent gate task: {faction_slug}",
+            description="test",
+            point_value=5,
+            level_required=0,
+            status=TaskStatus.active,
+            created_by=character.id,
+            primary_faction_slug=faction_slug,
+        )
+        db_session.add(task)
+        await db_session.flush()
+
+        praxis = Praxis(
+            task_id=task.id,
+            created_by_id=character.id,
+            type=PraxisType.solo,
+            title=f"Albescent gate praxis: {faction_slug}",
+            body_text="proof",
+            status=PraxisStatus.submitted,
+        )
+        db_session.add(praxis)
+
     await db_session.commit()
 
     resp = await client.get("/auth/me", headers=auth_headers)
