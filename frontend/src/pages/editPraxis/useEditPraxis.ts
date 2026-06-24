@@ -101,6 +101,28 @@ export interface EditPraxisState {
 
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 
+/**
+ * Decide whether switching to a new mode needs a confirm, and with what prompt.
+ * Returns the message to confirm, or null to proceed silently.
+ *
+ * A mode switch tears down and recreates the praxis (see `performModeSwitch`),
+ * so the destructive cases warn first instead of locking the control (#155):
+ *  - co-authors present  → they'll be dropped
+ *  - else unsaved draft  → it'll be discarded
+ */
+export function modeSwitchPrompt(
+  memberCount: number,
+  hasDraftContent: boolean,
+): string | null {
+  if (memberCount > 1) {
+    return "Switching mode will drop the collaboration — your co-authors will be removed and the current draft replaced. Continue?";
+  }
+  if (hasDraftContent) {
+    return "Changing mode will discard your current draft (title, body, media, metatasks). Continue?";
+  }
+  return null;
+}
+
 export function useEditPraxis(idParam: string | undefined): EditPraxisState {
   const navigate = useNavigate();
   const { user, refetch } = useAuth();
@@ -376,16 +398,8 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
   const changeMode = useCallback(
     async (next: PraxisType) => {
       if (!praxis || praxis.type === next) return;
-      if (praxis.members.length > 1) {
-        setError("Mode is locked once co-authors have joined.");
-        return;
-      }
-      if (hasDraftContent()) {
-        const confirmed = window.confirm(
-          "Changing mode will discard your current draft (title, body, media, metatasks). Continue?",
-        );
-        if (!confirmed) return;
-      }
+      const prompt = modeSwitchPrompt(praxis.members.length, hasDraftContent());
+      if (prompt && !window.confirm(prompt)) return;
       await performModeSwitch(next);
     },
     [praxis, hasDraftContent, performModeSwitch],
@@ -487,10 +501,9 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
     praxis?.moderation_status === "hidden" ||
     praxis?.moderation_status === "failed";
   const controlsLocked = !!(isPublished || isModerated);
-  const modeIsLocked = !!(
-    controlsLocked ||
-    (praxis && praxis.members.length > 1)
-  );
+  // Locked only once sealed/moderated — co-authors no longer lock the picker;
+  // switching with members joined confirms-then-drops instead (#155).
+  const modeIsLocked = controlsLocked;
   const duelSlotFull = !!(
     praxis &&
     praxis.type === "duel" &&
