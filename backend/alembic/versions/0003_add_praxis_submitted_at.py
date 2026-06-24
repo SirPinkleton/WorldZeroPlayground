@@ -16,15 +16,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "praxis",
-        sa.Column(
-            "submitted_at",
-            sa.DateTime(timezone=True),
-            nullable=True,
-        ),
+    op.execute(
+        sa.text(
+            "ALTER TABLE praxis ADD COLUMN IF NOT EXISTS"
+            " submitted_at TIMESTAMP WITH TIME ZONE"
+        )
     )
 
 
 def downgrade() -> None:
-    op.drop_column("praxis", "submitted_at")
+    op.execute(
+        sa.text("ALTER TABLE praxis DROP COLUMN IF EXISTS submitted_at")
+    )
