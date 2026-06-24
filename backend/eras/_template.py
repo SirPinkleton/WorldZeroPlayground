@@ -185,7 +185,6 @@ ERA_N = EraConfig(
 
     max_task_signups=20,                 # Max active task signups per character
     max_duel_participants=2,             # Max members in a duel praxis
-    max_collab_participants=20,          # Max members in a collab praxis
 
     vote_budget_base=100,                # Starting vote budget
     vote_budget_multiplier=2.0,          # Extra votes per point of score
