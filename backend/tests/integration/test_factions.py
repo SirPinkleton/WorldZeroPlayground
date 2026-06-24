@@ -105,28 +105,28 @@ async def test_choose_faction_from_ua(
     era: Era,
     db_session: AsyncSession,
 ):
-    """Character can defect from UA to ua_masters (a selectable faction in era config)."""
+    """Character can defect from UA to wow (a selectable faction in era config)."""
     from models.faction import Faction as FactionModel
     from sqlalchemy import select
 
-    # Seed the ua_masters faction in the DB (required for FK constraint)
-    existing = await db_session.execute(select(FactionModel).where(FactionModel.slug == "ua_masters"))
+    # Seed the wow faction in the DB (required for FK constraint)
+    existing = await db_session.execute(select(FactionModel).where(FactionModel.slug == "wow"))
     if existing.scalar_one_or_none() is None:
         db_session.add(FactionModel(
-            slug="ua_masters",
-            name="UA Masters",
-            description="Veterans",
+            slug="wow",
+            name="Warriors of Whimsy",
+            description="Collective-minded",
             status=FactionStatus.visible,
         ))
         await db_session.commit()
 
     resp = await client.post(
         "/factions/choose",
-        json={"faction_slug": "ua_masters"},
+        json={"faction_slug": "wow"},
         headers=auth_headers,
     )
     assert resp.status_code == 200
-    assert resp.json()["slug"] == "ua_masters"
+    assert resp.json()["slug"] == "wow"
 
 
 @pytest.mark.asyncio

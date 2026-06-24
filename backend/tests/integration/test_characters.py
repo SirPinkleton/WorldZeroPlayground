@@ -288,7 +288,7 @@ async def test_faction_change_via_choose_endpoint(
 
 
 @pytest.mark.asyncio
-async def test_second_character_blocked_below_level5(
+async def test_second_character_blocked_below_level4(
     client: AsyncClient,
     db_session: AsyncSession,
     character: Character,
@@ -296,8 +296,8 @@ async def test_second_character_blocked_below_level5(
     faction_ua: Faction,
     auth_headers: dict,
 ):
-    """Account with a level-4 first character cannot create a second character (R.7)."""
-    # Raise the first character's level to 4 — still below the level-5 gate
+    """Account with a level-3 first character cannot create a second character (R.7)."""
+    # Raise the first character's level to 3 — still below the level-4 gate
     from sqlalchemy import select
     result = await db_session.execute(
         select(CharacterStats).where(
@@ -306,7 +306,7 @@ async def test_second_character_blocked_below_level5(
         )
     )
     stats = result.scalar_one()
-    stats.level = 4
+    stats.level = 3
     await db_session.commit()
 
     resp = await client.post(
@@ -315,8 +315,8 @@ async def test_second_character_blocked_below_level5(
         headers=auth_headers,
     )
     assert resp.status_code == 403
-    # The error message must explicitly name the level-5 requirement
-    assert "5" in resp.json()["detail"]
+    # The error message must explicitly name the level-4 requirement
+    assert "4" in resp.json()["detail"]
 
 
 @pytest.mark.asyncio

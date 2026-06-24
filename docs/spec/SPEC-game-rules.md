@@ -15,7 +15,7 @@
 
 **2026-06-05 — June reconciliation (vault SOT sync)**
 - Additional character slot level gate: **4** (was 5 in spec and code; confirmed by requirements doc)
-- Faction choice at level 3: **opt-in, not forced**. `aged_out` / `AgedOutOfUA` graduation mechanic is being retired. ⚠️ `check_faction_graduation` should be disabled before launch.
+- Faction choice at level 3: **opt-in, not forced**. `aged_out` / `AgedOutOfUA` graduation mechanic retired. `check_faction_graduation` removed — UA characters no longer auto-graduate.
 - /Albescent unlock condition: account must have a character at **level 8** who has completed **at least one task from each faction** (not "one of every task" — one per faction is the bar)
 - Collaboration participant cap: **removed**. Era 1 collaborations are unlimited. `max_collab_participants` removed from EraConfig.
 
@@ -84,9 +84,9 @@ Per-faction fields on `FactionConfig` (all configurable per era):
 | Collaboration minimum level | 1 | `services/praxis.py::COLLABORATION_LEVEL_REQUIRED` |
 | Duel minimum level | 2 | `services/praxis.py::DUEL_LEVEL_REQUIRED` |
 | Flagging minimum level | 4 | `services/praxis.py::flag_praxis` |
-| Second character requires level | 4 on any existing character | ⚠️ Currently enforces 3 — update in SESSION R |
+| Second character requires level | 4 on any existing character | `era.second_character_level_required` in `eras/era_1.py` |
 | Albescent faction choosable for new characters | Requires account to have at least one character at level 8 who has completed at least one task from each faction | ⚠️ Not yet enforced — see SESSION R |
-| Faction choice | Level 3+ with a valid faction invite may optionally join a faction. No forced graduation — opt-in only. | ⚠️ `check_faction_graduation` creates `aged_out` state — disable before launch |
+| Faction choice | Level 3+ with a valid faction invite may optionally join a faction. No forced graduation — opt-in only. | ✅ `check_faction_graduation` removed — UA characters no longer auto-graduate |
 | Stars range | 1–5 | `services/vote.py` |
 | Snide tiebreaker rule | Snide always wins a tie vs non-Snide | `services/scoring.py::compute_duel_multiplier` |
 | Unaffiliated task slug | `"na"` | `services/scoring.py::UNAFFILIATED_FACTION_SLUG` |
@@ -256,7 +256,7 @@ Point thresholds come from `era.level_thresholds` and vary per era.
 
 - All characters start in **UA** (not selectable — assigned automatically), **except** /Albescent second-or-later characters which start in `/Albescent` at level 1 and never enter UA. ⚠️ Albescent-at-creation not yet implemented.
 - At level 3, a player **may optionally** choose a faction if they have received at least one valid invitation. There is no forced graduation from UA — players can remain in UA indefinitely.
-- The `aged_out` / `AgedOutOfUA` mechanic is **being retired**. ⚠️ Disable `check_faction_graduation` before launch.
+- The `aged_out` / `AgedOutOfUA` mechanic is **retired**. `check_faction_graduation` removed — existing `aged_out` characters can still choose a faction; no new characters will be put there.
 - **Faction change / defection:** a character can switch factions subject to defection rules tracked in `FactionDefectionHistory`. `can_always_rejoin=True` factions (/Albescent) can always be rejoined after leaving.
 
 ### Era 1 selectable factions
@@ -276,7 +276,7 @@ Point thresholds come from `era.level_thresholds` and vary per era.
 |---|---|---|
 | `ua` | UA | Starting faction. Full points. Players may stay indefinitely (opt-in faction choice from L3). |
 | `albescent` | /Albescent | Second-or-later character starting faction. Unlocked when account has a character at level 8 who has completed at least one task from each faction. Full points on everything, any metatasks. `can_always_rejoin=True`. |
-| `aged_out` | AgedOutOfUA | **Being retired.** Do not use for new characters. ⚠️ Disable `check_faction_graduation`. |
+| `aged_out` | AgedOutOfUA | **Retired.** No new characters will enter this state. Existing `aged_out` characters can still choose a faction normally. |
 | `na` | None | Sentinel for tasks with no faction affiliation. Treated as own-faction. |
 
 ### Albescent — second-or-later character flow

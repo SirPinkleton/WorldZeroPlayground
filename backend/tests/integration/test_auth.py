@@ -290,7 +290,7 @@ async def test_auth_me_exposes_votes_available(
 
 
 @pytest.mark.asyncio
-async def test_me_can_create_additional_character_true_when_level_5_plus(
+async def test_me_can_create_additional_character_true_when_level_4_plus(
     client: AsyncClient,
     account: Account,
     character: Character,
@@ -298,7 +298,7 @@ async def test_me_can_create_additional_character_true_when_level_5_plus(
     db_session: AsyncSession,
     era,
 ):
-    """Account with a level-5 character: can_create_additional_character=True,
+    """Account with a level-4 character: can_create_additional_character=True,
     can_start_as_albescent=False."""
     from sqlalchemy import select
 
@@ -311,7 +311,7 @@ async def test_me_can_create_additional_character_true_when_level_5_plus(
         )
     )
     stats = result.scalar_one()
-    stats.level = 5
+    stats.level = 4
     await db_session.commit()
 
     resp = await client.get("/auth/me", headers=auth_headers)
@@ -322,7 +322,7 @@ async def test_me_can_create_additional_character_true_when_level_5_plus(
 
 
 @pytest.mark.asyncio
-async def test_me_can_create_additional_character_false_when_below_level_5(
+async def test_me_can_create_additional_character_false_when_below_level_4(
     client: AsyncClient,
     account: Account,
     character: Character,

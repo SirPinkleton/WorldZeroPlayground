@@ -10,7 +10,7 @@ from sqlalchemy import event
 from models.account import Account
 from models.character import Character
 from models.era import Era
-from models.praxis import Praxis, PraxisType
+from models.praxis import Praxis, PraxisStatus, PraxisType
 from models.task import Task
 from models.vote import Vote
 from services.character_stats import recalculate_character_stats
@@ -150,4 +150,38 @@ async def test_recalculate_character_stats_query_count_does_not_grow_with_praxes
         f"recalculate_character_stats issued {small_count} queries for 5 "
         f"praxes and {large_count} queries for 10 praxes — query count must "
         f"be constant in the praxis count (growth indicates N+1 regression)."
+    )
+
+
+@pytest.mark.asyncio
+async def test_ua_character_faction_not_changed_at_level_3(
+    db_session,
+    character: Character,
+    active_task: Task,
+    era: Era,
+):
+    """UA characters must stay in 'ua' after recalculate_character_stats, even at level 3+.
+
+    Regression guard for the removed check_faction_graduation: that function
+    previously forced faction_slug from 'ua' to 'aged_out' on every stat
+    recalculation once the character reached level 3 (score >= 170).
+    """
+    # Seed 20 submitted solo praxes at 10 pts each → score 200, level 3.
+    for index in range(20):
+        praxis = Praxis(
+            task_id=active_task.id,
+            created_by_id=character.id,
+            type=PraxisType.solo,
+            title=f"Level-3 praxis {index}",
+            body_text="proof",
+            status=PraxisStatus.submitted,
+        )
+        db_session.add(praxis)
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.refresh(character)
+
+    assert character.faction_slug == "ua", (
+        f"recalculate_character_stats must not mutate faction_slug; got {character.faction_slug!r}"
     )

@@ -30,7 +30,7 @@ from game_config import EraConfig, FactionConfig, TaskDef
 #
 # Required system factions (include these in every era):
 #   "ua"       -- default starting faction (is_selectable=False)
-#   "aged_out" -- placeholder for characters who hit level 3 offline
+#   "aged_out" -- retired placeholder; kept for existing characters, no new assignments
 #   "na"       -- sentinel for tasks with no faction affiliation
 #
 # Modifier guide (1.0 = no change, >1.0 = bonus, <1.0 = penalty):
@@ -107,7 +107,7 @@ ERA_N_FACTIONS = {
 #                          Use "na" for cross-faction tasks
 #   level_required      -- minimum character level to sign up (0 = anyone)
 #   point_value         -- base points awarded on completion (before modifiers)
-#   is_task_vision_eligible -- True if Journeymen can see this after retirement
+#   is_task_vision_eligible -- True if Ephemerists can see this after retirement
 
 ERA_N_TASKS = (
     # TODO: Define your tasks. Example:
@@ -205,7 +205,7 @@ ERA_N = EraConfig(
     flag_level_required=4,
 
     # Character account / faction gates
-    second_character_level_required=5,
+    second_character_level_required=4,
     albescent_level_required=8,
     faction_graduation_level=3,
     invitation_point_threshold=20,

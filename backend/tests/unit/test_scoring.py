@@ -62,7 +62,7 @@ def test_votes_available_formula():
         collaboration_level_required=1,
         metatask_apply_level=7,
         flag_level_required=4,
-        second_character_level_required=5,
+        second_character_level_required=4,
         albescent_level_required=8,
         faction_graduation_level=3,
         invitation_point_threshold=20,
@@ -123,7 +123,7 @@ def test_vote_budget_floors_fractional():
         collaboration_level_required=1,
         metatask_apply_level=7,
         flag_level_required=4,
-        second_character_level_required=5,
+        second_character_level_required=4,
         albescent_level_required=8,
         faction_graduation_level=3,
         invitation_point_threshold=20,
@@ -169,7 +169,7 @@ def test_praxis_score_multiple_votes():
 
 
 def test_praxis_score_with_multiplier():
-    # ua_masters gets 0.8 multiplier: 10 * 0.8 + 5 stars = 13.0
+    # 0.8 faction multiplier: 10 * 0.8 + 5 stars = 13.0
     assert compute_praxis_score(task_point_value=10, faction_multiplier=0.8, total_stars=5) == 13.0
 
 
@@ -190,8 +190,8 @@ def test_praxis_score_with_duel_multiplier():
 
 def test_faction_multiplier_unaffiliated_task():
     # "na" tasks use own_task_modifier (treated as own-faction, no penalty)
-    result = compute_faction_multiplier("ua_masters", "na", ERA_1)
-    assert result == ERA_1.factions["ua_masters"].own_task_modifier
+    result = compute_faction_multiplier("wow", "na", ERA_1)
+    assert result == ERA_1.factions["wow"].own_task_modifier
 
 
 def test_faction_multiplier_own_faction():
@@ -211,8 +211,8 @@ def test_faction_multiplier_unknown_faction():
 
 
 def test_faction_multiplier_empty_task_faction():
-    result = compute_faction_multiplier("ua_masters", "", ERA_1)
-    assert result == ERA_1.factions["ua_masters"].own_task_modifier
+    result = compute_faction_multiplier("wow", "", ERA_1)
+    assert result == ERA_1.factions["wow"].own_task_modifier
 
 
 # ---------------------------------------------------------------------------
@@ -309,7 +309,7 @@ def test_duel_faction_multiplier_ignores_duel_mode():
 
 
 def test_cross_faction_collab_example():
-    """Spec example: Gestalt + Journeymen collaborate on a Snide task."""
+    """Spec example: Warriors of Whimsy + Ephemerists collaborate on a Snide task."""
     wow_mult = compute_faction_multiplier(
         "wow", "snide", ERA_1,
         collaboration_mode=COLLABORATION_MODE_COLLAB,
@@ -320,17 +320,6 @@ def test_cross_faction_collab_example():
     )
     assert wow_mult == 0.9   # collab_other_modifier for wow
     assert ephemerists_mult == 0.7  # collab_other_modifier for ephemerists
-
-
-def test_ua_masters_uniform_modifier():
-    """UA Masters gets 0.8 on everything."""
-    config = ERA_1.factions["ua_masters"]
-    assert config.own_task_modifier == 0.8
-    assert config.other_task_modifier == 0.8
-    assert config.collab_own_modifier == 0.8
-    assert config.collab_other_modifier == 0.8
-    assert config.duel_win_modifier == 0.8
-    assert config.duel_loss_modifier == 0.8
 
 
 def test_ua_full_points():
@@ -352,7 +341,7 @@ def test_albescent_no_penalties():
 
 
 def test_ephemerists_other_faction_penalty():
-    """Journeymen get 0.7 on other-faction tasks."""
+    """Ephemerists get 0.7 on other-faction tasks."""
     config = ERA_1.factions["ephemerists"]
     assert config.own_task_modifier == 1.0
     assert config.other_task_modifier == 0.7
@@ -360,8 +349,8 @@ def test_ephemerists_other_faction_penalty():
     assert config.collab_other_modifier == 0.7
 
 
-def test_analog_other_faction_penalty():
-    """Analog get 0.7 on other-faction tasks."""
+def test_everymen_other_faction_penalty():
+    """Everymen get 0.7 on other-faction tasks."""
     config = ERA_1.factions["everymen"]
     assert config.own_task_modifier == 1.0
     assert config.other_task_modifier == 0.7

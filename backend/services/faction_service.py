@@ -12,7 +12,6 @@ from models.invitation_letter import InvitationLetter
 from models.task import Task
 from services.era import clear_defection_history_for_era, get_current_era_row, get_or_create_stats
 
-UA_MASTERS_FACTION_SLUG: str = "ua_masters"
 UA_FACTION_SLUG: str = "ua"
 UNAFFILIATED_FACTION_SLUG: str = "na"
 

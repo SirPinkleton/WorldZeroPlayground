@@ -217,8 +217,8 @@ async def seed(env: str, yes: bool) -> None:
                 status=TaskStatus.active,
                 task_type=TaskType.metatask,
                 created_by=pixie_char.id,
-                primary_faction_slug="ua_masters",
-                metatask_faction_slug="ua_masters",
+                primary_faction_slug="ua",
+                metatask_faction_slug="ua",
             ))
         else:
             print(f"  >Metatasks already exist ({metatask_count}) — skipping")
