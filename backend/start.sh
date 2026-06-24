@@ -31,6 +31,9 @@ do
 done
 echo "Database is ready."
 
+# Fail loud (never auto-destroy) if the DB is stamped at a squashed-away revision.
+python scripts/check_db_stamp.py
+
 alembic upgrade head
 python seed.py --env prod --yes
 exec uvicorn main:app --host 0.0.0.0 --port 8000

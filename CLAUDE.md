@@ -39,7 +39,9 @@ Deeper notes: `docs/spec/SPEC-architecture.md`.
 | Design intent, UX, faction archetypes | `WORLD_ZERO_STYLE.md` |
 | CSS variables (colors, type, themes) | `frontend/src/index.css` |
 | JS faction config | `frontend/src/factions.ts` |
-| Task queue | `docs/TASKS.md` |
+| Open work / issues | GitHub Issues — `gh issue list` (see `docs/agents/issue-tracker.md`) |
+| Past task history (archived) | `docs/archive/TASKS-completed.md` |
+| Squashing migrations / resetting the DB | `docs/agents/db-migrations.md` |
 | Library/framework API docs (React, FastAPI, SQLAlchemy, Alembic, Pydantic, etc.) | Context7 -- call `mcp__MCP_DOCKER__resolve-library-id` then `mcp__MCP_DOCKER__get-library-docs` |
 
 Read only what your task needs.
@@ -90,14 +92,23 @@ Read only what your task needs.
 - DB: `docker-compose up -d`; `alembic upgrade head` after pulling
 - Tests: `pytest --cov=. --cov-fail-under=80` from `/backend`
 
-## Workflow
-For any non-trivial code changes, work in an isolated git worktree rather than directly on the current branch.
+## Agent skills
 
-## Multi-agent workflow
-Worktrees, one branch per agent.
-- Pick work from `docs/TASKS.md` matching your role
-- Stay inside your task's file scope
-- Don't start a higher session number until lower ones are done
+This repo is configured for the engineering skill set (`triage`, `qa`, `review`, `tdd`, etc.). Details live in `docs/agents/`.
+
+`/wz-next-issue` picks up where `/triage` stops: it selects the best unblocked `ready-for-agent` issue (dependency-aware), builds it in a worktree, and opens a draft PR — commenting on the issue and stopping if it needs a human.
+
+### Issue tracker
+Work lives in **GitHub Issues** on `pixieofhugs/WorldZeroPlayground`, managed via the `gh` CLI. External PRs are **not** a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+Default vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+Multi-context (`backend/`, `frontend/`). Domain knowledge is the routing table above plus `docs/spec/*` and `WORLD_ZERO_STYLE.md`; `CONTEXT.md` / `CONTEXT-MAP.md` get created lazily by `/domain-modeling`. See `docs/agents/domain.md`.
+
+## Working in worktrees
+For any non-trivial code change, work in an isolated git worktree on its own branch rather than directly on the current branch. Stay within the file scope of the issue you picked up.
 
 ## Keeping this file thin
 Before adding a section: does it belong in a spec file, `game_config.py`, or
