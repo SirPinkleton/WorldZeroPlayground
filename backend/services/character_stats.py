@@ -15,7 +15,6 @@ from models.praxis import (
 from models.task import Task
 from models.vote import Vote
 from models.era import Era
-from services.character import check_faction_graduation
 from services.era import get_current_era_row, get_or_create_stats
 from services.meta_task import get_meta_task_points_bulk
 from services.scoring import (
@@ -358,7 +357,3 @@ async def recalculate_character_stats(
     stats.all_time_score = max(stats.all_time_score, new_score)
     stats.level = compute_level(new_score, era)
 
-    if author:
-        new_faction = check_faction_graduation(author, stats, era)
-        if new_faction:
-            author.faction_slug = new_faction
