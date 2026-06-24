@@ -248,15 +248,25 @@ async def build_praxis_card_out(
     """Lightweight card for list views."""
     task_title = praxis.task.title if praxis.task else ""
     task_point_value = praxis.task.point_value if praxis.task else 0
+    task_level_required = praxis.task.level_required if praxis.task else 0
 
     score = await compute_praxis_score_from_db(praxis, session, era)
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
+
+    vote_stats_result = await session.execute(
+        select(func.avg(Vote.stars), func.count(Vote.id))
+        .where(Vote.praxis_id == praxis.id)
+    )
+    average_stars_raw, total_votes_raw = vote_stats_result.one()
+    average_stars = float(average_stars_raw) if average_stars_raw is not None else None
+    total_votes = int(total_votes_raw) if total_votes_raw is not None else 0
 
     return PraxisCardOut(
         id=praxis.id,
         task_id=praxis.task_id,
         task_title=task_title,
         task_point_value=task_point_value,
+        task_level_required=task_level_required,
         type=praxis.type,
         status=praxis.status,
         title=praxis.title,
@@ -265,8 +275,11 @@ async def build_praxis_card_out(
         created_by_display_name=created_by_display_name,
         created_at=praxis.created_at,
         updated_at=praxis.updated_at,
+        submitted_at=praxis.submitted_at,
         member_count=len(praxis.members),
         score=score,
+        average_stars=average_stars,
+        total_votes=total_votes,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
     )
 
@@ -943,6 +956,7 @@ async def submit_praxis(
 
     if all(m.has_submitted for m in praxis.members):
         praxis.status = PraxisStatus.submitted
+        praxis.submitted_at = datetime.now(timezone.utc)
         await session.flush()
         era_row = await get_current_era_row(session)
         for member in praxis.members:
