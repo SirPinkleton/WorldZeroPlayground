@@ -1,4 +1,5 @@
 import type { ActivityFeedItem } from '../../api/activityFeed'
+import FactionFeedFrame from './FactionFeedFrame'
 import FeedCardEraAnnouncement from './FeedCardEraAnnouncement'
 import FeedCardVoteNotification from './FeedCardVoteNotification'
 import FeedCardFoeTaunt from './FeedCardFoeTaunt'
@@ -32,5 +33,11 @@ interface Props {
 export default function FeedCardRouter({ item }: Props) {
   const Card = CARD_MAP[item.type]
   if (!Card) return null
-  return <Card item={item} />
+  // The feed is neutral; the card themes to its faction (surface #12). The frame
+  // is a passthrough until a faction registers a bespoke skin.
+  return (
+    <FactionFeedFrame slug={item.context_faction_slug}>
+      <Card item={item} />
+    </FactionFeedFrame>
+  )
 }

@@ -10,23 +10,26 @@
 
 ## 1. The per-faction boundary (Tier 3)
 
+> **Current implementation coverage lives in [§7](#7-current-coverage-matrix).** §1 is the *contract* (what a faction *may* own); §7 is the *state* (what each faction *actually* has wired today, and where it falls back to a default).
+
 ### Per-faction — a faction owns its own version of each of these
 
 | # | Surface | What varies | Existing example |
 |---|---|---|---|
-| 1 | **Task card** | Whole archetype (shape, layout, ornament, copy voice) | Analog field-journal, S.N.I.D.E. ransom clipping |
+| 1 | **Task card** | Whole archetype (shape, layout, ornament, copy voice) | Everymen union-poster, S.N.I.D.E. ransom clipping |
 | 2 | **Praxis card** | Mirrors the task-card archetype — **⚠ currently reads flat next to the task cards; flagged for a visual rework (pending design)** | per faction |
 | 3 | **Edit-praxis editor** | Mirrors the archetype, as a form | sticky-note / terminal / gazette |
 | 4 | **Faction-selection card** | Bespoke "join me" card | per faction |
-| 5 | **Headline font** | One display face per faction | Bebas Neue (Everymen), Caveat (Gestalt) |
+| 5 | **Headline font** | One display face per faction | Bebas Neue (Everymen), Caveat (Warriors of Whimsy) |
 | 6 | **Color set** | Full `--faction-{slug}-*` token block, light + dark | see §3 |
 | 7 | **Filter pennant** | Tab uses the faction primary color at full saturation | global pennant shape, per-faction fill |
-| 8 | **Vote / rating UI** *(Tier 3 new)* | The 1–5 rating control's visual metaphor | Everymen ink-ramp stamps; Gestalt heart ramp |
-| 9 | **Progression / level indicator** *(Tier 3 new)* | How level/progress is drawn | Everymen numeric pill; Gestalt moon-phase track |
-| 10 | **Page backdrop** *(Tier 3 new, optional)* | Full-page background **when a faction is the page's context**; falls back to the global rainbow watercolor otherwise | Everymen poster wall; Gestalt lo-fi desktop |
-| 11 | **Avatar + membership badge** *(Tier 3 new)* | Avatar frame treatment + a small faction sigil badge | Everymen cog badge; Gestalt moon badge |
-| 12 | **Activity-feed card** *(Tier 3 new)* | The feed row/card styling for that faction's context | Everymen dispatch slip; Gestalt window row |
+| 8 | **Vote / rating UI** *(Tier 3 new)* | The 1–5 rating control's visual metaphor | Everymen ink-ramp stamps; WoW heart ramp |
+| 9 | **Progression / level indicator** | **Color tint only today** — one shared `LevelPill` shape, faction-colored via `factionCssVar`. A bespoke per-faction *shape* (numeric pill vs. moon-phase track) is a *candidate*, **not wired** (no dispatcher). | aspirational: WoW moon-phase track |
+| 10 | **Page backdrop** *(Tier 3 new, optional)* | Full-page background **when a faction is the page's context**; falls back to the global rainbow watercolor otherwise | Everymen poster wall; WoW lo-fi desktop |
+| 11 | **Avatar + membership badge** *(Tier 3 new)* | Avatar frame treatment + a small faction sigil badge | Everymen cog badge; WoW moon badge |
+| 12 | **Activity-feed card** *(Tier 3; frame wiring shipped 2026-06-24, archetypes pending)* | The feed is neutral; each **card** themes to its context faction (§2) via a per-faction **frame** that wraps the event-type card. Dispatched by `FactionFeedFrame` on the server-derived `context_faction_slug`. | Everymen dispatch slip; WoW window row |
 | 13 | **Faction detail page** *(new)* | The per-faction page at `/factions/:slug`: faction description + members + tasks + recently-completed praxis. The page backdrop (#10) themes it to the faction. | shell shipped with placeholder styling; per-faction visual design pending |
+| 14 | **Comment** *(designed, ADR-0006; not yet built)* | One archetype, two modes (posted `row` + `composer` box). Invariant slots: author identity · body · timestamp+edited. **Actor-scoped** (see §2). | SNIDE ransom scrawl; Ephemerist marginalia — per-faction voice pending |
 
 ### Global — one shared version for the whole app, regardless of faction
 
@@ -50,7 +53,8 @@ A per-faction surface needs to know *which* faction to render as. Use these rule
 | Faction-selection card, Filter pennant | the faction **being rendered** | n/a |
 | Progression / level | the **member's** faction in profile/sidebar; the **card's** faction inside a card | global pill |
 | Avatar + badge | the **character's member** faction | generic avatar |
-| Activity-feed card | the **task's** faction for task tint; the **actor's member** faction for actor treatment | faction-tinted-neutral row |
+| Comment (#14) | a posted **row** → the comment **author's member** faction; the **composer** → the **current character's member** faction. Resolved live, no snapshot. | a thread is multi-faction; the thread container is neutral and never themes |
+| Activity-feed card | the item's **`context_faction_slug`** — derived server-side as *actor's member faction, else task's faction* (so social events read the actor, `global_task` reads the task). The `FactionFeedFrame` dispatches on it. | `null` → neutral passthrough frame (e.g. `era_announcement`) |
 | **Page backdrop** | the page's single contextual faction (faction detail page, a single-faction character profile) | **global rainbow watercolor** |
 
 **Backdrop is the one that must degrade gracefully.** On any page that mixes factions (the global quest board, the join/recruit grid) or has no faction (settings), render the global watercolor. Never theme a mixed page to one faction.
@@ -102,8 +106,14 @@ Hand this to whoever wires the faction after design is delivered. (Designer only
 9. `components/TaskCard.tsx` → `CARD_COMPONENTS`.
 10. `components/cards/FactionCard.tsx` → the `switch`.
 11. `pages/EditPraxis.tsx` → `ARCHETYPE_BY_SLUG`.
-12. The five Tier-3 dispatchers: **vote**, **progression**, **backdrop**, **avatar**, **activity-feed** (each a `Record<slug, Component>` + global default, mirroring `CARD_COMPONENTS`). Omit a faction from any of these to inherit the global default for that surface.
-13. Leave the slug out of the `Factions.tsx` hidden list unless it should be hidden.
+12. The Tier-3 dispatchers, each a `Record<slug, Component>` + global default mirroring `CARD_COMPONENTS` — omit a faction to inherit the default for that surface:
+    - **vote** → `components/vote/VoteUI.tsx` `FACTION_VOTE`
+    - **backdrop** → `components/backdrop/FactionBackdrop.tsx` `FACTION_BACKDROPS`
+    - **avatar** → `components/avatar/FactionAvatar.tsx` `FACTION_AVATARS`
+    - **activity-feed frame** → `components/feed/FactionFeedFrame.tsx` `FACTION_FEED_FRAMES` (wraps the event-type card; dispatches on the item's server-derived `context_faction_slug`)
+    - *(progression/level is token-tinted, not a dispatcher — no map to register; #9.)*
+13. **Comment (#14, ADR-0006):** `COMMENT_COMPONENTS` (`Record<slug, Component>` + `DefaultComment`), one archetype rendered in `row`/`composer` modes. Omit a faction to inherit `DefaultComment`. The thread container is neutral — do not register it.
+14. Leave the slug out of the `Factions.tsx` hidden list unless it should be hidden.
 
 ---
 
@@ -120,8 +130,72 @@ Hand this to whoever wires the faction after design is delivered. (Designer only
 
 ---
 
+## 7. Current coverage matrix
+
+**What this is.** The *state* companion to §1's *contract*: which factions have a bespoke version of each surface wired **today**, and which fall back to a generic default. Use it to brief design ("commission an `X` for these factions") and to scope a new faction ("here's everything it could own"). Audited from the dispatchers in code on **2026-06-24** — re-audit by grepping `pickVariant(` and the `Record<slug, …>` maps if it looks stale.
+
+**Playable factions (6):** `ua` · `everymen` · `wow` · `snide` · `ephemerists` · `singularity`. (`ua_masters` is dormant → Era 2; `albescent`/`aged_out` are alias slugs that inherit `ua`'s archetype via `FACTION_ALIASES`, so they own nothing of their own by design.)
+
+### A. Bespoke-component surfaces — "missing" = falls back to a generic `Default*`
+
+✅ own component · ⬜ generic default. The dispatcher is the single place each row is wired (a `pickVariant` map or a `switch`).
+
+| Surface | Dispatcher (`frontend/src/…`) | ua | everymen | wow | snide | ephemerists | singularity |
+|---|---|:--:|:--:|:--:|:--:|:--:|:--:|
+| Task card | `components/TaskCard.tsx` `CARD_COMPONENTS` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Praxis card | `components/PraxisCard.tsx` `FACTION_FRAME` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Edit-praxis editor | `pages/EditPraxis.tsx` `ARCHETYPE_BY_SLUG` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Faction-selection card | `components/cards/FactionCard.tsx` (`switch`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Vote / rating UI | `components/vote/VoteUI.tsx` `FACTION_VOTE` | ⬜ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| Page backdrop | `components/backdrop/FactionBackdrop.tsx` `FACTION_BACKDROPS` | ⬜ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| Avatar + badge | `components/avatar/FactionAvatar.tsx` `FACTION_AVATARS` | ⬜ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| Faction detail hero | `pages/FactionDetail.tsx` `FACTION_HEROES` | ⬜ | ⬜ | ⬜ | ✅ | ✅ | ⬜ |
+| Task detail page | `pages/TaskDetail.tsx` `ARCHETYPE_BY_SLUG` | ⬜ | ⬜ | ⬜ | ✅ | ⬜ | ⬜ |
+| Activity-feed card frame | `components/feed/FactionFeedFrame.tsx` `FACTION_FEED_FRAMES` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Propose-task page | `pages/ProposeTask.tsx` → `DefaultProposeTask` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Praxis detail page | `pages/PraxisDetail.tsx` → `DefaultPraxisDetail` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+
+**Read it two ways:**
+- **By faction (what to commission):** `ua` and `singularity` are the thinnest — cards only, no vote / backdrop / avatar. `snide` is richest (the only bespoke task-detail page). `everymen` / `wow` / `ephemerists` sit in the middle.
+- **By surface (where the system is thin):** task-detail (1/6) and faction-hero (2/6) are sparse; the **activity-feed frame** is *wired but unfilled* (dispatcher + server-derived `context_faction_slug` ship 2026-06-24, every faction awaits a design archetype); propose-task and praxis-detail have **no dispatch wired at all** (every faction renders the default) — add a `pickVariant` dispatch there before any faction can own them.
+
+### B. Token / tint surfaces — every faction has these by construction
+
+Not bespoke components; driven by the CSS-var block (§3) + registry (`utils/factions.ts`). A faction can't be "missing" one — a blank token silently falls back to the `ua` theme. So they're **not** a design-commission gap, only a "did you fill in the tokens" check.
+
+| Surface (§1 #) | How it varies | Mechanism |
+|---|---|---|
+| Headline font (#5), Color set (#6) | per-faction values | `--faction-{key}-*` tokens |
+| Filter pennant (#7) | primary-color fill | `factionCssVar()` |
+| Progression / level (#9) | color tint only | `components/ui/LevelPill.tsx` — one shared pill shape, faction-*colored*. A bespoke per-faction *shape* is a candidate, not wired (no dispatcher). |
+| Comment (#14) | designed, **not built** | `COMMENT_COMPONENTS` does not exist yet (ADR-0006) |
+
+> **Event-type vs. faction (feed).** The feed has two orthogonal dispatch axes: `FeedCardRouter` still picks the card body by **event type** (`vote_on_mine`, `friend_defection`, …); `FactionFeedFrame` wraps that body in the **faction** skin. A faction owns the *frame*, not the per-event content — so one frame per faction reskins all 11 event cards, no 6×11 explosion.
+
+---
+
 ## 6. Change log
 
+- **2026-06-24** — **Activity-feed cards (#12) made truly per-faction + drift cleanup.**
+  Wired the dispatch seam ahead of design: a `FactionFeedFrame` (`FACTION_FEED_FRAMES` +
+  passthrough default) wraps each event-type card; the backend derives one
+  `context_faction_slug` per item (a Pydantic computed field on `ActivityFeedItem` —
+  actor's faction, else task's faction, else neutral). Empty frame map = zero visual change
+  today; a faction goes bespoke by adding one map row (no other change). Also reconciled the
+  two §1 drifts: **progression (#9)** corrected to *tint-only* (one shared `LevelPill`, no
+  dispatcher — was wrongly listed as bespoke); stale pre-ADR-0004 slug names (Analog /
+  Gestalt / Journeymen) in §1's example column updated to `everymen` / `wow` (Warriors of
+  Whimsy) / `ephemerists`. (Change-log entries below keep their original names as history.)
+- **2026-06-24** — Added **§7 current coverage matrix** (audited from the dispatchers):
+  bespoke-component surfaces with per-faction ✅/⬜ state vs. token/tint surfaces. Thinnest
+  factions: `ua`, `singularity`; sparsest surfaces: task-detail, faction-hero, plus
+  propose-task / praxis-detail (no dispatch wired).
+
+- **2026-06-23** — Added surface **#14 Comment** (ADR-0006, designed, not yet built):
+  one per-faction archetype in two modes (posted `row` + `composer`), **actor-scoped**
+  (row → author's member faction; composer → current character's member faction; resolved
+  live, no snapshot). Invariant slots author · body · timestamp+edited; thread container is
+  neutral (multi-faction). Registered via `COMMENT_COMPONENTS` (§4 step 13).
 - **2026-06-06** — Rebranded the **Journeymen → The Ephemerists** (slug kept as
   `journeymen`; no DB migration). New archetype: the *Discordant Map* illuminated codex
   (lapis-verdigris `#1d6e72`/`#3aa0a4`, Cinzel/EB Garamond/Cormorant, vellum + gold-leaf +
