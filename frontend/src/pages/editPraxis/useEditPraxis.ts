@@ -313,7 +313,11 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
       const praxisId = parseInt(idParam, 10);
       await persistEdits(praxisId);
       await submitPraxis(praxisId);
-      await refetch();
+      try {
+        await refetch();
+      } catch {
+        // best-effort; praxis was submitted successfully
+      }
       navigate(`/praxes/${idParam}`);
     } catch (err) {
       setError(extractError(err, "Could not publish proof."));
