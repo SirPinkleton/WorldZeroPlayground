@@ -61,9 +61,6 @@ class Praxis(TimestampMixin, Base):
     )
     title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     body_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    is_withdrawn: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false"
-    )
     moderation_status: Mapped[ModerationStatus] = mapped_column(
         Enum(ModerationStatus, create_type=False),
         nullable=False,

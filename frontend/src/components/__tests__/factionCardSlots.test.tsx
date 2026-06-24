@@ -39,7 +39,6 @@ const PRAXIS: PraxisCardOut = {
   type: "solo",
   status: "submitted",
   title: "Photosynthesis",
-  is_withdrawn: false,
   moderation_status: "visible",
   created_by_id: 3,
   created_by_display_name: "Ada",

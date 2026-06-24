@@ -5,7 +5,7 @@ import {
   getPraxis,
   updatePraxis,
   submitPraxis,
-  reopenPraxis,
+  withdrawPraxis,
   kickMember,
   inviteToPraxis,
   votePraxis,
@@ -161,11 +161,11 @@ export default function CollaborationDetail() {
     if (!praxisId) return;
     setActionError("");
     try {
-      const updated = await reopenPraxis(praxisId);
+      const updated = await withdrawPraxis(praxisId);
       setCollab(updated);
       setEditing(false);
     } catch {
-      setActionError("Could not reopen.");
+      setActionError("Could not move back to editing.");
     }
   };
 

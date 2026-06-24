@@ -261,7 +261,7 @@ async def test_withdraw_praxis(
     active_task: Task,
     auth_headers: dict,
 ):
-    """POST /praxes/{id}/withdraw marks praxis as withdrawn, is_withdrawn=True."""
+    """POST /praxes/{id}/withdraw moves praxis back to in_progress (editing)."""
     create_resp = await client.post(
         "/praxes",
         json={"task_id": active_task.id, "type": "solo", "title": "Withdraw Test"},
@@ -270,10 +270,13 @@ async def test_withdraw_praxis(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
+    # Must be submitted before withdrawing back to editing
+    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+
     withdraw_resp = await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
     assert withdraw_resp.status_code == 200
     data = withdraw_resp.json()
-    assert data["is_withdrawn"] is True
+    assert data["status"] == "in_progress"
 
 
 @pytest.mark.asyncio
@@ -285,7 +288,7 @@ async def test_withdraw_updates_score(
     db_session: AsyncSession,
     era: Era,
 ):
-    """Submitting then withdrawing a praxis changes the character's score."""
+    """Submitting then moving back to editing pauses the praxis score."""
     create_resp = await client.post(
         "/praxes",
         json={"task_id": active_task.id, "type": "solo", "title": "Score Withdraw"},
@@ -294,7 +297,6 @@ async def test_withdraw_updates_score(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    # Submit the praxis (score calculated after this)
     await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
 
     result = await db_session.execute(
@@ -307,47 +309,51 @@ async def test_withdraw_updates_score(
     await db_session.refresh(stats)
     score_after_submit = stats.score
 
-    # Withdraw — score may change
     withdraw_resp = await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
     assert withdraw_resp.status_code == 200
 
     await db_session.refresh(stats)
-    # After withdraw, score should not be greater than after submit
+    # Score is paused while in editing; should not exceed the submitted score
     assert stats.score <= score_after_submit
 
 
 @pytest.mark.asyncio
-async def test_resubmit_praxis(
+async def test_submit_editing_withdraw_submit_roundtrip(
     client: AsyncClient,
     character: Character,
     active_task: Task,
     auth_headers: dict,
 ):
-    """POST /praxes/{id}/resubmit un-withdraws a withdrawn praxis."""
+    """submitted → editing → submitted restores both state and score contribution."""
     create_resp = await client.post(
         "/praxes",
-        json={"task_id": active_task.id, "type": "solo", "title": "Resubmit Test"},
+        json={"task_id": active_task.id, "type": "solo", "title": "Roundtrip Test"},
         headers=auth_headers,
     )
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
+    submit_resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+    assert submit_resp.status_code == 200
+    assert submit_resp.json()["status"] == "submitted"
 
-    resubmit_resp = await client.post(f"/praxes/{praxis_id}/resubmit", headers=auth_headers)
+    withdraw_resp = await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
+    assert withdraw_resp.status_code == 200
+    assert withdraw_resp.json()["status"] == "in_progress"
+
+    resubmit_resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
     assert resubmit_resp.status_code == 200
-    data = resubmit_resp.json()
-    assert data["is_withdrawn"] is False
+    assert resubmit_resp.json()["status"] == "submitted"
 
 
 @pytest.mark.asyncio
-async def test_withdraw_already_withdrawn_returns_422(
+async def test_withdraw_already_in_progress_returns_422(
     client: AsyncClient,
     character: Character,
     active_task: Task,
     auth_headers: dict,
 ):
-    """Withdrawing an already-withdrawn praxis returns 422."""
+    """Withdrawing a praxis that is already in editing returns 422."""
     create_resp = await client.post(
         "/praxes",
         json={"task_id": active_task.id, "type": "solo", "title": "Double Withdraw"},
@@ -356,28 +362,8 @@ async def test_withdraw_already_withdrawn_returns_422(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
-    resp2 = await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
-    assert resp2.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_resubmit_not_withdrawn_returns_422(
-    client: AsyncClient,
-    character: Character,
-    active_task: Task,
-    auth_headers: dict,
-):
-    """Resubmitting a praxis that is not withdrawn returns 422."""
-    create_resp = await client.post(
-        "/praxes",
-        json={"task_id": active_task.id, "type": "solo", "title": "Not Withdrawn"},
-        headers=auth_headers,
-    )
-    assert create_resp.status_code == 201
-    praxis_id = create_resp.json()["id"]
-
-    resp = await client.post(f"/praxes/{praxis_id}/resubmit", headers=auth_headers)
+    # Praxis starts in_progress — withdrawing immediately returns 422
+    resp = await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
     assert resp.status_code == 422
 
 
@@ -1178,13 +1164,13 @@ async def test_create_praxis_duplicate_allowed_for_analog(
 
 
 @pytest.mark.asyncio
-async def test_create_praxis_after_withdraw_allowed(
+async def test_create_praxis_after_delete_allowed(
     client: AsyncClient,
     character: Character,
     active_task: Task,
     auth_headers: dict,
 ):
-    """A withdrawn prior praxis does not block a fresh submission for the same task."""
+    """Deleting (abandoning) an in-progress praxis frees the slot for a fresh one."""
     first_resp = await client.post(
         "/praxes",
         json={"task_id": active_task.id, "type": "solo", "title": "First"},
@@ -1193,10 +1179,10 @@ async def test_create_praxis_after_withdraw_allowed(
     assert first_resp.status_code == 201
     praxis_id = first_resp.json()["id"]
 
-    withdraw_resp = await client.post(
-        f"/praxes/{praxis_id}/withdraw", headers=auth_headers
+    delete_resp = await client.delete(
+        f"/praxes/{praxis_id}", headers=auth_headers
     )
-    assert withdraw_resp.status_code == 200
+    assert delete_resp.status_code == 204
 
     second_resp = await client.post(
         "/praxes",
@@ -1237,7 +1223,6 @@ async def test_create_praxis_minimal_body_starts_as_draft(
     assert data["title"] is None
     # Service stores empty string for body_text when caller omits it
     assert data["body_text"] == ""
-    assert data["is_withdrawn"] is False
     assert data["moderation_status"] == "visible"
     # Creator was added as the sole member and has not submitted yet
     assert len(data["members"]) == 1

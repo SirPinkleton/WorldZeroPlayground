@@ -58,7 +58,6 @@ class PraxisOut(BaseModel):
     status: PraxisStatus
     title: Optional[str]
     body_text: Optional[str]
-    is_withdrawn: bool
     moderation_status: ModerationStatus
     admin_note: Optional[str]
     flagged_at: Optional[datetime]
@@ -86,7 +85,6 @@ class PraxisCardOut(BaseModel):
     type: PraxisType
     status: PraxisStatus
     title: Optional[str]
-    is_withdrawn: bool
     moderation_status: ModerationStatus
     created_by_id: int
     created_by_display_name: str

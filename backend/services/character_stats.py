@@ -35,13 +35,13 @@ async def _score_solo_praxes(
     session: AsyncSession,
     era: EraConfig,
 ) -> float:
-    """Sum the score contribution of all visible, non-withdrawn solo praxes this character authored."""
+    """Sum the score contribution of all visible submitted solo praxes this character authored."""
     solo_result = await session.execute(
         select(Praxis).where(
             Praxis.type == PraxisType.solo,
             Praxis.created_by_id == character_id,
             Praxis.moderation_status != ModerationStatus.hidden,
-            Praxis.is_withdrawn == False,  # noqa: E712
+            Praxis.status == PraxisStatus.submitted,
         )
     )
     solo_praxes = solo_result.scalars().all()
@@ -213,7 +213,7 @@ async def _score_duel_praxes(
         praxis = praxes_by_id.get(member.praxis_id)
         if praxis is None or praxis.type != PraxisType.duel:
             continue
-        if praxis.status != PraxisStatus.submitted or praxis.is_withdrawn:
+        if praxis.status != PraxisStatus.submitted:
             continue
         task = member_tasks_by_id.get(praxis.task_id)
         if task is None:
@@ -280,7 +280,6 @@ async def _fetch_membership_context(
         for member in members
         if member.praxis_id in praxes_by_id
         and praxes_by_id[member.praxis_id].status == PraxisStatus.submitted
-        and not praxes_by_id[member.praxis_id].is_withdrawn
     ]
 
     member_task_ids = {praxis.task_id for praxis in eligible_praxes}

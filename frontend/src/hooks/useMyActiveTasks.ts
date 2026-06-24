@@ -19,7 +19,7 @@ export function useMyActiveTasks() {
     }
     setLoading(true)
     listPraxes({ character_id: user.character.id, status: 'in_progress' })
-      .then((praxes) => setActiveTasks(praxes.filter((p) => !p.is_withdrawn)))
+      .then((praxes) => setActiveTasks(praxes))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [user])
