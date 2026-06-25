@@ -34,7 +34,9 @@ from schemas.admin import (
 )
 from schemas.task import TaskCreate, TaskOut
 from schemas.praxis import PraxisOut
+from schemas.comment import CommentOut
 from services.praxis import build_praxis_out, moderate_praxis
+from services.comment import build_comment_out, list_flagged_comments, moderate_comment
 from services.task import build_task_out
 from services.admin_service import (
     admin_create_character,
@@ -325,6 +327,27 @@ async def admin_moderate_praxis(
 ):
     praxis = await moderate_praxis(praxis_id, data.status, data.admin_note, session)
     return await build_praxis_out(praxis, session)
+
+
+@router.get("/comments/flagged", response_model=list[CommentOut])
+async def admin_list_flagged_comments(
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    """Return comments with moderation_status == flagged (alongside flagged praxes)."""
+    comments = await list_flagged_comments(session)
+    return [build_comment_out(comment) for comment in comments]
+
+
+@router.patch("/comments/{comment_id}/moderate", response_model=CommentOut)
+async def admin_moderate_comment(
+    comment_id: int,
+    data: ModerationAction,
+    _: Account = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+):
+    comment = await moderate_comment(comment_id, data.status, session)
+    return build_comment_out(comment)
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskOut)

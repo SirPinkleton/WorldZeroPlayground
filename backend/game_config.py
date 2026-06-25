@@ -75,6 +75,12 @@ class EraConfig:
     metatask_apply_level: int             # min level to apply a metatask (non-Albescent)
     flag_level_required: int              # min level to flag a praxis for moderation
 
+    # Comment gates (ADR-0006; enforced in services/comment.py). comment_level_required
+    # is surfaced on /auth/me like the other capability gates; the flag threshold is
+    # service-only.
+    comment_level_required: int           # min level to post a comment
+    comment_flag_review_threshold: int    # flags before a comment hits the review queue
+
     # Character account / faction gates (enforced in services/character.py and faction_service.py)
     second_character_level_required: int  # min level on an existing char to create another
     albescent_level_required: int         # min level on an existing char to start a new Albescent
