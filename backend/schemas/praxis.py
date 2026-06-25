@@ -53,6 +53,7 @@ class PraxisOut(BaseModel):
     task_id: int
     task_title: str             # populated by build_praxis_out
     task_point_value: int       # populated by build_praxis_out
+    task_level_required: int = 0  # populated by build_praxis_out; ADR-0017 §6
     task_faction_slug: Optional[str] = None  # populated by build_praxis_out; drives per-faction vote UI
     type: PraxisType
     status: PraxisStatus
@@ -61,8 +62,10 @@ class PraxisOut(BaseModel):
     moderation_status: ModerationStatus
     admin_note: Optional[str]
     flagged_at: Optional[datetime]
+    submitted_at: Optional[datetime] = None  # set on in_progress→submitted; ADR-0017 §6
     created_by_id: int
     created_by_display_name: str  # populated by build_praxis_out
+    created_by_faction_slug: Optional[str] = None  # author's member faction; actor-scoped byline; ADR-0017 §6
     created_at: datetime
     updated_at: datetime
     members: List[PraxisMemberOut]
