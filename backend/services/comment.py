@@ -25,6 +25,13 @@ from services.era import get_current_era_row, get_or_create_stats
 # stay plain text — linkify at render runs against the resolved set only.
 MENTION_RE = re.compile(r"@([A-Za-z0-9_]+)")
 
+# Eager-load spec shared by every Comment read: author (for actor-scoped theming)
+# + mentions with their resolved characters (for the API mention list).
+_COMMENT_LOADERS = (
+    selectinload(Comment.created_by),
+    selectinload(Comment.mentions).selectinload(CommentMention.mentioned_character),
+)
+
 
 async def _character_level(character_id: int, session: AsyncSession) -> int:
     era_row = await get_current_era_row(session)
@@ -49,12 +56,7 @@ async def can_comment(
 async def get_comment(comment_id: int, session: AsyncSession) -> Comment:
     result = await session.execute(
         select(Comment)
-        .options(
-            selectinload(Comment.created_by),
-            selectinload(Comment.mentions).selectinload(
-                CommentMention.mentioned_character
-            ),
-        )
+        .options(*_COMMENT_LOADERS)
         # populate_existing so an edit's reconciled mentions overwrite the
         # already-loaded collection rather than returning stale rows.
         .execution_options(populate_existing=True)
@@ -218,12 +220,7 @@ async def list_comments(
     """Public list for a target: visible, non-withdrawn, chronological ascending."""
     query = (
         select(Comment)
-        .options(
-            selectinload(Comment.created_by),
-            selectinload(Comment.mentions).selectinload(
-                CommentMention.mentioned_character
-            ),
-        )
+        .options(*_COMMENT_LOADERS)
         .where(
             Comment.is_withdrawn.is_(False),
             Comment.moderation_status == ModerationStatus.visible,
@@ -290,12 +287,7 @@ async def moderate_comment(
 async def list_flagged_comments(session: AsyncSession) -> list[Comment]:
     result = await session.execute(
         select(Comment)
-        .options(
-            selectinload(Comment.created_by),
-            selectinload(Comment.mentions).selectinload(
-                CommentMention.mentioned_character
-            ),
-        )
+        .options(*_COMMENT_LOADERS)
         .where(Comment.moderation_status == ModerationStatus.flagged)
         .order_by(Comment.created_at.desc())
     )

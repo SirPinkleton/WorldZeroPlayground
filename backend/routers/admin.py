@@ -34,7 +34,7 @@ from schemas.admin import (
 )
 from schemas.task import TaskCreate, TaskOut
 from schemas.praxis import PraxisOut
-from schemas.comment import CommentOut
+from schemas.comment import CommentModerationIn, CommentOut
 from services.praxis import build_praxis_out, moderate_praxis
 from services.comment import build_comment_out, list_flagged_comments, moderate_comment
 from services.task import build_task_out
@@ -342,7 +342,7 @@ async def admin_list_flagged_comments(
 @router.patch("/comments/{comment_id}/moderate", response_model=CommentOut)
 async def admin_moderate_comment(
     comment_id: int,
-    data: ModerationAction,
+    data: CommentModerationIn,
     _: Account = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ):

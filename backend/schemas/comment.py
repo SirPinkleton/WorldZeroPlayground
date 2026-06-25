@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -36,6 +36,13 @@ class CommentIn(BaseModel):
 
 class FlagIn(BaseModel):
     reason: str = ""
+
+
+class CommentModerationIn(BaseModel):
+    # Comments have their own moderation vocabulary (ADR-0006): hidden (reversible)
+    # / deleted (terminal tombstone) / visible. Praxis-only states like `failed`
+    # don't apply, and `deleted` must be reachable.
+    status: Literal["visible", "hidden", "deleted"]
 
 
 class CommentOut(BaseModel):

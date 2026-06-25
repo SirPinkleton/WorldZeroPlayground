@@ -48,27 +48,3 @@ export async function createComment(
   })
   return data
 }
-
-export async function editComment(
-  commentId: number,
-  body_text: string,
-): Promise<CommentOut> {
-  const { data } = await api.patch<CommentOut>(`/comments/${commentId}`, {
-    body_text,
-  })
-  return data
-}
-
-export async function withdrawComment(commentId: number): Promise<void> {
-  await api.delete(`/comments/${commentId}`)
-}
-
-export async function flagComment(
-  commentId: number,
-  reason: string,
-): Promise<CommentOut> {
-  const { data } = await api.post<CommentOut>(`/comments/${commentId}/flag`, {
-    reason,
-  })
-  return data
-}

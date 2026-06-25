@@ -80,7 +80,8 @@ export function formatCommentTime(
     case 'albescent':
       return `Vigil the ${ordinalWord(d.days + 1)}`
     case 'singularity':
-      return `${terse(d)} ago`
+      // Bare terminal clock (terse, no "ago" — avoids "now ago" at t<1m).
+      return terse(d)
     case 'ua':
     default:
       return relative(d)
