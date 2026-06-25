@@ -12,6 +12,7 @@ from models.task import Task, TaskStatus, TaskType
 from schemas.task import TaskCreate, TaskOut
 from services.era import get_current_era_row, get_or_create_stats
 from services.praxis import (
+    active_member_task_ids_subquery,
     allowed_praxis_modes,
     can_submit_praxis_for_task,
     is_task_eligible_for_character,
@@ -251,15 +252,7 @@ async def list_tasks(
 
     # Exclude tasks the character has already started or completed (via praxis membership)
     if exclude_character_id is not None:
-        active_task_ids = (
-            select(Praxis.task_id)
-            .join(PraxisMember, PraxisMember.praxis_id == Praxis.id)
-            .where(
-                PraxisMember.character_id == exclude_character_id,
-                Praxis.status.in_([PraxisStatus.in_progress, PraxisStatus.submitted]),
-            )
-        )
-        query = query.where(Task.id.notin_(active_task_ids))
+        query = query.where(Task.id.notin_(active_member_task_ids_subquery(exclude_character_id)))
 
     if sort == SORT_NEWEST:
         query = query.order_by(Task.created_at.desc(), Task.id.desc())

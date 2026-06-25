@@ -591,6 +591,46 @@ async def can_flag_praxis(
     return stats.level >= era.flag_level_required
 
 
+def active_member_task_ids_subquery(character_id: int):
+    """SQL subquery returning task IDs where ``character_id`` holds an active praxis membership.
+
+    "Active" means the praxis status is ``in_progress`` or ``submitted``.
+    Used by the task-list query to exclude tasks the character is already working on,
+    and by :func:`is_active_member_of_task` for per-task checks.
+    """
+    return (
+        select(Praxis.task_id)
+        .join(PraxisMember, PraxisMember.praxis_id == Praxis.id)
+        .where(
+            PraxisMember.character_id == character_id,
+            Praxis.status.in_([PraxisStatus.in_progress, PraxisStatus.submitted]),
+        )
+    )
+
+
+async def is_active_member_of_task(
+    character: Character,
+    task: Task,
+    session: AsyncSession,
+) -> bool:
+    """Return True if ``character`` holds an active (in_progress or submitted) praxis membership for ``task``.
+
+    Everymen (Double Dipper perk) always returns False — they may hold multiple memberships per task.
+    """
+    if character.faction_slug == EVERYMEN_FACTION_SLUG:
+        return False
+    result = await session.execute(
+        select(PraxisMember.id)
+        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+        .where(
+            PraxisMember.character_id == character.id,
+            Praxis.task_id == task.id,
+            Praxis.status.in_([PraxisStatus.in_progress, PraxisStatus.submitted]),
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def can_submit_praxis_for_task(
     character: Optional[Character],
     task: Task,
@@ -624,18 +664,7 @@ async def can_submit_praxis_for_task(
     if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
         return False
 
-    if character.faction_slug == EVERYMEN_FACTION_SLUG:
-        return True
-
-    result = await session.execute(
-        select(PraxisMember.id)
-        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
-        .where(
-            PraxisMember.character_id == character.id,
-            Praxis.task_id == task.id,
-        )
-    )
-    return result.scalar_one_or_none() is None
+    return not await is_active_member_of_task(character, task, session)
 
 
 def allowed_praxis_modes(
@@ -742,39 +771,6 @@ def _check_duel_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
         )
 
 
-async def _check_invitee_task_eligibility(
-    invitee_id: int,
-    task_id: int,
-    session: AsyncSession,
-) -> None:
-    """Reject invites to players who already did this task (non-Everymen only)."""
-    existing_praxis_result = await session.execute(
-        select(Praxis).where(
-            Praxis.type == PraxisType.solo,
-            Praxis.created_by_id == invitee_id,
-            Praxis.task_id == task_id,
-        )
-    )
-    if existing_praxis_result.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=409,
-            detail="This player has already submitted proof for this task and is not eligible to be invited.",
-        )
-
-    existing_collab_result = await session.execute(
-        select(PraxisMember)
-        .join(Praxis, PraxisMember.praxis_id == Praxis.id)
-        .where(
-            PraxisMember.character_id == invitee_id,
-            Praxis.task_id == task_id,
-            Praxis.status == PraxisStatus.submitted,
-        )
-    )
-    if existing_collab_result.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=409,
-            detail="This player has already completed this task in a collaboration and is not eligible to be invited.",
-        )
 
 
 async def invite_to_praxis(
@@ -823,9 +819,11 @@ async def invite_to_praxis(
     if invitee is None:
         raise HTTPException(status_code=404, detail="Invitee not found.")
 
-    # Eligibility check: skip for Everymen faction (Double Dipper perk)
-    if invitee.faction_slug != EVERYMEN_FACTION_SLUG:
-        await _check_invitee_task_eligibility(invitee_id, praxis.task_id, session)
+    if await is_active_member_of_task(invitee, praxis.task, session):
+        raise HTTPException(
+            status_code=409,
+            detail="This player already has an active praxis for this task and cannot be invited.",
+        )
 
     invite = PraxisInvite(
         praxis_id=praxis_id,
@@ -1136,6 +1134,7 @@ async def remove_metatask(
 
 
 __all__ = [
+    "active_member_task_ids_subquery",
     "allowed_praxis_modes",
     "apply_metatask",
     "build_praxis_out",
@@ -1148,6 +1147,7 @@ __all__ = [
     "flag_praxis",
     "get_praxis",
     "invite_to_praxis",
+    "is_active_member_of_task",
     "is_task_eligible_for_character",
     "kick_member",
     "list_praxes",
