@@ -48,3 +48,13 @@ export async function createComment(
   })
   return data
 }
+
+export async function editComment(
+  commentId: number,
+  body_text: string,
+): Promise<CommentOut> {
+  const { data } = await api.patch<CommentOut>(`/comments/${commentId}`, {
+    body_text,
+  })
+  return data
+}
