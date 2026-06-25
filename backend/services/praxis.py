@@ -440,16 +440,18 @@ async def _check_create_preconditions(
             detail="You have already submitted a praxis for this task.",
         )
 
-    if praxis_type == PraxisType.duel and stats.level < era.duel_level_required:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Duels require level {era.duel_level_required}.",
-        )
-    if praxis_type == PraxisType.collab and stats.level < era.collaboration_level_required:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Collaborations require level {era.collaboration_level_required}.",
-        )
+    allowed = allowed_praxis_modes(character, stats.level, era)
+    if praxis_type not in allowed:
+        if praxis_type == PraxisType.duel:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Duels require level {era.duel_level_required}.",
+            )
+        if praxis_type == PraxisType.collab:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Collaborations require level {era.collaboration_level_required}.",
+            )
 
     in_progress_count = await _count_in_progress_praxes(character_id, session)
     if in_progress_count >= era.max_task_signups:
@@ -669,13 +671,15 @@ async def can_submit_praxis_for_task(
 
 def allowed_praxis_modes(
     character: Optional[Character],
-    task: Task,
     character_level: int,
     era: EraConfig = CURRENT_ERA,
-) -> list[str]:
-    """Return the praxis mode values a character may pick for ``task``.
+) -> list[PraxisType]:
+    """Return the praxis modes a character may create.
 
-    Mirrors the level gates enforced in :func:`create_praxis`:
+    Single source for the mode-by-level gates — enforcement in
+    :func:`_check_create_preconditions` and the UI flag on
+    :class:`~schemas.task.TaskOut` both derive from this list.
+
     - Solo: always allowed once a viewer is authenticated.
     - Collab: requires ``character_level >= era.collaboration_level_required``.
     - Duel: requires ``character_level >= era.duel_level_required``.
@@ -685,11 +689,11 @@ def allowed_praxis_modes(
     """
     if character is None:
         return []
-    modes: list[str] = [PraxisType.solo.value]
+    modes: list[PraxisType] = [PraxisType.solo]
     if character_level >= era.collaboration_level_required:
-        modes.append(PraxisType.collab.value)
+        modes.append(PraxisType.collab)
     if character_level >= era.duel_level_required:
-        modes.append(PraxisType.duel.value)
+        modes.append(PraxisType.duel)
     return modes
 
 
