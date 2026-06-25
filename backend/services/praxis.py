@@ -201,6 +201,7 @@ async def build_praxis_out(
     can_flag = await can_flag_praxis(viewer, praxis, session, era)
 
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
+    created_by_faction_slug = praxis.created_by.faction_slug if praxis.created_by else None
 
     # Query applied metatasks
     applied_metatasks: list[TaskOut] = []
@@ -218,6 +219,7 @@ async def build_praxis_out(
         task_id=praxis.task_id,
         task_title=task_title,
         task_point_value=task_point_value,
+        task_level_required=praxis.task.level_required if praxis.task else 0,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
         type=praxis.type,
         status=praxis.status,
@@ -226,8 +228,10 @@ async def build_praxis_out(
         moderation_status=praxis.moderation_status,
         admin_note=praxis.admin_note,
         flagged_at=praxis.flagged_at,
+        submitted_at=praxis.submitted_at,
         created_by_id=praxis.created_by_id,
         created_by_display_name=created_by_display_name,
+        created_by_faction_slug=created_by_faction_slug,
         created_at=praxis.created_at,
         updated_at=praxis.updated_at,
         members=members,

@@ -53,6 +53,7 @@ export interface PraxisOut {
   task_id: number
   task_title: string
   task_point_value: number
+  task_level_required: number
   task_faction_slug: string | null
   type: PraxisType
   status: PraxisStatus
@@ -61,8 +62,10 @@ export interface PraxisOut {
   moderation_status: ModerationStatus
   admin_note: string | null
   flagged_at: string | null
+  submitted_at: string | null
   created_by_id: number
   created_by_display_name: string
+  created_by_faction_slug: string | null
   created_at: string
   updated_at: string
   members: PraxisMemberOut[]

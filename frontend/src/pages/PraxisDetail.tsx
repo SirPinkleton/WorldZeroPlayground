@@ -7,12 +7,22 @@
  * Mirrors the TaskDetail / EditPraxis dispatchers. The loading / error /
  * not-found guards live here so archetypes can assume a non-null praxis.
  */
+import type { ComponentType } from 'react'
 import { useParams } from 'react-router-dom'
 import { usePraxisDetail } from './praxisDetail/usePraxisDetail'
+import type { PraxisDetailState } from './praxisDetail/usePraxisDetail'
+import { pickVariant } from '../utils/factionDispatch'
 import DefaultPraxisDetail from './praxisDetail/archetypes/DefaultPraxisDetail'
+import EphemeristsPraxisDetail from './praxisDetail/archetypes/EphemeristsPraxisDetail'
 
-// ponytail: no faction has a bespoke archetype yet — everyone renders
-// DefaultPraxisDetail. Add a pickVariant dispatch here when one does.
+/**
+ * Per-faction praxis-read archetype map. Keyed by task faction slug.
+ * Add one row per faction as its read-page design lands (ADR-0017, gap tracker).
+ */
+const ARCHETYPE_BY_SLUG: Record<string, ComponentType<{ state: PraxisDetailState }>> = {
+  ephemerists: EphemeristsPraxisDetail,
+}
+
 export default function PraxisDetail() {
   const { id } = useParams<{ id: string }>()
   const state = usePraxisDetail(id)
@@ -28,5 +38,6 @@ export default function PraxisDetail() {
   )
   if (!state.praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
-  return <DefaultPraxisDetail state={state} />
+  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, state.praxis.task_faction_slug, DefaultPraxisDetail)
+  return <Archetype state={state} />
 }
