@@ -7,6 +7,9 @@ export interface ActivityFeedItem {
   actor_faction_slug: string | null
   actor_avatar_url: string | null
   payload: Record<string, any>
+  /** Faction this card's frame themes to (surface #12): actor's faction, else
+   *  the task's faction, else null (neutral). Derived server-side. */
+  context_faction_slug: string | null
 }
 
 export interface FeedCounts {

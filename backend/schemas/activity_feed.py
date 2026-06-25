@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 
 class ActivityFeedItem(BaseModel):
@@ -25,6 +25,17 @@ class ActivityFeedItem(BaseModel):
     actor_faction_slug: Optional[str] = None
     actor_avatar_url: Optional[str] = None
     payload: dict[str, Any]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def context_faction_slug(self) -> Optional[str]:
+        """The faction this card's frame themes to (per-faction feed surface #12).
+
+        Resolves the SPEC-faction-ui-profile.md §2 rule once, server-side, so the
+        frontend frame dispatches on a single value: the actor's member faction,
+        else the task's faction (task-context events like ``global_task`` carry no
+        actor), else None — a neutral card (e.g. ``era_announcement``)."""
+        return self.actor_faction_slug or self.payload.get("task_faction_slug")
 
 
 class FeedCounts(BaseModel):
