@@ -13,6 +13,7 @@ import { pickVariant } from "../utils/factionDispatch";
 import { useTaskDetail, type TaskDetailState } from "./taskDetail/useTaskDetail";
 import DefaultTaskDetail from "./taskDetail/archetypes/DefaultTaskDetail";
 import TaskDetailSNIDE from "./taskDetail/archetypes/TaskDetailSNIDE";
+import CommentThread from "../components/comments/CommentThread";
 
 type Archetype = (props: { state: TaskDetailState }) => JSX.Element | null;
 
@@ -54,6 +55,12 @@ export default function TaskDetail() {
     <>
       <PageTitle title="Task" eyebrow="Tasks · Detail" />
       <Archetype state={state} />
+      {/* Comments below every archetype (ADR-0006); tasks are commentable while active. */}
+      {state.task.status === "active" && (
+        <div className="max-w-2xl">
+          <CommentThread target="tasks" targetId={state.task.id} />
+        </div>
+      )}
     </>
   );
 }
