@@ -33,14 +33,22 @@ bespoke per-faction designs tracked as follow-ups).
 
 ## Design / build status (the gap tracker)
 
-| Faction | Read-page design exists? | Archetype built? | Notes |
+**Update 2026-06-25 (grilling):** all seven read-page designs now exist (the
+*Factions praxis pages* handoff bundle). The build is sequenced **foundation-first**
+(this issue: `PraxisOut` delta + shared behavior module + ephemerists), then each
+faction lands as its own archetype PR. Albescent is promoted to a **first-class
+identity on this surface** (no longer a `ua` alias here) — see decision 7 below.
+
+| Faction | Read-page design exists? | Archetype built? | Issue |
 |---|---|---|---|
-| ephemerists | ✅ `ephemerists-praxis-read.jsx` | ▶ this issue | the reference build |
-| snide | ⚠ card kit only | ❌ → Default | needs full read-page design |
-| singularity | ⚠ card kit only | ❌ → Default | needs full read-page design; no `VoteUI` variant yet either |
-| everymen | ❌ | ❌ → Default | extrapolate from slot model |
-| wow | ❌ | ❌ → Default | extrapolate from slot model |
-| ua (+ albescent/aged_out aliases) | ❌ | ❌ → Default | extrapolate from slot model |
+| ephemerists | ✅ `ephemerists-praxis-read.jsx` | ▶ foundation | #163 |
+| everymen | ✅ bundle | ❌ → Default | #207 |
+| wow | ✅ bundle | ❌ → Default | #208 |
+| snide | ✅ bundle | ❌ → Default | #205 |
+| singularity | ✅ bundle | ❌ → Default | #206 (+ build `SingularityVote`) |
+| ua | ✅ bundle | ❌ → Default | #209 (+ build `UaVote`) |
+| albescent | ✅ bundle (always-light) | ❌ → Default (ua alias) | #231 first-class on this surface; #232 promote everywhere |
+| aged_out | ❌ (inherits `ua`) | ❌ → Default | stays a `ua` alias |
 
 ### 2. A shared slot module owns the behavior slots; archetypes own presentation
 
@@ -135,15 +143,42 @@ Everything else the invariant set needs is already on `PraxisOut` (`type` for
 solo-vs-collab, `body_text`, `media_items`, `moderation_status`, `is_withdrawn`,
 `can_flag`, `task_title`/`task_id`, `created_by_*`).
 
+### 7. Albescent is a first-class identity on the read surface (grilling 2026-06-25)
+
+The bundle ships a bespoke **always-light vellum** albescent read page, contradicting the
+global `albescent → ua` alias (`FACTION_ALIASES`). Decision: albescent gets its own
+read-page archetype **now** —
+
+- Register `albescent` explicitly in `ARCHETYPE_BY_SLUG`; `pickVariant` lets the explicit
+  entry beat the alias, so the global alias is untouched and no other surface regresses.
+- Add `--faction-albescent-card-*` tokens, always-light (identical values in both the
+  light and `[data-theme="dark"]` blocks — same mechanism singularity uses to stay
+  always-dark), and add `albescent` to `CSS_KEY`.
+- **Promotion across other surfaces** (card, vote, feed, avatar, backdrop, hero) is a
+  separate effort (#232) — those have no albescent design and would regress to generic if
+  the alias were dropped now. The alias stays until each surface has an albescent variant.
+
+### 8. Metatask panel omitted from archetypes (grilling 2026-06-25)
+
+The seven archetypes target levels 1–6 and **omit the metatask panel** (designs don't
+depict it). `DefaultPraxisDetail` keeps its panel as the fallback. A per-faction metatask
+UI — each archetype skinning its own — is tracked in #233 (needs updated designs; coordinate
+with #196's metatask-model rework).
+
 ## Status / tracking
 
-- **Implementation:** GitHub #163.
-- **Depends on #159** for the `submitted_at` column + transition and the `VoteUI`
-  caster/summary refactor.
-- **Comments** are a separate workstream (decision 5).
-- **Read-page designs still missing** (gap tracker above): SNIDE, Singularity, Everymen,
-  WoW, UA — each becomes its own archetype + issue when its design lands. Singularity also
-  lacks a `VoteUI` variant.
+- **Implementation:** GitHub #163 (foundation + ephemerists), then #207 / #208 / #205 /
+  #206 / #209 / #231 per faction.
+- **~~Depends on #159~~** — landed/closed: `submitted_at` column + transition and the
+  `VoteUI` `caster`/`summary` refactor all shipped. **But** `PraxisOut` still lacks
+  `submitted_at` / `task_level_required` / `created_by_faction_slug` (#159 only added them
+  to `PraxisCardOut`); #163 adds them to `PraxisOut`.
+- **Vote variants:** ua (#209) and singularity (#206) have no `VoteUI` variant — built with
+  their read pages.
+- **Backer ledger:** reserved slot only; filled by #195 (per-voter data already exists via
+  `GET /praxes/{id}/voters`).
+- **Comments** are a separate workstream — reserved slot only (decision 5, #167).
+- **Metatask panel:** omitted (decision 8, #233).
 - **MediaGallery `layout` prop** is added only if the Ephemerists build needs the grid.
 
 ## Refs
