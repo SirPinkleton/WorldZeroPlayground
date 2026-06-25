@@ -442,16 +442,14 @@ async def _check_create_preconditions(
 
     allowed = allowed_praxis_modes(character, stats.level, era)
     if praxis_type not in allowed:
-        if praxis_type == PraxisType.duel:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Duels require level {era.duel_level_required}.",
-            )
-        if praxis_type == PraxisType.collab:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Collaborations require level {era.collaboration_level_required}.",
-            )
+        _denial: dict[PraxisType, str] = {
+            PraxisType.duel: f"Duels require level {era.duel_level_required}.",
+            PraxisType.collab: f"Collaborations require level {era.collaboration_level_required}.",
+        }
+        raise HTTPException(
+            status_code=403,
+            detail=_denial.get(praxis_type, "Praxis mode not available."),
+        )
 
     in_progress_count = await _count_in_progress_praxes(character_id, session)
     if in_progress_count >= era.max_task_signups:

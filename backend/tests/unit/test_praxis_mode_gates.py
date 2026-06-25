@@ -59,23 +59,18 @@ def test_allowed_praxis_modes_reads_era_arg() -> None:
     ]
 
 
-def test_collab_gate_same_predicate() -> None:
-    """Below collaboration_level_required → collab absent from the flag.
+@pytest.mark.parametrize("mode,era_field", [
+    (PraxisType.collab, "collaboration_level_required"),
+    (PraxisType.duel, "duel_level_required"),
+])
+def test_mode_gate_same_predicate(mode: PraxisType, era_field: str) -> None:
+    """Below the threshold → mode absent; at threshold → mode present.
 
     Enforcement in _check_create_preconditions derives from this predicate,
-    so the flag and the 403 are guaranteed consistent.
+    so the flag and the 403 are guaranteed consistent for every gated mode.
     """
-    below = CURRENT_ERA.collaboration_level_required - 1
-    at_threshold = CURRENT_ERA.collaboration_level_required
+    below = getattr(CURRENT_ERA, era_field) - 1
+    at_threshold = getattr(CURRENT_ERA, era_field)
 
-    assert PraxisType.collab not in allowed_praxis_modes(_CHAR, below, CURRENT_ERA)
-    assert PraxisType.collab in allowed_praxis_modes(_CHAR, at_threshold, CURRENT_ERA)
-
-
-def test_duel_gate_same_predicate() -> None:
-    """Below duel_level_required → duel absent from the flag."""
-    below = CURRENT_ERA.duel_level_required - 1
-    at_threshold = CURRENT_ERA.duel_level_required
-
-    assert PraxisType.duel not in allowed_praxis_modes(_CHAR, below, CURRENT_ERA)
-    assert PraxisType.duel in allowed_praxis_modes(_CHAR, at_threshold, CURRENT_ERA)
+    assert mode not in allowed_praxis_modes(_CHAR, below, CURRENT_ERA)
+    assert mode in allowed_praxis_modes(_CHAR, at_threshold, CURRENT_ERA)
