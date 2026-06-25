@@ -1306,3 +1306,267 @@ async def test_average_stars_and_total_votes_after_vote(
     assert card["total_votes"] == 1
     assert card["average_stars"] is not None
     assert abs(card["average_stars"] - 4.0) < 0.01
+
+
+# ---------------------------------------------------------------------------
+# Active-membership gate — single-source correctness (issue #183)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_joined_collaborator_blocked_from_resigning_up(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A non-author collab member is blocked from signing up for the same task again."""
+    # character2 creates a collab and invites character
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Collab"},
+        headers=auth_headers2,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    invite_resp = await client.post(
+        f"/praxes/{praxis_id}/invite",
+        json={"invitee_id": character.id},
+        headers=auth_headers2,
+    )
+    assert invite_resp.status_code == 200
+    invite_id = invite_resp.json()["id"]
+
+    # character accepts — now a joined (non-author) member of the collab
+    await client.post(
+        f"/praxes/{praxis_id}/invite/{invite_id}/respond",
+        json={"accept": True},
+        headers=auth_headers,
+    )
+
+    # character tries to sign up for the same task independently — must be blocked
+    signup_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Solo too"},
+        headers=auth_headers,
+    )
+    assert signup_resp.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_in_progress_collab_member_cannot_be_invited_again(
+    client: AsyncClient,
+    character2: Character,
+    active_task: Task,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+):
+    """A player already in an in-progress collab for a task cannot be re-invited to another collab for the same task."""
+    from models.account import Account
+    from models.character_stats import CharacterStats
+    from models.era import Era
+    from services.auth import create_jwt
+    from sqlalchemy import select as sa_select
+
+    era_row = (await db_session.execute(sa_select(Era))).scalar_one()
+
+    # character3: creates collab A and invites character2 to join
+    acc3 = Account(email="collab-a-owner@example.com")
+    db_session.add(acc3)
+    await db_session.flush()
+    ch3 = Character(account_id=acc3.id, username="collab_a_owner", display_name="Collab A Owner", faction_slug="ua")
+    db_session.add(ch3)
+    await db_session.flush()
+    db_session.add(CharacterStats(character_id=ch3.id, era_id=era_row.id, score=500, all_time_score=500, level=5, votes_spent_this_era=0))
+
+    # character4: creates collab B and tries to invite character2
+    acc4 = Account(email="collab-b-owner@example.com")
+    db_session.add(acc4)
+    await db_session.flush()
+    ch4 = Character(account_id=acc4.id, username="collab_b_owner", display_name="Collab B Owner", faction_slug="ua")
+    db_session.add(ch4)
+    await db_session.flush()
+    db_session.add(CharacterStats(character_id=ch4.id, era_id=era_row.id, score=500, all_time_score=500, level=5, votes_spent_this_era=0))
+
+    await db_session.commit()
+    await db_session.refresh(ch3)
+    await db_session.refresh(ch4)
+    headers3 = {"Authorization": f"Bearer {create_jwt(acc3.id)}"}
+    headers4 = {"Authorization": f"Bearer {create_jwt(acc4.id)}"}
+
+    # ch3 creates collab A; character2 joins as a non-author member
+    create_a = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Collab A"},
+        headers=headers3,
+    )
+    assert create_a.status_code == 201
+    praxis_a_id = create_a.json()["id"]
+
+    invite_a = await client.post(
+        f"/praxes/{praxis_a_id}/invite",
+        json={"invitee_id": character2.id},
+        headers=headers3,
+    )
+    assert invite_a.status_code == 200
+    await client.post(
+        f"/praxes/{praxis_a_id}/invite/{invite_a.json()['id']}/respond",
+        json={"accept": True},
+        headers=auth_headers2,
+    )
+
+    # ch4 creates collab B and tries to invite character2 — must fail (already in collab A)
+    create_b = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Collab B"},
+        headers=headers4,
+    )
+    assert create_b.status_code == 201
+    praxis_b_id = create_b.json()["id"]
+
+    re_invite = await client.post(
+        f"/praxes/{praxis_b_id}/invite",
+        json={"invitee_id": character2.id},
+        headers=headers4,
+    )
+    assert re_invite.status_code == 409
+    assert "active praxis" in re_invite.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_everymen_joined_collaborator_can_resign_up(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+):
+    """Everymen (Double Dipper) may sign up for the same task even as a collab member."""
+    from models.faction import Faction, FactionStatus
+    from sqlalchemy import select as sa_select
+
+    result = await db_session.execute(sa_select(Faction).where(Faction.slug == "everymen"))
+    if result.scalar_one_or_none() is None:
+        db_session.add(Faction(slug="everymen", name="Everymen", description="Double Dipper", status=FactionStatus.visible))
+        await db_session.commit()
+
+    character.faction_slug = "everymen"
+    await db_session.commit()
+
+    # character2 creates a collab and invites character (Everymen)
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Collab"},
+        headers=auth_headers2,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+
+    invite_resp = await client.post(
+        f"/praxes/{praxis_id}/invite",
+        json={"invitee_id": character.id},
+        headers=auth_headers2,
+    )
+    assert invite_resp.status_code == 200
+    invite_id = invite_resp.json()["id"]
+    await client.post(
+        f"/praxes/{praxis_id}/invite/{invite_id}/respond",
+        json={"accept": True},
+        headers=auth_headers,
+    )
+
+    # Everymen character can sign up again independently
+    signup_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Also Solo"},
+        headers=auth_headers,
+    )
+    assert signup_resp.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_everymen_can_be_invited_despite_active_collab(
+    client: AsyncClient,
+    character2: Character,
+    active_task: Task,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+):
+    """Everymen (Double Dipper) can receive an invite even when already in a collab for the same task."""
+    from models.account import Account
+    from models.character_stats import CharacterStats
+    from models.era import Era
+    from models.faction import Faction, FactionStatus
+    from services.auth import create_jwt
+    from sqlalchemy import select as sa_select
+
+    result = await db_session.execute(sa_select(Faction).where(Faction.slug == "everymen"))
+    if result.scalar_one_or_none() is None:
+        db_session.add(Faction(slug="everymen", name="Everymen", description="Double Dipper", status=FactionStatus.visible))
+        await db_session.commit()
+
+    character2.faction_slug = "everymen"
+    await db_session.commit()
+
+    era_row = (await db_session.execute(sa_select(Era))).scalar_one()
+
+    # Create two collab owners (each level 5, separate accounts)
+    acc_a = Account(email="everymen-test-a@example.com")
+    acc_b = Account(email="everymen-test-b@example.com")
+    db_session.add(acc_a)
+    db_session.add(acc_b)
+    await db_session.flush()
+    ch_a = Character(account_id=acc_a.id, username="evmtest_a", display_name="EV Test A", faction_slug="ua")
+    ch_b = Character(account_id=acc_b.id, username="evmtest_b", display_name="EV Test B", faction_slug="ua")
+    db_session.add(ch_a)
+    db_session.add(ch_b)
+    await db_session.flush()
+    db_session.add(CharacterStats(character_id=ch_a.id, era_id=era_row.id, score=500, all_time_score=500, level=5, votes_spent_this_era=0))
+    db_session.add(CharacterStats(character_id=ch_b.id, era_id=era_row.id, score=500, all_time_score=500, level=5, votes_spent_this_era=0))
+    await db_session.commit()
+    await db_session.refresh(ch_a)
+    await db_session.refresh(ch_b)
+    headers_a = {"Authorization": f"Bearer {create_jwt(acc_a.id)}"}
+    headers_b = {"Authorization": f"Bearer {create_jwt(acc_b.id)}"}
+
+    # ch_a creates collab A; character2 (Everymen) joins
+    create_a = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "First Collab"},
+        headers=headers_a,
+    )
+    assert create_a.status_code == 201
+    praxis_a_id = create_a.json()["id"]
+
+    invite_a = await client.post(
+        f"/praxes/{praxis_a_id}/invite",
+        json={"invitee_id": character2.id},
+        headers=headers_a,
+    )
+    assert invite_a.status_code == 200
+    await client.post(
+        f"/praxes/{praxis_a_id}/invite/{invite_a.json()['id']}/respond",
+        json={"accept": True},
+        headers=auth_headers2,
+    )
+
+    # ch_b creates collab B and invites character2 (Everymen) — should succeed despite existing collab
+    create_b = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Second Collab"},
+        headers=headers_b,
+    )
+    assert create_b.status_code == 201
+    praxis_b_id = create_b.json()["id"]
+
+    reinvite = await client.post(
+        f"/praxes/{praxis_b_id}/invite",
+        json={"invitee_id": character2.id},
+        headers=headers_b,
+    )
+    assert reinvite.status_code == 200
