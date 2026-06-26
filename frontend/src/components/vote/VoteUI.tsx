@@ -5,6 +5,7 @@ import EverymenVote from './EverymenVote'
 import WowVote from './WowVote'
 import SnideVote from './SnideVote'
 import EphemeristsVote from './EphemeristsVote'
+import SingularityVote from './SingularityVote'
 
 /**
  * Per-faction vote/rating UI dispatcher (Tier-3 surface). Keyed by the voted
@@ -25,6 +26,7 @@ const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {
   wow: WowVote,
   snide: SnideVote,
   ephemerists: EphemeristsVote,
+  singularity: SingularityVote,
 }
 
 export default function VoteUI({

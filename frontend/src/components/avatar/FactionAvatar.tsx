@@ -6,6 +6,7 @@ import EverymenAvatar from './EverymenAvatar'
 import WowAvatar from './WowAvatar'
 import SnideAvatar from './SnideAvatar'
 import EphemeristsAvatar from './EphemeristsAvatar'
+import SingularityAvatar from './SingularityAvatar'
 
 /**
  * Per-faction avatar + membership-badge dispatcher (Tier-3 surface). Keyed by
@@ -145,6 +146,7 @@ const FACTION_AVATARS: Record<string, ComponentType<FactionAvatarProps>> = {
   wow: WowAvatar,
   snide: SnideAvatar,
   ephemerists: EphemeristsAvatar,
+  singularity: SingularityAvatar,
 }
 
 export default function FactionAvatar({ character, size }: FactionAvatarProps) {

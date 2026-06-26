@@ -895,3 +895,11 @@
   .eph-twinkle { animation: eph-twinkle 5s ease-in-out infinite; }
   .eph-depth { animation: eph-depth 16s ease-in-out infinite; }
 }
+
+/* Singularity terminal — phosphor glow breathes, sigil turns. (#222) */
+@keyframes sg-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.04); } }
+@keyframes sg-rotate { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  .sg-pulse { animation: sg-pulse 2.6s ease-in-out infinite; }
+  .sg-rotate { animation: sg-rotate 120s linear infinite; }
+}
