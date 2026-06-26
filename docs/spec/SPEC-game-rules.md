@@ -351,7 +351,7 @@ These have schema support or design intent but no live service enforcement:
 | Task Vision | The Ephemerists | Retired/pretired tasks are not surfaced to the Ephemerists based on the `journeymen_visible` task flag. |
 | Double Dipper | Analog | No per-level task-repeat tracking. |
 | Lurker vote bank +100 | Singularity | Trigger condition TBD; no vote_bank increment logic. |
-| Multi-faction tasks | — | `TaskFaction` junction table exists but unused; only `Task.primary_faction_slug` is live. |
+| Multi-faction tasks | — | `TaskFaction` junction table was dropped. Only `Task.primary_faction_slug` is live; multi-faction support would require a new design. |
 
 ---
 
