@@ -30,7 +30,6 @@ from models.task import Task, TaskStatus, TaskType
 from models.vote import Vote
 from schemas.task import TaskOut
 from schemas.praxis import (
-    DuelVoteSummary,
     MediaItemOut,
     PraxisCardOut,
     PraxisInviteOut,
@@ -40,6 +39,7 @@ from schemas.praxis import (
 )
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
+from models.duel import Duel, DuelStatus
 from services.meta_task import get_meta_task_points
 from services.scoring import (
     COLLABORATION_MODE_COLLAB,
@@ -154,10 +154,56 @@ async def compute_praxis_score_from_db(
         )
         return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
 
-    elif praxis.type == PraxisType.duel:
-        # For a duel, return the combined star total across members
-        faction_multiplier = 1.0
-        return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
+    # Check if this praxis is a duel side (ADR-0011). If so, apply the duel
+    # win/loss multiplier using the live vote tallies of both sides.
+    duel_result = await session.execute(
+        select(Duel).where(
+            (Duel.challenger_praxis_id == praxis.id) | (Duel.opponent_praxis_id == praxis.id),
+            Duel.status.in_([DuelStatus.active, DuelStatus.settled]),
+        )
+    )
+    duel = duel_result.scalar_one_or_none()
+    if duel is not None:
+        opponent_praxis_id = (
+            duel.opponent_praxis_id
+            if duel.challenger_praxis_id == praxis.id
+            else duel.challenger_praxis_id
+        )
+        opponent_stars_result = await session.execute(
+            select(func.sum(Vote.stars)).where(Vote.praxis_id == opponent_praxis_id)
+        )
+        opponent_stars = int(opponent_stars_result.scalar_one_or_none() or 0)
+        creator = praxis.created_by
+        character_faction_slug = creator.faction_slug if creator else "na"
+        opponent_praxis = await session.get(Praxis, opponent_praxis_id)
+        opponent_faction_slug = (
+            opponent_praxis.created_by.faction_slug
+            if opponent_praxis and opponent_praxis.created_by
+            else "na"
+        )
+        task_faction_slug = task.primary_faction_slug or "na"
+        faction_multiplier = compute_faction_multiplier(
+            character_faction_slug, task_faction_slug, era,
+            collaboration_mode=COLLABORATION_MODE_SOLO,
+        )
+        duel_multiplier = compute_duel_multiplier(
+            character_faction_slug,
+            opponent_faction_slug,
+            is_winner=total_stars > opponent_stars,
+            is_tied=total_stars == opponent_stars,
+            era=era,
+        )
+        if creator:
+            era_row = await get_current_era_row(session)
+            creator_stats = await get_or_create_stats(session, creator.id, era_row.id)
+            creator_level = creator_stats.level
+        else:
+            creator_level = 0
+        meta_task_points = await get_meta_task_points(praxis.id, creator_level, session)
+        return compute_praxis_score(
+            task.point_value, faction_multiplier, total_stars,
+            meta_task_points, duel_multiplier,
+        )
 
     return 0.0
 
@@ -193,10 +239,15 @@ async def build_praxis_out(
 
     score = await compute_praxis_score_from_db(praxis, session, era)
 
-    # Duel vote summary
-    duel_vote_summary: Optional[list[DuelVoteSummary]] = None
-    if praxis.type == PraxisType.duel:
-        duel_vote_summary = await _build_duel_vote_summary(praxis, session)
+    # Look up the Duel row if this praxis is a duel side (ADR-0011).
+    duel_result = await session.execute(
+        select(Duel).where(
+            (Duel.challenger_praxis_id == praxis.id) | (Duel.opponent_praxis_id == praxis.id),
+            Duel.status.in_([DuelStatus.pending, DuelStatus.active, DuelStatus.settled]),
+        )
+    )
+    duel_row = duel_result.scalar_one_or_none()
+    duel_id: Optional[int] = duel_row.id if duel_row is not None else None
 
     can_flag = await can_flag_praxis(viewer, praxis, session, era)
 
@@ -238,7 +289,7 @@ async def build_praxis_out(
         invites=invites,
         media_items=media_items,
         score=score,
-        duel_vote_summary=duel_vote_summary,
+        duel_id=duel_id,
         can_flag=can_flag,
         applied_metatasks=applied_metatasks,
     )
@@ -286,39 +337,6 @@ async def build_praxis_card_out(
         total_votes=total_votes,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
     )
-
-
-async def _build_duel_vote_summary(
-    praxis: Praxis,
-    session: AsyncSession,
-) -> list[DuelVoteSummary]:
-    """Build per-member vote summary for a duel praxis."""
-    result = await session.execute(
-        select(Vote.praxis_member_id, func.sum(Vote.stars), func.count(Vote.id))
-        .where(
-            Vote.praxis_id == praxis.id,
-            Vote.praxis_member_id.is_not(None),
-        )
-        .group_by(Vote.praxis_member_id)
-    )
-    member_vote_data: dict[int, tuple[int, int]] = {
-        member_id: (int(total_stars), int(vote_count))
-        for member_id, total_stars, vote_count in result.all()
-    }
-
-    summaries = []
-    for member in praxis.members:
-        total_stars, vote_count = member_vote_data.get(member.id, (0, 0))
-        summaries.append(
-            DuelVoteSummary(
-                member_id=member.id,
-                character_id=member.character_id,
-                character_display_name=member.character.display_name if member.character else "",
-                total_stars=total_stars,
-                vote_count=vote_count,
-            )
-        )
-    return summaries
 
 
 # ---------------------------------------------------------------------------
@@ -444,10 +462,15 @@ async def _check_create_preconditions(
             detail="You have already submitted a praxis for this task.",
         )
 
+    if praxis_type == PraxisType.duel:
+        raise HTTPException(
+            status_code=400,
+            detail="Duels are issued via the challenge endpoint, not direct praxis creation (ADR-0011).",
+        )
+
     allowed = allowed_praxis_modes(character, stats.level, era)
     if praxis_type not in allowed:
         _denial: dict[PraxisType, str] = {
-            PraxisType.duel: f"Duels require level {era.duel_level_required}.",
             PraxisType.collab: f"Collaborations require level {era.collaboration_level_required}.",
         }
         raise HTTPException(
@@ -676,7 +699,7 @@ def allowed_praxis_modes(
     character_level: int,
     era: EraConfig = CURRENT_ERA,
 ) -> list[PraxisType]:
-    """Return the praxis modes a character may create.
+    """Return the praxis modes a character may create directly.
 
     Single source for the mode-by-level gates — enforcement in
     :func:`_check_create_preconditions` and the UI flag on
@@ -684,7 +707,7 @@ def allowed_praxis_modes(
 
     - Solo: always allowed once a viewer is authenticated.
     - Collab: requires ``character_level >= era.collaboration_level_required``.
-    - Duel: requires ``character_level >= era.duel_level_required``.
+    - Duel: issued via the challenge endpoint (ADR-0011), not direct creation.
 
     Anonymous viewers (``character is None``) receive an empty list so the
     UI can hide the mode picker entirely.
@@ -694,8 +717,6 @@ def allowed_praxis_modes(
     modes: list[PraxisType] = [PraxisType.solo]
     if character_level >= era.collaboration_level_required:
         modes.append(PraxisType.collab)
-    if character_level >= era.duel_level_required:
-        modes.append(PraxisType.duel)
     return modes
 
 
@@ -764,19 +785,8 @@ async def flag_praxis(
 
 
 # ---------------------------------------------------------------------------
-# Collaboration/duel specific operations
+# Collaboration specific operations (duels use services/duel.py — ADR-0011)
 # ---------------------------------------------------------------------------
-
-
-def _check_duel_invite_eligibility(praxis: Praxis, era: EraConfig) -> None:
-    """Raise 400 when a duel praxis is already at its max_duel_participants cap."""
-    if len(praxis.members) >= era.max_duel_participants:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Duels can only have {era.max_duel_participants} participants.",
-        )
-
-
 
 
 async def invite_to_praxis(
@@ -786,20 +796,20 @@ async def invite_to_praxis(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> PraxisInvite:
-    """Create an invite. Praxis must be collab or duel. Inviter must be a member."""
+    """Create a collab invite. Praxis must be collab type. Inviter must be a member."""
     praxis = await get_praxis(praxis_id, session)
 
-    if praxis.type == PraxisType.solo:
-        raise HTTPException(status_code=400, detail="Cannot invite to a solo praxis.")
+    if praxis.type != PraxisType.collab:
+        raise HTTPException(
+            status_code=400,
+            detail="Invites are only for collab praxes. Duels use the challenge endpoint.",
+        )
     if praxis.status == PraxisStatus.submitted:
         raise HTTPException(status_code=400, detail="Cannot invite to a submitted praxis.")
 
     member_ids = {m.character_id for m in praxis.members}
     if inviter_id not in member_ids:
         raise HTTPException(status_code=403, detail="Only members can send invites.")
-
-    if praxis.type == PraxisType.duel:
-        _check_duel_invite_eligibility(praxis, era)
 
     if invitee_id == inviter_id:
         raise HTTPException(status_code=400, detail="Cannot invite yourself.")
@@ -958,6 +968,9 @@ async def submit_praxis(
         praxis.status = PraxisStatus.submitted
         praxis.submitted_at = datetime.now(timezone.utc)
         await session.flush()
+        # Settle the duel if both sides have now submitted (ADR-0011).
+        from services.duel import maybe_settle_duel
+        await maybe_settle_duel(praxis_id, session)
         era_row = await get_current_era_row(session)
         for member in praxis.members:
             await recalculate_character_stats(

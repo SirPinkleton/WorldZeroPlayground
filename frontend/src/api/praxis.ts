@@ -40,14 +40,6 @@ export interface PraxisInviteOut {
   created_at: string
 }
 
-export interface DuelVoteSummary {
-  member_id: number
-  character_id: number
-  character_display_name: string
-  total_stars: number
-  vote_count: number
-}
-
 export interface PraxisOut {
   id: number
   task_id: number
@@ -72,7 +64,8 @@ export interface PraxisOut {
   invites: PraxisInviteOut[]
   media_items: MediaItemOut[]
   score: number
-  duel_vote_summary: DuelVoteSummary[] | null
+  /** Set when this praxis is one side of a duel (ADR-0011). */
+  duel_id: number | null
   can_flag: boolean
   applied_metatasks: TaskOut[]
 }
@@ -113,7 +106,6 @@ export interface PraxisUpdate {
 
 export interface PraxisVoteIn {
   stars: number
-  praxis_member_id?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -234,11 +226,6 @@ export async function removeMetatask(praxisId: number, taskId: number): Promise<
 
 export async function votePraxis(id: number, data: PraxisVoteIn): Promise<void> {
   await api.post(`/praxes/${id}/vote`, data)
-}
-
-export async function getPraxisVotes(id: number): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
-  const { data } = await api.get<any[]>(`/praxes/${id}/votes`) // eslint-disable-line @typescript-eslint/no-explicit-any
-  return data
 }
 
 // ---------------------------------------------------------------------------

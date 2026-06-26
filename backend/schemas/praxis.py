@@ -40,14 +40,6 @@ class PraxisInviteOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DuelVoteSummary(BaseModel):
-    member_id: int
-    character_id: int
-    character_display_name: str
-    total_stars: int
-    vote_count: int
-
-
 class PraxisOut(BaseModel):
     id: int
     task_id: int
@@ -72,7 +64,8 @@ class PraxisOut(BaseModel):
     invites: List[PraxisInviteOut]
     media_items: List[MediaItemOut]
     score: float                # populated by build_praxis_out
-    duel_vote_summary: Optional[List[DuelVoteSummary]]  # only for duels
+    # duel_id is set when this praxis is a side of a duel (ADR-0011).
+    duel_id: Optional[int] = None
     applied_metatasks: List[TaskOut] = []
     can_flag: bool = False      # populated by build_praxis_out; viewer-relative
 
@@ -100,10 +93,6 @@ class PraxisCardOut(BaseModel):
     average_stars: Optional[float] = None
     total_votes: int = 0
     task_faction_slug: Optional[str] = None
-    task_level_required: int = 0
-    average_stars: Optional[float] = None
-    total_votes: int = 0
-    submitted_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -126,4 +115,3 @@ class PraxisInviteCreate(BaseModel):
 
 class PraxisVoteIn(BaseModel):
     stars: int
-    praxis_member_id: Optional[int] = None  # required for duel votes
