@@ -10,7 +10,6 @@ import { useRef } from "react";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
 import type { MediaItemOut } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import {
@@ -19,7 +18,15 @@ import {
   TaskMetaInline,
   formatAutosave,
 } from "./shared";
-import { DropButton } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -297,28 +304,22 @@ export default function EditPraxisEverymen({ state }: Props) {
         {!state.controlsLocked && (
           <div style={{ marginBottom: 28 }}>
             <FieldLabel>THE CREW</FieldLabel>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 12,
-              }}
-            >
-              {MODE_OPTIONS.filter((opt) =>
-                allowedModes.includes(opt.key),
-              ).map((opt) => {
-                const active = praxis.type === opt.key;
-                const disabled =
-                  state.modeIsLocked || state.switchingMode !== null;
-                if (state.modeIsLocked && !active) return null;
-                return (
+            <ModePicker
+              state={state}
+              skin={{
+                containerStyle: {
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: 12,
+                },
+                options: MODE_OPTIONS,
+                allowedModes,
+                renderOption: (opt, { active, disabled, onSelect }) => (
                   <button
                     key={opt.key}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => {
-                      if (!disabled) void state.changeMode(opt.key);
-                    }}
+                    onClick={onSelect}
                     disabled={disabled && !active}
                     style={{
                       position: "relative",
@@ -370,9 +371,9 @@ export default function EditPraxisEverymen({ state }: Props) {
                       />
                     )}
                   </button>
-                );
-              })}
-            </div>
+                ),
+              }}
+            />
           </div>
         )}
 
@@ -385,23 +386,22 @@ export default function EditPraxisEverymen({ state }: Props) {
         {/* The job (headline) */}
         <div style={{ marginBottom: 28 }}>
           <FieldLabel meta={`${state.title.length}/200`}>THE JOB</FieldLabel>
-          <input
-            type="text"
-            maxLength={200}
-            value={state.title}
-            onChange={(event) => state.setTitle(event.target.value)}
-            placeholder="name the work in one line"
-            style={{
-              width: "100%",
-              border: "none",
-              borderBottom: `2px solid ${INK}`,
-              background: "transparent",
-              fontFamily: ACCENT_FONT,
-              fontSize: 26,
-              letterSpacing: "0.01em",
-              color: PAPER_TEXT,
-              padding: "4px 2px 8px",
-              outline: "none",
+          <TitleField
+            state={state}
+            skin={{
+              placeholder: "name the work in one line",
+              inputStyle: {
+                width: "100%",
+                border: "none",
+                borderBottom: `2px solid ${INK}`,
+                background: "transparent",
+                fontFamily: ACCENT_FONT,
+                fontSize: 26,
+                letterSpacing: "0.01em",
+                color: PAPER_TEXT,
+                padding: "4px 2px 8px",
+                outline: "none",
+              },
             }}
           />
           <div
@@ -427,57 +427,56 @@ export default function EditPraxisEverymen({ state }: Props) {
           <FieldLabel meta={`${state.wordCount} words · markdown ok`}>
             THE REPORT
           </FieldLabel>
-          <textarea
-            value={state.body}
-            onChange={(event) => state.setBody(event.target.value)}
-            rows={9}
-            placeholder="Clocked in at…"
-            style={{
-              width: "100%",
-              resize: "vertical",
-              border: `1.5px solid ${INK}`,
-              background: PAPER,
-              fontFamily: BODY_FONT,
-              fontSize: 13,
-              lineHeight: 1.6,
-              color: PAPER_TEXT,
-              padding: "13px 15px",
-              outline: "none",
-              minHeight: 200,
+          <BodyTextarea
+            state={state}
+            skin={{
+              rows: 9,
+              placeholder: "Clocked in at…",
+              textareaStyle: {
+                width: "100%",
+                resize: "vertical",
+                border: `1.5px solid ${INK}`,
+                background: PAPER,
+                fontFamily: BODY_FONT,
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: PAPER_TEXT,
+                padding: "13px 15px",
+                outline: "none",
+                minHeight: 200,
+              },
             }}
           />
-          {state.body.trim() && (
-            <div
-              style={{
+          <BodyPreview
+            state={state}
+            skin={{
+              wrapperStyle: {
                 marginTop: 14,
                 borderLeft: `4px solid ${RED}`,
                 paddingLeft: 14,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: BODY_FONT,
-                  fontSize: 9,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  color: MUTED,
-                  marginBottom: 6,
-                }}
-              >
-                Foreman's preview
-              </div>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{
-                  fontFamily: BODY_FONT,
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: PAPER_TEXT,
-                }}
-              />
-            </div>
-          )}
+              },
+              label: (
+                <div
+                  style={{
+                    fontFamily: BODY_FONT,
+                    fontSize: 9,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: MUTED,
+                    marginBottom: 6,
+                  }}
+                >
+                  Foreman's preview
+                </div>
+              ),
+              markdownStyle: {
+                fontFamily: BODY_FONT,
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: PAPER_TEXT,
+              },
+            }}
+          />
         </div>
 
         {/* Already pinned proof */}
@@ -580,16 +579,12 @@ export default function EditPraxisEverymen({ state }: Props) {
             flexWrap: "wrap",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={
-                state.saving ||
-                state.submitting ||
-                state.switchingMode !== null
-              }
-              style={{
+          <PublishButton
+            state={state}
+            skin={{
+              idleLabel: "★ STAMP & FILE ★",
+              busyLabel: "✓ FILING…",
+              style: {
                 cursor: state.submitting ? "wait" : "pointer",
                 border: `2px solid ${INK}`,
                 background: state.submitting ? OLIVE : RED,
@@ -601,32 +596,29 @@ export default function EditPraxisEverymen({ state }: Props) {
                 whiteSpace: "nowrap",
                 boxShadow: `5px 5px 0 ${INK}`,
                 transition: "background 150ms",
-              }}
-            >
-              {state.submitting ? "✓ FILING…" : "★ STAMP & FILE ★"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={
-              state.saving || state.submitting || state.switchingMode !== null
-            }
-            style={{
-              cursor: state.saving ? "wait" : "pointer",
-              border: `2px solid ${INK}`,
-              background: "transparent",
-              color: PAPER_TEXT,
-              fontFamily: BODY_FONT,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              padding: "13px 20px",
+              },
             }}
-          >
-            {state.saving ? "Saving…" : "Save Draft"}
-          </button>
+          />
+          <SaveButton
+            state={state}
+            skin={{
+              lockOnSwitch: true,
+              idleLabel: "Save Draft",
+              busyLabel: "Saving…",
+              style: {
+                cursor: state.saving ? "wait" : "pointer",
+                border: `2px solid ${INK}`,
+                background: "transparent",
+                color: PAPER_TEXT,
+                fontFamily: BODY_FONT,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                padding: "13px 20px",
+              },
+            }}
+          />
           <DropButton
             state={state}
             skin={{

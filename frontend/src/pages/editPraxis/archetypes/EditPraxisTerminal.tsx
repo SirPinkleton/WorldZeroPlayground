@@ -6,9 +6,19 @@ import { useEffect, useMemo, useState } from "react";
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import { Breadcrumb, ErrorBanner, TitleCounter, formatClock } from "./shared";
-import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  FilePicker,
+  InviteSearch,
+  MetatasksList,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -203,55 +213,49 @@ export default function EditPraxisTerminal({ state }: Props) {
             <div style={{ fontSize: 10, color: dim, marginBottom: 10 }}>
               <span style={{ color: term }}>$ </span>wz praxis set-mode --select
             </div>
-            <div style={{ display: "flex", gap: 0 }}>
-              {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map(
-                (opt) => {
-                  const active = praxis.type === opt.key;
-                  const disabled =
-                    state.modeIsLocked || state.switchingMode !== null;
-                  if (state.modeIsLocked && !active) return null;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => {
-                        if (!disabled) void state.changeMode(opt.key);
-                      }}
-                      disabled={disabled && !active}
+            <ModePicker
+              state={state}
+              skin={{
+                containerStyle: { display: "flex", gap: 0 },
+                options: MODE_OPTIONS,
+                allowedModes,
+                renderOption: (opt, { active, disabled, onSelect }) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={onSelect}
+                    disabled={disabled && !active}
+                    style={{
+                      flex: 1,
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      textAlign: "left",
+                      background: active ? term : "transparent",
+                      color: active ? bg : term,
+                      border: `1px solid ${active ? term : accent}`,
+                      borderRight: "none",
+                      padding: "10px 12px",
+                      fontFamily: "'Share Tech Mono', monospace",
+                    }}
+                  >
+                    <div
                       style={{
-                        flex: 1,
-                        cursor: disabled ? "not-allowed" : "pointer",
-                        textAlign: "left",
-                        background: active ? term : "transparent",
-                        color: active ? bg : term,
-                        border: `1px solid ${active ? term : accent}`,
-                        borderRight: "none",
-                        padding: "10px 12px",
-                        fontFamily: "'Share Tech Mono', monospace",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        marginBottom: 2,
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          marginBottom: 2,
-                        }}
-                      >
-                        {active && "["}
-                        {opt.flag}
-                        {active && "]"}
-                      </div>
-                      <div
-                        style={{ fontSize: 9, opacity: active ? 0.85 : 0.6 }}
-                      >
-                        {opt.desc}
-                      </div>
-                    </button>
-                  );
-                },
-              )}
-            </div>
+                      {active && "["}
+                      {opt.flag}
+                      {active && "]"}
+                    </div>
+                    <div style={{ fontSize: 9, opacity: active ? 0.85 : 0.6 }}>
+                      {opt.desc}
+                    </div>
+                  </button>
+                ),
+              }}
+            />
           </div>
         )}
 
@@ -315,22 +319,21 @@ export default function EditPraxisTerminal({ state }: Props) {
             >
               #{" "}
             </span>
-            <input
-              type="text"
-              maxLength={200}
-              value={state.title}
-              onChange={(event) => state.setTitle(event.target.value)}
-              placeholder="title_goes_here.md"
-              style={{
-                width: "100%",
-                paddingLeft: 22,
-                fontFamily: "'Lora', serif",
-                fontStyle: "italic",
-                fontSize: 26,
-                color: term,
-                background: "transparent",
-                border: "none",
-                outline: "none",
+            <TitleField
+              state={state}
+              skin={{
+                placeholder: "title_goes_here.md",
+                inputStyle: {
+                  width: "100%",
+                  paddingLeft: 22,
+                  fontFamily: "'Lora', serif",
+                  fontStyle: "italic",
+                  fontSize: 26,
+                  color: term,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                },
               }}
             />
           </div>
@@ -383,23 +386,25 @@ export default function EditPraxisTerminal({ state }: Props) {
             <div
               style={{ flex: 1, padding: "12px 14px", position: "relative" }}
             >
-              <textarea
-                value={state.body}
-                onChange={(event) => state.setBody(event.target.value)}
-                rows={12}
-                placeholder="# what did you do?\n\nwrite here. supports markdown.\n\n--INSERT--"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  minHeight: 220,
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: 12,
-                  lineHeight: 1.7,
-                  color: term,
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  resize: "vertical",
+              <BodyTextarea
+                state={state}
+                skin={{
+                  rows: 12,
+                  placeholder:
+                    "# what did you do?\n\nwrite here. supports markdown.\n\n--INSERT--",
+                  textareaStyle: {
+                    width: "100%",
+                    height: "100%",
+                    minHeight: 220,
+                    fontFamily: "'Share Tech Mono', monospace",
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                    color: term,
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    resize: "vertical",
+                  },
                 }}
               />
               {!state.body && (
@@ -446,30 +451,28 @@ export default function EditPraxisTerminal({ state }: Props) {
                   : "unsaved"}
             </span>
           </div>
-          {state.body.trim() && (
-            <div
-              style={{
+          <BodyPreview
+            state={state}
+            skin={{
+              wrapperStyle: {
                 marginTop: 14,
                 border: `1px solid ${accent}`,
                 padding: "14px 18px",
                 background: "rgba(0,0,0,.5)",
-              }}
-            >
-              <div style={{ fontSize: 9, color: dim, marginBottom: 8 }}>
-                <span style={{ color: term }}>$ </span>render --markdown
-              </div>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: 12,
-                  lineHeight: 1.7,
-                  color: term,
-                }}
-              />
-            </div>
-          )}
+              },
+              label: (
+                <div style={{ fontSize: 9, color: dim, marginBottom: 8 }}>
+                  <span style={{ color: term }}>$ </span>render --markdown
+                </div>
+              ),
+              markdownStyle: {
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: 12,
+                lineHeight: 1.7,
+                color: term,
+              },
+            }}
+          />
         </div>
 
         {/* Media */}
@@ -660,14 +663,23 @@ export default function EditPraxisTerminal({ state }: Props) {
             flexWrap: "wrap",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={
-                state.saving || state.submitting || state.switchingMode !== null
-              }
-              style={{
+          <PublishButton
+            state={state}
+            skin={{
+              idleLabel: '$ git commit -m "publish"',
+              busyLabel: "$ committing...",
+              ornament: (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    inset: 3,
+                    border: "1px dashed rgba(0,0,0,.3)",
+                    pointerEvents: "none",
+                  }}
+                />
+              ),
+              style: {
                 background: term,
                 color: bg,
                 fontFamily: "'Share Tech Mono', monospace",
@@ -679,40 +691,27 @@ export default function EditPraxisTerminal({ state }: Props) {
                 cursor: state.submitting ? "wait" : "pointer",
                 textTransform: "uppercase",
                 position: "relative",
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 3,
-                  border: "1px dashed rgba(0,0,0,.3)",
-                  pointerEvents: "none",
-                }}
-              />
-              {state.submitting
-                ? "$ committing..."
-                : '$ git commit -m "publish"'}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={state.saving || state.submitting}
-            style={{
-              background: "transparent",
-              color: term,
-              fontFamily: "'Share Tech Mono', monospace",
-              fontSize: 11,
-              letterSpacing: "0.1em",
-              padding: "10px 16px",
-              border: `1px solid ${term}`,
-              cursor: state.saving ? "wait" : "pointer",
-              textTransform: "uppercase",
+              },
             }}
-          >
-            {state.saving ? ":saving" : ":w (save draft)"}
-          </button>
+          />
+          <SaveButton
+            state={state}
+            skin={{
+              idleLabel: ":w (save draft)",
+              busyLabel: ":saving",
+              style: {
+                background: "transparent",
+                color: term,
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: 11,
+                letterSpacing: "0.1em",
+                padding: "10px 16px",
+                border: `1px solid ${term}`,
+                cursor: state.saving ? "wait" : "pointer",
+                textTransform: "uppercase",
+              },
+            }}
+          />
           <div style={{ flex: 1 }} />
           <DropButton
             state={state}

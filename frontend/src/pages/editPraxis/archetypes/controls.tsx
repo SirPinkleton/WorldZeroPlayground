@@ -5,9 +5,11 @@
  * that must always render: file picker, member chips, search dropdown.
  */
 import { useRef } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import LevelPill from "../../../components/ui/LevelPill";
 import { factionCssVar, factionName } from "../../../utils/factions";
+import type { PraxisType } from "../../../api/praxis";
+import MarkdownPreview from "../blocks/MarkdownPreview";
 import type { EditPraxisState } from "../useEditPraxis";
 
 export interface InviteSearchSkin {
@@ -306,5 +308,219 @@ export function MetatasksList({
         );
       })}
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* TitleField — the single 200-char title input.                              */
+/* The archetype owns every surrounding ornament (labels, counters, ransom    */
+/* previews); this control only owns the value/onChange binding so no         */
+/* archetype re-implements it.                                                */
+/* -------------------------------------------------------------------------- */
+export interface TitleFieldSkin {
+  inputStyle: CSSProperties;
+  placeholder?: string;
+}
+
+export function TitleField({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: TitleFieldSkin;
+}) {
+  return (
+    <input
+      type="text"
+      maxLength={200}
+      value={state.title}
+      onChange={(event) => state.setTitle(event.target.value)}
+      placeholder={skin.placeholder}
+      style={skin.inputStyle}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* BodyTextarea — the body textarea bound to state.body / state.setBody.       */
+/* Kept separate from BodyPreview so archetypes that wrap the textarea in      */
+/* bespoke chrome (line-number gutters, etc.) can still consume the shared     */
+/* binding.                                                                    */
+/* -------------------------------------------------------------------------- */
+export interface BodyTextareaSkin {
+  textareaStyle: CSSProperties;
+  rows?: number;
+  placeholder?: string;
+}
+
+export function BodyTextarea({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: BodyTextareaSkin;
+}) {
+  return (
+    <textarea
+      value={state.body}
+      onChange={(event) => state.setBody(event.target.value)}
+      rows={skin.rows}
+      placeholder={skin.placeholder}
+      style={skin.textareaStyle}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* BodyPreview — the live markdown preview block. Owns the `state.body.trim()` */
+/* guard (renders nothing until the body has content) and reuses the shared    */
+/* MarkdownPreview block component. The archetype supplies the bespoke wrapper, */
+/* eyebrow label, and markdown typography via the skin.                        */
+/* -------------------------------------------------------------------------- */
+export interface BodyPreviewSkin {
+  wrapperStyle?: CSSProperties;
+  label?: ReactNode;
+  markdownClassName?: string;
+  markdownStyle?: CSSProperties;
+}
+
+export function BodyPreview({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: BodyPreviewSkin;
+}) {
+  if (!state.body.trim()) return null;
+  return (
+    <div style={skin.wrapperStyle}>
+      {skin.label}
+      <MarkdownPreview
+        source={state.body}
+        className={skin.markdownClassName ?? "markdown-preview"}
+        style={skin.markdownStyle}
+      />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* ModePicker — the solo/collab/duel selector. Owns the lock/hide guards so no */
+/* archetype re-implements them: it filters to allowed modes, hides every      */
+/* non-active option once the mode is locked, computes the disabled flag, and  */
+/* wires the confirm-then-switch onClick. The archetype supplies its option    */
+/* metadata and renders each option's bespoke button via `renderOption` —      */
+/* arrangement stays the faction's identity (ADR-0016).                        */
+/* -------------------------------------------------------------------------- */
+export interface ModeOptionRenderArgs {
+  active: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+  index: number;
+}
+
+export interface ModePickerSkin<O extends { key: PraxisType }> {
+  containerStyle?: CSSProperties;
+  options: O[];
+  /** The task's allowed modes. Typed as `string[]` to match TaskOut.allowed_modes;
+   * each option whose `key` is present is rendered. */
+  allowedModes: readonly string[];
+  renderOption: (option: O, args: ModeOptionRenderArgs) => ReactNode;
+}
+
+export function ModePicker<O extends { key: PraxisType }>({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: ModePickerSkin<O>;
+}) {
+  const praxis = state.praxis!;
+  return (
+    <div style={skin.containerStyle}>
+      {skin.options
+        .filter((option) => skin.allowedModes.includes(option.key))
+        .map((option, index) => {
+          const active = praxis.type === option.key;
+          const disabled =
+            state.modeIsLocked || state.switchingMode !== null;
+          if (state.modeIsLocked && !active) return null;
+          return skin.renderOption(option, {
+            active,
+            disabled,
+            index,
+            onSelect: () => {
+              if (!disabled) void state.changeMode(option.key);
+            },
+          });
+        })}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PublishButton / SaveButton — the seal-and-save pair. Each owns its own      */
+/* guard: PublishButton renders nothing once published and is disabled while   */
+/* saving / submitting / switching mode; SaveButton is disabled while saving / */
+/* submitting (optionally also while switching). The archetype arranges them   */
+/* inside its bespoke file bar and supplies faction-voiced labels via skin.    */
+/* -------------------------------------------------------------------------- */
+export interface PublishButtonSkin {
+  style: CSSProperties;
+  idleLabel: ReactNode;
+  busyLabel: ReactNode;
+  ornament?: ReactNode;
+}
+
+export function PublishButton({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: PublishButtonSkin;
+}) {
+  if (state.isPublished) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => void state.publish()}
+      disabled={state.saving || state.submitting || state.switchingMode !== null}
+      style={skin.style}
+    >
+      {skin.ornament}
+      {state.submitting ? skin.busyLabel : skin.idleLabel}
+    </button>
+  );
+}
+
+export interface SaveButtonSkin {
+  style: CSSProperties;
+  idleLabel: ReactNode;
+  busyLabel: ReactNode;
+  /** When true, also disable while a mode switch is in flight (matches the
+   * archetypes that guarded save on `switchingMode`). */
+  lockOnSwitch?: boolean;
+}
+
+export function SaveButton({
+  state,
+  skin,
+}: {
+  state: EditPraxisState;
+  skin: SaveButtonSkin;
+}) {
+  const disabled =
+    state.saving ||
+    state.submitting ||
+    (skin.lockOnSwitch ? state.switchingMode !== null : false);
+  return (
+    <button
+      type="button"
+      onClick={() => void state.save()}
+      disabled={disabled}
+      style={skin.style}
+    >
+      {state.saving ? skin.busyLabel : skin.idleLabel}
+    </button>
   );
 }

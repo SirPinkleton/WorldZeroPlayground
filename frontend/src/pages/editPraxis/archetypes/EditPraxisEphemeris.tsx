@@ -12,11 +12,21 @@ import type { CSSProperties, ReactNode } from "react";
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import { Breadcrumb, ErrorBanner, formatAutosave } from "./shared";
-import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  FilePicker,
+  InviteSearch,
+  MetatasksList,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import { EphMark, Foxing, LapisLastWord, toRoman } from "../../../components/cards/ephemeristsAtoms";
 import type { EditPraxisState } from "../useEditPraxis";
 
@@ -177,19 +187,18 @@ export default function EditPraxisEphemeris({ state }: Props) {
         {!state.controlsLocked && (
           <div style={{ marginBottom: 28 }}>
             <FieldLabel meta="how the account was taken">THE METHOD</FieldLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-              {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map((opt) => {
-                const on = praxis.type === opt.key;
-                const disabled = state.modeIsLocked || state.switchingMode !== null;
-                if (state.modeIsLocked && !on) return null;
-                return (
+            <ModePicker
+              state={state}
+              skin={{
+                containerStyle: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 },
+                options: MODE_OPTIONS,
+                allowedModes,
+                renderOption: (opt, { active: on, disabled, onSelect }) => (
                   <button
                     key={opt.key}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => {
-                      if (!disabled) void state.changeMode(opt.key);
-                    }}
+                    onClick={onSelect}
                     disabled={disabled && !on}
                     style={{
                       position: "relative",
@@ -212,9 +221,9 @@ export default function EditPraxisEphemeris({ state }: Props) {
                       <div style={{ position: "absolute", top: 8, right: 9, width: 9, height: 9, borderRadius: "50%", background: "var(--eph-gold-light)", boxShadow: `0 0 0 2px ${INK}` }} />
                     )}
                   </button>
-                );
-              })}
-            </div>
+                ),
+              }}
+            />
           </div>
         )}
 
@@ -242,24 +251,23 @@ export default function EditPraxisEphemeris({ state }: Props) {
         {/* the finding (headline) */}
         <div style={{ marginBottom: 28 }}>
           <FieldLabel meta={`${state.title.length}/200 · name the plain fact`}>THE FINDING</FieldLabel>
-          <input
-            type="text"
-            maxLength={200}
-            value={state.title}
-            onChange={(event) => state.setTitle(event.target.value)}
-            placeholder="the ordinary event the legend grew from"
-            style={{
-              width: "100%",
-              border: "none",
-              borderBottom: `2px solid ${INK}`,
-              background: "transparent",
-              fontFamily: "var(--eph-display)",
-              fontWeight: 700,
-              fontSize: 24,
-              letterSpacing: "0.01em",
-              color: TEXT,
-              padding: "4px 2px 8px",
-              outline: "none",
+          <TitleField
+            state={state}
+            skin={{
+              placeholder: "the ordinary event the legend grew from",
+              inputStyle: {
+                width: "100%",
+                border: "none",
+                borderBottom: `2px solid ${INK}`,
+                background: "transparent",
+                fontFamily: "var(--eph-display)",
+                fontWeight: 700,
+                fontSize: 24,
+                letterSpacing: "0.01em",
+                color: TEXT,
+                padding: "4px 2px 8px",
+                outline: "none",
+              },
             }}
           />
         </div>
@@ -267,38 +275,37 @@ export default function EditPraxisEphemeris({ state }: Props) {
         {/* the account (body) */}
         <div style={{ marginBottom: 28 }}>
           <FieldLabel meta={`${state.wordCount} words · markdown ok`}>THE ACCOUNT</FieldLabel>
-          <textarea
-            value={state.body}
-            onChange={(event) => state.setBody(event.target.value)}
-            rows={9}
-            placeholder="Followed it backward through every retelling. The first teller…"
-            style={{
-              width: "100%",
-              resize: "vertical",
-              border: `1.5px solid ${INK}`,
-              background: "var(--eph-vellum)",
-              fontFamily: "var(--eph-serif)",
-              fontSize: 14,
-              lineHeight: 1.65,
-              color: TEXT,
-              padding: "13px 15px",
-              outline: "none",
+          <BodyTextarea
+            state={state}
+            skin={{
+              rows: 9,
+              placeholder: "Followed it backward through every retelling. The first teller…",
+              textareaStyle: {
+                width: "100%",
+                resize: "vertical",
+                border: `1.5px solid ${INK}`,
+                background: "var(--eph-vellum)",
+                fontFamily: "var(--eph-serif)",
+                fontSize: 14,
+                lineHeight: 1.65,
+                color: TEXT,
+                padding: "13px 15px",
+                outline: "none",
+              },
             }}
           />
           <div style={{ fontSize: 9.5, fontStyle: "italic", color: MUTED, marginTop: 7 }}>
             † the account you file is itself a retelling. someone will trace it back. —{" "}
             <span style={{ color: "var(--eph-lapis)" }}>see †</span>
           </div>
-          {state.body.trim() && (
-            <div style={{ marginTop: 14, background: "var(--eph-vellum-deep)", border: `1.5px solid ${GOLD}`, padding: "16px 18px" }}>
-              <FieldLabel>PREVIEW</FieldLabel>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{ fontFamily: "var(--eph-serif)", fontSize: 14, lineHeight: 1.65, color: TEXT }}
-              />
-            </div>
-          )}
+          <BodyPreview
+            state={state}
+            skin={{
+              wrapperStyle: { marginTop: 14, background: "var(--eph-vellum-deep)", border: `1.5px solid ${GOLD}`, padding: "16px 18px" },
+              label: <FieldLabel>PREVIEW</FieldLabel>,
+              markdownStyle: { fontFamily: "var(--eph-serif)", fontSize: 14, lineHeight: 1.65, color: TEXT },
+            }}
+          />
         </div>
 
         {/* the evidence */}
@@ -396,12 +403,12 @@ export default function EditPraxisEphemeris({ state }: Props) {
             flexWrap: "wrap",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={state.saving || state.submitting || state.switchingMode !== null}
-              style={{
+          <PublishButton
+            state={state}
+            skin={{
+              idleLabel: "✦ SEAL & ENTER ✦",
+              busyLabel: "✦ SEALING…",
+              style: {
                 cursor: state.submitting ? "wait" : "pointer",
                 border: "1px solid var(--eph-gold)",
                 background: RUBRIC,
@@ -414,30 +421,28 @@ export default function EditPraxisEphemeris({ state }: Props) {
                 whiteSpace: "nowrap",
                 boxShadow:
                   "inset 0 2px 4px rgba(255,255,255,0.16), inset 0 -4px 7px rgba(0,0,0,0.38), 0 2px 5px rgba(0,0,0,0.25)",
-              }}
-            >
-              {state.submitting ? "✦ SEALING…" : "✦ SEAL & ENTER ✦"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={state.saving || state.submitting}
-            style={{
-              cursor: state.saving ? "wait" : "pointer",
-              border: `1px solid ${INK}`,
-              background: "transparent",
-              color: TEXT,
-              fontFamily: "var(--eph-serif)",
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              padding: "13px 20px",
+              },
             }}
-          >
-            {state.saving ? "saving…" : "Keep as marginalia"}
-          </button>
+          />
+          <SaveButton
+            state={state}
+            skin={{
+              idleLabel: "Keep as marginalia",
+              busyLabel: "saving…",
+              style: {
+                cursor: state.saving ? "wait" : "pointer",
+                border: `1px solid ${INK}`,
+                background: "transparent",
+                color: TEXT,
+                fontFamily: "var(--eph-serif)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                padding: "13px 20px",
+              },
+            }}
+          />
           <DropButton
             state={state}
             skin={{
