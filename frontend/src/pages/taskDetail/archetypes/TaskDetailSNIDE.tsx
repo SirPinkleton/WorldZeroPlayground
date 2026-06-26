@@ -9,19 +9,26 @@ import type { TaskSignupOut } from "../../../api/tasks";
 import type { TaskDetailState } from "../useTaskDetail";
 
 /**
- * S.N.I.D.E. task-detail archetype — the job rendered as an OPEN-CASE DOSSIER:
- * evidence file header, the brief, accomplices on file, a read-only mob verdict,
- * and a "PULL THIS JOB" sign-up CTA. Ported from the SNIDE design kit
- * (snide-task-detail.jsx); wired to the real {@link TaskDetailState}.
+ * S.N.I.D.E. task-detail archetype — the "ransom dispatch": an OPEN-CASE
+ * DOSSIER whose title is cut from a ransom note (mixed-font chips), a black-ink
+ * CTA slab, a lined-paper brief, accomplices on file, a read-only mob verdict,
+ * and CASES CLOSED with a ⚜ TOP MARKS badge on the highest-scored completion.
+ * Ported from the improved SNIDE design kit (SnideTaskDetail.tsx) and wired to
+ * the real {@link TaskDetailState}.
+ *
+ * Always-dark by styling its own container with --faction-snide-* tokens; it
+ * does NOT mutate the document theme.
  *
  * Decorative / not backend-backed (marked inline): the "job no." (derived from
- * task.id), and the EvidenceTag labels are relabelled to honest counts.
+ * task.id). EvidenceTag labels are relabelled to honest counts.
  */
 
 const INK = "var(--faction-snide-ink)";
+const ACID = "var(--faction-snide-acid)";
+const PINK = "var(--faction-snide-pink)";
+const PAPER = "var(--faction-snide-paper)";
 
-/** The shared "rap sheet" CTA skin — a skewed, ink-shadowed slab button/link.
- *  `big` is the primary PULL size; default is the secondary edit/continue size. */
+/** The shared "rap sheet" CTA skin — a skewed, acid-shadowed slab button/link. */
 function rapSheetStyle(background: string, big = false): CSSProperties {
   return {
     display: "inline-block",
@@ -30,13 +37,70 @@ function rapSheetStyle(background: string, big = false): CSSProperties {
     background,
     color: "#fff",
     fontFamily: "var(--faction-snide-font-black)",
-    fontSize: big ? 20 : 18,
-    letterSpacing: "0.04em",
-    padding: big ? "16px 30px" : "14px 26px",
+    fontSize: big ? 15 : 14,
+    letterSpacing: "0.03em",
+    padding: big ? "14px 26px" : "12px 22px",
     textDecoration: "none",
     transform: "rotate(-1.5deg)",
-    boxShadow: `5px 6px 0 ${INK}`,
+    boxShadow: `3px 4px 0 ${ACID}`,
   };
+}
+
+/* ── Ransom title ──
+ * Cut the real task title into ransom-note chips: each word (or word-half for
+ * long words) gets its own font / colour / tilt, photocopied out of the page.
+ * Purely visual reinterpretation of the real `task.title`. */
+const RANSOM_SKINS: ReadonlyArray<{ bg: string; color: string; font: string }> =
+  [
+    { bg: PAPER, color: INK, font: "var(--faction-snide-font-impact)" },
+    { bg: INK, color: ACID, font: "var(--faction-snide-font-black)" },
+    { bg: PINK, color: "#fff", font: "var(--faction-snide-font-impact)" },
+    { bg: ACID, color: INK, font: "var(--faction-snide-font-black)" },
+  ];
+
+/** Split the title into ransom fragments (words, long words halved). */
+function ransomFragments(title: string): string[] {
+  const out: string[] = [];
+  for (const word of title.trim().split(/\s+/).filter(Boolean)) {
+    if (word.length > 7) {
+      const mid = Math.ceil(word.length / 2);
+      out.push(word.slice(0, mid), word.slice(mid));
+    } else {
+      out.push(word);
+    }
+  }
+  return out.length ? out : [title];
+}
+
+function RansomChip({
+  text,
+  index,
+}: {
+  text: string;
+  index: number;
+}) {
+  const skin = RANSOM_SKINS[index % RANSOM_SKINS.length];
+  const big = index % 2 === 0;
+  const rots = [-4, 3, -2, 4];
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        background: skin.bg,
+        color: skin.color,
+        fontFamily: skin.font,
+        fontSize: big ? 38 : 32,
+        lineHeight: 0.9,
+        padding: "2px 10px 0",
+        textTransform: "uppercase",
+        transform: `rotate(${rots[index % rots.length]}deg)`,
+        boxShadow: "1.5px 2.5px 0 rgba(0,0,0,0.4)",
+        border: skin.bg === PAPER ? `1px solid ${INK}` : "none",
+      }}
+    >
+      {text}
+    </span>
+  );
 }
 
 function EvidenceTag({
@@ -54,22 +118,22 @@ function EvidenceTag({
         display: "flex",
         flexDirection: "column",
         gap: 3,
-        padding: "10px 14px",
+        padding: "9px 14px",
         border: `1.5px solid ${INK}`,
         background: accent ? INK : "transparent",
         transform: `rotate(${accent ? -1.5 : 1}deg)`,
-        boxShadow: accent ? "2px 3px 0 var(--faction-snide-pink)" : "none",
+        boxShadow: accent ? `2px 3px 0 ${PINK}` : "none",
       }}
     >
       <span
         style={{
-          fontFamily: "var(--font-body)",
+          fontFamily: "var(--faction-snide-font-type)",
           fontSize: 8,
           letterSpacing: "0.18em",
           textTransform: "uppercase",
           color: accent
-            ? "var(--faction-snide-acid)"
-            : "color-mix(in srgb, var(--faction-snide-wall-text) 55%, transparent)",
+            ? ACID
+            : "color-mix(in srgb, var(--faction-snide-ink) 55%, transparent)",
         }}
       >
         {label}
@@ -79,7 +143,7 @@ function EvidenceTag({
           fontFamily: "var(--faction-snide-font-impact)",
           fontSize: 26,
           lineHeight: 0.85,
-          color: accent ? "var(--faction-snide-acid)" : "var(--faction-snide-wall-text)",
+          color: accent ? ACID : INK,
         }}
       >
         {value}
@@ -94,14 +158,14 @@ function MarkerTab({ text, rot = -1.5 }: { text: string; rot?: number }) {
     <div
       style={{
         display: "inline-block",
-        background: "var(--faction-snide-acid)",
+        background: ACID,
         color: INK,
         fontFamily: "var(--faction-snide-font-marker)",
-        fontSize: 16,
-        padding: "3px 13px",
+        fontSize: 17,
+        padding: "3px 14px",
         transform: `rotate(${rot}deg)`,
-        boxShadow: "2px 2px 0 var(--faction-snide-pink)",
-        marginBottom: 13,
+        boxShadow: `2px 2px 0 ${PINK}`,
+        marginBottom: 14,
       }}
     >
       {text}
@@ -125,7 +189,7 @@ function AccompliceRow({
     >
       {signups.map((m, i) => {
         const rel = relationOf(m.character_id, friends, foes);
-        const relColor = rel === "friend" ? "var(--faction-snide)" : "var(--faction-snide-pink)";
+        const relColor = rel === "friend" ? "var(--faction-snide)" : PINK;
         return (
           <Link
             key={m.character_id}
@@ -163,7 +227,7 @@ function AccompliceRow({
                   border: "2px solid var(--faction-snide)",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "var(--faction-snide-acid)",
+                  color: ACID,
                   fontFamily: "var(--faction-snide-font-impact)",
                   fontSize: 16,
                 }}
@@ -182,7 +246,7 @@ function AccompliceRow({
                   height: 12,
                   borderRadius: "50%",
                   background: relColor,
-                  border: "1.5px solid var(--faction-snide-paper)",
+                  border: `1.5px solid ${PAPER}`,
                 }}
               />
             )}
@@ -191,7 +255,7 @@ function AccompliceRow({
       })}
       <span
         style={{
-          fontFamily: "var(--font-body)",
+          fontFamily: "var(--faction-snide-font-type)",
           fontSize: 10,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
@@ -221,6 +285,8 @@ export default function TaskDetailSNIDE({
     inProgressPraxisId,
     canSignUp,
     modifiedPoints,
+    slotsOpen,
+    maxTaskSlots,
     avgVoteNumber,
     voteCount,
     sortedSubmissions,
@@ -239,13 +305,24 @@ export default function TaskDetailSNIDE({
   // Decorative: SNIDE invents a "case file number" — derive it from the real id.
   const caseNo = String(task.id).padStart(4, "0");
   const isMeta = task.task_type === "metatask";
+  const fragments = ransomFragments(task.title);
+  // The highest-scored completion wears the ⚜ TOP MARKS badge.
+  const topId = submissions.length
+    ? submissions.reduce((a, b) => ((b.score ?? 0) > (a.score ?? 0) ? b : a)).id
+    : null;
 
   return (
-    <div className="py-8" style={{ fontFamily: "var(--font-body)", color: wall }}>
+    <div className="py-8" style={{ fontFamily: "var(--faction-snide-font-type)", color: wall }}>
       {/* ── Breadcrumb ── */}
       <nav
-        className="font-body mb-4"
-        style={{ fontSize: 9, letterSpacing: "0.1em", color: muted }}
+        className="mb-4"
+        style={{
+          fontFamily: "var(--faction-snide-font-type)",
+          fontSize: 10,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: muted,
+        }}
       >
         <Link
           to="/tasks"
@@ -253,37 +330,27 @@ export default function TaskDetailSNIDE({
         >
           Tasks
         </Link>
-        {" › "}
+        <span style={{ opacity: 0.5, margin: "0 8px" }}>›</span>
         <span style={{ fontFamily: "var(--faction-snide-font-cond)", letterSpacing: "0.12em" }}>
           S.N.I.D.E.
         </span>
-        {" › "}
+        <span style={{ opacity: 0.5, margin: "0 8px" }}>›</span>
         <span style={{ color: wall }}>{task.title}</span>
       </nav>
 
-      <div style={{ maxWidth: 760 }}>
-        {/* ── Open-case dossier header ── */}
+      <div style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 30 }}>
+        {/* ── Open-case dossier header (ransom cut-out title) ── */}
         <div
           style={{
             position: "relative",
-            background: "var(--faction-snide-paper)",
+            background: PAPER,
             color: INK,
             border: `1.5px solid ${INK}`,
             boxShadow: "6px 7px 0 rgba(0,0,0,0.25)",
             transform: "rotate(-0.5deg)",
-            marginBottom: 30,
             overflow: "hidden",
           }}
         >
-          <div
-            className="ht-dots"
-            style={{
-              position: "absolute",
-              inset: 0,
-              color: "rgba(20,17,11,0.04)",
-              pointerEvents: "none",
-            }}
-          />
           {/* margin stripe (acid-on-green) */}
           <div
             style={{
@@ -291,47 +358,52 @@ export default function TaskDetailSNIDE({
               left: 0,
               top: 0,
               bottom: 0,
-              width: 7,
+              width: 8,
               background: "var(--faction-snide)",
               backgroundImage:
                 "repeating-linear-gradient(180deg, transparent 0 13px, rgba(0,0,0,0.25) 13px 14px)",
             }}
+          />
+          {/* tape top-right */}
+          <div
+            className="snide-tape"
+            style={{ top: -9, right: 44, width: 64, height: 20, transform: "rotate(6deg)" }}
           />
           <div style={{ position: "relative", display: "flex", gap: 0 }}>
             {/* mugshot panel */}
             <div
               style={{
                 flexShrink: 0,
-                width: 110,
+                width: 138,
                 background: INK,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "18px 8px",
+                padding: "22px 10px",
                 backgroundImage:
-                  "repeating-linear-gradient(180deg, transparent 0 13px, rgba(182,255,46,0.18) 13px 14px)",
+                  "repeating-linear-gradient(180deg, transparent 0 13px, rgba(182,255,46,0.16) 13px 14px)",
               }}
             >
-              <SnideSigil size={48} color="var(--faction-snide-acid)" />
+              <SnideSigil size={58} color={ACID} />
               <div
                 style={{
-                  fontFamily: "var(--faction-snide-font-cond)",
-                  fontSize: 11,
+                  fontFamily: "var(--faction-snide-font-impact)",
+                  fontSize: 13,
                   letterSpacing: "0.12em",
-                  color: "var(--faction-snide-acid)",
-                  marginTop: 8,
+                  color: ACID,
+                  marginTop: 12,
                 }}
               >
                 JOB FILE
               </div>
               <div
                 style={{
-                  fontFamily: "var(--font-body)",
+                  fontFamily: "var(--faction-snide-font-type)",
                   fontSize: 8,
-                  color: "#a0c080",
-                  letterSpacing: "0.08em",
-                  marginTop: 2,
+                  color: "color-mix(in srgb, var(--faction-snide-acid) 60%, var(--faction-snide-ink))",
+                  letterSpacing: "0.1em",
+                  marginTop: 3,
                 }}
               >
                 OPEN CASE
@@ -341,35 +413,36 @@ export default function TaskDetailSNIDE({
             <div
               style={{
                 flex: 1,
-                padding: "18px 20px 18px 16px",
+                minWidth: 0,
+                padding: "24px 24px 22px 20px",
                 position: "relative",
               }}
             >
               <div
                 style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: 8.5,
+                  fontFamily: "var(--faction-snide-font-type)",
+                  fontSize: 9,
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
-                  color: "#6b6253",
-                  marginBottom: 6,
+                  color: "color-mix(in srgb, var(--faction-snide-ink) 60%, transparent)",
+                  marginBottom: 10,
                 }}
               >
                 S.N.I.D.E. Case File · job no. {caseNo}
               </div>
+              {/* Ransom-note title cut from the real task.title */}
               <h1
                 style={{
-                  fontFamily: "var(--faction-snide-font-impact)",
-                  fontSize: 38,
-                  lineHeight: 0.86,
-                  margin: "0 0 12px",
-                  letterSpacing: "0.02em",
-                  textTransform: "uppercase",
-                  transform: "skewX(-4deg)",
-                  color: INK,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "6px 5px",
+                  alignItems: "center",
+                  margin: "0 0 18px",
                 }}
               >
-                {task.title}
+                {fragments.map((frag, i) => (
+                  <RansomChip key={i} text={frag} index={i} />
+                ))}
               </h1>
               {isMeta && (
                 <div
@@ -379,7 +452,7 @@ export default function TaskDetailSNIDE({
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                     color: "var(--faction-snide-pink-deep)",
-                    marginBottom: 10,
+                    marginBottom: 12,
                   }}
                 >
                   ↳ metatask for {factionName(task.metatask_faction_slug)}
@@ -390,7 +463,6 @@ export default function TaskDetailSNIDE({
                   display: "flex",
                   gap: 10,
                   flexWrap: "wrap",
-                  marginBottom: 14,
                 }}
               >
                 <EvidenceTag label="Points" value={modifiedPoints} accent />
@@ -399,17 +471,17 @@ export default function TaskDetailSNIDE({
                 <EvidenceTag label="Filed" value={`${signups.length}`} />
                 <EvidenceTag label="Closed" value={`${submissions.length}`} />
               </div>
-              {/* OPEN CASE stamp */}
+              {/* OPEN CASE / real-status stamp */}
               <span
                 style={{
                   position: "absolute",
-                  bottom: 14,
-                  right: 14,
+                  bottom: 16,
+                  right: 16,
                   fontFamily: "var(--faction-snide-font-cond)",
                   fontSize: 15,
                   letterSpacing: "0.14em",
-                  color: "rgba(190,24,93,0.75)",
-                  border: "2.5px solid rgba(190,24,93,0.7)",
+                  color: "color-mix(in srgb, var(--faction-snide-pink-deep) 75%, transparent)",
+                  border: "2.5px solid color-mix(in srgb, var(--faction-snide-pink-deep) 70%, transparent)",
                   padding: "3px 12px",
                   transform: "rotate(-7deg)",
                 }}
@@ -418,33 +490,141 @@ export default function TaskDetailSNIDE({
               </span>
             </div>
           </div>
-          {/* tape top-right */}
-          <div
-            className="snide-tape"
-            style={{ top: -8, right: 38, width: 56, height: 18, transform: "rotate(6deg)" }}
-          />
         </div>
 
-        {/* ── The brief ── */}
-        <div style={{ marginBottom: 28 }}>
+        {/* ── CTA slab (black-ink dispatch bar) ── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
+            flexWrap: "wrap",
+            background: INK,
+            padding: "16px 20px",
+            transform: "rotate(-0.4deg)",
+            boxShadow: "4px 5px 0 rgba(0,0,0,0.2)",
+          }}
+        >
+          {canSignUp && (
+            <>
+              <button onClick={handleSignup} style={rapSheetStyle("var(--faction-snide-acid-deep)", true)}>
+                ★ PULL THIS JOB ★
+              </button>
+              <div
+                style={{
+                  fontFamily: "var(--faction-snide-font-marker)",
+                  fontSize: 13,
+                  color: PINK,
+                  transform: "rotate(-1deg)",
+                }}
+              >
+                ↳ no take-backs once it's filed
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: 10,
+                  letterSpacing: "0.06em",
+                  color: muted,
+                  width: "100%",
+                }}
+              >
+                earn up to {modifiedPoints} pts · {slotsOpen} of {maxTaskSlots}{" "}
+                slots open · lvl {task.level_required} met
+              </div>
+            </>
+          )}
+
+          {mySubmission && (
+            <>
+              <Link
+                to={`/praxes/${mySubmission.id}/edit`}
+                style={rapSheetStyle(PINK)}
+              >
+                → EDIT THE RAP SHEET
+              </Link>
+              <div
+                style={{
+                  fontFamily: "var(--faction-snide-font-marker)",
+                  fontSize: 13,
+                  color: ACID,
+                  transform: "rotate(-1deg)",
+                }}
+              >
+                ↳ filed. on the record.
+              </div>
+            </>
+          )}
+
+          {!mySubmission && isInProgress && inProgressPraxisId !== null && (
+            <>
+              <Link
+                to={`/praxes/${inProgressPraxisId}/edit`}
+                style={rapSheetStyle("var(--faction-snide-acid-deep)")}
+              >
+                → CONTINUE THE RAP SHEET
+              </Link>
+              <button
+                onClick={handleDrop}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "var(--faction-snide-font-marker)",
+                  fontSize: 13,
+                  color: PINK,
+                  transform: "rotate(-1deg)",
+                }}
+              >
+                ↳ ditch the job
+              </button>
+            </>
+          )}
+
+          {/* Mob verdict — read-only aggregate, pinned to the slab's right edge */}
+          <div
+            style={{
+              marginLeft: "auto",
+              fontFamily: "var(--faction-snide-font-impact)",
+              fontSize: 11,
+              letterSpacing: "0.1em",
+              color: ACID,
+            }}
+          >
+            {voteCount > 0
+              ? `${submissions.length} CLOSED · ${avgVoteNumber.toFixed(1)} AVG`
+              : "NO VERDICT YET"}
+          </div>
+        </div>
+        <ErrorBanner
+          message={signupError}
+          style={{
+            background: "color-mix(in srgb, var(--faction-snide-pink) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--faction-snide-pink) 30%, transparent)",
+          }}
+        />
+
+        {/* ── The brief (lined paper) ── */}
+        <section>
           <MarkerTab text="the brief" rot={-1.5} />
           <div
             style={{
               position: "relative",
-              background: "var(--faction-snide-paper)",
+              background: PAPER,
               color: INK,
               border: `1.5px solid ${INK}`,
               borderLeft: "4px solid var(--faction-snide)",
-              padding: "16px 18px",
+              padding: "24px 24px 20px",
               backgroundImage:
-                "repeating-linear-gradient(180deg, transparent 0 27px, rgba(20,17,11,0.09) 27px 28px)",
-              transform: "rotate(0.4deg)",
+                "repeating-linear-gradient(180deg, transparent 0 27px, rgba(20,17,11,0.08) 27px 28px)",
+              transform: "rotate(0.3deg)",
               boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
+              maxWidth: 640,
             }}
           >
             <div
               className="snide-tape"
-              style={{ top: -8, left: 30, width: 56, height: 17, transform: "rotate(-5deg)" }}
+              style={{ top: -9, left: 32, width: 62, height: 18, transform: "rotate(-5deg)" }}
             />
             <p
               style={{
@@ -458,162 +638,29 @@ export default function TaskDetailSNIDE({
               {task.description || "No brief on file. Figure it out."}
             </p>
           </div>
-        </div>
+        </section>
 
         {/* ── Accomplices on file ── */}
         {signups.length > 0 && (
-          <div style={{ marginBottom: 28 }}>
+          <section>
             <MarkerTab text="accomplices on file" rot={1} />
             <AccompliceRow signups={signups} friends={friends} foes={foes} />
-          </div>
+          </section>
         )}
 
-        {/* ── Mob verdict (read-only aggregate) ── */}
-        <div style={{ marginBottom: 30 }}>
-          <MarkerTab text="mob verdict" rot={-1} />
-          {voteCount > 0 ? (
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
-              <span
-                style={{
-                  fontFamily: "var(--faction-snide-font-impact)",
-                  fontSize: 54,
-                  lineHeight: 0.8,
-                  color: "var(--faction-snide)",
-                }}
-              >
-                {avgVoteNumber.toFixed(1)}
-              </span>
-              <div style={{ paddingBottom: 6 }}>
-                <div
-                  style={{
-                    fontFamily: "var(--faction-snide-font-cond)",
-                    fontSize: 16,
-                    letterSpacing: "0.06em",
-                    color: wall,
-                  }}
-                >
-                  OUT OF 5
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: 10,
-                    letterSpacing: "0.06em",
-                    color: muted,
-                  }}
-                >
-                  {voteCount} on file ·{" "}
-                  <span style={{ fontFamily: "var(--faction-snide-font-marker)", color: "var(--faction-snide-pink)" }}>
-                    nobody's impressed
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p style={{ fontFamily: "var(--faction-snide-font-marker)", fontSize: 14, color: "var(--faction-snide-pink)" }}>
-              no verdict yet. be the first to pull it off.
-            </p>
-          )}
-        </div>
-
-        {/* ── Pull this job / signed-up states ── */}
-        <div
-          style={{
-            borderTop:
-              "2px dashed color-mix(in srgb, var(--faction-snide-wall-text) 22%, transparent)",
-            paddingTop: 24,
-            display: "flex",
-            alignItems: "center",
-            gap: 18,
-            flexWrap: "wrap",
-          }}
-        >
-          {canSignUp && (
-            <>
-              <button onClick={handleSignup} style={rapSheetStyle("var(--faction-snide)", true)}>
-                ★ PULL THIS JOB ★
-              </button>
-              <div
-                style={{
-                  fontFamily: "var(--faction-snide-font-marker)",
-                  fontSize: 14,
-                  color: "var(--faction-snide-pink)",
-                  transform: "rotate(-1.5deg)",
-                }}
-              >
-                ↳ nobody's watching. probably.
-              </div>
-            </>
-          )}
-
-          {mySubmission && (
-            <>
-              <Link
-                to={`/praxes/${mySubmission.id}/edit`}
-                style={rapSheetStyle("var(--faction-snide-pink)")}
-              >
-                → EDIT THE RAP SHEET
-              </Link>
-              <div
-                style={{
-                  fontFamily: "var(--faction-snide-font-marker)",
-                  fontSize: 14,
-                  color: "var(--faction-snide)",
-                  transform: "rotate(-1.5deg)",
-                }}
-              >
-                ↳ filed. on the record.
-              </div>
-            </>
-          )}
-
-          {!mySubmission && isInProgress && inProgressPraxisId !== null && (
-            <>
-              <Link
-                to={`/praxes/${inProgressPraxisId}/edit`}
-                style={rapSheetStyle("var(--faction-snide)")}
-              >
-                → CONTINUE THE RAP SHEET
-              </Link>
-              <button
-                onClick={handleDrop}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "var(--faction-snide-font-marker)",
-                  fontSize: 14,
-                  color: "var(--faction-snide-pink)",
-                  transform: "rotate(-1.5deg)",
-                }}
-              >
-                ↳ ditch the job
-              </button>
-            </>
-          )}
-        </div>
-        <ErrorBanner
-          message={signupError}
-          style={{
-            background: "rgba(255,45,139,0.08)",
-            border: "1px solid rgba(255,45,139,0.3)",
-          }}
-        />
-
-        {/* ── The record (completed praxis) ── */}
-        <div style={{ marginTop: 34 }}>
+        {/* ── Cases closed (completed praxis) ── */}
+        <section>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 14,
               flexWrap: "wrap",
               gap: 8,
             }}
           >
-            <MarkerTab text={`the record · ${submissions.length}`} rot={-1} />
-            <div style={{ display: "flex", gap: 0 }}>
+            <MarkerTab text={`cases closed · ${submissions.length}`} rot={1} />
+            <div style={{ display: "flex", gap: 0, marginBottom: 14 }}>
               {(["score", "recent"] as const).map((sort) => {
                 const on = submissionSort === sort;
                 return (
@@ -627,12 +674,12 @@ export default function TaskDetailSNIDE({
                       textTransform: "uppercase",
                       padding: "5px 12px",
                       background: on ? INK : "transparent",
-                      color: on ? "var(--faction-snide-acid)" : muted,
+                      color: on ? ACID : muted,
                       border: `1.5px solid ${on ? INK : "color-mix(in srgb, var(--faction-snide-wall-text) 30%, transparent)"}`,
                       cursor: "pointer",
                     }}
                   >
-                    {sort === "score" ? "top rated" : "recent"}
+                    {sort === "score" ? "top marks" : "recent"}
                   </button>
                 );
               })}
@@ -644,16 +691,42 @@ export default function TaskDetailSNIDE({
               style={{
                 fontFamily: "var(--faction-snide-font-marker)",
                 fontSize: 15,
-                color: "var(--faction-snide-pink)",
+                color: PINK,
               }}
             >
               no files yet. nobody's pulled it off.
             </p>
           ) : (
             <>
-              <div className="flex flex-wrap gap-4 items-start">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "32px 26px", alignItems: "flex-start" }}>
                 {sortedSubmissions.slice(0, 4).map((s) => (
-                  <PraxisCard key={s.id} praxis={s} />
+                  <div key={s.id} style={{ position: "relative", paddingTop: s.id === topId ? 22 : 0 }}>
+                    {s.id === topId && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: "50%",
+                          transform: "translateX(-50%) rotate(-3deg)",
+                          zIndex: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          whiteSpace: "nowrap",
+                          background: PINK,
+                          color: "#fff",
+                          fontFamily: "var(--faction-snide-font-black)",
+                          fontSize: 9,
+                          letterSpacing: "0.06em",
+                          padding: "4px 12px",
+                          boxShadow: `2px 3px 0 ${INK}`,
+                        }}
+                      >
+                        <span style={{ fontSize: 12, lineHeight: 1 }}>⚜</span> TOP MARKS
+                      </div>
+                    )}
+                    <PraxisCard praxis={s} />
+                  </div>
                 ))}
               </div>
               {submissions.length > 4 && (
@@ -673,7 +746,7 @@ export default function TaskDetailSNIDE({
               )}
             </>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
