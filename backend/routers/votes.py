@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
@@ -8,8 +8,8 @@ from models.character import Character
 from models.praxis import Praxis
 from models.vote import Vote
 from schemas.vote import VoterDetail, VoteIn, VoteOut, VoteSummary
-from services.praxis import compute_praxis_score_from_db
 from services.vote import cast_or_update_vote
+from services.vote_tally import tally_votes
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ async def cast_vote(
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    vote = await cast_or_update_vote(voter, praxis, data.stars, session)
+    vote = await cast_or_update_vote(voter, praxis, data.value, session)
     return VoteOut.model_validate(vote)
 
 
@@ -37,21 +37,20 @@ async def get_vote_summary(
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
 
-    count_result = await session.execute(
-        select(func.count()).select_from(Vote).where(Vote.praxis_id == praxis_id)
+    tallies = await tally_votes([praxis_id], session)
+    tally = tallies.get(praxis_id)
+    total_votes = tally.voter_count if tally else 0
+    average_value = (
+        tally.points_from_votes / tally.voter_count
+        if tally and tally.voter_count > 0
+        else 0.0
     )
-    total_votes = count_result.scalar_one()
-
-    avg_result = await session.execute(
-        select(func.avg(Vote.stars)).where(Vote.praxis_id == praxis_id)
-    )
-    avg_stars = float(avg_result.scalar_one_or_none() or 0.0)
-    total_score = await compute_praxis_score_from_db(praxis, session)
+    total_score = float(tally.points_from_votes) if tally else 0.0
 
     return VoteSummary(
         praxis_id=praxis_id,
         total_votes=total_votes,
-        average_stars=avg_stars,
+        average_value=average_value,
         total_score=total_score,
     )
 
@@ -77,7 +76,7 @@ async def list_voters(
             display_name=character.display_name,
             avatar_url=character.avatar_url,
             faction_slug=character.faction_slug,
-            stars=vote.stars,
+            value=vote.value,
         )
         for vote, character in result.all()
     ]

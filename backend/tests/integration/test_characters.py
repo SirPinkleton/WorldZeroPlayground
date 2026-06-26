@@ -845,7 +845,7 @@ async def test_votes_received_with_votes(
         praxis_id=praxis.id,
         voter_character_id=character2.id,
         voter_account_id=character2.account_id,
-        stars=4,
+        value=4,
     )
     db_session.add(vote)
     await db_session.commit()

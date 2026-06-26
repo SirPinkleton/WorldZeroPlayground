@@ -3,9 +3,8 @@ import api from './axios'
 export interface VoteOut {
   id: number
   praxis_id: number
-  praxis_member_id: number | null
   voter_character_id: number
-  stars: number
+  value: number
   created_at: string
   updated_at: string
 }
@@ -13,12 +12,12 @@ export interface VoteOut {
 export interface VoteSummary {
   praxis_id: number
   total_votes: number
-  average_stars: number
+  average_value: number
   total_score: number
 }
 
-export async function castVote(praxisId: number, stars: number): Promise<VoteOut> {
-  const { data } = await api.post<VoteOut>(`/praxes/${praxisId}/vote`, { stars })
+export async function castVote(praxisId: number, value: number): Promise<VoteOut> {
+  const { data } = await api.post<VoteOut>(`/praxes/${praxisId}/vote`, { value })
   return data
 }
 

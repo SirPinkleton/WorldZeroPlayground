@@ -374,7 +374,7 @@ async def cast_vote_route(
     session: AsyncSession = Depends(get_db),
 ):
     vote = await cast_vote_on_praxis(
-        character, praxis_id, data.stars, session, era=CURRENT_ERA,
+        character, praxis_id, data.value, session, era=CURRENT_ERA,
     )
     return VoteOut.model_validate(vote)
 

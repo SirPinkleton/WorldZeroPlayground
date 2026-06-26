@@ -87,8 +87,8 @@ export interface PraxisCardOut {
   submitted_at: string | null
   member_count: number
   score: number
-  average_stars: number | null
-  total_votes: number
+  average_value: number | null
+  voter_count: number
   task_faction_slug: string | null
 }
 
@@ -105,7 +105,7 @@ export interface PraxisUpdate {
 }
 
 export interface PraxisVoteIn {
-  stars: number
+  value: number
 }
 
 // ---------------------------------------------------------------------------
