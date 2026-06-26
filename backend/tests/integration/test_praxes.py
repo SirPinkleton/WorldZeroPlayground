@@ -7,6 +7,8 @@ NOTE: The new model does NOT require a pre-existing CharacterTask signup before
 creating a praxis.  create_praxis() checks level and bank cap only.
 """
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -804,6 +806,173 @@ async def test_collab_non_creator_can_kick_creator(
     remaining = {m["character_id"] for m in resp.json()["members"]}
     assert character2.id not in remaining
     assert character.id in remaining
+
+
+# ---------------------------------------------------------------------------
+# Collab lazy-consensus publish (ADR-0012): pending-publish window + timeout + leave
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_collab_partial_submit_opens_pending_window(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """One member submitting a two-member collab opens the pending-publish window."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "in_progress"          # not Live yet
+    assert data["submit_proposed_at"] is not None   # countdown opened
+
+
+@pytest.mark.asyncio
+async def test_collab_all_submit_clears_window(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """All members submitting publishes immediately and clears the window."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+    resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "submitted"
+    assert data["submit_proposed_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_collab_edit_cancels_pending_publish(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """An edit while pending hard-resets: window cancelled, everyone un-submitted."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+
+    resp = await client.put(
+        f"/praxes/{praxis_id}",
+        json={"body_text": "second thoughts"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "in_progress"
+    assert data["submit_proposed_at"] is None
+    assert all(not m["has_submitted"] for m in data["members"])
+
+
+@pytest.mark.asyncio
+async def test_collab_pending_window_auto_publishes_on_read(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+):
+    """Lazy-on-access: a lapsed pending window auto-publishes on the next read."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+
+    # Backdate the window past era.collab_auto_submit_days (= 10).
+    praxis = await db_session.get(Praxis, praxis_id)
+    praxis.submit_proposed_at = datetime.now(timezone.utc) - timedelta(days=11)
+    await db_session.commit()
+
+    resp = await client.get(f"/praxes/{praxis_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "submitted"           # silence = consent
+    assert data["submit_proposed_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_collab_leave_completes_consensus(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """If the only un-submitted member leaves, the collab goes Live for those who stayed."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    # Creator (character2) submits; character has not.
+    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+
+    # character (the only hold-out) leaves → remaining (character2) all submitted → Live.
+    resp = await client.post(f"/praxes/{praxis_id}/leave", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "submitted"
+    remaining = {m["character_id"] for m in data["members"]}
+    assert remaining == {character2.id}
+
+
+@pytest.mark.asyncio
+async def test_leave_non_member_returns_403(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A non-member cannot leave a collab."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Solo collab"},
+        headers=auth_headers2,
+    )
+    praxis_id = create_resp.json()["id"]
+    resp = await client.post(f"/praxes/{praxis_id}/leave", headers=auth_headers)
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_solo_submit_opens_no_window(
+    client: AsyncClient,
+    character: Character,
+    active_task: Task,
+    auth_headers: dict,
+):
+    """A solo praxis publishes immediately on submit; no pending window (ADR-0012 scope)."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "title": "Solo"},
+        headers=auth_headers,
+    )
+    praxis_id = create_resp.json()["id"]
+    resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "submitted"
+    assert data["submit_proposed_at"] is None
 
 
 # ---------------------------------------------------------------------------

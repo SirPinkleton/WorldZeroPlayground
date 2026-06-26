@@ -55,6 +55,8 @@ export interface PraxisOut {
   admin_note: string | null
   flagged_at: string | null
   submitted_at: string | null
+  /** When a collab's pending-publish window opened; null if not pending (ADR-0012). */
+  submit_proposed_at: string | null
   created_by_id: number
   created_by_display_name: string
   created_by_faction_slug: string | null
@@ -202,6 +204,12 @@ export async function respondToInvite(
 
 export async function kickMember(praxisId: number, memberId: number): Promise<void> {
   await api.post(`/praxes/${praxisId}/kick/${memberId}`)
+}
+
+/** Remove your own membership from a collab (ADR-0012). Distinct from kick/withdraw. */
+export async function leavePraxis(praxisId: number): Promise<PraxisOut> {
+  const { data } = await api.post<PraxisOut>(`/praxes/${praxisId}/leave`)
+  return data
 }
 
 // ---------------------------------------------------------------------------

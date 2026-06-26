@@ -78,6 +78,11 @@ class Praxis(TimestampMixin, Base):
     submitted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # submit_proposed_at opens the collab pending-publish window (ADR-0012). Set when a
+    # member submits but not all have; NULL means no window open. Cleared on edit / Live.
+    submit_proposed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_by_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
 
     task: Mapped["Task"] = relationship(
