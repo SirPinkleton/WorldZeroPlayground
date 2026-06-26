@@ -46,6 +46,12 @@ export async function blockRelationship(id: number): Promise<RelationshipOut> {
   return data
 }
 
+/** Reverse a block (ADR-0009) — restores the edge to active. Either party can unblock. */
+export async function unblockRelationship(id: number): Promise<RelationshipOut> {
+  const { data } = await api.post<RelationshipOut>(`/relationships/${id}/unblock`)
+  return data
+}
+
 export async function deleteRelationship(id: number): Promise<void> {
   await api.delete(`/relationships/${id}`)
 }

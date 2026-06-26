@@ -8,7 +8,12 @@ from dependencies import get_current_character
 from models.character import Character
 from models.relationship import RelationshipType
 from schemas.relationship import RelationshipCreate, RelationshipListItem, RelationshipOut
-from services.relationship_service import block_relationship, create_relationship, list_relationships
+from services.relationship_service import (
+    block_relationship,
+    create_relationship,
+    list_relationships,
+    unblock_relationship,
+)
 
 router = APIRouter()
 
@@ -53,6 +58,23 @@ async def block_relationship_route(
 ) -> RelationshipOut:
     """Block a relationship. Either party can block."""
     relationship = await block_relationship(
+        relationship_id=relationship_id,
+        character=character,
+        session=session,
+    )
+    return RelationshipOut.model_validate(relationship)
+
+
+@router.post("/{relationship_id}/unblock", response_model=RelationshipOut)
+async def unblock_relationship_route(
+    relationship_id: int,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+) -> RelationshipOut:
+    """Reverse a block (ADR-0009). Either party can unblock; the edge returns to
+    active. Separate route from PUT /{id} (block) so the two actions don't
+    collide."""
+    relationship = await unblock_relationship(
         relationship_id=relationship_id,
         character=character,
         session=session,
