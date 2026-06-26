@@ -208,6 +208,7 @@ async def test_vote_updates_author_stats(
 @pytest.mark.asyncio
 async def test_creating_type_duel_praxis_is_rejected(
     client: AsyncClient,
+    character2: Character,
     active_task: Task,
     auth_headers2: dict,
 ):

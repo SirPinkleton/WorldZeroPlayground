@@ -1137,10 +1137,10 @@ async def test_get_task_allowed_modes_level_2_or_above(
     active_task: Task,
     auth_headers2: dict,
 ):
-    """Level-5 viewer (character2) sees solo, collab, and duel in allowed_modes."""
+    """Level-5 viewer sees solo and collab; duel is issued via challenge (ADR-0011), not a direct mode."""
     resp = await client.get(f"/tasks/{active_task.id}", headers=auth_headers2)
     assert resp.status_code == 200
-    assert resp.json()["allowed_modes"] == ["solo", "collab", "duel"]
+    assert resp.json()["allowed_modes"] == ["solo", "collab"]
 
 
 @pytest.mark.asyncio
