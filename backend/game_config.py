@@ -85,8 +85,11 @@ class EraConfig:
     # Character account / faction gates (enforced in services/character.py and faction_service.py)
     second_character_level_required: int  # min level on an existing char to create another
     albescent_level_required: int         # min level on an existing char to start a new Albescent
-    faction_graduation_level: int         # level at which invitation letters may be delivered
-    invitation_point_threshold: int       # min score at which invitation letters may be delivered
+    faction_graduation_level: int         # DORMANT — old level gate, retired by ADR-0022
+    # ADR-0022 invitation delivery: a character earns faction X's invite once it has
+    # >= invitation_task_threshold completed tasks for X AND >= invitation_point_threshold
+    # points from X's tasks (both per-character, faction-scoped, era-scoped).
+    invitation_point_threshold: int       # min points from a faction's tasks to earn its invite
 
     # Era reset behaviour -- what happens to characters when a new era begins
     reset_score: bool
@@ -97,6 +100,10 @@ class EraConfig:
 
     # Faction configs, keyed by slug
     factions: dict
+
+    # ADR-0022: completed-task count (per faction) required to earn that faction's invite.
+    # Defaulted so existing EraConfig constructions stay valid.
+    invitation_task_threshold: int = 2
 
     # Task definitions for this era
     tasks: tuple = ()                # tuple[TaskDef, ...]
