@@ -9,6 +9,13 @@ they remain queryable as standalone praxes. Any votes that targeted a
 specific praxis member (``praxis_member_id IS NOT NULL``) are deleted because
 that concept no longer exists — duel sides are separate praxes under this model.
 
+Idempotent, like 0002/0003/0005: the squashed baseline (0001) ``create_all``
+reflects the *current* ORM, so on a fresh DB the ``duel`` table, the
+``duelstatus`` enum, and the simple ``uq_vote_praxis`` constraint already exist
+(and ``praxis_member_id`` / the partial indexes never did) — every statement
+here is guarded to a no-op. On a pre-duel DB still at the old vote shape, this
+builds the table and rewrites the vote constraints.
+
 Revision ID: 0006_duel_two_linked_praxes
 Revises: 0005_add_comment_system
 Create Date: 2026-06-25
@@ -32,77 +39,77 @@ def upgrade() -> None:
         " EXCEPTION WHEN duplicate_object THEN NULL; END $$;"
     ))
 
-    # 2. Create the duel table.
-    op.create_table(
-        "duel",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("task_id", sa.Integer(), sa.ForeignKey("task.id"), nullable=False),
-        sa.Column("challenger_praxis_id", sa.Integer(), sa.ForeignKey("praxis.id"), nullable=False),
-        sa.Column("opponent_character_id", sa.Integer(), sa.ForeignKey("character.id"), nullable=False),
-        sa.Column("opponent_praxis_id", sa.Integer(), sa.ForeignKey("praxis.id"), nullable=True),
-        sa.Column(
-            "status",
-            sa.Enum("pending", "active", "settled", "declined", name="duelstatus", create_type=False),
-            nullable=False,
-            server_default="pending",
-        ),
-        sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("declined_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-    )
-
-    # 3. Drop per-member duel votes (praxis_member_id IS NOT NULL).
-    #    These no longer have meaning — duel sides are now separate praxes.
+    # 2. Create the duel table (no-op on a create_all fresh DB).
     op.execute(sa.text(
-        "DELETE FROM vote WHERE praxis_member_id IS NOT NULL"
+        "CREATE TABLE IF NOT EXISTS duel ("
+        " id SERIAL PRIMARY KEY,"
+        " task_id INTEGER NOT NULL REFERENCES task(id),"
+        " challenger_praxis_id INTEGER NOT NULL REFERENCES praxis(id),"
+        " opponent_character_id INTEGER NOT NULL REFERENCES character(id),"
+        " opponent_praxis_id INTEGER REFERENCES praxis(id),"
+        " status duelstatus NOT NULL DEFAULT 'pending',"
+        " accepted_at TIMESTAMP WITH TIME ZONE,"
+        " declined_at TIMESTAMP WITH TIME ZONE,"
+        " created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()"
+        ")"
     ))
 
-    # 4. Convert existing type='duel' praxis rows to type='solo'.
+    # 3. Drop per-member duel votes (praxis_member_id IS NOT NULL). Only the
+    #    old vote shape has the column; on a fresh DB this is skipped.
+    op.execute(sa.text(
+        "DO $$ BEGIN"
+        " IF EXISTS (SELECT 1 FROM information_schema.columns"
+        " WHERE table_name = 'vote' AND column_name = 'praxis_member_id')"
+        " THEN DELETE FROM vote WHERE praxis_member_id IS NOT NULL;"
+        " END IF; END $$;"
+    ))
+
+    # 4. Convert existing type='duel' praxis rows to type='solo' (no-op if none).
     #    They become standalone praxes; the old per-praxis duel relationship
     #    is not migrated (no Duel rows created for historical data).
     op.execute(sa.text(
         "UPDATE praxis SET type = 'solo' WHERE type = 'duel'"
     ))
 
-    # 5. Drop the two partial unique indexes on vote before altering the column.
-    op.drop_index("uq_vote_praxis", table_name="vote")
-    op.drop_index("uq_vote_duel", table_name="vote")
+    # 5. Drop the old per-member partial index (old shape only).
+    op.execute(sa.text("DROP INDEX IF EXISTS uq_vote_duel"))
 
-    # 6. Drop the praxis_member_id column.
-    op.drop_column("vote", "praxis_member_id")
+    # 6. Replace the old partial uq_vote_praxis *index* with a plain unique
+    #    *constraint*. On a fresh DB the constraint already exists (create_all),
+    #    so guard on its absence to stay idempotent.
+    op.execute(sa.text(
+        "DO $$ BEGIN"
+        " IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_vote_praxis')"
+        " THEN DROP INDEX IF EXISTS uq_vote_praxis;"
+        " ALTER TABLE vote ADD CONSTRAINT uq_vote_praxis"
+        " UNIQUE (praxis_id, voter_character_id);"
+        " END IF; END $$;"
+    ))
 
-    # 7. Add a simple unique constraint: one vote per voter per praxis.
-    op.create_unique_constraint("uq_vote_praxis", "vote", ["praxis_id", "voter_character_id"])
+    # 7. Drop the praxis_member_id column (old shape only).
+    op.execute(sa.text("ALTER TABLE vote DROP COLUMN IF EXISTS praxis_member_id"))
 
 
 def downgrade() -> None:
-    # Reverse order.
+    # Reverse order, guarded so it works whichever shape the DB is in.
 
-    # Remove simple unique constraint.
-    op.drop_constraint("uq_vote_praxis", "vote", type_="unique")
+    # Restore the old per-member vote shape: drop the simple constraint, re-add
+    # praxis_member_id, and rebuild the two partial unique indexes.
+    op.execute(sa.text("ALTER TABLE vote DROP CONSTRAINT IF EXISTS uq_vote_praxis"))
+    op.execute(sa.text("DROP INDEX IF EXISTS uq_vote_praxis"))
+    op.execute(sa.text(
+        "ALTER TABLE vote ADD COLUMN IF NOT EXISTS praxis_member_id INTEGER"
+    ))
+    op.execute(sa.text(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_vote_praxis ON vote"
+        " (praxis_id, voter_character_id) WHERE praxis_member_id IS NULL"
+    ))
+    op.execute(sa.text(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_vote_duel ON vote"
+        " (praxis_id, voter_character_id, praxis_member_id)"
+        " WHERE praxis_member_id IS NOT NULL"
+    ))
 
-    # Re-add praxis_member_id.
-    op.add_column("vote", sa.Column("praxis_member_id", sa.Integer(), nullable=True))
-
-    # Restore partial unique indexes.
-    op.create_index(
-        "uq_vote_praxis",
-        "vote",
-        ["praxis_id", "voter_character_id"],
-        unique=True,
-        postgresql_where=sa.text("praxis_member_id IS NULL"),
-    )
-    op.create_index(
-        "uq_vote_duel",
-        "vote",
-        ["praxis_id", "voter_character_id", "praxis_member_id"],
-        unique=True,
-        postgresql_where=sa.text("praxis_member_id IS NOT NULL"),
-    )
-
-    # Drop duel table.
-    op.drop_table("duel")
-
-    # Drop duelstatus enum.
+    # Drop duel table and its enum.
+    op.execute(sa.text("DROP TABLE IF EXISTS duel"))
     op.execute(sa.text("DROP TYPE IF EXISTS duelstatus"))
