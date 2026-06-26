@@ -55,6 +55,7 @@ class PraxisOut(BaseModel):
     admin_note: Optional[str]
     flagged_at: Optional[datetime]
     submitted_at: Optional[datetime] = None  # set on in_progress→submitted; ADR-0017 §6
+    submit_proposed_at: Optional[datetime] = None  # collab pending-publish window opened-at (ADR-0012)
     created_by_id: int
     created_by_display_name: str  # populated by build_praxis_out
     created_by_faction_slug: Optional[str] = None  # author's member faction; actor-scoped byline; ADR-0017 §6

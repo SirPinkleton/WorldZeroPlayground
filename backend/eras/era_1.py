@@ -480,6 +480,7 @@ ERA_1 = EraConfig(
     # Praxis / moderation / metatask gates
     duel_level_required=2,
     collaboration_level_required=1,
+    collab_auto_submit_days=10,
     metatask_apply_level=7,
     flag_level_required=4,
     # Comment gates (ADR-0006) — social layer opens at L2 in the vault

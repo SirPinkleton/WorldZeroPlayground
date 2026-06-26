@@ -72,6 +72,7 @@ class EraConfig:
     # Praxis / moderation / metatask gates (enforced in services/praxis.py)
     duel_level_required: int              # min level to create a duel praxis
     collaboration_level_required: int     # min level to create a collab praxis
+    collab_auto_submit_days: int          # pending-publish window: silence-is-consent days (ADR-0012)
     metatask_apply_level: int             # min level to apply a metatask (non-Albescent)
     flag_level_required: int              # min level to flag a praxis for moderation
 
