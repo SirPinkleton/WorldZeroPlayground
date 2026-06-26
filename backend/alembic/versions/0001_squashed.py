@@ -40,7 +40,7 @@ ENUMS: list[tuple[str, list[str]]] = [
     ("praxisstatus", ["in_progress", "submitted"]),
     ("praxisinvitestatus", ["pending", "accepted", "declined"]),
     ("mediatype", ["image", "video", "audio"]),
-    ("moderationstatus", ["visible", "flagged", "hidden", "failed"]),
+    ("moderationstatus", ["visible", "flagged", "hidden", "failed", "deleted"]),
     ("relationshiptype", ["friend", "foe"]),
     ("relationshipstatus", ["active", "blocked"]),
     ("taunttriggertype", ["score_overtake", "level_up", "praxis_complete"]),

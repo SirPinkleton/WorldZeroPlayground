@@ -18,8 +18,10 @@ import type { ReactElement } from "react";
 import { describe, it, expect } from "vitest";
 import { PRAXIS_CARD_BY_SLUG, DefaultPraxisCard } from "../PraxisCard";
 import { CARD_COMPONENTS, DEFAULT_CARD } from "../TaskCard";
+import { COMMENT_COMPONENTS, DefaultComment } from "../comments/CommentThread";
 import type { PraxisCardOut } from "../../api/praxis";
 import type { TaskOut } from "../../api/tasks";
+import type { CommentOut } from "../../api/comments";
 
 function markup(element: ReactElement): { html: string; text: string } {
   const html = renderToStaticMarkup(<MemoryRouter>{element}</MemoryRouter>);
@@ -112,6 +114,44 @@ describe("task-card content-slot invariant", () => {
       expect(text, "title slot").toContain("Photosynthesis");
       expect(html, "task-link slot").toContain('href="/tasks/7"');
       expect(html, "points slot").toContain("4242");
+    });
+  }
+});
+
+// ─── Comment archetypes (ADR-0018) ──────────────────────────────────────────
+// Every comment voice must render the invariant author-identity + body slots in
+// row mode. The author slot's universal anchor is the link to the author's
+// profile (some voices show the handle, some the display name — both link out).
+
+const COMMENT: CommentOut = {
+  id: 1,
+  praxis_id: 7,
+  task_id: null,
+  body_text: "Photosynthesis",
+  is_edited: false,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+  author: {
+    id: 3,
+    username: "ada",
+    display_name: "Adabel",
+    avatar_url: null,
+    faction_slug: "ua",
+  },
+  mentions: [],
+};
+
+const commentArchetypes = {
+  ...COMMENT_COMPONENTS,
+  __default__: DefaultComment,
+};
+
+describe("comment content-slot invariant (row mode)", () => {
+  for (const [slug, Comment] of Object.entries(commentArchetypes)) {
+    it(`${slug} renders author identity and body`, () => {
+      const { html, text } = markup(<Comment mode="row" comment={COMMENT} />);
+      expect(html, "author-identity slot").toContain('href="/characters/3"');
+      expect(text, "body slot").toContain("Photosynthesis");
     });
   }
 });

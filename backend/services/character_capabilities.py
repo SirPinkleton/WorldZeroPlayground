@@ -21,11 +21,12 @@ from game_config import CURRENT_ERA, EraConfig
 
 @dataclass(frozen=True)
 class CharacterCapabilities:
-    """Four boolean flags the frontend uses to gate action UI."""
+    """Boolean flags the frontend uses to gate action UI."""
     can_propose_task: bool
     can_propose_metatask: bool
     can_see_retired_tasks: bool
     can_see_pending_tasks: bool
+    can_comment: bool
 
 
 def compute_capabilities(
@@ -39,6 +40,7 @@ def compute_capabilities(
             can_propose_metatask=True,
             can_see_retired_tasks=True,
             can_see_pending_tasks=True,
+            can_comment=True,
         )
 
     if character_level is None:
@@ -47,6 +49,7 @@ def compute_capabilities(
             can_propose_metatask=False,
             can_see_retired_tasks=False,
             can_see_pending_tasks=False,
+            can_comment=False,
         )
 
     return CharacterCapabilities(
@@ -54,4 +57,5 @@ def compute_capabilities(
         can_propose_metatask=character_level >= era.level_to_propose_metatask,
         can_see_retired_tasks=character_level >= era.level_to_see_retired_tasks,
         can_see_pending_tasks=character_level >= era.level_to_see_pending_tasks,
+        can_comment=character_level >= era.comment_level_required,
     )

@@ -15,11 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA
 from models.character import Character
+from models.comment import Comment, CommentMention
 from models.era import Era
 from models.faction_defection_history import FactionDefectionHistory
 from models.invitation_letter import InvitationLetter
 from models.relationship import Relationship, RelationshipStatus, RelationshipType
-from models.praxis import Praxis, PraxisInvite, PraxisInviteStatus, PraxisMember, PraxisStatus, PraxisType
+from models.praxis import ModerationStatus, Praxis, PraxisInvite, PraxisInviteStatus, PraxisMember, PraxisStatus, PraxisType
 from models.task import Task, TaskStatus
 from models.taunt_message import TauntMessage
 from models.vote import Vote
@@ -67,6 +68,7 @@ FEED_ITEM_TYPE_FRIEND_SIGNUP = "friend_signup"
 FEED_ITEM_TYPE_INVITATION_LETTER = "invitation_letter"
 FEED_ITEM_TYPE_FRIEND_DEFECTION = "friend_defection"
 FEED_ITEM_TYPE_FOE_COMPLETION = "foe_completion"
+FEED_ITEM_TYPE_COMMENT_MENTION = "comment_mention"
 
 # Which sub-queries each filter includes
 FILTER_QUERIES: dict[str, set[str]] = {
@@ -82,6 +84,7 @@ FILTER_QUERIES: dict[str, set[str]] = {
         FEED_ITEM_TYPE_INVITATION_LETTER,
         FEED_ITEM_TYPE_FRIEND_DEFECTION,
         FEED_ITEM_TYPE_FOE_COMPLETION,
+        FEED_ITEM_TYPE_COMMENT_MENTION,
     },
     "friends": {
         FEED_ITEM_TYPE_FRIEND_COMPLETION,
@@ -94,6 +97,7 @@ FILTER_QUERIES: dict[str, set[str]] = {
         FEED_ITEM_TYPE_COLLAB_INVITE,
         FEED_ITEM_TYPE_DUEL_CHALLENGE,
         FEED_ITEM_TYPE_INVITATION_LETTER,
+        FEED_ITEM_TYPE_COMMENT_MENTION,
     },
     "global": {FEED_ITEM_TYPE_GLOBAL_TASK, FEED_ITEM_TYPE_ERA_ANNOUNCEMENT},
     "requests": {FEED_ITEM_TYPE_COLLAB_INVITE, FEED_ITEM_TYPE_DUEL_CHALLENGE},
@@ -571,6 +575,54 @@ async def _fetch_friend_defections(
     return items
 
 
+async def _fetch_comment_mentions(
+    character_id: int,
+    session: AsyncSession,
+    before: Optional[datetime],
+) -> list[ActivityFeedItemDC]:
+    """Comments that @mention the current character (visible, non-withdrawn)."""
+    query = (
+        select(
+            Comment.id,
+            Comment.body_text,
+            Comment.created_at,
+            Comment.praxis_id,
+            Comment.task_id,
+            Character.display_name.label("author_display_name"),
+            Character.faction_slug.label("author_faction_slug"),
+            Character.avatar_url.label("author_avatar_url"),
+        )
+        .join(CommentMention, CommentMention.comment_id == Comment.id)
+        .join(Character, Comment.created_by_id == Character.id)
+        .where(
+            CommentMention.mentioned_character_id == character_id,
+            Comment.is_withdrawn.is_(False),
+            Comment.moderation_status == ModerationStatus.visible,
+        )
+    )
+    if before is not None:
+        query = query.where(Comment.created_at < before)
+    query = query.order_by(Comment.created_at.desc()).limit(SUB_QUERY_LIMIT)
+
+    result = await session.execute(query)
+    items: list[ActivityFeedItemDC] = []
+    for row in result.all():
+        items.append(ActivityFeedItemDC(
+            type=FEED_ITEM_TYPE_COMMENT_MENTION,
+            timestamp=row.created_at,
+            actor_display_name=row.author_display_name,
+            actor_faction_slug=row.author_faction_slug,
+            actor_avatar_url=row.author_avatar_url,
+            payload={
+                "comment_id": row.id,
+                "praxis_id": row.praxis_id,
+                "task_id": row.task_id,
+                "excerpt": row.body_text[:140],
+            },
+        ))
+    return items
+
+
 async def _compute_counts(
     character_id: int,
     friend_ids: list[int],
@@ -649,8 +701,21 @@ async def _compute_counts(
         )
         return result.scalar_one()
 
+    async def count_comment_mentions() -> int:
+        result = await session.execute(
+            select(func.count())
+            .select_from(CommentMention)
+            .join(Comment, CommentMention.comment_id == Comment.id)
+            .where(
+                CommentMention.mentioned_character_id == character_id,
+                Comment.is_withdrawn.is_(False),
+                Comment.moderation_status == ModerationStatus.visible,
+            )
+        )
+        return result.scalar_one()
+
     async def count_your_stuff() -> int:
-        """Votes on mine + praxis invites + invitation letters."""
+        """Votes on mine + praxis invites + invitation letters + @mentions."""
         invite_result = await session.execute(
             select(func.count())
             .select_from(PraxisInvite)
@@ -659,7 +724,8 @@ async def _compute_counts(
         invite_count = invite_result.scalar_one()
         votes_count = await count_votes_on_mine()
         letters_count = await count_invitation_letters()
-        return votes_count + invite_count + letters_count
+        mentions_count = await count_comment_mentions()
+        return votes_count + invite_count + letters_count + mentions_count
 
     async def count_global() -> int:
         tasks_result = await session.execute(
@@ -802,6 +868,11 @@ async def get_activity_feed(
     if FEED_ITEM_TYPE_FRIEND_DEFECTION in allowed_types:
         fetch_tasks.append(_fetch_friend_defections(
             friend_ids, session, before_cursor,
+        ))
+
+    if FEED_ITEM_TYPE_COMMENT_MENTION in allowed_types:
+        fetch_tasks.append(_fetch_comment_mentions(
+            character_id, session, before_cursor,
         ))
 
     # Run all sub-queries (they share the same session, so sequential is safer

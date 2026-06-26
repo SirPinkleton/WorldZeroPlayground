@@ -26,6 +26,8 @@ class ModerationStatus(enum.Enum):
     flagged = "flagged"
     hidden = "hidden"
     failed = "failed"
+    # deleted: admin terminal tombstone. Comments use it; praxis never does.
+    deleted = "deleted"
 
 
 class PraxisType(enum.Enum):

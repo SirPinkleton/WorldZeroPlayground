@@ -202,6 +202,9 @@ ERA_N = EraConfig(
     collaboration_level_required=1,
     metatask_apply_level=7,
     flag_level_required=4,
+    # Comment gates (ADR-0006)
+    comment_level_required=2,
+    comment_flag_review_threshold=1,
 
     # Character account / faction gates
     second_character_level_required=4,
