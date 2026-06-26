@@ -59,7 +59,7 @@ function PlaceholderPraxisBody({
   titleStyle?: CSSProperties;
 }) {
   const hero =
-    praxis.average_stars !== null && praxis.average_stars !== undefined ? (
+    praxis.average_value !== null && praxis.average_value !== undefined ? (
       <VoteUISummary praxis={praxis} color={tint} border={tint} />
     ) : (
       <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />

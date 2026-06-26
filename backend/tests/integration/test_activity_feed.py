@@ -35,7 +35,7 @@ async def test_activity_feed_shows_votes_on_mine(
     # character2 votes on it (voter != praxis owner, distinct accounts)
     vote_resp = await client.post(
         f"/praxes/{praxis_id}/vote",
-        json={"stars": 4},
+        json={"value": 4},
         headers=auth_headers2,
     )
     assert vote_resp.status_code == 200
@@ -53,5 +53,5 @@ async def test_activity_feed_shows_votes_on_mine(
     assert len(vote_items) == 1, f"Expected one vote_on_mine item, got: {data['items']}"
     entry = vote_items[0]
     assert entry["payload"]["praxis_id"] == praxis_id
-    assert entry["payload"]["stars"] == 4
+    assert entry["payload"]["value"] == 4
     assert entry["actor_display_name"] == character2.display_name

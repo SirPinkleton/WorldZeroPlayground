@@ -18,6 +18,7 @@ RelationshipDisplayStatus = Literal[
     "One-sided Foe",
     "Secret Admirer",
     "Targeted",
+    "Blocked",
     "Unknown",
 ]
 

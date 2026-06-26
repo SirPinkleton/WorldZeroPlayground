@@ -71,7 +71,7 @@ export default function DefaultPraxisDetail({
         {votes && votes.total_votes > 0 && (
           <div className="text-right shrink-0">
             <div className="font-display italic" style={{ fontSize: 22, color: 'var(--color-text-primary)' }}>
-              {votes.average_stars.toFixed(1)}
+              {votes.average_value.toFixed(1)}
             </div>
             <span className="eyebrow">{votes.total_votes} votes</span>
           </div>
@@ -150,7 +150,7 @@ export default function DefaultPraxisDetail({
         <VoteUI
           factionSlug={praxis.task_faction_slug}
           praxisId={praxis.id}
-          averageStars={votes?.average_stars}
+          averageStars={votes?.average_value}
           totalVotes={votes?.total_votes}
         />
       </div>

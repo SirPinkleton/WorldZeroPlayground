@@ -27,7 +27,6 @@ from models.praxis import (
     PraxisType,
 )
 from models.task import Task, TaskStatus, TaskType
-from models.vote import Vote
 from schemas.task import TaskOut
 from schemas.praxis import (
     MediaItemOut,
@@ -40,15 +39,7 @@ from schemas.praxis import (
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
 from models.duel import Duel, DuelStatus
-from services.meta_task import get_meta_task_points
-from services.scoring import (
-    COLLABORATION_MODE_COLLAB,
-    COLLABORATION_MODE_DUEL,
-    COLLABORATION_MODE_SOLO,
-    compute_duel_multiplier,
-    compute_faction_multiplier,
-    compute_praxis_score,
-)
+from services.vote_tally import get_tally, tally_votes
 
 
 EVERYMEN_FACTION_SLUG = "everymen"
@@ -99,116 +90,6 @@ async def _count_in_progress_praxes(character_id: int, session: AsyncSession) ->
 
 
 # ---------------------------------------------------------------------------
-# Score computation
-# ---------------------------------------------------------------------------
-
-
-async def compute_praxis_score_from_db(
-    praxis: Praxis,
-    session: AsyncSession,
-    era: EraConfig = CURRENT_ERA,
-) -> float:
-    """Compute the current score for a praxis from its votes."""
-    task = praxis.task
-    if task is None:
-        return 0.0
-
-    sum_result = await session.execute(
-        select(func.sum(Vote.stars)).where(Vote.praxis_id == praxis.id)
-    )
-    total_stars = int(sum_result.scalar_one_or_none() or 0)
-
-    if praxis.type == PraxisType.solo:
-        creator = praxis.created_by
-        character_faction_slug = creator.faction_slug if creator else "na"
-        task_faction_slug = task.primary_faction_slug or "na"
-        faction_multiplier = compute_faction_multiplier(
-            character_faction_slug,
-            task_faction_slug,
-            era,
-            collaboration_mode=COLLABORATION_MODE_SOLO,
-        )
-        if creator:
-            era_row = await get_current_era_row(session)
-            creator_stats = await get_or_create_stats(session, creator.id, era_row.id)
-            creator_level = creator_stats.level
-        else:
-            creator_level = 0
-        meta_task_points = await get_meta_task_points(praxis.id, creator_level, session)
-        return compute_praxis_score(task.point_value, faction_multiplier, total_stars, meta_task_points)
-
-    elif praxis.type == PraxisType.collab:
-        # For a collab, return the sum for the praxis as a whole (not per-member)
-        task_faction_slug = task.primary_faction_slug or "na"
-        # Use first member's faction for simplicity (caller should use per-member)
-        if praxis.members:
-            first_member = praxis.members[0]
-            character_faction_slug = first_member.character.faction_slug if first_member.character else "na"
-        else:
-            character_faction_slug = "na"
-        faction_multiplier = compute_faction_multiplier(
-            character_faction_slug,
-            task_faction_slug,
-            era,
-            collaboration_mode=COLLABORATION_MODE_COLLAB,
-        )
-        return compute_praxis_score(task.point_value, faction_multiplier, total_stars)
-
-    # Check if this praxis is a duel side (ADR-0011). If so, apply the duel
-    # win/loss multiplier using the live vote tallies of both sides.
-    duel_result = await session.execute(
-        select(Duel).where(
-            (Duel.challenger_praxis_id == praxis.id) | (Duel.opponent_praxis_id == praxis.id),
-            Duel.status.in_([DuelStatus.active, DuelStatus.settled]),
-        )
-    )
-    duel = duel_result.scalar_one_or_none()
-    if duel is not None:
-        opponent_praxis_id = (
-            duel.opponent_praxis_id
-            if duel.challenger_praxis_id == praxis.id
-            else duel.challenger_praxis_id
-        )
-        opponent_stars_result = await session.execute(
-            select(func.sum(Vote.stars)).where(Vote.praxis_id == opponent_praxis_id)
-        )
-        opponent_stars = int(opponent_stars_result.scalar_one_or_none() or 0)
-        creator = praxis.created_by
-        character_faction_slug = creator.faction_slug if creator else "na"
-        opponent_praxis = await session.get(Praxis, opponent_praxis_id)
-        opponent_faction_slug = (
-            opponent_praxis.created_by.faction_slug
-            if opponent_praxis and opponent_praxis.created_by
-            else "na"
-        )
-        task_faction_slug = task.primary_faction_slug or "na"
-        faction_multiplier = compute_faction_multiplier(
-            character_faction_slug, task_faction_slug, era,
-            collaboration_mode=COLLABORATION_MODE_SOLO,
-        )
-        duel_multiplier = compute_duel_multiplier(
-            character_faction_slug,
-            opponent_faction_slug,
-            is_winner=total_stars > opponent_stars,
-            is_tied=total_stars == opponent_stars,
-            era=era,
-        )
-        if creator:
-            era_row = await get_current_era_row(session)
-            creator_stats = await get_or_create_stats(session, creator.id, era_row.id)
-            creator_level = creator_stats.level
-        else:
-            creator_level = 0
-        meta_task_points = await get_meta_task_points(praxis.id, creator_level, session)
-        return compute_praxis_score(
-            task.point_value, faction_multiplier, total_stars,
-            meta_task_points, duel_multiplier,
-        )
-
-    return 0.0
-
-
-# ---------------------------------------------------------------------------
 # Build output objects
 # ---------------------------------------------------------------------------
 
@@ -237,7 +118,11 @@ async def build_praxis_out(
 
     media_items = [MediaItemOut.model_validate(item) for item in praxis.media_items]
 
-    score = await compute_praxis_score_from_db(praxis, session, era)
+    # Merit = task base + points_from_votes (viewer-independent; ADR-0014).
+    tally_map = await tally_votes([praxis.id], session)
+    tally = get_tally(tally_map, praxis.id)
+    task_base = praxis.task.point_value if praxis.task else 0
+    score = float(task_base + tally.points_from_votes)
 
     # Look up the Duel row if this praxis is a duel side (ADR-0011).
     duel_result = await session.execute(
@@ -289,6 +174,7 @@ async def build_praxis_out(
         invites=invites,
         media_items=media_items,
         score=score,
+        voter_count=tally.voter_count,
         duel_id=duel_id,
         can_flag=can_flag,
         applied_metatasks=applied_metatasks,
@@ -300,21 +186,22 @@ async def build_praxis_card_out(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> PraxisCardOut:
-    """Lightweight card for list views."""
+    """Lightweight card for list views.
+
+    score = Merit = task base + points_from_votes (viewer-independent; ADR-0014).
+    """
     task_title = praxis.task.title if praxis.task else ""
     task_point_value = praxis.task.point_value if praxis.task else 0
     task_level_required = praxis.task.level_required if praxis.task else 0
-
-    score = await compute_praxis_score_from_db(praxis, session, era)
     created_by_display_name = praxis.created_by.display_name if praxis.created_by else ""
 
-    vote_stats_result = await session.execute(
-        select(func.avg(Vote.stars), func.count(Vote.id))
-        .where(Vote.praxis_id == praxis.id)
+    tally_map = await tally_votes([praxis.id], session)
+    tally = get_tally(tally_map, praxis.id)
+    score = float(task_point_value + tally.points_from_votes)
+    average_value = (
+        tally.points_from_votes / tally.voter_count
+        if tally.voter_count > 0 else None
     )
-    average_stars_raw, total_votes_raw = vote_stats_result.one()
-    average_stars = float(average_stars_raw) if average_stars_raw is not None else None
-    total_votes = int(total_votes_raw) if total_votes_raw is not None else 0
 
     return PraxisCardOut(
         id=praxis.id,
@@ -333,8 +220,8 @@ async def build_praxis_card_out(
         submitted_at=praxis.submitted_at,
         member_count=len(praxis.members),
         score=score,
-        average_stars=average_stars,
-        total_votes=total_votes,
+        average_value=average_value,
+        voter_count=tally.voter_count,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
     )
 
@@ -1160,7 +1047,6 @@ __all__ = [
     "build_praxis_card_out",
     "can_flag_praxis",
     "can_submit_praxis_for_task",
-    "compute_praxis_score_from_db",
     "create_praxis",
     "delete_praxis",
     "flag_praxis",

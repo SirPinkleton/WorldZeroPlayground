@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class VoteIn(BaseModel):
-    stars: int = Field(..., ge=1, le=5)
+    value: int = Field(..., ge=1, le=5)
 
 
 class VoteOut(BaseModel):
@@ -14,7 +14,7 @@ class VoteOut(BaseModel):
     id: int
     praxis_id: int
     voter_character_id: int
-    stars: int
+    value: int
     created_at: datetime
     updated_at: datetime
 
@@ -22,7 +22,7 @@ class VoteOut(BaseModel):
 class VoteSummary(BaseModel):
     praxis_id: int
     total_votes: int
-    average_stars: float
+    average_value: float
     total_score: float
 
 
@@ -33,4 +33,4 @@ class VoterDetail(BaseModel):
     display_name: str
     avatar_url: str
     faction_slug: str
-    stars: int
+    value: int

@@ -24,14 +24,23 @@ DISPLAY_STATUS_ONE_SIDED_FRIEND = "One-sided Friend"
 DISPLAY_STATUS_ONE_SIDED_FOE = "One-sided Foe"
 DISPLAY_STATUS_SECRET_ADMIRER = "Secret Admirer"
 DISPLAY_STATUS_TARGETED = "Targeted"
+DISPLAY_STATUS_BLOCKED = "Blocked"
 DISPLAY_STATUS_UNKNOWN = "Unknown"
 
 
 def compute_display_status(
     outgoing_type: Optional[str],
+    outgoing_status: str,
     incoming_type: Optional[str],
+    incoming_status: Optional[str],
 ) -> str:
-    """Derive the human-readable relationship label from both sides."""
+    """Derive the human-readable relationship label from both sides.
+
+    A block on either edge takes absolute precedence over the type-derived label
+    (ADR-0009: a block is mutual and visible).
+    """
+    if outgoing_status == "blocked" or incoming_status == "blocked":
+        return DISPLAY_STATUS_BLOCKED
     if outgoing_type == "friend" and incoming_type == "friend":
         return DISPLAY_STATUS_MUTUAL_FRIENDS
     if outgoing_type == "foe" and incoming_type == "foe":
@@ -128,37 +137,45 @@ async def list_relationships(
     if not rows:
         return []
 
-    # Gather the reverse relationships in one query
+    # Gather the reverse relationships in one query — include blocked edges so
+    # compute_display_status can surface the "Blocked" label for both parties.
     target_ids = [row[1].id for row in rows]
     reverse_query = select(Relationship).where(
         and_(
             Relationship.from_character_id.in_(target_ids),
             Relationship.to_character_id == character_id,
-            Relationship.status == RelationshipStatus.active,
         )
     )
     reverse_result = await session.execute(reverse_query)
-    reverse_map: dict[int, str] = {
-        reverse_relationship.from_character_id: reverse_relationship.type.value
+    reverse_map: dict[int, tuple[str, str]] = {
+        reverse_relationship.from_character_id: (
+            reverse_relationship.type.value,
+            reverse_relationship.status.value,
+        )
         for reverse_relationship in reverse_result.scalars().all()
     }
 
     items = []
     for relationship, target_character in rows:
         outgoing_type = relationship.type.value
-        incoming_type = reverse_map.get(target_character.id)
+        outgoing_status = relationship.status.value
+        incoming = reverse_map.get(target_character.id)
+        incoming_type = incoming[0] if incoming else None
+        incoming_status = incoming[1] if incoming else None
         items.append(RelationshipListItem(
             id=relationship.id,
             from_character_id=relationship.from_character_id,
             to_character_id=relationship.to_character_id,
             type=outgoing_type,
-            status=relationship.status.value,
+            status=outgoing_status,
             created_at=relationship.created_at,
             to_display_name=target_character.display_name,
             to_avatar_url=target_character.avatar_url,
             to_faction_slug=target_character.faction_slug,
             reverse_type=incoming_type,
-            display_status=compute_display_status(outgoing_type, incoming_type),
+            display_status=compute_display_status(
+                outgoing_type, outgoing_status, incoming_type, incoming_status
+            ),
         ))
 
     return items

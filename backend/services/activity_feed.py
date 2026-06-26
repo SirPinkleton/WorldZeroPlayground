@@ -150,7 +150,7 @@ async def _fetch_votes_on_mine(
     query = (
         select(
             Vote.id,
-            Vote.stars,
+            Vote.value,
             Vote.created_at,
             Vote.praxis_id,
             Praxis.title.label("praxis_title"),
@@ -179,11 +179,11 @@ async def _fetch_votes_on_mine(
             actor_avatar_url=row.voter_avatar_url,
             payload={
                 "vote_id": row.id,
-                "stars": row.stars,
+                "value": row.value,
                 "praxis_id": row.praxis_id,
                 "praxis_title": row.praxis_title,
                 "task_point_value": row.task_point_value,
-                "points_earned": row.stars * row.task_point_value,
+                "points_earned": row.value * row.task_point_value,
             },
         ))
     return items

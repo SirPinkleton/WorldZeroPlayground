@@ -55,7 +55,7 @@ export default function CharacterProfile() {
     listRelationships()
       .then((rels) => {
         const match = rels.find(
-          (r) => r.to_character_id === cid && r.status !== "blocked",
+          (r) => r.to_character_id === cid,
         );
         setRelationship(match ?? null);
       })
@@ -75,7 +75,7 @@ export default function CharacterProfile() {
       // Re-fetch to get the properly typed RelationshipListItem with display data
       const rels = await listRelationships();
       const match = rels.find(
-        (r) => r.to_character_id === character.id && r.status !== "blocked",
+        (r) => r.to_character_id === character.id,
       );
       setRelationship(match ?? null);
     } catch (err: unknown) {
@@ -85,7 +85,7 @@ export default function CharacterProfile() {
         if (axiosErr.response?.status === 409) {
           const rels = await listRelationships();
           const match = rels.find(
-            (r) => r.to_character_id === character.id && r.status !== "blocked",
+            (r) => r.to_character_id === character.id,
           );
           setRelationship(match ?? null);
         } else {
@@ -258,9 +258,11 @@ export default function CharacterProfile() {
                     <div
                       style={{
                         background:
-                          relationship.type === "friend"
-                            ? "var(--badge-friend)"
-                            : "var(--color-danger)",
+                          relationship.display_status === "Blocked"
+                            ? "var(--color-text-tertiary)"
+                            : relationship.type === "friend"
+                              ? "var(--badge-friend)"
+                              : "var(--color-danger)",
                         color: "var(--color-text-on-accent)",
                         fontFamily: "'Courier Prime', monospace",
                         fontSize: 8,
@@ -271,22 +273,28 @@ export default function CharacterProfile() {
                         borderRadius: 2,
                       }}
                     >
-                      {relationship.type === "friend" ? "Friends" : "Foe"}
+                      {relationship.display_status === "Blocked"
+                        ? "Blocked"
+                        : relationship.type === "friend"
+                          ? "Friends"
+                          : "Foe"}
                     </div>
-                    <button
-                      onClick={handleRemoveRelationship}
-                      disabled={relationshipLoading}
-                      className="eyebrow"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--color-text-tertiary)",
-                        textAlign: "center",
-                      }}
-                    >
-                      remove
-                    </button>
+                    {relationship.display_status !== "Blocked" && (
+                      <button
+                        onClick={handleRemoveRelationship}
+                        disabled={relationshipLoading}
+                        className="eyebrow"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--color-text-tertiary)",
+                          textAlign: "center",
+                        }}
+                      >
+                        remove
+                      </button>
+                    )}
                   </>
                 ) : (
                   <>

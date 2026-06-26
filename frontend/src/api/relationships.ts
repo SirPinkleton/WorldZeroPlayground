@@ -12,7 +12,7 @@ export interface RelationshipListItem {
   to_avatar_url: string
   to_faction_slug: string
   reverse_type: string | null
-  display_status: string
+  display_status: 'Mutual Friends' | 'Rivals' | 'Tsundere' | 'One-sided Friend' | 'One-sided Foe' | 'Secret Admirer' | 'Targeted' | 'Blocked' | 'Unknown'
 }
 
 /** Matches backend RelationshipOut (basic create/update response) */

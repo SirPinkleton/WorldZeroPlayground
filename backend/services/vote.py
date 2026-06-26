@@ -14,7 +14,7 @@ from services.scoring import compute_votes_available
 async def cast_vote_on_praxis(
     voter: Character,
     praxis_id: int,
-    stars: int,
+    value: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Vote:
@@ -26,13 +26,13 @@ async def cast_vote_on_praxis(
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None or praxis.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    return await cast_or_update_vote(voter, praxis, stars, session, era)
+    return await cast_or_update_vote(voter, praxis, value, session, era)
 
 
 async def cast_or_update_vote(
     voter: Character,
     praxis: Praxis,
-    stars: int,
+    value: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Vote:
@@ -41,8 +41,8 @@ async def cast_or_update_vote(
     Enforces account-level anti-self-vote so alt characters on the same account
     cannot vote on each other's praxes.
     """
-    if not 1 <= stars <= 5:
-        raise HTTPException(status_code=422, detail="Stars must be between 1 and 5.")
+    if not 1 <= value <= 5:
+        raise HTTPException(status_code=422, detail="Vote value must be between 1 and 5.")
 
     # Account-level anti-self-vote. Praxis.created_by is selectin-loaded,
     # but fall back to an explicit lookup if it isn't populated.
@@ -62,7 +62,7 @@ async def cast_or_update_vote(
 
     if existing is not None:
         # Update is free — no budget deduction
-        existing.stars = stars
+        existing.value = value
         await session.flush()
         await recalculate_character_stats(praxis.created_by_id, session, era)
         await session.flush()
@@ -80,7 +80,7 @@ async def cast_or_update_vote(
         praxis_id=praxis.id,
         voter_character_id=voter.id,
         voter_account_id=voter.account_id,
-        stars=stars,
+        value=value,
     )
     stats.votes_spent_this_era += 1
     session.add(vote)

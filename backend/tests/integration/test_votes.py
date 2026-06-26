@@ -39,12 +39,12 @@ async def test_cast_vote_on_solo_praxis(
     # character votes
     vote_resp = await client.post(
         f"/praxes/{praxis_id}/vote",
-        json={"stars": 4},
+        json={"value": 4},
         headers=auth_headers,
     )
     assert vote_resp.status_code == 200
     data = vote_resp.json()
-    assert data["stars"] == 4
+    assert data["value"] == 4
     assert data["praxis_id"] == praxis_id
     assert data["voter_character_id"] == character.id
 
@@ -67,7 +67,7 @@ async def test_cast_vote_self_blocked(
 
     vote_resp = await client.post(
         f"/praxes/{praxis_id}/vote",
-        json={"stars": 5},
+        json={"value": 5},
         headers=auth_headers,
     )
     assert vote_resp.status_code == 403
@@ -107,7 +107,7 @@ async def test_update_vote_is_free(
 
     # Initial vote
     resp1 = await client.post(
-        f"/praxes/{praxis_id}/vote", json={"stars": 3}, headers=auth_headers
+        f"/praxes/{praxis_id}/vote", json={"value": 3}, headers=auth_headers
     )
     assert resp1.status_code == 200
 
@@ -117,10 +117,10 @@ async def test_update_vote_is_free(
 
     # Update vote (no additional cost)
     resp2 = await client.post(
-        f"/praxes/{praxis_id}/vote", json={"stars": 5}, headers=auth_headers
+        f"/praxes/{praxis_id}/vote", json={"value": 5}, headers=auth_headers
     )
     assert resp2.status_code == 200
-    assert resp2.json()["stars"] == 5
+    assert resp2.json()["value"] == 5
 
     await db_session.refresh(stats)
     assert compute_votes_available(stats) == budget_after_first  # unchanged
@@ -145,7 +145,7 @@ async def test_invalid_stars_returns_422(
     praxis_id = create_resp.json()["id"]
 
     resp = await client.post(
-        f"/praxes/{praxis_id}/vote", json={"stars": 6}, headers=auth_headers
+        f"/praxes/{praxis_id}/vote", json={"value": 6}, headers=auth_headers
     )
     assert resp.status_code == 422
 
@@ -179,10 +179,10 @@ async def test_vote_updates_author_stats(
     submit_resp = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
     assert submit_resp.status_code == 200
 
-    # character votes 4 stars — triggers recalculate_character_stats for character2
+    # character votes 4 — triggers recalculate_character_stats for character2
     vote_resp = await client.post(
         f"/praxes/{praxis_id}/vote",
-        json={"stars": 4},
+        json={"value": 4},
         headers=auth_headers,
     )
     assert vote_resp.status_code == 200
@@ -382,19 +382,19 @@ async def test_vote_on_duel_side_praxis(
     # Vote on each side praxis — no praxis_member_id needed
     vote1 = await client.post(
         f"/praxes/{challenger_praxis_id}/vote",
-        json={"stars": 4},
+        json={"value": 4},
         headers=c_headers,
     )
     assert vote1.status_code == 200
-    assert vote1.json()["stars"] == 4
+    assert vote1.json()["value"] == 4
 
     vote2 = await client.post(
         f"/praxes/{opponent_praxis_id}/vote",
-        json={"stars": 3},
+        json={"value": 3},
         headers=c_headers,
     )
     assert vote2.status_code == 200
-    assert vote2.json()["stars"] == 3
+    assert vote2.json()["value"] == 3
 
 
 @pytest.mark.asyncio
@@ -538,6 +538,6 @@ async def test_anti_self_vote_fallback_allows_unrelated_voter(
 
     # character2 (different account) casts a vote — must succeed
     vote = await cast_or_update_vote(character2, praxis_unloaded, 3, db_session)
-    assert vote.stars == 3
+    assert vote.value == 3
     assert vote.voter_character_id == character2.id
     assert vote.praxis_id == praxis_solo.id

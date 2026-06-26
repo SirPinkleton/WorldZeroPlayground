@@ -1207,7 +1207,7 @@ async def test_create_praxis_retired_task_allowed_for_ephemerists(
 
 
 # ---------------------------------------------------------------------------
-# PraxisCardOut new fields: task_level_required, average_stars, total_votes,
+# PraxisCardOut new fields: task_level_required, average_value, voter_count,
 # submitted_at (issue #159)
 # ---------------------------------------------------------------------------
 
@@ -1219,7 +1219,7 @@ async def test_praxis_card_includes_new_fields(
     active_task: Task,
     auth_headers: dict,
 ):
-    """GET /praxes list returns task_level_required, average_stars (null), total_votes (0),
+    """GET /praxes list returns task_level_required, average_value (null), voter_count (0),
     and submitted_at (null) for a newly-created in_progress praxis."""
     create_resp = await client.post(
         "/praxes",
@@ -1239,8 +1239,8 @@ async def test_praxis_card_includes_new_fields(
     assert isinstance(card["task_level_required"], int)
     assert card["task_level_required"] == active_task.level_required
 
-    assert card["average_stars"] is None
-    assert card["total_votes"] == 0
+    assert card["average_value"] is None
+    assert card["voter_count"] == 0
     assert card["submitted_at"] is None
 
 
@@ -1274,7 +1274,7 @@ async def test_submitted_at_set_on_submit(
 
 
 @pytest.mark.asyncio
-async def test_average_stars_and_total_votes_after_vote(
+async def test_average_value_and_voter_count_after_vote(
     client: AsyncClient,
     character: Character,
     character2: Character,
@@ -1282,7 +1282,7 @@ async def test_average_stars_and_total_votes_after_vote(
     auth_headers: dict,
     auth_headers2: dict,
 ):
-    """average_stars and total_votes reflect votes cast on the praxis."""
+    """average_value and voter_count reflect votes cast on the praxis."""
     # character2 creates a praxis
     create_resp = await client.post(
         "/praxes",
@@ -1292,10 +1292,10 @@ async def test_average_stars_and_total_votes_after_vote(
     assert create_resp.status_code == 201
     praxis_id = create_resp.json()["id"]
 
-    # character votes 4 stars
+    # character votes 4
     vote_resp = await client.post(
         f"/praxes/{praxis_id}/vote",
-        json={"stars": 4},
+        json={"value": 4},
         headers=auth_headers,
     )
     assert vote_resp.status_code == 200
@@ -1303,9 +1303,9 @@ async def test_average_stars_and_total_votes_after_vote(
     list_resp = await client.get("/praxes")
     card = next(c for c in list_resp.json() if c["id"] == praxis_id)
 
-    assert card["total_votes"] == 1
-    assert card["average_stars"] is not None
-    assert abs(card["average_stars"] - 4.0) < 0.01
+    assert card["voter_count"] == 1
+    assert card["average_value"] is not None
+    assert abs(card["average_value"] - 4.0) < 0.01
 
 
 # ---------------------------------------------------------------------------

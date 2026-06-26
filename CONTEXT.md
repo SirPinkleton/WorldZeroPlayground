@@ -306,3 +306,45 @@ One-sided Foe, Secret Admirer, Targeted, **Blocked**, Unknown. Not stored; deriv
   it — and is a *designed* state: one side feels friend, the other foe.
 _Avoid_: treating One-sided Foe / Targeted as duplicates to reconcile; storing the label;
 hiding a block from the blocked party; calling it "relationship".
+
+### Account & Character
+
+**Account**:
+The login identity — one Google OAuth2 → JWT principal, one email. Owns one or more
+**Characters** and never appears on public game surfaces (`account_id` and `email` are
+private). The Account is the unit of all *cross-character* rules: the multi-character cap,
+the account-pooled invite gate (see **Faction invite**), the account-collective
+Albescent unlock, and account-scoped anti-self-voting (a character cannot vote on a praxis
+authored by any character sharing its account).
+_Avoid_: user, player (the *player* is the human; the *account* is their credential record).
+
+**Character**:
+A single in-game persona under an **Account** — the unit that does tasks, earns
+score/level, holds a faction, casts votes, and is publicly identified (`username`,
+`display_name`). One Account → many Characters. Public surfaces show the Character, never
+the Account.
+_Avoid_: profile, user, player.
+
+**Unaffiliated** *(`na`)*:
+A character belonging to **no faction** — the **universal starting state** for every new
+character. (The old "everyone starts in UA" rule is retired: ADR-0019. UA is now an
+ordinary, invite-able faction with no starter privilege.) Scoring: full **1.0×** through
+level `era.unaffiliated_penalty_level − 1`; from that level on (the **grace cliff**),
+faction-owned tasks score `era.unaffiliated_task_modifier` (0.8×) while neutral (`na`)
+tasks stay 1.0×. `na` is also the sentinel for tasks with no faction and the state era-reset
+returns characters to. See ADR-0020.
+_Avoid_: "UA" as a synonym for "new/starting"; "none" as a faction name.
+
+**Faction invite** *(`InvitationLetter`)*:
+The single gate on faction membership. A character may **join, switch to, or be born into**
+faction X iff the **account** holds an `InvitationLetter` for X (current era) on *any* of its
+characters — one account-scoped predicate applied identically at creation and mid-life
+(ADR-0019). The lone first character "waits" only as the degenerate case: the sole invite an
+account can hold is one it earns itself. An invite is **earned per-character**: a character
+earns its *own* invite to X by completing **2 tasks for X and 50 points from X's tasks**
+(current era) — the pledge-allegiance praxis condition is dropped (ADR-0022). Invites are
+**era-scoped** (reset each era). Level is *not* a join gate — a level-1
+character can be born into a faction a sibling already holds an invite for.
+_Avoid_: treating "completed ≥1 task" as a separate join gate (it is *how* an invite is
+earned, not a parallel rule); per-character invite scoping at creation (the gate is
+account-pooled).

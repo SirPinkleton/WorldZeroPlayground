@@ -157,7 +157,7 @@ export function PraxisSeal({
 
 /**
  * Slot: compact read-only vote summary — the card hero once the praxis has been
- * rated. Replaces PraxisSeal when average_stars is present.
+ * rated. Replaces PraxisSeal when average_value is present.
  *
  * Shows the average star rating (1–5) + vote count in a compact badge. Per-faction
  * reframe labels (Concordance, Signal, etc.) are wired per archetype when their
@@ -172,7 +172,7 @@ export function VoteUISummary({
   color?: string;
   border?: string;
 }) {
-  if (praxis.average_stars === null || praxis.average_stars === undefined) return null;
+  if (praxis.average_value === null || praxis.average_value === undefined) return null;
   return (
     <div
       style={{
@@ -192,7 +192,7 @@ export function VoteUISummary({
       }}
     >
       <span className="font-display" style={{ fontWeight: 800, fontSize: "var(--text-lg)" }}>
-        {praxis.average_stars.toFixed(1)}
+        {praxis.average_value.toFixed(1)}
       </span>
       <span
         style={{
@@ -204,9 +204,9 @@ export function VoteUISummary({
       >
         ★ avg
       </span>
-      {praxis.total_votes > 0 && (
+      {praxis.voter_count > 0 && (
         <span style={{ fontSize: 7, opacity: 0.6 }}>
-          {praxis.total_votes}v
+          {praxis.voter_count}v
         </span>
       )}
     </div>

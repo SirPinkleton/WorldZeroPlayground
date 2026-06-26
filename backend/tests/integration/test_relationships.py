@@ -202,3 +202,109 @@ async def test_delete_relationship_wrong_owner(
         f"/relationships/{relationship_id}", headers=auth_headers2
     )
     assert del_resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Blocked display status (ADR-0009)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_display_status_blocked_outgoing(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+):
+    """An outgoing edge with status=blocked reports display_status='Blocked'."""
+    create_resp = await client.post(
+        "/relationships",
+        json={"to_character_id": character2.id, "type": "foe"},
+        headers=auth_headers,
+    )
+    relationship_id = create_resp.json()["id"]
+
+    await client.put(f"/relationships/{relationship_id}", headers=auth_headers)
+
+    list_resp = await client.get("/relationships", headers=auth_headers)
+    assert list_resp.status_code == 200
+    items = list_resp.json()
+    match = next(r for r in items if r["to_character_id"] == character2.id)
+    assert match["display_status"] == "Blocked"
+
+
+@pytest.mark.asyncio
+async def test_display_status_blocked_incoming(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A blocked incoming edge overrides the outgoing type label to 'Blocked'."""
+    # character declares character2 a friend
+    await client.post(
+        "/relationships",
+        json={"to_character_id": character2.id, "type": "friend"},
+        headers=auth_headers,
+    )
+    # character2 declares character a friend — now Mutual Friends
+    create_resp2 = await client.post(
+        "/relationships",
+        json={"to_character_id": character.id, "type": "friend"},
+        headers=auth_headers2,
+    )
+    # character2 blocks their own outgoing edge
+    rel2_id = create_resp2.json()["id"]
+    await client.put(f"/relationships/{rel2_id}", headers=auth_headers2)
+
+    # character's list should now show Blocked (incoming edge is blocked)
+    list_resp = await client.get("/relationships", headers=auth_headers)
+    assert list_resp.status_code == 200
+    items = list_resp.json()
+    match = next(r for r in items if r["to_character_id"] == character2.id)
+    assert match["display_status"] == "Blocked"
+
+
+@pytest.mark.asyncio
+async def test_display_status_blocked_overrides_mutual_friends(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """Blocked status overrides a Mutual Friends label for both parties."""
+    # Establish Mutual Friends
+    await client.post(
+        "/relationships",
+        json={"to_character_id": character2.id, "type": "friend"},
+        headers=auth_headers,
+    )
+    create_resp2 = await client.post(
+        "/relationships",
+        json={"to_character_id": character.id, "type": "friend"},
+        headers=auth_headers2,
+    )
+
+    # Verify Mutual Friends before block
+    pre_block = await client.get("/relationships", headers=auth_headers)
+    pre_items = pre_block.json()
+    assert any(
+        r["to_character_id"] == character2.id and r["display_status"] == "Mutual Friends"
+        for r in pre_items
+    )
+
+    # character2 blocks their own outgoing edge → both should see Blocked
+    rel2_id = create_resp2.json()["id"]
+    await client.put(f"/relationships/{rel2_id}", headers=auth_headers2)
+
+    # character sees Blocked
+    list_char = await client.get("/relationships", headers=auth_headers)
+    match_char = next(r for r in list_char.json() if r["to_character_id"] == character2.id)
+    assert match_char["display_status"] == "Blocked"
+
+    # character2 sees Blocked (their own outgoing is blocked)
+    list_char2 = await client.get("/relationships", headers=auth_headers2)
+    match_char2 = next(r for r in list_char2.json() if r["to_character_id"] == character.id)
+    assert match_char2["display_status"] == "Blocked"
