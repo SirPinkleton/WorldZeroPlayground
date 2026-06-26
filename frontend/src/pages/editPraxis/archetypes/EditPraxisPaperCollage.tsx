@@ -6,7 +6,6 @@
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import {
@@ -16,7 +15,18 @@ import {
   TitleCounter,
   formatAutosave,
 } from "./shared";
-import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  FilePicker,
+  InviteSearch,
+  MetatasksList,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -388,22 +398,18 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                 <span style={{ ...eyebrowStyle, marginBottom: 10 }}>
                   how are you walking?
                 </span>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {MODE_OPTIONS.filter((opt) =>
-                    allowedModes.includes(opt.key),
-                  ).map((opt) => {
-                    const active = praxis.type === opt.key;
-                    const disabled =
-                      state.modeIsLocked || state.switchingMode !== null;
-                    if (state.modeIsLocked && !active) return null;
-                    return (
+                <ModePicker
+                  state={state}
+                  skin={{
+                    containerStyle: { display: "flex", gap: 8, flexWrap: "wrap" },
+                    options: MODE_OPTIONS,
+                    allowedModes,
+                    renderOption: (opt, { active, disabled, onSelect }) => (
                       <button
                         key={opt.key}
                         type="button"
                         aria-pressed={active}
-                        onClick={() => {
-                          if (!disabled) void state.changeMode(opt.key);
-                        }}
+                        onClick={onSelect}
                         disabled={disabled && !active}
                         style={{
                           flex: "1 1 180px",
@@ -412,9 +418,7 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                           background: active
                             ? `linear-gradient(180deg, ${pink}, ${pinkDeep})`
                             : notepadBg,
-                          color: active
-                            ? "var(--color-text-on-accent)"
-                            : ink,
+                          color: active ? "var(--color-text-on-accent)" : ink,
                           border: `1.5px solid ${active ? pinkDeep : notepadBorder}`,
                           borderRadius: 9,
                           padding: "11px 14px 13px",
@@ -438,9 +442,9 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                           {opt.desc}
                         </div>
                       </button>
-                    );
-                  })}
-                </div>
+                    ),
+                  }}
+                />
               </div>
             )}
 
@@ -478,23 +482,22 @@ export default function EditPraxisPaperCollage({ state }: Props) {
               <span style={{ ...eyebrowStyle, marginBottom: 8 }}>
                 title · what whimsy arose?
               </span>
-              <input
-                type="text"
-                maxLength={200}
-                value={state.title}
-                onChange={(event) => state.setTitle(event.target.value)}
-                placeholder="What whimsy arose?"
-                style={{
-                  width: "100%",
-                  fontFamily: cardFont,
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: ink,
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  borderBottom: `2px solid ${notepadBorder}`,
-                  padding: "4px 0 8px",
+              <TitleField
+                state={state}
+                skin={{
+                  placeholder: "What whimsy arose?",
+                  inputStyle: {
+                    width: "100%",
+                    fontFamily: cardFont,
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: ink,
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    borderBottom: `2px solid ${notepadBorder}`,
+                    padding: "4px 0 8px",
+                  },
                 }}
               />
               <div
@@ -518,51 +521,50 @@ export default function EditPraxisPaperCollage({ state }: Props) {
               <span style={{ ...eyebrowStyle, marginBottom: 8 }}>
                 field notes · {state.wordCount} words · markdown ok
               </span>
-              <textarea
-                value={state.body}
-                onChange={(event) => state.setBody(event.target.value)}
-                rows={12}
-                placeholder="Tonight I walked..."
-                style={{
-                  width: "100%",
-                  fontFamily: "var(--font-body)",
-                  fontSize: 14,
-                  lineHeight: "24px",
-                  color: ink,
-                  background: bodyBg,
-                  border: `1.5px solid ${notepadBorder}`,
-                  borderRadius: 7,
-                  padding: "16px 18px",
-                  outline: "none",
-                  resize: "vertical",
-                  minHeight: 220,
+              <BodyTextarea
+                state={state}
+                skin={{
+                  rows: 12,
+                  placeholder: "Tonight I walked...",
+                  textareaStyle: {
+                    width: "100%",
+                    fontFamily: "var(--font-body)",
+                    fontSize: 14,
+                    lineHeight: "24px",
+                    color: ink,
+                    background: bodyBg,
+                    border: `1.5px solid ${notepadBorder}`,
+                    borderRadius: 7,
+                    padding: "16px 18px",
+                    outline: "none",
+                    resize: "vertical",
+                    minHeight: 220,
+                  },
                 }}
               />
-              {state.body.trim() && (
-                <div
-                  style={{
+              <BodyPreview
+                state={state}
+                skin={{
+                  wrapperStyle: {
                     marginTop: 14,
                     background: bodyBg,
                     border: `1.5px solid ${notepadBorder}`,
                     borderRadius: 7,
                     padding: "16px 18px",
-                  }}
-                >
-                  <span style={{ ...eyebrowStyle, marginBottom: 6 }}>
-                    preview
-                  </span>
-                  <MarkdownPreview
-                    source={state.body}
-                    className="markdown-preview"
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: 15,
-                      lineHeight: 1.65,
-                      color: ink,
-                    }}
-                  />
-                </div>
-              )}
+                  },
+                  label: (
+                    <span style={{ ...eyebrowStyle, marginBottom: 6 }}>
+                      preview
+                    </span>
+                  ),
+                  markdownStyle: {
+                    fontFamily: "var(--font-body)",
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                    color: ink,
+                  },
+                }}
+              />
             </div>
 
             {/* Media — notepad panel */}
@@ -703,16 +705,15 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                 flexWrap: "wrap",
               }}
             >
-              {!state.isPublished && (
-                <button
-                  type="button"
-                  onClick={() => void state.publish()}
-                  disabled={
-                    state.saving ||
-                    state.submitting ||
-                    state.switchingMode !== null
-                  }
-                  style={{
+              <PublishButton
+                state={state}
+                skin={{
+                  ornament: (
+                    <Sparkle size={12} color="var(--color-text-on-accent)" />
+                  ),
+                  idleLabel: "publish",
+                  busyLabel: "publishing...",
+                  style: {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
@@ -728,31 +729,28 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                     borderRadius: 9,
                     cursor: state.submitting ? "wait" : "pointer",
                     boxShadow: "0 4px 12px rgba(236,95,153,.32)",
-                  }}
-                >
-                  <Sparkle size={12} color="var(--color-text-on-accent)" />
-                  {state.submitting ? "publishing..." : "publish"}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => void state.save()}
-                disabled={state.saving || state.submitting}
-                style={{
-                  background: notepadBg,
-                  color: ink,
-                  fontFamily: "var(--font-body)",
-                  fontSize: 11,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  border: `1.5px solid ${notepadBorder}`,
-                  borderRadius: 7,
-                  padding: "10px 18px",
-                  cursor: state.saving ? "wait" : "pointer",
+                  },
                 }}
-              >
-                {state.saving ? "saving..." : "save draft"}
-              </button>
+              />
+              <SaveButton
+                state={state}
+                skin={{
+                  idleLabel: "save draft",
+                  busyLabel: "saving...",
+                  style: {
+                    background: notepadBg,
+                    color: ink,
+                    fontFamily: "var(--font-body)",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    border: `1.5px solid ${notepadBorder}`,
+                    borderRadius: 7,
+                    padding: "10px 18px",
+                    cursor: state.saving ? "wait" : "pointer",
+                  },
+                }}
+              />
               <div style={{ flex: 1 }} />
               <DropButton
                 state={state}

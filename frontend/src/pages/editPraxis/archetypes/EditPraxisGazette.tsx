@@ -5,7 +5,6 @@
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import {
@@ -17,7 +16,18 @@ import {
   TitleCounter,
   formatAutosave,
 } from "./shared";
-import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  FilePicker,
+  InviteSearch,
+  MetatasksList,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -278,55 +288,47 @@ export default function EditPraxisGazette({ state }: Props) {
             >
               ⁘ Manner of Proof ⁘
             </span>
-            <div
-              style={{ display: "flex", gap: 0, border: `1px solid ${ink}` }}
-            >
-              {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map(
-                (opt, index) => {
-                  const active = praxis.type === opt.key;
-                  const disabled =
-                    state.modeIsLocked || state.switchingMode !== null;
-                  if (state.modeIsLocked && !active) return null;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => {
-                        if (!disabled) void state.changeMode(opt.key);
-                      }}
-                      disabled={disabled && !active}
+            <ModePicker
+              state={state}
+              skin={{
+                containerStyle: { display: "flex", gap: 0, border: `1px solid ${ink}` },
+                options: MODE_OPTIONS,
+                allowedModes,
+                renderOption: (opt, { active, disabled, onSelect, index }) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={onSelect}
+                    disabled={disabled && !active}
+                    style={{
+                      flex: 1,
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      background: active ? ink : lightBg,
+                      color: active ? surface : ink,
+                      border: "none",
+                      borderLeft: index > 0 ? `1px solid ${ink}` : "none",
+                      padding: "14px 16px",
+                      fontFamily: "'IM Fell English', serif",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
                       style={{
-                        flex: 1,
-                        cursor: disabled ? "not-allowed" : "pointer",
-                        background: active ? ink : lightBg,
-                        color: active ? surface : ink,
-                        border: "none",
-                        borderLeft: index > 0 ? `1px solid ${ink}` : "none",
-                        padding: "14px 16px",
-                        fontFamily: "'IM Fell English', serif",
-                        textAlign: "center",
+                        fontStyle: "italic",
+                        fontSize: 22,
+                        lineHeight: 1.05,
                       }}
                     >
-                      <div
-                        style={{
-                          fontStyle: "italic",
-                          fontSize: 22,
-                          lineHeight: 1.05,
-                        }}
-                      >
-                        {opt.label}
-                      </div>
-                      <div
-                        style={{ fontSize: 10, marginTop: 4, opacity: 0.85 }}
-                      >
-                        {opt.desc}
-                      </div>
-                    </button>
-                  );
-                },
-              )}
-            </div>
+                      {opt.label}
+                    </div>
+                    <div style={{ fontSize: 10, marginTop: 4, opacity: 0.85 }}>
+                      {opt.desc}
+                    </div>
+                  </button>
+                ),
+              }}
+            />
           </div>
         )}
 
@@ -386,24 +388,23 @@ export default function EditPraxisGazette({ state }: Props) {
           >
             headline
           </span>
-          <input
-            type="text"
-            maxLength={200}
-            value={state.title}
-            onChange={(event) => state.setTitle(event.target.value)}
-            placeholder="On the closing of..."
-            style={{
-              width: "100%",
-              fontFamily: "'IM Fell English', serif",
-              fontStyle: "italic",
-              fontSize: 30,
-              color: ink,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              borderBottom: `2px solid ${ink}`,
-              padding: "4px 0 8px",
-              textAlign: "center",
+          <TitleField
+            state={state}
+            skin={{
+              placeholder: "On the closing of...",
+              inputStyle: {
+                width: "100%",
+                fontFamily: "'IM Fell English', serif",
+                fontStyle: "italic",
+                fontSize: 30,
+                color: ink,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                borderBottom: `2px solid ${ink}`,
+                padding: "4px 0 8px",
+                textAlign: "center",
+              },
             }}
           />
           <RainbowUnderline opacity={0.55} height={2} />
@@ -439,28 +440,30 @@ export default function EditPraxisGazette({ state }: Props) {
           >
             the account · {state.wordCount} words · markdown ok
           </span>
-          <textarea
-            value={state.body}
-            onChange={(event) => state.setBody(event.target.value)}
-            rows={14}
-            placeholder="The kitchen-light loop closed today..."
-            style={{
-              width: "100%",
-              fontFamily: "'IM Fell English', serif",
-              fontSize: 15,
-              lineHeight: 1.55,
-              color: ink,
-              background: lightBg,
-              border: `1px solid ${ink}`,
-              padding: "20px 22px",
-              outline: "none",
-              resize: "vertical",
-              minHeight: 240,
+          <BodyTextarea
+            state={state}
+            skin={{
+              rows: 14,
+              placeholder: "The kitchen-light loop closed today...",
+              textareaStyle: {
+                width: "100%",
+                fontFamily: "'IM Fell English', serif",
+                fontSize: 15,
+                lineHeight: 1.55,
+                color: ink,
+                background: lightBg,
+                border: `1px solid ${ink}`,
+                padding: "20px 22px",
+                outline: "none",
+                resize: "vertical",
+                minHeight: 240,
+              },
             }}
           />
-          {state.body.trim() && (
-            <div
-              style={{
+          <BodyPreview
+            state={state}
+            skin={{
+              wrapperStyle: {
                 marginTop: 14,
                 background: lightBg,
                 border: `1px solid ${ink}`,
@@ -468,32 +471,29 @@ export default function EditPraxisGazette({ state }: Props) {
                 columnCount: 2,
                 columnGap: 28,
                 columnRule: `0.5px solid ${muted}`,
-              }}
-            >
-              <span
-                className="eyebrow"
-                style={{
-                  color: muted,
-                  letterSpacing: "0.2em",
-                  display: "block",
-                  marginBottom: 6,
-                  columnSpan: "all",
-                }}
-              >
-                Set in type
-              </span>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: 14,
-                  lineHeight: 1.5,
-                  color: ink,
-                }}
-              />
-            </div>
-          )}
+              },
+              label: (
+                <span
+                  className="eyebrow"
+                  style={{
+                    color: muted,
+                    letterSpacing: "0.2em",
+                    display: "block",
+                    marginBottom: 6,
+                    columnSpan: "all",
+                  }}
+                >
+                  Set in type
+                </span>
+              ),
+              markdownStyle: {
+                fontFamily: "'IM Fell English', serif",
+                fontSize: 14,
+                lineHeight: 1.5,
+                color: ink,
+              },
+            }}
+          />
         </div>
 
         {/* Plates */}
@@ -641,14 +641,24 @@ export default function EditPraxisGazette({ state }: Props) {
             flexWrap: "wrap",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={
-                state.saving || state.submitting || state.switchingMode !== null
-              }
-              style={{
+          <PublishButton
+            state={state}
+            skin={{
+              idleLabel: "❦ Press & Seal ❦",
+              busyLabel: "Sealing...",
+              ornament: (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    inset: 4,
+                    border: `1px solid ${surface}`,
+                    opacity: 0.5,
+                    pointerEvents: "none",
+                  }}
+                />
+              ),
+              style: {
                 position: "relative",
                 background: HOUSE_BLUE,
                 color: surface,
@@ -661,39 +671,27 @@ export default function EditPraxisGazette({ state }: Props) {
                 cursor: state.submitting ? "wait" : "pointer",
                 letterSpacing: "0.05em",
                 boxShadow: `2px 3px 0 ${ink}`,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 4,
-                  border: `1px solid ${surface}`,
-                  opacity: 0.5,
-                  pointerEvents: "none",
-                }}
-              />
-              {state.submitting ? "Sealing..." : "❦ Press & Seal ❦"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={state.saving || state.submitting}
-            style={{
-              background: "transparent",
-              color: ink,
-              fontFamily: "'IM Fell English', serif",
-              fontStyle: "italic",
-              fontSize: 13,
-              border: `1px solid ${ink}`,
-              padding: "10px 18px",
-              cursor: state.saving ? "wait" : "pointer",
-              letterSpacing: "0.08em",
+              },
             }}
-          >
-            {state.saving ? "saving..." : "save as draft"}
-          </button>
+          />
+          <SaveButton
+            state={state}
+            skin={{
+              idleLabel: "save as draft",
+              busyLabel: "saving...",
+              style: {
+                background: "transparent",
+                color: ink,
+                fontFamily: "'IM Fell English', serif",
+                fontStyle: "italic",
+                fontSize: 13,
+                border: `1px solid ${ink}`,
+                padding: "10px 18px",
+                cursor: state.saving ? "wait" : "pointer",
+                letterSpacing: "0.08em",
+              },
+            }}
+          />
           <DropButton
             state={state}
             skin={{

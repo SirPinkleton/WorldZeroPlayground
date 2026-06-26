@@ -6,7 +6,6 @@
 import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import {
@@ -18,7 +17,18 @@ import {
   TitleCounter,
   formatAutosave,
 } from "./shared";
-import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  FilePicker,
+  InviteSearch,
+  MetatasksList,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -203,13 +213,13 @@ export default function EditPraxisPunkZine({ state }: Props) {
             >
               how shall we DO this??
             </div>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map(
-                (opt, index) => {
-                  const active = praxis.type === opt.key;
-                  const disabled =
-                    state.modeIsLocked || state.switchingMode !== null;
-                  if (state.modeIsLocked && !active) return null;
+            <ModePicker
+              state={state}
+              skin={{
+                containerStyle: { display: "flex", gap: 12, flexWrap: "wrap" },
+                options: MODE_OPTIONS,
+                allowedModes,
+                renderOption: (opt, { active, disabled, onSelect, index }) => {
                   const bg = active
                     ? opt.key === "duel"
                       ? hot
@@ -221,9 +231,7 @@ export default function EditPraxisPunkZine({ state }: Props) {
                       key={opt.key}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => {
-                        if (!disabled) void state.changeMode(opt.key);
-                      }}
+                      onClick={onSelect}
                       disabled={disabled && !active}
                       style={{
                         cursor: disabled ? "not-allowed" : "pointer",
@@ -258,8 +266,8 @@ export default function EditPraxisPunkZine({ state }: Props) {
                     </button>
                   );
                 },
-              )}
-            </div>
+              }}
+            />
           </div>
         )}
 
@@ -330,21 +338,20 @@ export default function EditPraxisPunkZine({ state }: Props) {
               </span>
             )}
           </div>
-          <input
-            type="text"
-            maxLength={200}
-            value={state.title}
-            onChange={(event) => state.setTitle(event.target.value)}
-            placeholder="type your headline · we'll cut the letters for you"
-            style={{
-              width: "100%",
-              fontFamily: "'Courier Prime', monospace",
-              fontSize: 13,
-              padding: "6px 10px",
-              background: surface,
-              color: ink,
-              border: `1.5px dashed ${accentDeep}`,
-              outline: "none",
+          <TitleField
+            state={state}
+            skin={{
+              placeholder: "type your headline · we'll cut the letters for you",
+              inputStyle: {
+                width: "100%",
+                fontFamily: "'Courier Prime', monospace",
+                fontSize: 13,
+                padding: "6px 10px",
+                background: surface,
+                color: ink,
+                border: `1.5px dashed ${accentDeep}`,
+                outline: "none",
+              },
             }}
           />
           <RainbowUnderline opacity={0.5} />
@@ -359,30 +366,32 @@ export default function EditPraxisPunkZine({ state }: Props) {
             ↳ the manifesto · {state.wordCount} words · markdown ok
           </span>
           <div style={{ position: "relative", transform: "rotate(0.3deg)" }}>
-            <textarea
-              value={state.body}
-              onChange={(event) => state.setBody(event.target.value)}
-              rows={12}
-              placeholder="lead with the lie. bury the truth in paragraph five..."
-              style={{
-                width: "100%",
-                fontFamily: "'Special Elite', serif",
-                fontSize: 13,
-                lineHeight: 1.7,
-                color: ink,
-                background: surface,
-                border: `2px solid ${accentDeep}`,
-                padding: "20px 22px",
-                outline: "none",
-                resize: "vertical",
-                minHeight: 220,
-                boxShadow: `4px 4px 0 ${accentDeep}`,
+            <BodyTextarea
+              state={state}
+              skin={{
+                rows: 12,
+                placeholder: "lead with the lie. bury the truth in paragraph five...",
+                textareaStyle: {
+                  width: "100%",
+                  fontFamily: "'Special Elite', serif",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  color: ink,
+                  background: surface,
+                  border: `2px solid ${accentDeep}`,
+                  padding: "20px 22px",
+                  outline: "none",
+                  resize: "vertical",
+                  minHeight: 220,
+                  boxShadow: `4px 4px 0 ${accentDeep}`,
+                },
               }}
             />
           </div>
-          {state.body.trim() && (
-            <div
-              style={{
+          <BodyPreview
+            state={state}
+            skin={{
+              wrapperStyle: {
                 marginTop: 14,
                 background: surface,
                 border: `2px solid ${accentDeep}`,
@@ -391,26 +400,23 @@ export default function EditPraxisPunkZine({ state }: Props) {
                 columnGap: 22,
                 columnRule: `0.5px solid ${accentDeep}`,
                 boxShadow: `4px 4px 0 ${accentDeep}`,
-              }}
-            >
-              <span
-                className="eyebrow"
-                style={{ color: accentDeep, display: "block", marginBottom: 6 }}
-              >
-                Preview
-              </span>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{
-                  fontFamily: "'Special Elite', serif",
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                  color: ink,
-                }}
-              />
-            </div>
-          )}
+              },
+              label: (
+                <span
+                  className="eyebrow"
+                  style={{ color: accentDeep, display: "block", marginBottom: 6 }}
+                >
+                  Preview
+                </span>
+              ),
+              markdownStyle: {
+                fontFamily: "'Special Elite', serif",
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: ink,
+              },
+            }}
+          />
         </div>
 
         {/* Existing media */}
@@ -660,14 +666,23 @@ export default function EditPraxisPunkZine({ state }: Props) {
             flexWrap: "wrap",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={
-                state.saving || state.submitting || state.switchingMode !== null
-              }
-              style={{
+          <PublishButton
+            state={state}
+            skin={{
+              idleLabel: "xerox & staple",
+              busyLabel: "xeroxing...",
+              ornament: (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    inset: 4,
+                    border: `1.5px dashed rgba(255,255,255,.6)`,
+                    pointerEvents: "none",
+                  }}
+                />
+              ),
+              style: {
                 background: accent,
                 color: "var(--color-text-on-accent)",
                 fontFamily: "'Permanent Marker', cursive",
@@ -679,40 +694,29 @@ export default function EditPraxisPunkZine({ state }: Props) {
                 position: "relative",
                 transform: "rotate(-1.8deg)",
                 boxShadow: `4px 4px 0 ${ink}`,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 4,
-                  border: `1.5px dashed rgba(255,255,255,.6)`,
-                  pointerEvents: "none",
-                }}
-              />
-              {state.submitting ? "xeroxing..." : "xerox & staple"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={state.saving || state.submitting}
-            style={{
-              background: surface,
-              color: accentDeep,
-              fontFamily: "'Special Elite', serif",
-              fontSize: 12,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-              padding: "10px 18px",
-              border: `2px solid ${accentDeep}`,
-              cursor: state.saving ? "wait" : "pointer",
-              transform: "rotate(0.6deg)",
+              },
             }}
-          >
-            {state.saving ? "saving..." : "save draft"}
-          </button>
+          />
+          <SaveButton
+            state={state}
+            skin={{
+              idleLabel: "save draft",
+              busyLabel: "saving...",
+              style: {
+                background: surface,
+                color: accentDeep,
+                fontFamily: "'Special Elite', serif",
+                fontSize: 12,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                padding: "10px 18px",
+                border: `2px solid ${accentDeep}`,
+                cursor: state.saving ? "wait" : "pointer",
+                transform: "rotate(0.6deg)",
+              },
+            }}
+          />
           <div style={{ flex: 1 }} />
           <DropButton
             state={state}

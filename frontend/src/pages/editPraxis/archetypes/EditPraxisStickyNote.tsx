@@ -4,7 +4,6 @@
  */
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
-import MarkdownPreview from "../blocks/MarkdownPreview";
 import MediaArt from "../blocks/MediaArt";
 import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
 import {
@@ -16,7 +15,18 @@ import {
   TitleCounter,
   formatAutosave,
 } from "./shared";
-import { DropButton, FilePicker, InviteSearch, MetatasksList } from "./controls";
+import {
+  BodyPreview,
+  BodyTextarea,
+  DropButton,
+  FilePicker,
+  InviteSearch,
+  MetatasksList,
+  ModePicker,
+  PublishButton,
+  SaveButton,
+  TitleField,
+} from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
 
 interface Props {
@@ -189,20 +199,18 @@ export default function EditPraxisStickyNote({ state }: Props) {
             >
               how →
             </div>
-            {MODE_OPTIONS.filter((opt) => allowedModes.includes(opt.key)).map(
-              (opt, index) => {
-                const active = praxis.type === opt.key;
-                const disabled =
-                  state.modeIsLocked || state.switchingMode !== null;
-                if (state.modeIsLocked && !active) return null;
-                return (
+            <ModePicker
+              state={state}
+              skin={{
+                containerStyle: { display: "contents" },
+                options: MODE_OPTIONS,
+                allowedModes,
+                renderOption: (opt, { active, disabled, onSelect, index }) => (
                   <button
                     key={opt.key}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => {
-                      if (!disabled) void state.changeMode(opt.key);
-                    }}
+                    onClick={onSelect}
                     disabled={disabled && !active}
                     style={{
                       background: opt.bg,
@@ -247,9 +255,9 @@ export default function EditPraxisStickyNote({ state }: Props) {
                       </span>
                     )}
                   </button>
-                );
-              },
-            )}
+                ),
+              }}
+            />
           </div>
         )}
 
@@ -311,23 +319,22 @@ export default function EditPraxisStickyNote({ state }: Props) {
           >
             ↳ what'd you call it?
           </div>
-          <input
-            type="text"
-            maxLength={200}
-            value={state.title}
-            onChange={(event) => state.setTitle(event.target.value)}
-            placeholder="give it a name"
-            style={{
-              width: "100%",
-              fontFamily: "'Caveat', cursive",
-              fontSize: 30,
-              color: SLATE_DEEP,
-              fontWeight: 700,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              borderBottom: `2px dashed ${SLATE}`,
-              padding: "4px 0 6px",
+          <TitleField
+            state={state}
+            skin={{
+              placeholder: "give it a name",
+              inputStyle: {
+                width: "100%",
+                fontFamily: "'Caveat', cursive",
+                fontSize: 30,
+                color: SLATE_DEEP,
+                fontWeight: 700,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                borderBottom: `2px dashed ${SLATE}`,
+                padding: "4px 0 6px",
+              },
             }}
           />
           <RainbowUnderline opacity={0.55} height={2} />
@@ -372,54 +379,53 @@ export default function EditPraxisStickyNote({ state }: Props) {
           >
             ↓ what happened ({state.wordCount} words · md ok)
           </div>
-          <textarea
-            value={state.body}
-            onChange={(event) => state.setBody(event.target.value)}
-            rows={10}
-            placeholder="just write whatever..."
-            style={{
-              width: "100%",
-              fontFamily: "'Caveat', cursive",
-              fontSize: 18,
-              lineHeight: 1.5,
-              color: SLATE_DEEP,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "vertical",
-              minHeight: 200,
+          <BodyTextarea
+            state={state}
+            skin={{
+              rows: 10,
+              placeholder: "just write whatever...",
+              textareaStyle: {
+                width: "100%",
+                fontFamily: "'Caveat', cursive",
+                fontSize: 18,
+                lineHeight: 1.5,
+                color: SLATE_DEEP,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                resize: "vertical",
+                minHeight: 200,
+              },
             }}
           />
-          {state.body.trim() && (
-            <div
-              style={{
+          <BodyPreview
+            state={state}
+            skin={{
+              wrapperStyle: {
                 borderTop: `1px dashed ${SLATE}`,
                 marginTop: 12,
                 paddingTop: 10,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'Permanent Marker', cursive",
-                  fontSize: 11,
-                  color: SLATE,
-                  marginBottom: 6,
-                }}
-              >
-                preview ↓
-              </div>
-              <MarkdownPreview
-                source={state.body}
-                className="markdown-preview"
-                style={{
-                  fontFamily: "'Caveat', cursive",
-                  fontSize: 18,
-                  lineHeight: 1.5,
-                  color: SLATE_DEEP,
-                }}
-              />
-            </div>
-          )}
+              },
+              label: (
+                <div
+                  style={{
+                    fontFamily: "'Permanent Marker', cursive",
+                    fontSize: 11,
+                    color: SLATE,
+                    marginBottom: 6,
+                  }}
+                >
+                  preview ↓
+                </div>
+              ),
+              markdownStyle: {
+                fontFamily: "'Caveat', cursive",
+                fontSize: 18,
+                lineHeight: 1.5,
+                color: SLATE_DEEP,
+              },
+            }}
+          />
         </div>
 
         {/* Photos */}
@@ -568,14 +574,23 @@ export default function EditPraxisStickyNote({ state }: Props) {
             flexWrap: "wrap",
           }}
         >
-          {!state.isPublished && (
-            <button
-              type="button"
-              onClick={() => void state.publish()}
-              disabled={
-                state.saving || state.submitting || state.switchingMode !== null
-              }
-              style={{
+          <PublishButton
+            state={state}
+            skin={{
+              idleLabel: "tack it up →",
+              busyLabel: "tacking...",
+              ornament: (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    inset: 4,
+                    border: "1.5px dashed rgba(255,255,255,.5)",
+                    pointerEvents: "none",
+                  }}
+                />
+              ),
+              style: {
                 background: "#dc2626",
                 color: STICKY_PAPER,
                 fontFamily: "'Permanent Marker', cursive",
@@ -588,37 +603,26 @@ export default function EditPraxisStickyNote({ state }: Props) {
                 transform: "rotate(-2deg)",
                 boxShadow: "4px 5px 8px rgba(0,0,0,.3)",
                 position: "relative",
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 4,
-                  border: "1.5px dashed rgba(255,255,255,.5)",
-                  pointerEvents: "none",
-                }}
-              />
-              {state.submitting ? "tacking..." : "tack it up →"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void state.save()}
-            disabled={state.saving || state.submitting}
-            style={{
-              background: STICKY_PAPER,
-              color: SLATE_DEEP,
-              fontFamily: "'Permanent Marker', cursive",
-              fontSize: 16,
-              padding: "10px 18px",
-              border: `2px solid ${SLATE_DEEP}`,
-              cursor: state.saving ? "wait" : "pointer",
-              transform: "rotate(1deg)",
+              },
             }}
-          >
-            {state.saving ? "saving..." : "save for later"}
-          </button>
+          />
+          <SaveButton
+            state={state}
+            skin={{
+              idleLabel: "save for later",
+              busyLabel: "saving...",
+              style: {
+                background: STICKY_PAPER,
+                color: SLATE_DEEP,
+                fontFamily: "'Permanent Marker', cursive",
+                fontSize: 16,
+                padding: "10px 18px",
+                border: `2px solid ${SLATE_DEEP}`,
+                cursor: state.saving ? "wait" : "pointer",
+                transform: "rotate(1deg)",
+              },
+            }}
+          />
           <DropButton
             state={state}
             skin={{
