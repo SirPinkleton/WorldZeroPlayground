@@ -7,6 +7,7 @@ import {
   submitPraxis,
   withdrawPraxis,
   kickMember,
+  leavePraxis,
   inviteToPraxis,
   votePraxis,
   getPraxisVotes,
@@ -166,6 +167,22 @@ export default function CollaborationDetail() {
       setEditing(false);
     } catch {
       setActionError("Could not move back to editing.");
+    }
+  };
+
+  const handleLeave = async () => {
+    if (
+      !praxisId ||
+      !window.confirm(`Leave this ${modeLabel.toLowerCase()}? You can be re-invited later.`)
+    )
+      return;
+    setActionError("");
+    try {
+      const updated = await leavePraxis(praxisId);
+      setCollab(updated);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setActionError(axiosErr?.response?.data?.detail ?? "Could not leave.");
     }
   };
 
@@ -414,7 +431,7 @@ export default function CollaborationDetail() {
                 {isMember && !isMe && !isPublished && (
                   <button
                     onClick={() =>
-                      handleKick(member.id, member.character_display_name)
+                      handleKick(member.character_id, member.character_display_name)
                     }
                     style={{
                       background: "none",
@@ -897,6 +914,24 @@ export default function CollaborationDetail() {
               ? "When both competitors submit, the duel is published and voting opens."
               : "When all members submit, the collaboration is published."}
           </p>
+          {/* Pending-publish window (ADR-0012). ponytail: shows opened-at, not an exact
+              deadline — the window length lives in EraConfig and isn't exposed to the
+              client yet; plumb it through if a precise countdown is ever needed. */}
+          {isCollab && collab.submit_proposed_at && (
+            <p
+              className="font-body mb-3"
+              style={{
+                fontSize: 11,
+                padding: "8px 10px",
+                background: "var(--color-bg-surface-alt)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              Pending publish since {formatTimestamp(collab.submit_proposed_at)} — auto-publishes
+              unless a member edits the document.
+            </p>
+          )}
           {myMember?.has_submitted ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span
@@ -950,6 +985,29 @@ export default function CollaborationDetail() {
               Mark as submitted
             </button>
           )}
+        </div>
+      )}
+
+      {/* Leave — a member removes their own membership (ADR-0012); distinct from kick/withdraw. */}
+      {isMember && isCollab && (
+        <div className="sidebar-card mb-4" style={{ padding: "16px 20px" }}>
+          <p className="eyebrow mb-2">Leave</p>
+          <button
+            onClick={handleLeave}
+            style={{
+              fontFamily: "'Courier Prime', monospace",
+              fontSize: 9,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              background: "transparent",
+              border: "1px solid var(--color-border)",
+              padding: "4px 12px",
+              cursor: "pointer",
+              color: "var(--color-text-secondary)",
+            }}
+          >
+            Leave collaboration
+          </button>
         </div>
       )}
 
