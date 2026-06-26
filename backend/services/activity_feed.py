@@ -20,6 +20,7 @@ from models.era import Era
 from models.faction_defection_history import FactionDefectionHistory
 from models.invitation_letter import InvitationLetter
 from models.relationship import Relationship, RelationshipStatus, RelationshipType
+from models.duel import Duel, DuelStatus
 from models.praxis import ModerationStatus, Praxis, PraxisInvite, PraxisInviteStatus, PraxisMember, PraxisStatus, PraxisType
 from models.task import Task, TaskStatus
 from models.taunt_message import TauntMessage
@@ -412,6 +413,63 @@ async def _fetch_praxis_invites(
             actor_faction_slug=row.actor_faction_slug,
             actor_avatar_url=row.actor_avatar_url,
             payload=payload,
+        ))
+    return items
+
+
+async def _fetch_duel_challenges(
+    character_id: int,
+    session: AsyncSession,
+    before: Optional[datetime],
+    pending_only: bool = False,
+) -> list[ActivityFeedItemDC]:
+    """Duel challenges issued to ``character_id`` (ADR-0011).
+
+    Queries the Duel table directly — not PraxisInvite, which is collab-only now.
+    """
+    query = (
+        select(
+            Duel.id,
+            Duel.created_at,
+            Duel.status,
+            Duel.challenger_praxis_id,
+            Task.title.label("task_title"),
+            Task.point_value.label("task_point_value"),
+            Task.primary_faction_slug.label("task_faction_slug"),
+            Character.id.label("challenger_character_id"),
+            Character.display_name.label("actor_display_name"),
+            Character.faction_slug.label("actor_faction_slug"),
+            Character.avatar_url.label("actor_avatar_url"),
+        )
+        .join(Praxis, Duel.challenger_praxis_id == Praxis.id)
+        .join(Task, Duel.task_id == Task.id)
+        .join(Character, Praxis.created_by_id == Character.id)
+        .where(Duel.opponent_character_id == character_id)
+    )
+    if pending_only:
+        query = query.where(Duel.status == DuelStatus.pending)
+    if before is not None:
+        query = query.where(Duel.created_at < before)
+    query = query.order_by(Duel.created_at.desc()).limit(SUB_QUERY_LIMIT)
+
+    result = await session.execute(query)
+    items: list[ActivityFeedItemDC] = []
+    for row in result.all():
+        items.append(ActivityFeedItemDC(
+            type=FEED_ITEM_TYPE_DUEL_CHALLENGE,
+            timestamp=row.created_at,
+            actor_display_name=row.actor_display_name,
+            actor_faction_slug=row.actor_faction_slug,
+            actor_avatar_url=row.actor_avatar_url,
+            payload={
+                "duel_id": row.id,
+                "challenger_praxis_id": row.challenger_praxis_id,
+                "challenger_character_id": row.challenger_character_id,
+                "task_title": row.task_title,
+                "task_point_value": row.task_point_value,
+                "task_faction_slug": row.task_faction_slug,
+                "duel_status": row.status.value,
+            },
         ))
     return items
 
@@ -850,9 +908,8 @@ async def get_activity_feed(
         ))
 
     if FEED_ITEM_TYPE_DUEL_CHALLENGE in allowed_types:
-        fetch_tasks.append(_fetch_praxis_invites(
-            character_id, PraxisType.duel, FEED_ITEM_TYPE_DUEL_CHALLENGE,
-            "challenger_character_id", session, before_cursor, pending_only=is_requests_filter,
+        fetch_tasks.append(_fetch_duel_challenges(
+            character_id, session, before_cursor, pending_only=is_requests_filter,
         ))
 
     if FEED_ITEM_TYPE_FRIEND_SIGNUP in allowed_types:

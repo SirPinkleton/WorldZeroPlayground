@@ -18,6 +18,7 @@ from models.praxis import (
     ModerationStatus,
 )
 from models.vote import Vote
+from models.duel import Duel, DuelStatus
 from models.flag import Flag
 from models.comment import Comment, CommentMention
 from models.relationship import Relationship
@@ -50,6 +51,8 @@ __all__ = [
     "MediaType",
     "ModerationStatus",
     "Vote",
+    "Duel",
+    "DuelStatus",
     "Flag",
     "Comment",
     "CommentMention",

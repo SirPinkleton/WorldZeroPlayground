@@ -44,9 +44,20 @@ from services.auth import create_jwt
 # ---------------------------------------------------------------------------
 # Test database URL — replace DB name so we never touch the dev database
 # ---------------------------------------------------------------------------
+def _derive_test_db_url(dev_url: str) -> str:
+    """Append ``_test`` to the dev DB name only — not the username/host.
+
+    A blanket ``.replace("/worldzero", ...)`` also rewrites ``://worldzero`` in
+    the credentials, producing a bogus ``worldzero_test`` user. rpartition isolates
+    the trailing path segment (the database name).
+    """
+    base, sep, db_name = dev_url.rpartition("/")
+    return f"{base}{sep}{db_name}_test"
+
+
 _TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    settings.DATABASE_URL.replace("/worldzero", "/worldzero_test"),
+    _derive_test_db_url(settings.DATABASE_URL),
 )
 
 

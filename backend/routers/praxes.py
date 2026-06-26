@@ -21,7 +21,6 @@ from models.character import Character
 from models.praxis import MediaItem, ModerationStatus, Praxis, PraxisType
 from pydantic import BaseModel
 from schemas.praxis import (
-    DuelVoteSummary,
     MediaItemOut,
     PraxisCardOut,
     PraxisCreate,
@@ -374,25 +373,10 @@ async def cast_vote_route(
     character: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    """Cast a vote. Solo/collab: omit praxis_member_id. Duel: set it."""
     vote = await cast_vote_on_praxis(
-        character, praxis_id, data.stars, session,
-        praxis_member_id=data.praxis_member_id, era=CURRENT_ERA,
+        character, praxis_id, data.stars, session, era=CURRENT_ERA,
     )
     return VoteOut.model_validate(vote)
-
-
-@router.get("/{praxis_id}/votes", response_model=list[DuelVoteSummary])
-async def get_vote_summary_route(
-    praxis_id: int,
-    session: AsyncSession = Depends(get_db),
-):
-    """Get live vote tally for a duel praxis."""
-    from services.praxis import _build_duel_vote_summary
-    praxis = await session.get(Praxis, praxis_id)
-    if praxis is None:
-        raise HTTPException(status_code=404, detail="Praxis not found.")
-    return await _build_duel_vote_summary(praxis, session)
 
 
 # ---------------------------------------------------------------------------

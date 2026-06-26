@@ -13,7 +13,6 @@ and cleans up after itself so no cross-test pollution is possible.
 """
 from __future__ import annotations
 
-import os
 import uuid
 
 import pytest
@@ -23,14 +22,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 import db as db_module
-from config import settings
 from models.contact import ContactMessage
-
-
-_TEST_DB_URL = os.environ.get(
-    "TEST_DATABASE_URL",
-    settings.DATABASE_URL.replace("/worldzero", "/worldzero_test"),
-)
+from tests.integration.conftest import _TEST_DB_URL
 
 
 @pytest_asyncio.fixture

@@ -13,7 +13,6 @@ class VoteOut(BaseModel):
 
     id: int
     praxis_id: int
-    praxis_member_id: Optional[int] = None
     voter_character_id: int
     stars: int
     created_at: datetime

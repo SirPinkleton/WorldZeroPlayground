@@ -201,12 +201,29 @@ async def test_vote_updates_author_stats(
 
 
 # ---------------------------------------------------------------------------
-# Duel vote — praxis_member_id required
+# Duel challenge flow (ADR-0011) — two linked solo praxes
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_duel_vote_requires_praxis_member_id(
+async def test_creating_type_duel_praxis_is_rejected(
+    client: AsyncClient,
+    character2: Character,
+    active_task: Task,
+    auth_headers2: dict,
+):
+    """POST /praxes with type=duel is now rejected — use POST /duels/challenge."""
+    resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "duel", "title": "Old flow"},
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 400
+    assert "challenge" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_duel_challenge_issue_and_cancel(
     client: AsyncClient,
     character: Character,
     character2: Character,
@@ -214,168 +231,137 @@ async def test_duel_vote_requires_praxis_member_id(
     auth_headers: dict,
     auth_headers2: dict,
     db_session: AsyncSession,
+    era: Era,
 ):
-    """Voting on a duel praxis without praxis_member_id returns 422."""
-    # character2 creates a duel (level 5 meets the duel level requirement of 2)
-    create_resp = await client.post(
-        "/praxes",
-        json={"task_id": active_task.id, "type": "duel", "title": "Duel Test"},
-        headers=auth_headers2,
-    )
-    assert create_resp.status_code == 201
-    praxis_id = create_resp.json()["id"]
-
-    # Invite character to join the duel
-    invite_resp = await client.post(
-        f"/praxes/{praxis_id}/invite",
-        json={"invitee_id": character.id},
-        headers=auth_headers2,
-    )
-    assert invite_resp.status_code == 200
-    invite_id = invite_resp.json()["id"]
-
-    # character needs level >= 2 for duel; set it
+    """character2 issues a duel challenge to character; character2 then cancels it."""
     from models.character_stats import CharacterStats
-    result = await db_session.execute(
+
+    # character2 already has level 5 from fixture — meets duel level gate
+    # Issue challenge
+    challenge_resp = await client.post(
+        "/duels/challenge",
+        json={"task_id": active_task.id, "opponent_character_id": character.id},
+        headers=auth_headers2,
+    )
+    assert challenge_resp.status_code == 201
+    duel = challenge_resp.json()
+    assert duel["status"] == "pending"
+    assert duel["opponent_character_id"] == character.id
+    assert duel["task_id"] == active_task.id
+    duel_id = duel["id"]
+
+    # Pending list for character (the opponent)
+    pending_resp = await client.get("/duels/pending", headers=auth_headers)
+    assert pending_resp.status_code == 200
+    pending = pending_resp.json()
+    assert any(d["id"] == duel_id for d in pending)
+
+    # Challenger (character2) cancels
+    cancel_resp = await client.post(f"/duels/{duel_id}/cancel", headers=auth_headers2)
+    assert cancel_resp.status_code == 200
+    assert cancel_resp.json()["status"] == "declined"
+
+
+@pytest.mark.asyncio
+async def test_duel_challenge_accept_creates_opponent_praxis(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+    era: Era,
+):
+    """Accepting a duel challenge creates the opponent's solo praxis and activates the duel."""
+    from models.character_stats import CharacterStats
+
+    # Raise character's level to meet duel gate
+    stats_result = await db_session.execute(
         select(CharacterStats).where(CharacterStats.character_id == character.id)
     )
-    char_stats = result.scalar_one()
-    char_stats.level = 2
+    stats = stats_result.scalar_one()
+    stats.level = 2
     await db_session.commit()
+
+    # Issue challenge from character2
+    challenge_resp = await client.post(
+        "/duels/challenge",
+        json={"task_id": active_task.id, "opponent_character_id": character.id},
+        headers=auth_headers2,
+    )
+    assert challenge_resp.status_code == 201
+    duel_id = challenge_resp.json()["id"]
 
     # character accepts
-    await client.post(
-        f"/praxes/{praxis_id}/invite/{invite_id}/respond",
-        json={"accept": True},
-        headers=auth_headers,
-    )
-
-    # A third account would vote; for now just verify the error
-    # Vote on duel without praxis_member_id — should be rejected
-    vote_resp = await client.post(
-        f"/praxes/{praxis_id}/vote",
-        json={"stars": 3},
-        headers=auth_headers2,  # character2 is a member so this will hit 403 self-vote
-    )
-    # Duel participants cannot vote on own duel
-    assert vote_resp.status_code in (403, 422)
-
-
-@pytest.mark.asyncio
-async def test_duel_vote_summary_endpoint(
-    client: AsyncClient,
-    character: Character,
-    character2: Character,
-    active_task: Task,
-    auth_headers2: dict,
-):
-    """GET /praxes/{id}/votes returns a list (DuelVoteSummary format)."""
-    create_resp = await client.post(
-        "/praxes",
-        json={"task_id": active_task.id, "type": "solo", "title": "Vote Summary"},
-        headers=auth_headers2,
-    )
-    assert create_resp.status_code == 201
-    praxis_id = create_resp.json()["id"]
-
-    resp = await client.get(f"/praxes/{praxis_id}/votes")
-    assert resp.status_code == 200
-    # For a solo praxis with no duel members the list is empty
-    data = resp.json()
-    assert isinstance(data, list)
-
-
-# ---------------------------------------------------------------------------
-# T.10 SESSION T additions — R-rule explicit coverage
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_duel_vote_blocked_by_alt_character_on_same_account(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    account: Account,
-    account2: Account,
-    character: Character,
-    character2: Character,
-    active_task: Task,
-    era: Era,
-    auth_headers: dict,
-    auth_headers2: dict,
-):
-    """R.4: An account with a character in a duel cannot vote from any of its characters.
-
-    Account A owns character A1. Account B owns character B1. A1 + B1 are
-    members of a duel. Any character on account A (even a different one)
-    trying to vote is blocked at the account level — this test covers the
-    primary vector by having the account that owns a duel participant
-    attempt to vote on the duel, and confirms an unrelated account CAN vote.
-    """
-    from models.account import Account as AccountModel
-    from models.character import Character as CharacterModel
-    from models.character_stats import CharacterStats
-    from models.praxis import PraxisType
-    from services.auth import create_jwt
-    from sqlalchemy import select
-
-    # Raise A1 (character) to level 2 to satisfy the duel level gate
-    a1_stats_result = await db_session.execute(
-        select(CharacterStats).where(CharacterStats.character_id == character.id)
-    )
-    a1_stats = a1_stats_result.scalar_one()
-    a1_stats.level = 2
-    await db_session.commit()
-
-    # character2 (level 5) creates the duel
-    create_resp = await client.post(
-        "/praxes",
-        json={"task_id": active_task.id, "type": "duel", "title": "R4 Duel"},
-        headers=auth_headers2,
-    )
-    assert create_resp.status_code == 201
-    duel_id = create_resp.json()["id"]
-
-    # character2 invites character (A1) to the duel
-    invite_resp = await client.post(
-        f"/praxes/{duel_id}/invite",
-        json={"invitee_id": character.id},
-        headers=auth_headers2,
-    )
-    assert invite_resp.status_code == 200
-    invite_id = invite_resp.json()["id"]
-
-    # A1 accepts the invite
     accept_resp = await client.post(
-        f"/praxes/{duel_id}/invite/{invite_id}/respond",
+        f"/duels/{duel_id}/respond",
         json={"accept": True},
         headers=auth_headers,
     )
     assert accept_resp.status_code == 200
+    duel = accept_resp.json()
+    assert duel["status"] == "active"
+    assert duel["opponent_praxis_id"] is not None
 
-    # Find the praxis_member rows (A1 and B1)
-    members = accept_resp.json()["members"]
-    member_for_a1 = next(m for m in members if m["character_id"] == character.id)
-    member_for_b1 = next(m for m in members if m["character_id"] == character2.id)
+    # GET the duel
+    get_resp = await client.get(f"/duels/{duel_id}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["status"] == "active"
 
-    # Account A tries to vote on B1 in the duel (A1 is A's participant).
-    # The account-level anti-self-vote rule should block this.
-    block_resp = await client.post(
-        f"/praxes/{duel_id}/vote",
-        json={"stars": 3, "praxis_member_id": member_for_b1["id"]},
+
+@pytest.mark.asyncio
+async def test_vote_on_duel_side_praxis(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    db_session: AsyncSession,
+    era: Era,
+):
+    """Voting on a duel side praxis works like any solo praxis (no praxis_member_id)."""
+    from models.account import Account as AccountModel
+    from models.character import Character as CharacterModel
+    from models.character_stats import CharacterStats
+    from services.auth import create_jwt
+
+    # Raise character's level to meet duel gate
+    stats_result = await db_session.execute(
+        select(CharacterStats).where(CharacterStats.character_id == character.id)
+    )
+    stats = stats_result.scalar_one()
+    stats.level = 2
+    await db_session.commit()
+
+    # Issue and accept the duel
+    challenge_resp = await client.post(
+        "/duels/challenge",
+        json={"task_id": active_task.id, "opponent_character_id": character.id},
+        headers=auth_headers2,
+    )
+    assert challenge_resp.status_code == 201
+    duel_data = challenge_resp.json()
+    duel_id = duel_data["id"]
+    challenger_praxis_id = duel_data["challenger_praxis_id"]
+
+    accept_resp = await client.post(
+        f"/duels/{duel_id}/respond",
+        json={"accept": True},
         headers=auth_headers,
     )
-    assert block_resp.status_code == 403
-    detail = block_resp.json()["detail"].lower()
-    assert "account" in detail or "own" in detail or "participant" in detail
+    assert accept_resp.status_code == 200
+    opponent_praxis_id = accept_resp.json()["opponent_praxis_id"]
 
     # Create an unrelated voter on a third account
-    account_c = AccountModel(email="duelvoter_c@example.com")
+    account_c = AccountModel(email="duel_side_voter@example.com")
     db_session.add(account_c)
     await db_session.flush()
     voter_c = CharacterModel(
         account_id=account_c.id,
-        username="voter_c",
-        display_name="Voter C",
+        username="duel_side_voter_c",
+        display_name="Duel Voter C",
         faction_slug="ua",
     )
     db_session.add(voter_c)
@@ -391,17 +377,24 @@ async def test_duel_vote_blocked_by_alt_character_on_same_account(
         )
     )
     await db_session.commit()
-
     c_headers = {"Authorization": f"Bearer {create_jwt(account_c.id)}"}
 
-    # Unrelated account C's character votes — should succeed
-    allow_resp = await client.post(
-        f"/praxes/{duel_id}/vote",
-        json={"stars": 4, "praxis_member_id": member_for_a1["id"]},
+    # Vote on each side praxis — no praxis_member_id needed
+    vote1 = await client.post(
+        f"/praxes/{challenger_praxis_id}/vote",
+        json={"stars": 4},
         headers=c_headers,
     )
-    assert allow_resp.status_code == 200
-    assert allow_resp.json()["stars"] == 4
+    assert vote1.status_code == 200
+    assert vote1.json()["stars"] == 4
+
+    vote2 = await client.post(
+        f"/praxes/{opponent_praxis_id}/vote",
+        json={"stars": 3},
+        headers=c_headers,
+    )
+    assert vote2.status_code == 200
+    assert vote2.json()["stars"] == 3
 
 
 @pytest.mark.asyncio
@@ -474,112 +467,6 @@ async def test_vote_budget_reflects_votes_spent(
         - 2
     )
     assert compute_votes_available(stats) == expected
-
-
-# ---------------------------------------------------------------------------
-# S.2 SESSION S — guard cast_or_update_duel_vote against lazy="raise" drift
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_duel_vote_end_to_end_does_not_raise_statement_error(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    character: Character,
-    character2: Character,
-    active_task: Task,
-    era: Era,
-    auth_headers: dict,
-    auth_headers2: dict,
-):
-    """S.2 regression guard: a successful duel vote through the HTTP route.
-
-    ``cast_or_update_duel_vote`` re-fetches the Praxis via bare
-    ``session.get(Praxis, ...)`` and iterates ``praxis.members`` plus
-    ``member.character.account_id``. After PR #115 the sibling Praxis
-    relationships (``votes``, ``invites``, ``media_items``, ``flags``) are
-    ``lazy="raise"`` — accessing any of them without a matching
-    ``selectinload`` throws ``StatementError``. If a future refactor flips
-    ``members`` or ``PraxisMember.character`` to ``raise``, or the service
-    starts touching one of the raised relationships, this end-to-end happy
-    path will blow up. Thin wrapper around the route so the test is cheap
-    but the assertion scope (no StatementError, vote recorded) is tight.
-    """
-    from models.account import Account as AccountModel
-    from models.character import Character as CharacterModel
-    from models.character_stats import CharacterStats
-    from services.auth import create_jwt
-
-    # character (A1) needs level 2 to accept a duel invite
-    a1_stats_result = await db_session.execute(
-        select(CharacterStats).where(CharacterStats.character_id == character.id)
-    )
-    a1_stats = a1_stats_result.scalar_one()
-    a1_stats.level = 2
-    await db_session.commit()
-
-    # character2 creates a duel, invites character, character accepts
-    create_resp = await client.post(
-        "/praxes",
-        json={"task_id": active_task.id, "type": "duel", "title": "S2 Duel"},
-        headers=auth_headers2,
-    )
-    assert create_resp.status_code == 201
-    duel_id = create_resp.json()["id"]
-
-    invite_resp = await client.post(
-        f"/praxes/{duel_id}/invite",
-        json={"invitee_id": character.id},
-        headers=auth_headers2,
-    )
-    assert invite_resp.status_code == 200
-    invite_id = invite_resp.json()["id"]
-
-    accept_resp = await client.post(
-        f"/praxes/{duel_id}/invite/{invite_id}/respond",
-        json={"accept": True},
-        headers=auth_headers,
-    )
-    assert accept_resp.status_code == 200
-    members = accept_resp.json()["members"]
-    target_member_id = next(m["id"] for m in members if m["character_id"] == character.id)
-
-    # Unrelated third-account voter — required by account-level anti-self-vote
-    account_c = AccountModel(email="s2_voter@example.com")
-    db_session.add(account_c)
-    await db_session.flush()
-    voter_c = CharacterModel(
-        account_id=account_c.id,
-        username="s2_voter_c",
-        display_name="S2 Voter",
-        faction_slug="ua",
-    )
-    db_session.add(voter_c)
-    await db_session.flush()
-    db_session.add(
-        CharacterStats(
-            character_id=voter_c.id,
-            era_id=era.id,
-            score=100,
-            all_time_score=100,
-            level=3,
-            votes_spent_this_era=0,
-        )
-    )
-    await db_session.commit()
-    c_headers = {"Authorization": f"Bearer {create_jwt(account_c.id)}"}
-
-    # Cast the duel vote. Must not raise StatementError — exercises the full
-    # duel-vote service path under the current lazy-load configuration.
-    vote_resp = await client.post(
-        f"/praxes/{duel_id}/vote",
-        json={"stars": 4, "praxis_member_id": target_member_id},
-        headers=c_headers,
-    )
-    assert vote_resp.status_code == 200
-    vote_data = vote_resp.json()
-    assert vote_data["stars"] == 4
-    assert vote_data["praxis_member_id"] == target_member_id
 
 
 # ---------------------------------------------------------------------------
