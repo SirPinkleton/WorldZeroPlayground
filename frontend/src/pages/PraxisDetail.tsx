@@ -14,14 +14,24 @@ import type { PraxisDetailState } from './praxisDetail/usePraxisDetail'
 import { pickVariant } from '../utils/factionDispatch'
 import DefaultPraxisDetail from './praxisDetail/archetypes/DefaultPraxisDetail'
 import EphemeristsPraxisDetail from './praxisDetail/archetypes/EphemeristsPraxisDetail'
+import SnidePraxisDetail from './praxisDetail/archetypes/SnidePraxisDetail'
+import SingularityPraxisDetail from './praxisDetail/archetypes/SingularityPraxisDetail'
+import EverymenPraxisDetail from './praxisDetail/archetypes/EverymenPraxisDetail'
+import WowPraxisDetail from './praxisDetail/archetypes/WowPraxisDetail'
+import UAPraxisDetail from './praxisDetail/archetypes/UAPraxisDetail'
 import CommentThread from '../components/comments/CommentThread'
 
 /**
  * Per-faction praxis-read archetype map. Keyed by task faction slug.
  * Add one row per faction as its read-page design lands (ADR-0017, gap tracker).
  */
-const ARCHETYPE_BY_SLUG: Record<string, ComponentType<{ state: PraxisDetailState }>> = {
+export const ARCHETYPE_BY_SLUG: Record<string, ComponentType<{ state: PraxisDetailState }>> = {
   ephemerists: EphemeristsPraxisDetail,
+  snide: SnidePraxisDetail,
+  singularity: SingularityPraxisDetail,
+  everymen: EverymenPraxisDetail,
+  wow: WowPraxisDetail,
+  ua: UAPraxisDetail,
 }
 
 export default function PraxisDetail() {
