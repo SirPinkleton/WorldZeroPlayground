@@ -167,24 +167,29 @@ A faction's bespoke rendering of the shared 1–5 rating — Ephemerists' **Conc
 (apocryphal → disputed → plausible → corroborated → canonical), Singularity's
 NOISE → VERIFIED. The underlying value is always 1–5; only the vocabulary + visual ramp
 change. This is per-faction surface #8; it is the **hero** of a praxis card and has both an
-interactive *caster* form and a read-only *summary* form.
-**Ownership:** the per-faction tier *structure* (value→label key, numeral style) lives in a
-`voteReframes` registry; the label *words* live in the copy catalog (`copy/en.ts`, ADR-0010),
-resolved via `t()`; the *visual ramp* stays in the archetype (don't-unify-the-look). The
-shared caster/login-gate/summary composition is one `VoteScaffold`; an archetype supplies only
-its tiles + theme. One reframe lookup powers the caster, the summary, **and** the per-voter
-breakdown (who voted + their value), so all three speak the same vocabulary.
+interactive *caster* form (the read-only *average-summary* badge is retired — see **Points from votes**).
+**Ownership:** the per-faction tier *structure* (value, label, numeral style) lives in a
+`voteReframes` registry; the label *words* are literals in that registry for now (migrating them to
+the copy catalog `copy/en.ts` / ADR-0010 is deferred to its own issue); the *visual ramp* stays in
+the archetype (don't-unify-the-look). There is **no shared scaffold**: the login-gate + summary live
+in `VoteShell`, and each archetype keeps its own `useVote` + tiles + theme — arrangement stays
+per-archetype (ADR-0016). One reframe lookup powers the caster **and** the per-voter breakdown
+(who voted + their value), so both speak the same vocabulary.
 
-**Vote** *(value rename in progress — `stars`→`value`)*:
+**Vote**:
 One character's rating of a praxis, an integer 1–5 — the unit cast in the vote control and
-reframed per faction (see **Vote reframe**). The DB column `Vote.stars` is being renamed
-`Vote.value`; the summed quantity is **points from votes**, never "stars".
+reframed per faction (see **Vote reframe**). The DB column is `Vote.value` (the `stars`→`value`
+rename landed, #192 / ADR-0014); the summed quantity is **points from votes**, never "stars".
 _Avoid_: star, stars (legacy term, retired alongside the column rename).
 
 **Points from votes**:
 The **sum** of a praxis's vote values, added flat to score *after* all multipliers. Surfaced
 as *points* (the "73" in a "15 + 73 points" display = base + points-from-votes), never as its
-own noun. Distinct from **voter count** — how many votes were cast (the "45 votes" label).
+own noun. Distinct from **voter count** — how many votes were cast (the "45 votes" label). The
+**average** of a praxis's vote values is *not* a domain quantity — a praxis's standing is the sum
+(points-from-votes) and the count, never the mean (SPEC-game-rules: "Not an average"). A vestigial
+display-only `average_value` field still lingers in code, pending its own removal.
+_Avoid_: average rating, avg score.
 
 **Vote tally** *(read-model; `services/vote_tally.py`)*:
 The single source for a praxis's vote aggregates: `points_from_votes`, `voter_count`, and the
