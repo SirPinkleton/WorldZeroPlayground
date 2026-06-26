@@ -25,7 +25,7 @@ export interface FactionConfig {
 /** Hardcoded fallback — matches index.css --faction-* values exactly. Used on first render
  *  before the API response arrives. Do not use these values directly; call factionColor(). */
 const FACTION_FALLBACKS: Record<string, FactionConfig> = {
-  ua: { slug: "ua", name: "UA", color: "#7c3aed" },
+  ua: { slug: "ua", name: "UA", color: "#c2541f" },
   everymen: { slug: "everymen", name: "Everymen", color: "#c1272d" },
   wow: { slug: "wow", name: "Warriors of Whimsy", color: "#ec5f99" },
   snide: { slug: "snide", name: "S.N.I.D.E.", color: "#6fae00" },

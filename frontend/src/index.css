@@ -41,7 +41,7 @@
   --color-surface-scrim: rgba(255, 255, 255, 0.9);
 
   /* ── Faction primary colors (rainbow palette) ── */
-  --faction-ua: #7c3aed; /* purple */
+  --faction-ua: var(--ua-orange); /* burnt amber — gilt salon (#240) */
   --faction-wow: #ec5f99; /* redesign pink */
   --faction-snide: #6fae00; /* acid green (deep — legible on light chrome) */
   --faction-ephemerists: #1d6e72; /* lapis-verdigris — Ephemerists reskin of the teal slot */
@@ -49,7 +49,7 @@
   --faction-ua-masters: #c2410c; /* orange */
 
   /* ── Faction tints (backgrounds, highlights) ── */
-  --faction-ua-light: rgba(124, 58, 237, 0.08);
+  --faction-ua-light: rgba(194, 84, 31, 0.08);
   --faction-wow-light: rgba(236, 95, 153, 0.1);
   --faction-snide-light: rgba(182, 255, 46, 0.16);
   --faction-ephemerists-light: rgba(29, 110, 114, 0.1);
@@ -57,7 +57,7 @@
   --faction-ua-masters-light: rgba(194, 65, 12, 0.1);
 
   /* ── Faction borders ── */
-  --faction-ua-border: rgba(124, 58, 237, 0.3);
+  --faction-ua-border: rgba(194, 84, 31, 0.3);
   --faction-wow-border: rgba(236, 95, 153, 0.3);
   --faction-snide-border: rgba(111, 174, 0, 0.45);
   --faction-ephemerists-border: rgba(29, 110, 114, 0.35);
@@ -65,7 +65,7 @@
   --faction-ua-masters-border: rgba(194, 65, 12, 0.35);
 
   /* ── Faction card backgrounds (light mode) ── */
-  --faction-ua-card-bg: #f3eefc; /* faded lavender */
+  --faction-ua-card-bg: var(--ua-paper); /* parchment sheet */
   --faction-wow-card-bg: #fdeef3; /* blush collage */
   --faction-snide-card-bg: #14110b; /* photocopier ink (dark-in-light, Singularity precedent) */
   --faction-ephemerists-card-bg: var(--eph-vellum); /* Ephemerists: aged manuscript stock */
@@ -73,7 +73,7 @@
   --faction-ua-masters-card-bg: #f5e9d6; /* aged newsprint */
 
   /* ── Faction card text (light mode) ── */
-  --faction-ua-card-text: #1a1209;
+  --faction-ua-card-text: var(--ua-ink);
   --faction-wow-card-text: #581c39;
   --faction-snide-card-text: #f4f1e8; /* warm xerox paper on ink */
   --faction-ephemerists-card-text: var(--eph-vellum-text);
@@ -81,7 +81,7 @@
   --faction-ua-masters-card-text: #1a1209;
 
   /* ── Faction card accents (light mode) ── */
-  --faction-ua-card-accent: #7c3aed;
+  --faction-ua-card-accent: var(--ua-orange);
   --faction-wow-card-accent: #ec5f99;
   --faction-snide-card-accent: #b6ff2e; /* toxic acid */
   --faction-ephemerists-card-accent: var(--eph-rubric);
@@ -89,7 +89,7 @@
   --faction-ua-masters-card-accent: #c2410c;
 
   /* ── Faction card secondary text (descriptions, metadata) ── */
-  --faction-ua-card-muted: #4a3a6a;
+  --faction-ua-card-muted: var(--ua-sub);
   --faction-wow-card-muted: #831843;
   --faction-snide-card-muted: #d8d6c8; /* faded newsprint grey on ink */
   --faction-ephemerists-card-muted: var(--eph-muted);
@@ -154,6 +154,24 @@
   --eph-display: "Cinzel", "Trajan Pro", Georgia, serif;
   --eph-serif: "EB Garamond", Georgia, serif;
   --eph-script: "Cormorant Garamond", Georgia, serif;
+
+  /* ── UA · gilt salon (art academy; always-light — never dims; #240) ──
+     Base palette UA surfaces draw from. NOT redefined under
+     [data-theme="dark"], so every UA surface stays gilt in both themes. */
+  --ua-orange: #c2541f; /* burnt amber — the accent */
+  --ua-orange-deep: #a8431a;
+  --ua-gold: #9c6a1a; /* old gold — frames & regalia */
+  --ua-gold-lt: #dd9322;
+  --ua-gold-pale: #eec06a;
+  --ua-ink: #3d2410; /* brown ink — all text */
+  --ua-sub: #8f6a3a; /* secondary serif text */
+  --ua-muted: #a8895a; /* mono labels / metadata */
+  --ua-paper: #fdf6ea; /* sheet / card surface */
+  --ua-paper-warm: #fef7ea;
+  --ua-wall: #ece4d2; /* page wall */
+  --ua-line: #cdab63; /* hairline borders */
+  --ua-line-soft: #e3cb98;
+  --ua-gilt: linear-gradient(135deg, #eec06a 0%, #9c6a1a 24%, #f0c878 50%, #9c6a1a 76%, #dd9322 100%);
 
   /* ── Warriors of Whimsy collage scrap layers (legacy — kept for back-compat) ── */
   --faction-wow-scrap-deep: #fbcfe0;
@@ -293,7 +311,7 @@
   --color-surface-scrim: rgba(19, 18, 26, 0.85);
 
   /* ── Faction primary colors (dark — brightened rainbow) ── */
-  --faction-ua: #a78bfa; /* purple */
+  --faction-ua: var(--ua-orange); /* always-light salon — never dims (#240) */
   --faction-wow: #f472b6; /* magenta */
   --faction-snide: #b6ff2e; /* acid green (bright — pops on dark) */
   --faction-ephemerists: #3aa0a4; /* lapis-verdigris lifted for dark — Ephemerists */
@@ -301,7 +319,7 @@
   --faction-ua-masters: #fb923c; /* orange */
 
   /* ── Faction tints (dark) ── */
-  --faction-ua-light: rgba(167, 139, 250, 0.12);
+  --faction-ua-light: rgba(194, 84, 31, 0.08);
   --faction-wow-light: rgba(244, 114, 182, 0.08);
   --faction-snide-light: rgba(182, 255, 46, 0.12);
   --faction-ephemerists-light: rgba(58, 160, 164, 0.1);
@@ -309,7 +327,7 @@
   --faction-ua-masters-light: rgba(251, 146, 60, 0.1);
 
   /* ── Faction borders (dark) ── */
-  --faction-ua-border: rgba(167, 139, 250, 0.3);
+  --faction-ua-border: rgba(194, 84, 31, 0.3);
   --faction-wow-border: rgba(244, 114, 182, 0.25);
   --faction-snide-border: rgba(182, 255, 46, 0.3);
   --faction-ephemerists-border: rgba(58, 160, 164, 0.35);
@@ -317,7 +335,7 @@
   --faction-ua-masters-border: rgba(251, 146, 60, 0.3);
 
   /* ── Faction card backgrounds (dark mode) ── */
-  --faction-ua-card-bg: #1d1530;
+  --faction-ua-card-bg: var(--ua-paper); /* salon never dims (#240) */
   --faction-wow-card-bg: #2a0d1c;
   --faction-snide-card-bg: #0c0a07; /* deeper ink */
   /* ephemerists card-bg inherits the :root var(--eph-vellum) rebind (flips below) */
@@ -325,21 +343,21 @@
   --faction-ua-masters-card-bg: #1f1208;
 
   /* ── Faction card text (dark mode) ── */
-  --faction-ua-card-text: #ddd6fe;
+  --faction-ua-card-text: var(--ua-ink);
   --faction-wow-card-text: #fbcfe0;
   --faction-snide-card-text: #f4f1e8;
   --faction-singularity-card-text: #4ade80;
   --faction-ua-masters-card-text: #fed7aa;
 
   /* ── Faction card accents (dark mode) ── */
-  --faction-ua-card-accent: #a78bfa;
+  --faction-ua-card-accent: var(--ua-orange);
   --faction-wow-card-accent: #f472b6;
   --faction-snide-card-accent: #b6ff2e;
   --faction-singularity-card-accent: #4ade80; /* terminal green */
   --faction-ua-masters-card-accent: #fb923c;
 
   /* ── Faction card secondary text (dark mode) ── */
-  --faction-ua-card-muted: #a8a0c0;
+  --faction-ua-card-muted: var(--ua-sub);
   --faction-wow-card-muted: #c4648a;
   --faction-snide-card-muted: #cfcdbf;
   /* SNIDE flyposted wall flips to concrete-at-night */
