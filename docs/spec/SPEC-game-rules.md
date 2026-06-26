@@ -26,14 +26,14 @@
 - Vote budget: **on-read recomputation** — `votes_available` is always computed fresh from formula, never stored as a running counter
 
 **2026-04-17 — Truth reconciliation pass**
-- Snide tie rule: opponent now uses their own faction's `duel_loss_modifier`, not Snide's 0.0× ⚠️
-- Task signup level gate: added (can only sign up for tasks ≤ your level) ⚠️
+- Snide tie rule: opponent now uses their own faction's `duel_loss_modifier`, not Snide's 0.0×
+- Task signup level gate: added (can only sign up for tasks ≤ your level)
 - `task_submit_level_gap` field: **removed** — once signed up, you can always submit
 - Metatask level privileges: corrected (see/propose at L6, apply own at L7) — L4 "meta task access" row removed ⚠️
 - Albescent: second-character starting faction at level 1, skips UA ⚠️
-- Duel anti-self-vote: now account-level (was character-level for duels) ⚠️
+- Duel anti-self-vote: now account-level (was character-level for duels)
 - Collab max participants: hard-capped at 20 ⚠️
-- Vote budget: continuously recomputed as score grows ⚠️
+- Vote budget: continuously recomputed as score grows
 - Era reset level: 0 (Notion previously said 1 — corrected in Notion)
 - Sunyata faction: dropped from design entirely (was hidden, unused)
 - "The Terminal" display name replaced with "Singularity" throughout
@@ -80,7 +80,7 @@ Per-faction fields on `FactionConfig` (all configurable per era):
 
 | Rule | Value | Where |
 |---|---|---|
-| Task signup minimum level | `task.level_required ≤ character.level` | ⚠️ Not yet enforced — see SESSION R |
+| Task signup minimum level | `task.level_required ≤ character.level` | `services/praxis.py::_check_create_preconditions` |
 | Collaboration minimum level | 1 | `services/praxis.py::COLLABORATION_LEVEL_REQUIRED` |
 | Duel minimum level | 2 | `services/praxis.py::DUEL_LEVEL_REQUIRED` |
 | Flagging minimum level | 4 | `services/praxis.py::flag_praxis` |
@@ -134,7 +134,7 @@ votes_available = vote_budget_base + floor(vote_budget_multiplier × character.s
 - `votes_available == 0` blocks new votes but not updates.
 - Budget grows organically as the character earns points: 2 additional votes per point earned in Era 1.
 
-⚠️ **Not yet implemented as on-read recomputation.** Current code sets the budget only at era start / character creation and depletes it as votes are cast. Fix in SESSION R.
+Implemented as on-read recomputation in `services/scoring.py::compute_votes_available` — the budget is computed fresh from the formula on every read (stored column is `votes_spent_this_era` only), consumed in `services/vote.py` and `routers/characters.py`.
 
 ### Level computation
 
@@ -187,7 +187,7 @@ Each member's score is computed independently using their own faction's collab m
 ### Solo
 
 - Any character who meets the task's `level_required` and has bank capacity can create a solo praxis.
-- ⚠️ **Signup level gate:** character.level ≥ task.level_required. Not yet enforced in code — fix in SESSION R.
+- **Signup level gate:** character.level ≥ task.level_required. Enforced in `services/praxis.py::_check_create_preconditions`.
 - Creator is automatically added as the sole `PraxisMember`.
 - Votes are praxis-wide (no `praxis_member_id` required). Anti-self-vote is enforced at account level.
 
@@ -206,7 +206,7 @@ Each member's score is computed independently using their own faction's collab m
 - Max participants: `era.max_duel_participants` (Era 1: 2).
 - Creator invites one opponent. Opponent accepts or declines.
 - Votes are **per-member** (`praxis_member_id` required). Voters may vote for one or both members — each is a separate `Vote` row.
-- Duel participants cannot vote on their own duel at the **account level** (a voter cannot use any of their characters to rate either side of a duel they participate in). ⚠️ Current code enforces only character-level for duels — fix in SESSION R.
+- Duel participants cannot vote on their own duel at the **account level** (a voter cannot use any of their characters to rate either side of a duel they participate in). Account-level anti-self-vote is enforced per-praxis in `services/vote.py` (a voter cannot rate a side authored by any character on their account). _Note: this blocks the participant's own side; blocking a participant from rating the **opponent's** side is not yet enforced — tracked separately._
 - Winner is determined by the highest `total_stars` across each member's votes.
 
 ### Duel outcome multipliers (Era 1)
@@ -223,7 +223,7 @@ Each member's score is computed independently using their own faction's collab m
 | /Albescent | 1.5× | 0.5× |
 
 **Tie tiebreaker rule:**
-- If exactly one participant is Snide: Snide wins the tie. **Snide receives their own `duel_win_modifier` (2.0×); the other player receives their own faction's `duel_loss_modifier`** (e.g. a UA player in this situation receives 0.5×, not Snide's 0.0×). ⚠️ Current code applies Snide's loss modifier to the opponent — fix in SESSION R.
+- If exactly one participant is Snide: Snide wins the tie. **Snide receives their own `duel_win_modifier` (2.0×); the other player receives their own faction's `duel_loss_modifier`** (e.g. a UA player in this situation receives 0.5×, not Snide's 0.0×). Implemented in `services/scoring.py::compute_duel_multiplier` (the modifier is resolved from each character's own faction).
 - If neither or both are Snide: both get 1.0× (no win/loss applied).
 
 ---
@@ -359,12 +359,12 @@ These have schema support or design intent but no live service enforcement:
 
 Items flagged ⚠️ above, consolidated for engineering:
 
-1. Enforce task signup level gate (`character.level ≥ task.level_required` on praxis creation).
+1. ~~Enforce task signup level gate (`character.level ≥ task.level_required` on praxis creation).~~ — ✅ **done** (`services/praxis.py::_check_create_preconditions`).
 2. Remove `task_submit_level_gap` from `EraConfig` and any references.
 3. ~~Add `max_collab_participants` to `EraConfig`~~ — **removed**. Era 1 collaborations are unlimited. Do not add this field.
-4. Switch duel anti-self-vote from character-level to account-level (same behavior as solo/collab).
-5. Vote budget on-read recomputation: compute `votes_available = vote_budget_base + floor(multiplier × score) − votes_spent_this_era` fresh on every read. Replace stored running counter with stored `votes_spent_this_era` only.
-6. Snide tie rule: opponent gets **own** faction's `duel_loss_modifier`, not Snide's. Update `compute_duel_multiplier`.
+4. ~~Switch duel anti-self-vote from character-level to account-level (same behavior as solo/collab).~~ — ✅ **done** (account-level anti-self-vote per-praxis in `services/vote.py`; see the duel note in §Duels for the residual opponent-side scope).
+5. ~~Vote budget on-read recomputation: compute `votes_available = vote_budget_base + floor(multiplier × score) − votes_spent_this_era` fresh on every read. Replace stored running counter with stored `votes_spent_this_era` only.~~ — ✅ **done** (`services/scoring.py::compute_votes_available`; stored column is `votes_spent_this_era`).
+6. ~~Snide tie rule: opponent gets **own** faction's `duel_loss_modifier`, not Snide's. Update `compute_duel_multiplier`.~~ — ✅ **done** (`services/scoring.py::compute_duel_multiplier`).
 7. Second character level gate: raise from 3 → **4**. Gate the Albescent faction choice for new characters behind "account has at least one character at level 8 who has completed at least one task from each faction."
 8. Albescent second-character onboarding: when a second-or-later character is created as Albescent, start them in `albescent` at level 1, skip UA assignment.
 9. Metatask level privileges: remove any level-4 metatask access; implement level-6 "see list + propose", level-7 "apply own faction", Albescent "apply any faction".
