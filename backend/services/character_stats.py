@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
 from models.era import Era
+from models.invitation_letter import InvitationLetter
 from models.praxis import (
     ModerationStatus,
     Praxis,
@@ -13,9 +14,75 @@ from models.praxis import (
     PraxisStatus,
     PraxisType,
 )
+from models.task import Task
 from services.era import get_current_era_row, get_or_create_stats
-from services.praxis_scoring import compute_contributions
+from services.praxis_scoring import Contribution, compute_contributions
 from services.scoring import compute_level
+
+# Factions that never receive invitation letters (ADR-0022 / ADR-0019 sentinels).
+_NON_INVITE_FACTION_SLUGS: frozenset[str] = frozenset({"na", "aged_out", "albescent"})
+
+
+async def _deliver_earned_invitations(
+    character_id: int,
+    praxes: list[Praxis],
+    contributions: dict[int, Contribution],
+    session: AsyncSession,
+    era: EraConfig,
+    era_row: Era,
+) -> None:
+    """Deliver any newly-earned faction invitation letters (ADR-0022).
+
+    A character earns faction X's invite once it has ``era.invitation_task_threshold``
+    completed (distinct) tasks for X **and** ``era.invitation_point_threshold`` points
+    from X's tasks — both from this same submitted-praxis set recalc already scored, so
+    vote-driven point gains trigger delivery too. Idempotent on the
+    (character, faction, era) unique key.
+    """
+    if not praxes:
+        return
+
+    task_rows = await session.execute(
+        select(Task.id, Task.primary_faction_slug).where(
+            Task.id.in_({p.task_id for p in praxes})
+        )
+    )
+    faction_by_task: dict[int, str] = {tid: slug for tid, slug in task_rows.all()}
+
+    task_ids_by_faction: dict[str, set[int]] = {}
+    points_by_faction: dict[str, float] = {}
+    for praxis in praxes:
+        slug = faction_by_task.get(praxis.task_id) or "na"
+        if slug in _NON_INVITE_FACTION_SLUGS:
+            continue
+        task_ids_by_faction.setdefault(slug, set()).add(praxis.task_id)
+        contribution = contributions.get(praxis.id)
+        if contribution is not None:
+            points_by_faction[slug] = points_by_faction.get(slug, 0.0) + contribution.total
+
+    qualifying = {
+        slug
+        for slug, task_ids in task_ids_by_faction.items()
+        if len(task_ids) >= era.invitation_task_threshold
+        and points_by_faction.get(slug, 0.0) >= era.invitation_point_threshold
+    }
+    if not qualifying:
+        return
+
+    already = await session.execute(
+        select(InvitationLetter.faction_slug).where(
+            InvitationLetter.character_id == character_id,
+            InvitationLetter.era_id == era_row.id,
+        )
+    )
+    held = {slug for (slug,) in already.all()}
+    for slug in qualifying - held:
+        # ponytail: the (character, faction, era) UNIQUE constraint is the real
+        # backstop against a concurrent double-deliver; the held-set check avoids
+        # the common case.
+        session.add(
+            InvitationLetter(character_id=character_id, faction_slug=slug, era_id=era_row.id)
+        )
 
 
 async def recalculate_character_stats(
@@ -83,3 +150,8 @@ async def recalculate_character_stats(
     stats.score = total_score
     stats.all_time_score = max(stats.all_time_score, total_score)
     stats.level = compute_level(total_score, era)
+
+    # ADR-0022: deliver any faction invitations this submitted-praxis set now earns.
+    await _deliver_earned_invitations(
+        character_id, all_praxes, contributions, session, era, era_row
+    )
