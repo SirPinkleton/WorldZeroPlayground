@@ -704,6 +704,109 @@ async def test_edit_praxis_wrong_owner_returns_403(
 
 
 # ---------------------------------------------------------------------------
+# Collab co-ownership (ADR-0013): any member may edit / reopen / kick
+# ---------------------------------------------------------------------------
+
+
+async def _two_member_collab(
+    client: AsyncClient,
+    task: Task,
+    creator_headers: dict,
+    invitee_id: int,
+    invitee_headers: dict,
+) -> int:
+    """Create a collab owned by ``creator_headers`` and add ``invitee`` as a member."""
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": task.id, "type": "collab", "title": "Co-owned"},
+        headers=creator_headers,
+    )
+    assert create_resp.status_code == 201
+    praxis_id = create_resp.json()["id"]
+    invite_resp = await client.post(
+        f"/praxes/{praxis_id}/invite",
+        json={"invitee_id": invitee_id},
+        headers=creator_headers,
+    )
+    invite_id = invite_resp.json()["id"]
+    await client.post(
+        f"/praxes/{praxis_id}/invite/{invite_id}/respond",
+        json={"accept": True},
+        headers=invitee_headers,
+    )
+    return praxis_id
+
+
+@pytest.mark.asyncio
+async def test_collab_non_creator_can_edit(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A non-creator member can edit a collab's title/body (ADR-0013)."""
+    # character2 creates, character (non-creator) edits.
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    resp = await client.put(
+        f"/praxes/{praxis_id}",
+        json={"title": "Edited by member", "body_text": "ours"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["title"] == "Edited by member"
+
+
+@pytest.mark.asyncio
+async def test_collab_non_creator_can_reopen(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A non-creator member can reopen (withdraw) a submitted collab (ADR-0013)."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    # Both submit so the collab is fully submitted.
+    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+    submit2 = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+    assert submit2.json()["status"] == "submitted"
+
+    resp = await client.post(f"/praxes/{praxis_id}/withdraw", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "in_progress"
+
+
+@pytest.mark.asyncio
+async def test_collab_non_creator_can_kick_creator(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A non-creator member can kick the creator; created_by has no special power (ADR-0013)."""
+    praxis_id = await _two_member_collab(
+        client, active_task, auth_headers2, character.id, auth_headers
+    )
+    # character (non-creator) kicks character2 (the creator).
+    resp = await client.post(
+        f"/praxes/{praxis_id}/kick/{character2.id}", headers=auth_headers
+    )
+    assert resp.status_code == 200
+    remaining = {m["character_id"] for m in resp.json()["members"]}
+    assert character2.id not in remaining
+    assert character.id in remaining
+
+
+# ---------------------------------------------------------------------------
 # Moderation
 # ---------------------------------------------------------------------------
 
