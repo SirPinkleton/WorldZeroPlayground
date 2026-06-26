@@ -1,7 +1,9 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './auth/ProtectedRoute'
+import { useAuth } from './auth/AuthContext'
 import Home from './pages/Home'
+import FieldDesk from './pages/FieldDesk'
 import Tasks from './pages/Tasks'
 import TaskDetail from './pages/TaskDetail'
 import PraxisDetail from './pages/PraxisDetail'
@@ -24,11 +26,18 @@ import Donate from './pages/Donate'
 import CollaborationDetail from './pages/CollaborationDetail'
 import EditCollaboration from './pages/EditCollaboration'
 
+/** `/` is the FieldDesk for an authenticated account, the marketing Home otherwise. */
+function RootLanding() {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="page font-body text-muted">Loading...</div>
+  return user ? <FieldDesk /> : <Home />
+}
+
 export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<RootLanding />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/tasks/:id" element={<TaskDetail />} />
         <Route path="/collaborations/:id" element={<CollaborationDetail />} />
