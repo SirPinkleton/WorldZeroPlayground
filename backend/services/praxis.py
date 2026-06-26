@@ -4,7 +4,7 @@ Handles all three praxis types: solo, collab, and duel.
 Replaces the old services/submission.py and services/collaboration.py.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import HTTPException
@@ -49,6 +49,74 @@ ALBESCENT_FACTION_SLUG = "albescent"
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+async def _publish_collab(praxis: Praxis, session: AsyncSession, era: EraConfig) -> None:
+    """Seal a collab to Live: status=submitted, mark everyone submitted, recalc members.
+
+    Shared by the all-submitted path, the lazy-on-access timeout, and the leave path.
+    """
+    praxis.status = PraxisStatus.submitted
+    praxis.submitted_at = datetime.now(timezone.utc)
+    praxis.submit_proposed_at = None
+    for member in praxis.members:
+        member.has_submitted = True
+    await session.flush()
+    era_row = await get_current_era_row(session)
+    for member in praxis.members:
+        await recalculate_character_stats(member.character_id, session, era, era_row=era_row)
+    await session.flush()
+
+
+async def _publish_if_window_lapsed(
+    praxis: Praxis, session: AsyncSession, era: EraConfig
+) -> None:
+    """Lazy-on-access timeout (ADR-0012): auto-publish a pending collab whose window elapsed.
+
+    Called from the read paths (:func:`get_praxis`, :func:`list_praxes`) so no scheduler
+    is needed. Cheap no-op for everything except a collab with an open, lapsed window.
+
+    ponytail: a collab nobody ever reads stays in_progress until first touch (members'
+    scores understated); self-heals on next read of any kind. Upgrade path if deterministic
+    timing is ever needed: an in-process periodic sweep calling this same helper.
+    """
+    if (
+        praxis.type != PraxisType.collab
+        or praxis.status != PraxisStatus.in_progress
+        or praxis.submit_proposed_at is None
+    ):
+        return
+    deadline = praxis.submit_proposed_at + timedelta(days=era.collab_auto_submit_days)
+    if datetime.now(timezone.utc) < deadline:
+        return
+    await _publish_collab(praxis, session, era)
+
+
+async def cancel_pending_publish_on_edit(
+    praxis: Praxis, session: AsyncSession, era: EraConfig = CURRENT_ERA
+) -> None:
+    """Hard reset on a collab edit (ADR-0012): an edit means "we're not done".
+
+    Cancels the pending-publish window, clears *everyone's* ``has_submitted``, and
+    returns the collab to drafting. No-op for solo/duel, or a collab that is neither
+    pending nor Live. Used by title/body edits and media add/remove.
+    """
+    if praxis.type != PraxisType.collab:
+        return
+    if praxis.submit_proposed_at is None and praxis.status != PraxisStatus.submitted:
+        return
+    was_live = praxis.status == PraxisStatus.submitted
+    praxis.submit_proposed_at = None
+    praxis.status = PraxisStatus.in_progress
+    for member in praxis.members:
+        member.has_submitted = False
+    await session.flush()
+    if was_live:
+        # Leaving Live changes scoring — recompute every member's stats.
+        era_row = await get_current_era_row(session)
+        for member in praxis.members:
+            await recalculate_character_stats(member.character_id, session, era, era_row=era_row)
+        await session.flush()
 
 
 def _require_member(praxis: Praxis, character_id: int, action: str) -> None:
@@ -175,6 +243,7 @@ async def build_praxis_out(
         admin_note=praxis.admin_note,
         flagged_at=praxis.flagged_at,
         submitted_at=praxis.submitted_at,
+        submit_proposed_at=praxis.submit_proposed_at,
         created_by_id=praxis.created_by_id,
         created_by_display_name=created_by_display_name,
         created_by_faction_slug=created_by_faction_slug,
@@ -241,7 +310,9 @@ async def build_praxis_card_out(
 # ---------------------------------------------------------------------------
 
 
-async def get_praxis(praxis_id: int, session: AsyncSession) -> Praxis:
+async def get_praxis(
+    praxis_id: int, session: AsyncSession, era: EraConfig = CURRENT_ERA
+) -> Praxis:
     """Get a praxis by id with detail-view relationships eager-loaded.
 
     Loads ``invites`` and ``media_items`` (in addition to the always-loaded
@@ -264,6 +335,7 @@ async def get_praxis(praxis_id: int, session: AsyncSession) -> Praxis:
     praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
+    await _publish_if_window_lapsed(praxis, session, era)
     return praxis
 
 
@@ -278,6 +350,7 @@ async def list_praxes(
     faction: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
+    era: EraConfig = CURRENT_ERA,
 ) -> list[Praxis]:
     """List praxes with optional filters."""
     query = select(Praxis)
@@ -311,7 +384,10 @@ async def list_praxes(
 
     query = query.order_by(Praxis.created_at.desc()).limit(limit).offset(offset)
     result = await session.execute(query)
-    return list(result.scalars().all())
+    praxes = list(result.scalars().all())
+    for praxis in praxes:
+        await _publish_if_window_lapsed(praxis, session, era)
+    return praxes
 
 
 async def _check_create_preconditions(
@@ -432,8 +508,13 @@ async def update_praxis(
     data: PraxisUpdate,
     character_id: int,
     session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
-    """Update title/body_text. Any member may edit (ADR-0013)."""
+    """Update title/body_text. Any member may edit (ADR-0013).
+
+    On a collab, an edit cancels any pending-publish window and un-submits everyone
+    (ADR-0012 hard reset).
+    """
     praxis = await get_praxis(praxis_id, session)
     _require_member(praxis, character_id, "edit")
     if data.title is not None:
@@ -441,6 +522,7 @@ async def update_praxis(
     if data.body_text is not None:
         praxis.body_text = data.body_text
     await session.flush()
+    await cancel_pending_publish_on_edit(praxis, session, era)
     # Re-fetch rather than session.refresh(praxis): refresh expires the
     # lazy='raise' relationships and breaks the subsequent build_praxis_out.
     return await get_praxis(praxis_id, session)
@@ -464,6 +546,7 @@ async def withdraw_praxis(
         raise HTTPException(status_code=422, detail="Praxis is already in editing mode.")
 
     praxis.status = PraxisStatus.in_progress
+    praxis.submit_proposed_at = None
     for member in praxis.members:
         member.has_submitted = False
     await session.flush()
@@ -831,12 +914,50 @@ async def kick_member(
     # identity-mapped praxis to build its response.
     praxis.members.remove(kickee_member)
 
-    # Reset all submitted states when membership changes
+    # A kick resets everyone back to drafting (ADR-0013): cancel any pending-publish
+    # window and clear submissions so the changed group must re-consent.
     for member in praxis.members:
         member.has_submitted = False
     praxis.status = PraxisStatus.in_progress
+    praxis.submit_proposed_at = None
 
     await session.flush()
+
+
+async def leave_praxis(
+    praxis_id: int,
+    character_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> Praxis:
+    """A member removes their *own* membership from a collab (ADR-0012).
+
+    Distinct from kick (removing someone else) and withdraw (taking the whole
+    praxis out of scoring). Unlike a kick, leaving does **not** reset the remaining
+    members' submissions: if everyone still here has submitted, the collab goes Live.
+    """
+    praxis = await get_praxis(praxis_id, session)
+    if praxis.type != PraxisType.collab:
+        raise HTTPException(status_code=400, detail="Only collab memberships can be left.")
+    _require_member(praxis, character_id, "leave")
+
+    leaver = next(m for m in praxis.members if m.character_id == character_id)
+    praxis.members.remove(leaver)
+    await session.flush()
+
+    remaining = praxis.members
+    if (
+        remaining
+        and praxis.status != PraxisStatus.submitted
+        and all(m.has_submitted for m in remaining)
+    ):
+        # Departure can complete the consensus among those who stayed.
+        await _publish_collab(praxis, session, era)
+
+    # The leaver's stake is gone — recompute their stats regardless.
+    await recalculate_character_stats(character_id, session, era)
+    await session.flush()
+    return await get_praxis(praxis_id, session)
 
 
 async def submit_praxis(
@@ -845,7 +966,13 @@ async def submit_praxis(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
-    """Mark the member's has_submitted=True. If all members submitted, set praxis.status=submitted."""
+    """Mark the member's has_submitted=True.
+
+    All members submitted → Live now. Otherwise, on a collab, this opens the
+    pending-publish window (ADR-0012): silence for ``era.collab_auto_submit_days``
+    auto-publishes via the lazy-on-access timeout. Solo/duel always have one member,
+    so they publish immediately and never enter the window.
+    """
     praxis = await get_praxis(praxis_id, session)
 
     member_ids = {m.character_id for m in praxis.members}
@@ -863,6 +990,7 @@ async def submit_praxis(
     if all(m.has_submitted for m in praxis.members):
         praxis.status = PraxisStatus.submitted
         praxis.submitted_at = datetime.now(timezone.utc)
+        praxis.submit_proposed_at = None
         await session.flush()
         # Settle the duel if both sides have now submitted (ADR-0011).
         from services.duel import maybe_settle_duel
@@ -872,6 +1000,9 @@ async def submit_praxis(
             await recalculate_character_stats(
                 member.character_id, session, era, era_row=era_row
             )
+    elif praxis.type == PraxisType.collab and praxis.submit_proposed_at is None:
+        # First member to submit opens the silence-is-consent countdown.
+        praxis.submit_proposed_at = datetime.now(timezone.utc)
 
     await session.flush()
     return await get_praxis(praxis_id, session)
@@ -1054,6 +1185,7 @@ __all__ = [
     "apply_metatask",
     "build_praxis_out",
     "build_praxis_card_out",
+    "cancel_pending_publish_on_edit",
     "can_flag_praxis",
     "can_submit_praxis_for_task",
     "create_praxis",
@@ -1064,6 +1196,7 @@ __all__ = [
     "is_active_member_of_task",
     "is_task_eligible_for_character",
     "kick_member",
+    "leave_praxis",
     "list_praxes",
     "moderate_praxis",
     "remove_metatask",

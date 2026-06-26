@@ -40,14 +40,18 @@ class MetataskApply(BaseModel):
 from schemas.vote import VoteOut
 from services.praxis import (
     _build_invite_out,
+    _require_member,
     apply_metatask,
     build_praxis_card_out,
     build_praxis_out,
+    cancel_pending_publish_on_edit,
     create_praxis,
     delete_praxis,
     flag_praxis,
+    get_praxis,
     invite_to_praxis,
     kick_member,
+    leave_praxis,
     list_praxes,
     remove_metatask,
     respond_to_invite,
@@ -115,13 +119,10 @@ async def get_praxis_route(
     session: AsyncSession = Depends(get_db),
     viewer: Optional[Character] = Depends(get_current_character_optional),
 ):
-    result = await session.execute(
-        select(Praxis)
-        .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
-        .where(Praxis.id == praxis_id)
-    )
-    praxis = result.scalar_one_or_none()
-    if praxis is None or praxis.moderation_status == ModerationStatus.hidden:
+    # Route through the service loader so the lazy-on-access publish timeout
+    # (ADR-0012) fires on this read path.
+    praxis = await get_praxis(praxis_id, session)
+    if praxis.moderation_status == ModerationStatus.hidden:
         raise HTTPException(status_code=404, detail="Praxis not found.")
     return await build_praxis_out(praxis, session, viewer=viewer)
 
@@ -161,6 +162,7 @@ async def update_praxis_route(
         data=data,
         character_id=character.id,
         session=session,
+        era=CURRENT_ERA,
     )
     return await build_praxis_out(praxis, session, viewer=character)
 
@@ -230,14 +232,15 @@ async def upload_media_route(
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    if praxis.created_by_id != character.id:
-        raise HTTPException(status_code=403, detail="Cannot add media to another character's praxis.")
+    _require_member(praxis, character.id, "add media to")
     media_item = await process_and_save_media(
         file, praxis_id, character.id, display_order
     )
     session.add(media_item)
     await session.flush()
     await session.refresh(media_item)
+    # Media is part of the shared document — adding it cancels a pending publish (ADR-0012).
+    await cancel_pending_publish_on_edit(praxis, session)
     return MediaItemOut.model_validate(media_item)
 
 
@@ -251,8 +254,7 @@ async def delete_media_route(
     praxis = await session.get(Praxis, praxis_id)
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    if praxis.created_by_id != character.id:
-        raise HTTPException(status_code=403, detail="Cannot delete media from another character's praxis.")
+    _require_member(praxis, character.id, "delete media from")
     media_item = await session.get(MediaItem, media_id)
     if media_item is None or media_item.praxis_id != praxis_id:
         raise HTTPException(status_code=404, detail="Media item not found.")
@@ -265,6 +267,8 @@ async def delete_media_route(
 
     await session.delete(media_item)
     await session.flush()
+    # Removing media edits the shared document — cancels a pending publish (ADR-0012).
+    await cancel_pending_publish_on_edit(praxis, session)
     return Response(status_code=204)
 
 
@@ -337,6 +341,21 @@ async def kick_member_route(
     praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
+    return await build_praxis_out(praxis, session, viewer=character)
+
+
+@router.post("/{praxis_id}/leave", response_model=PraxisOut)
+async def leave_praxis_route(
+    praxis_id: int,
+    character: Character = Depends(get_current_character),
+    session: AsyncSession = Depends(get_db),
+):
+    praxis = await leave_praxis(
+        praxis_id=praxis_id,
+        character_id=character.id,
+        session=session,
+        era=CURRENT_ERA,
+    )
     return await build_praxis_out(praxis, session, viewer=character)
 
 
