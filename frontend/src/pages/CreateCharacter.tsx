@@ -1,103 +1,77 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { createCharacter, uploadCharacterAvatar } from '../api/characters'
+import { getInvitedFactions } from '../api/me'
+import { factionCssVar, factionName } from '../utils/factions'
 import { extractError } from '../utils/errors'
+import CredentialCard from '../components/CredentialCard'
+
+/**
+ * Adaptive Character Creation (#273, ADR-0019). One screen, two renderings: the
+ * faction picker appears iff the account holds invitations; otherwise a brand-new
+ * account creates a born-unaffiliated ("na") life. One submit path either way.
+ */
+
+const NAME_MAX = 22
+const BIO_MAX = 160
+const MAX_AVATAR_SIZE = 10 * 1024 * 1024 // 10 MB
+
+/** Mirror of the server @handle derivation (services/character._derive_unique_username). */
+function previewHandle(displayName: string): string {
+  return displayName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) || 'wanderer'
+}
 
 export default function CreateCharacter() {
-  const { user, refetch } = useAuth()
+  const { refetch } = useAuth()
   const navigate = useNavigate()
 
-  // Backend is authoritative on eligibility (see WORLD_ZERO_STYLE: validation
-  // belongs in business logic). /auth/me exposes flags computed server-side.
-  // - can_create_additional_character: this account may create another character
-  // - can_start_as_albescent: this account may start a new character in /Albescent
-  //
-  // For a brand-new account with no characters, the create form should render
-  // freely; the account hasn't run into any second-character rules yet. The
-  // gate screen only applies once they already have a character but do not
-  // yet qualify for another.
-  const hasExistingCharacter = user?.character != null
-  const canCreateAnother = user?.can_create_additional_character ?? false
-  const canChooseAlbescent = user?.can_start_as_albescent ?? false
-  const blockedFromAdditionalCharacter = hasExistingCharacter && !canCreateAnother
-
-  const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
-  const [location, setLocation] = useState('')
-  const [factionSlug, setFactionSlug] = useState<string>('')
+  const [factionSlug, setFactionSlug] = useState<string>('') // '' = born na
+  const [invited, setInvited] = useState<string[]>([])
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const MAX_AVATAR_SIZE = 10 * 1024 * 1024 // 10 MB
+  useEffect(() => {
+    void getInvitedFactions().then(setInvited).catch(() => setInvited([]))
+  }, [])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] ?? null
-    if (f && f.size > MAX_AVATAR_SIZE) {
-      setFieldErrors((prev) => ({ ...prev, avatar: 'Avatar must be under 10 MB.' }))
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    if (file && file.size > MAX_AVATAR_SIZE) {
+      setError('Portrait must be under 10 MB.')
       e.target.value = ''
       return
     }
-    setFieldErrors((prev) => { const { avatar, ...rest } = prev; return rest })
-    setAvatarFile(f)
-    if (f) {
-      setAvatarUrl('')
-      setAvatarPreview(URL.createObjectURL(f))
-    } else {
-      setAvatarPreview(null)
-    }
+    setError(null)
+    setAvatarFile(file)
+    setAvatarPreview(file ? URL.createObjectURL(file) : null)
   }
 
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAvatarUrl(e.target.value)
-    if (e.target.value) {
-      setAvatarFile(null)
-      setAvatarPreview(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  const validate = (): boolean => {
-    const errs: Record<string, string> = {}
-    if (username.length < 3 || username.length > 30)
-      errs.username = 'Username must be 3–30 characters.'
-    if (!displayName.trim() || displayName.length > 50)
-      errs.displayName = 'Display name is required (max 50 characters).'
-    if (bio.length > 500)
-      errs.bio = 'Bio must be 500 characters or fewer.'
-    if (location.length > 100)
-      errs.location = 'Location must be 100 characters or fewer.'
-    setFieldErrors(errs)
-    return Object.keys(errs).length === 0
-  }
+  const trimmedName = displayName.trim()
+  const canSubmit = trimmedName.length > 0 && !submitting
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    if (!validate()) return
-
+    if (!canSubmit) return
     setSubmitting(true)
+    setError(null)
     try {
+      // Never send a faction the account wasn't invited to; '' → born na.
+      const picked = factionSlug && invited.includes(factionSlug) ? factionSlug : undefined
       const character = await createCharacter({
-        username,
-        display_name: displayName,
+        display_name: trimmedName,
         bio: bio || undefined,
-        location: location || undefined,
-        avatar_url: avatarUrl || undefined,
-        faction_slug: factionSlug || undefined,
+        faction_slug: picked,
       })
-
       if (avatarFile) {
         await uploadCharacterAvatar(character.id, avatarFile)
       }
-
-      await refetch()
+      await refetch() // server already set the new life active
       navigate(`/characters/${character.id}`)
     } catch (err) {
       setError(extractError(err))
@@ -106,201 +80,172 @@ export default function CreateCharacter() {
     }
   }
 
-  if (blockedFromAdditionalCharacter) {
-    return (
-      <div className="py-8 max-w-xl mx-auto py-10">
-        <h1 className="font-display text-4xl font-bold mb-6">Create your character</h1>
-        <div className="border-2 border-border p-4 bg-card font-body text-sm leading-relaxed">
-          <p>
-            You'll be able to create another character once your existing
-            character levels up further. Keep playing.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  const handle = previewHandle(displayName)
+  const showPicker = invited.length > 0
 
   return (
-    <div className="py-8 max-w-xl mx-auto py-10">
-      {/* Flavor text */}
-      <div className="mb-8 border-2 border-border p-4 bg-card font-body text-sm leading-relaxed">
-        <p className="text-muted">
-          The first task reads: <span className="line-through">"Take a picture of yourself."</span>
-        </p>
-        <p className="mt-2">
-          This is the only time a <em>sous rature</em> gesture will be made, so let us remind you:
-          you may be your character, but your character need not be you.
-        </p>
-      </div>
+    <div className="page">
+      <button onClick={() => navigate('/')} style={backLink}>‹ back to your lives</button>
 
-      <h1 className="font-display text-4xl font-bold mb-6">Create your character</h1>
+      <div style={twoCol}>
+        {/* Left — form */}
+        <form onSubmit={handleSubmit} style={{ flex: '1 1 320px', maxWidth: 440 }}>
+          <h1 style={titleStyle}>Who are you becoming?</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        {/* Avatar */}
-        <div className="flex flex-col gap-2">
-          <label className="font-body text-sm font-semibold">Avatar</label>
-          <div className="flex items-center gap-4">
-            {avatarPreview && (
-              <img
-                src={avatarPreview}
-                alt="Avatar preview"
-                className="w-16 h-16 object-cover border-2 border-border"
-              />
-            )}
-            {!avatarPreview && avatarUrl && (
-              <img
-                src={avatarUrl}
-                alt="Avatar preview"
-                className="w-16 h-16 object-cover border-2 border-border"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
-              />
-            )}
-            <div className="flex flex-col gap-2 flex-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="font-body text-sm file:mr-3 file:border-2 file:border-border file:bg-card file:px-3 file:py-1 file:font-body file:text-xs file:shadow-sketch-sm file:cursor-pointer hover:file:bg-paper"
-              />
-              <div className="flex items-center gap-2">
-                <span className="font-body text-xs text-muted">or paste a URL</span>
-                <input
-                  type="url"
-                  value={avatarUrl}
-                  onChange={handleUrlChange}
-                  placeholder="https://..."
-                  className="flex-1 border-2 border-border bg-card px-2 py-1 font-body text-xs focus:outline-none focus:border-ink"
-                />
-              </div>
-            </div>
-          </div>
-          {fieldErrors.avatar && (
-            <p className="font-body text-xs text-red-600">{fieldErrors.avatar}</p>
-          )}
-        </div>
-
-        {/* Username */}
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-semibold">
-            Username <span className="text-red-600">*</span>
-            <span className="ml-2 font-normal text-muted text-xs">permanent — cannot be changed</span>
-          </label>
+          {/* Chosen name */}
+          <label style={eyebrow}>Chosen name</label>
           <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="your_handle"
-            minLength={3}
-            maxLength={30}
-            required
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
-          />
-          <div className="flex justify-between">
-            {fieldErrors.username ? (
-              <p className="font-body text-xs text-red-600">{fieldErrors.username}</p>
-            ) : <span />}
-            <span className={`font-body text-xs ${username.length >= 27 ? 'text-red-600' : 'text-muted'}`}>{username.length}/30</span>
-          </div>
-        </div>
-
-        {/* Display Name */}
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-semibold">
-            Display name <span className="text-red-600">*</span>
-          </label>
-          <input
-            type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="The name others will see"
-            maxLength={50}
-            required
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
+            maxLength={NAME_MAX}
+            placeholder="Wanderer"
+            autoFocus
+            style={nameInput}
           />
-          <div className="flex justify-between">
-            {fieldErrors.displayName ? (
-              <p className="font-body text-xs text-red-600">{fieldErrors.displayName}</p>
-            ) : <span />}
-            <span className={`font-body text-xs ${displayName.length >= 45 ? 'text-red-600' : 'text-muted'}`}>{displayName.length}/50</span>
+          <div style={metaRow}>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>@{handle}</span>
+            <span style={{ color: displayName.length >= NAME_MAX ? 'var(--color-danger)' : 'var(--color-text-tertiary)' }}>
+              {NAME_MAX - displayName.length} left
+            </span>
           </div>
-        </div>
 
-        {/* Bio */}
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-semibold">
-            Bio <span className="text-muted font-normal text-xs">optional</span>
-          </label>
+          {/* About */}
+          <label style={{ ...eyebrow, marginTop: 20 }}>About — shown on your profile</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Who is your character?"
-            maxLength={500}
+            maxLength={BIO_MAX}
+            placeholder="A line or two about who they are…"
             rows={3}
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink resize-none"
+            style={bioInput}
           />
-          <div className="flex justify-between">
-            {fieldErrors.bio ? (
-              <p className="font-body text-xs text-red-600">{fieldErrors.bio}</p>
-            ) : <span />}
-            <span className={`font-body text-xs ${bio.length >= 450 ? 'text-red-600' : 'text-muted'}`}>{bio.length}/500</span>
+          <div style={metaRow}>
+            <span />
+            <span style={{ color: 'var(--color-text-tertiary)' }}>{BIO_MAX - bio.length} left</span>
           </div>
-        </div>
 
-        {/* Location */}
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-semibold">
-            Location <span className="text-muted font-normal text-xs">optional</span>
-          </label>
+          {/* Portrait — reuses the existing avatar uploader (POST /characters/{id}/avatar) */}
+          <label style={{ ...eyebrow, marginTop: 20 }}>Portrait <span style={{ textTransform: 'none', letterSpacing: 0 }}>· optional</span></label>
           <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Where in the world?"
-            maxLength={100}
-            className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFile}
+            className="font-body text-sm"
+            style={{ marginTop: 6 }}
           />
-          <div className="flex justify-between">
-            {fieldErrors.location ? (
-              <p className="font-body text-xs text-red-600">{fieldErrors.location}</p>
-            ) : <span />}
-            <span className={`font-body text-xs ${location.length >= 90 ? 'text-red-600' : 'text-muted'}`}>{location.length}/100</span>
+
+          {/* Faction picker — only when the account holds invitations (ADR-0019) */}
+          {showPicker && (
+            <>
+              <label style={{ ...eyebrow, marginTop: 22 }}>
+                Answer a calling <span style={{ textTransform: 'none', letterSpacing: 0 }}>· optional — invitations you've earned</span>
+              </label>
+              <div style={pickerGrid}>
+                {invited.map((slug) => {
+                  const selected = factionSlug === slug
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      onClick={() => setFactionSlug(selected ? '' : slug)}
+                      style={{
+                        ...pickerCell,
+                        boxShadow: selected ? `0 0 0 2px ${factionCssVar(slug)}` : 'none',
+                      }}
+                    >
+                      <span style={{ ...dot, background: factionCssVar(slug) }} />
+                      <span style={{ fontFamily: factionCssVar(slug, 'card-font'), fontSize: 13, color: 'var(--color-text-primary)' }}>
+                        {factionName(slug)}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {error && <p style={errorBox}>{error}</p>}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 24 }}>
+            <button type="submit" disabled={!canSubmit} style={primaryBtn}>
+              {submitting ? 'Stepping out…' : 'Create & step out ▸'}
+            </button>
+            <button type="button" onClick={() => navigate('/')} style={cancelBtn}>Cancel</button>
+            <span style={{ fontSize: 8, color: 'var(--color-text-tertiary)', letterSpacing: '0.06em' }}>
+              starts at Lvl 1 · 0 pts
+            </span>
           </div>
+        </form>
+
+        {/* Right — live credential preview */}
+        <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'center' }}>
+          <CredentialCard
+            displayName={displayName || 'Wanderer'}
+            handle={handle}
+            bio={bio}
+            factionSlug={factionSlug || null}
+            level={1}
+            score={0}
+            avatarUrl={avatarPreview}
+            onAvatarClick={() => fileInputRef.current?.click()}
+          />
         </div>
-
-        {/* Starting faction — only surfaced when Albescent is an option.
-            Per convention, hide controls the user cannot use: if the backend
-            says the account doesn't qualify for Albescent, we don't show a
-            picker at all and the backend defaults the new character into UA. */}
-        {canChooseAlbescent && (
-          <div className="flex flex-col gap-1">
-            <label className="font-body text-sm font-semibold">
-              Starting faction <span className="text-muted font-normal text-xs">optional</span>
-            </label>
-            <select
-              value={factionSlug}
-              onChange={(e) => setFactionSlug(e.target.value)}
-              className="border-2 border-border bg-card px-3 py-2 font-body text-sm focus:outline-none focus:border-ink"
-            >
-              <option value="">University of Aesthematics (default)</option>
-              <option value="albescent">/Albescent</option>
-            </select>
-            <p className="font-body text-xs text-muted">
-              Albescent is available thanks to your other character's progress.
-            </p>
-          </div>
-        )}
-
-        {error && (
-          <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        <button type="submit" disabled={submitting} className="btn-primary self-start">
-          {submitting ? 'Creating...' : 'Create character →'}
-        </button>
-      </form>
+      </div>
     </div>
   )
+}
+
+// --- styles (token-driven) --------------------------------------------------
+
+const backLink: CSSProperties = {
+  background: 'none', border: 'none', cursor: 'pointer',
+  fontSize: 9, color: 'var(--color-text-secondary)', padding: 0, marginBottom: 16,
+}
+const twoCol: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'flex-start' }
+const titleStyle: CSSProperties = {
+  fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 700,
+  fontSize: 38, lineHeight: 1.02, color: 'var(--color-text-primary)', margin: '0 0 24px',
+}
+const eyebrow: CSSProperties = {
+  display: 'block', fontSize: 8, letterSpacing: '0.16em', textTransform: 'uppercase',
+  color: 'var(--color-text-secondary)',
+}
+const nameInput: CSSProperties = {
+  display: 'block', width: '100%', marginTop: 8, background: 'transparent', border: 'none',
+  borderBottom: '1.5px solid var(--color-text-primary)', outline: 'none',
+  fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 30,
+  color: 'var(--color-text-primary)', padding: '2px 0 8px',
+}
+const bioInput: CSSProperties = {
+  display: 'block', width: '100%', marginTop: 6, boxSizing: 'border-box', resize: 'none',
+  background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-strong)',
+  borderRadius: 5, outline: 'none', fontFamily: 'var(--font-body)', fontSize: 11,
+  lineHeight: 1.6, color: 'var(--color-text-primary)', padding: '10px 12px',
+}
+const metaRow: CSSProperties = {
+  display: 'flex', justifyContent: 'space-between', marginTop: 6,
+  fontFamily: 'var(--font-body)', fontSize: 9,
+}
+const pickerGrid: CSSProperties = {
+  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10,
+}
+const pickerCell: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+  background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-strong)',
+  borderRadius: 6, padding: '10px 12px', textAlign: 'left',
+}
+const dot: CSSProperties = { width: 12, height: 12, borderRadius: '50%', flexShrink: 0 }
+const errorBox: CSSProperties = {
+  marginTop: 16, fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--color-danger)',
+  border: '1px solid var(--color-danger)', borderRadius: 4, padding: '8px 10px',
+}
+const primaryBtn: CSSProperties = {
+  cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 10, letterSpacing: '0.12em',
+  textTransform: 'uppercase', color: 'var(--color-bg-page)', background: 'var(--color-text-primary)',
+  border: 'none', padding: '12px 24px', borderRadius: 5,
+}
+const cancelBtn: CSSProperties = {
+  cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'var(--font-body)',
+  fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-secondary)',
 }

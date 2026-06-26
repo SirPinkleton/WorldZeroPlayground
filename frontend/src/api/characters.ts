@@ -4,15 +4,16 @@ import type { CharacterOut } from './auth'
 export type { CharacterOut }
 
 export interface CharacterCreate {
-  username: string
+  /** Optional — the server derives a unique @handle from display_name when omitted (ADR-0019). */
+  username?: string
   display_name: string
   bio?: string
   avatar_url?: string
   location?: string
   /**
-   * Optional starting faction. Omit for the default (new accounts always start in UA).
-   * Only "albescent" is a valid non-default choice, and only when the account has a
-   * level-8 character (enforced server-side).
+   * Optional starting faction (ADR-0019). Omit to be born unaffiliated ("na"). A
+   * provided slug must be one the account holds an invitation for; "albescent" is
+   * never a creation option. All enforced server-side.
    */
   faction_slug?: string
 }

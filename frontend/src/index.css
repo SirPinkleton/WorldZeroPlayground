@@ -920,3 +920,9 @@
   .sg-pulse { animation: sg-pulse 2.6s ease-in-out infinite; }
   .sg-rotate { animation: sg-rotate 120s linear infinite; }
 }
+
+/* FieldDesk life-card hover-lift (#274). The CredentialCard owns its own rotation;
+   this lifts the clickable wrapper without touching the card's tilt. */
+.fielddesk-life { transition: transform 160ms ease; }
+.fielddesk-life:hover { transform: translateY(-6px); }
+.fielddesk-life:disabled { cursor: default; }

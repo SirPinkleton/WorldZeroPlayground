@@ -1,0 +1,157 @@
+"""Integration tests for ADR-0022 faction invitation delivery.
+
+A character earns faction X's InvitationLetter once it has >= invitation_task_threshold
+(2) completed distinct tasks for X AND >= invitation_point_threshold (50) points from X's
+tasks. Delivery runs inside recalculate_character_stats. ua has modifier 1.0 in Era 1, so
+point_value maps 1:1 to points here.
+"""
+import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.character import Character
+from models.era import Era
+from models.faction import Faction, FactionStatus
+from models.invitation_letter import InvitationLetter
+from models.praxis import Praxis, PraxisStatus, PraxisType
+from models.task import Task, TaskStatus
+from services.character_stats import recalculate_character_stats
+
+
+async def _task(db_session: AsyncSession, character: Character, faction: str, points: int) -> Task:
+    task = Task(
+        title=f"{faction} task {points}",
+        description="t",
+        point_value=points,
+        level_required=0,
+        status=TaskStatus.active,
+        created_by=character.id,
+        primary_faction_slug=faction,
+    )
+    db_session.add(task)
+    await db_session.flush()
+    return task
+
+
+async def _submit(db_session: AsyncSession, character: Character, task: Task) -> None:
+    db_session.add(Praxis(
+        task_id=task.id,
+        created_by_id=character.id,
+        type=PraxisType.solo,
+        title="proof",
+        body_text="proof",
+        status=PraxisStatus.submitted,
+    ))
+
+
+async def _letters(db_session: AsyncSession, character: Character) -> set[str]:
+    result = await db_session.execute(
+        select(InvitationLetter.faction_slug).where(
+            InvitationLetter.character_id == character.id
+        )
+    )
+    return {slug for (slug,) in result.all()}
+
+
+async def _seed_faction(db_session: AsyncSession, slug: str) -> None:
+    if await db_session.scalar(select(Faction).where(Faction.slug == slug)) is None:
+        db_session.add(Faction(slug=slug, name=slug, description=slug, status=FactionStatus.visible))
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_two_tasks_and_fifty_points_delivers_letter(
+    db_session, character: Character, era: Era, faction_ua: Faction
+):
+    await _submit(db_session, character, await _task(db_session, character, "ua", 30))
+    await _submit(db_session, character, await _task(db_session, character, "ua", 30))
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+
+    assert "ua" in await _letters(db_session, character)
+
+
+@pytest.mark.asyncio
+async def test_one_task_no_letter(
+    db_session, character: Character, era: Era, faction_ua: Faction
+):
+    # 60 points but only ONE distinct task → task threshold (2) not met.
+    task = await _task(db_session, character, "ua", 30)
+    await _submit(db_session, character, task)
+    await _submit(db_session, character, task)
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+
+    assert await _letters(db_session, character) == set()
+
+
+@pytest.mark.asyncio
+async def test_below_points_threshold_no_letter(
+    db_session, character: Character, era: Era, faction_ua: Faction
+):
+    # 2 distinct tasks but only 40 points (< 50).
+    await _submit(db_session, character, await _task(db_session, character, "ua", 20))
+    await _submit(db_session, character, await _task(db_session, character, "ua", 20))
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+
+    assert await _letters(db_session, character) == set()
+
+
+@pytest.mark.asyncio
+async def test_delivery_is_idempotent(
+    db_session, character: Character, era: Era, faction_ua: Faction
+):
+    await _submit(db_session, character, await _task(db_session, character, "ua", 30))
+    await _submit(db_session, character, await _task(db_session, character, "ua", 30))
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+
+    rows = await db_session.execute(
+        select(InvitationLetter).where(InvitationLetter.character_id == character.id)
+    )
+    assert len(rows.scalars().all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_faction_scoped_no_bleed(
+    db_session, character: Character, era: Era, faction_ua: Faction
+):
+    await _seed_faction(db_session, "snide")
+    # Qualify ua (2 tasks, 60 pts); only 1 snide task (no bleed of ua progress into snide).
+    await _submit(db_session, character, await _task(db_session, character, "ua", 30))
+    await _submit(db_session, character, await _task(db_session, character, "ua", 30))
+    await _submit(db_session, character, await _task(db_session, character, "snide", 30))
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+
+    letters = await _letters(db_session, character)
+    assert "ua" in letters
+    assert "snide" not in letters
+
+
+@pytest.mark.asyncio
+async def test_sentinel_faction_never_delivers(
+    db_session, character: Character, era: Era, faction_ua: Faction
+):
+    # 2 distinct na tasks, 60 pts — na is a sentinel and must never yield a letter.
+    await _submit(db_session, character, await _task(db_session, character, "na", 30))
+    await _submit(db_session, character, await _task(db_session, character, "na", 30))
+    await db_session.commit()
+
+    await recalculate_character_stats(character.id, db_session)
+    await db_session.commit()
+
+    assert "na" not in await _letters(db_session, character)
