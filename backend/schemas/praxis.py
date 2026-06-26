@@ -63,7 +63,8 @@ class PraxisOut(BaseModel):
     members: List[PraxisMemberOut]
     invites: List[PraxisInviteOut]
     media_items: List[MediaItemOut]
-    score: float                # populated by build_praxis_out
+    score: float                # populated by build_praxis_out; = Merit (ADR-0014)
+    voter_count: int = 0        # populated by build_praxis_out via vote_tally
     # duel_id is set when this praxis is a side of a duel (ADR-0011).
     duel_id: Optional[int] = None
     applied_metatasks: List[TaskOut] = []
@@ -90,8 +91,8 @@ class PraxisCardOut(BaseModel):
     submitted_at: Optional[datetime] = None
     member_count: int
     score: float
-    average_stars: Optional[float] = None
-    total_votes: int = 0
+    average_value: Optional[float] = None
+    voter_count: int = 0
     task_faction_slug: Optional[str] = None
 
     model_config = {"from_attributes": True}
@@ -114,4 +115,4 @@ class PraxisInviteCreate(BaseModel):
 
 
 class PraxisVoteIn(BaseModel):
-    stars: int
+    value: int

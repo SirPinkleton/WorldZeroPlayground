@@ -76,7 +76,7 @@ async def _seed_solo_praxes_with_votes(
                 praxis_id=praxis.id,
                 voter_character_id=voter_character.id,
                 voter_account_id=voter_account.id,
-                stars=3,
+                value=3,
             )
         )
         praxes.append(praxis)

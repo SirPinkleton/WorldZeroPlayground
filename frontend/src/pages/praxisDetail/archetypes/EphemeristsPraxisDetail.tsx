@@ -359,7 +359,7 @@ export default function EphemeristsPraxisDetail({ state }: { state: PraxisDetail
           </div>
           <EphemeristsVote
             praxisId={praxis.id}
-            averageStars={votes?.average_stars}
+            averageStars={votes?.average_value}
             totalVotes={votes?.total_votes}
             mode="caster"
           />

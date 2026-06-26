@@ -373,7 +373,7 @@ async def vote(
         praxis_id=praxis_solo.id,
         voter_character_id=character2.id,
         voter_account_id=character2.account_id,
-        stars=4,
+        value=4,
     )
     db_session.add(vote_row)
     await db_session.commit()
