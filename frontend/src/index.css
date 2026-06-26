@@ -216,6 +216,15 @@
   --faction-everymen-card-muted: var(--everymen-muted);
   --faction-everymen-card-font: var(--font-accent); /* Bebas Neue */
 
+  /* ── Albescent · vellum register (always-light — identical in both themes,
+     same mechanism Singularity uses to stay always-dark; #231). First-class
+     read-surface identity; the global albescent→ua alias stays until #232. ── */
+  --faction-albescent-card-bg: #ffffff;
+  --faction-albescent-card-text: #1c1c1a; /* near-black ink, no hue */
+  --faction-albescent-card-accent: rgba(28, 28, 26, 0.72);
+  --faction-albescent-card-muted: rgba(28, 28, 26, 0.44);
+  --faction-albescent-card-font: "Cormorant Garamond", Georgia, serif;
+
   /* ── Vote stamp colors (orange → yellow → green → blue → magenta) ── */
   --vote-1: #c2410c;
   --vote-2: #ca8a04;
@@ -366,6 +375,14 @@
   --faction-snide-wall-text: #e9e6da;
   --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
   --faction-ua-masters-card-muted: #b06040;
+
+  /* Albescent — always-light: identical to the :root values so the vellum
+     register never dims, regardless of the global theme (#231). */
+  --faction-albescent-card-bg: #ffffff;
+  --faction-albescent-card-text: #1c1c1a;
+  --faction-albescent-card-accent: rgba(28, 28, 26, 0.72);
+  --faction-albescent-card-muted: rgba(28, 28, 26, 0.44);
+  --faction-albescent-card-font: "Cormorant Garamond", Georgia, serif;
 
   /* ══ Ephemerists palette (dark) — pigments stay vivid; vellum darkens
      to aged tobacco and its text flips ink→parchment. The card contract

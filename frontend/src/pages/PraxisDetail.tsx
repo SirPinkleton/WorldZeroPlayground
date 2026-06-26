@@ -19,6 +19,7 @@ import SingularityPraxisDetail from './praxisDetail/archetypes/SingularityPraxis
 import EverymenPraxisDetail from './praxisDetail/archetypes/EverymenPraxisDetail'
 import WowPraxisDetail from './praxisDetail/archetypes/WowPraxisDetail'
 import UAPraxisDetail from './praxisDetail/archetypes/UAPraxisDetail'
+import AlbescentPraxisDetail from './praxisDetail/archetypes/AlbescentPraxisDetail'
 import CommentThread from '../components/comments/CommentThread'
 
 /**
@@ -32,6 +33,9 @@ export const ARCHETYPE_BY_SLUG: Record<string, ComponentType<{ state: PraxisDeta
   everymen: EverymenPraxisDetail,
   wow: WowPraxisDetail,
   ua: UAPraxisDetail,
+  // First-class read-surface identity (#231); explicit entry beats the
+  // albescent→ua alias via pickVariant. Global alias stays until #232.
+  albescent: AlbescentPraxisDetail,
 }
 
 export default function PraxisDetail() {
