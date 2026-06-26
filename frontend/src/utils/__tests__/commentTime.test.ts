@@ -36,8 +36,8 @@ describe('formatCommentTime — per-faction dialects', () => {
     expect(formatCommentTime('albescent', ago(2 * 1440), NOW)).toBe('Vigil the Third')
   })
 
-  it('singularity uses plain terse relative (no T-#### fluff)', () => {
-    expect(formatCommentTime('singularity', ago(12 * 60), NOW)).toBe('12h ago')
+  it('singularity uses a bare terse terminal clock (no T-#### fluff)', () => {
+    expect(formatCommentTime('singularity', ago(12 * 60), NOW)).toBe('12h')
   })
 
   it('unknown slug falls back to relative words', () => {
