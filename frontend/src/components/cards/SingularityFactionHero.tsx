@@ -1,0 +1,280 @@
+import type { FactionHeroProps } from "../../pages/FactionDetail";
+
+/**
+ * Singularity faction-page hero — a terminal boot-sequence frontispiece. The
+ * masthead reads as the faction initializing itself: a phosphor-green/blue
+ * printout on a terminal-black field, framed by an inset signal border,
+ * scanlines, a corner phosphor glow, and a slow-spinning sigil. Ported from the
+ * Singularity design kit (SgHero); conforms to {@link FactionHeroProps}.
+ *
+ * Singularity is ALWAYS DARK: its --faction-singularity-* tokens are identical
+ * in both themes, so the container styles itself with them and reads as a
+ * terminal regardless of the global theme — it never mutates data-theme.
+ *
+ * The page passes raw counts; the faction labels them in its own terminal
+ * voice. Motto + boot lines are faction constants (not backend fields).
+ */
+
+const MOTTO = "THE THRESHOLD IS ALREADY BEHIND US";
+
+// Token shorthands — every color resolves to a --faction-singularity-* var.
+const VOID = "var(--faction-singularity-card-bg)"; // terminal black
+const PHOSPHOR = "var(--faction-singularity-card-accent)"; // green
+const PHOSPHOR_TEXT = "var(--faction-singularity-card-text)"; // green
+const SIGNAL = "var(--faction-singularity-card-muted)"; // blue
+const BORDER = "var(--faction-singularity-border)";
+const BORDER_HARD = "var(--faction-singularity-border-hard)";
+const FONT = "var(--font-faction-terminal)";
+
+// color-mix helpers for shades that have no dedicated token.
+const phosphor = (pct: number): string =>
+  `color-mix(in srgb, ${PHOSPHOR} ${pct}%, transparent)`;
+const signal = (pct: number): string =>
+  `color-mix(in srgb, ${SIGNAL} ${pct}%, transparent)`;
+const signalFill = "var(--faction-singularity)"; // blue brand fill
+
+/** Minimal phosphor sigil — three concentric rings around a node. */
+function SingularityMark({
+  size,
+  color,
+}: {
+  size: number;
+  color: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
+      <g fill="none" stroke={color} strokeWidth="1.5">
+        <circle cx="50" cy="50" r="46" />
+        <circle cx="50" cy="50" r="30" strokeDasharray="3 5" />
+        <circle cx="50" cy="50" r="14" />
+      </g>
+      <circle cx="50" cy="50" r="4" fill={color} />
+    </svg>
+  );
+}
+
+export default function SingularityFactionHero({
+  name,
+  description,
+  members,
+  tasks,
+  praxes,
+}: FactionHeroProps) {
+  // The faction labels its own counts — page passes raw numbers only.
+  const stats = [
+    { value: members, label: "nodes online" },
+    { value: tasks, label: "open protocols" },
+    { value: praxes, label: "sealed lately" },
+  ];
+
+  return (
+    <header
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        marginBottom: 32,
+        border: `1px solid ${BORDER_HARD}`,
+        background: VOID,
+        color: PHOSPHOR_TEXT,
+        fontFamily: FONT,
+        boxShadow: "0 24px 60px -28px rgba(0,0,0,0.8)",
+      }}
+    >
+      {/* inset signal border */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 6,
+          border: `1px solid ${signal(18)}`,
+          pointerEvents: "none",
+          zIndex: 3,
+        }}
+      />
+      {/* scanlines */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            "repeating-linear-gradient(to bottom,transparent,transparent 2px,rgba(255,255,255,0.018) 2px,rgba(255,255,255,0.018) 4px)",
+        }}
+      />
+      {/* corner phosphor glow */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: -60,
+          left: -60,
+          width: 260,
+          height: 260,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${phosphor(12)}, transparent 70%)`,
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          padding: "36px 40px 40px",
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          gap: 32,
+          alignItems: "center",
+        }}
+      >
+        <div>
+          {/* boot lines */}
+          <div
+            style={{
+              fontSize: 8.5,
+              letterSpacing: "0.18em",
+              color: signal(55),
+              marginBottom: 14,
+              lineHeight: 1.9,
+            }}
+          >
+            <div>{">"} FACTION: {name.toUpperCase()}</div>
+            <div>{">"} STATUS: ACTIVE · ARRAYS ONLINE</div>
+            <div>
+              {">"} THRESHOLD:{" "}
+              <span style={{ color: PHOSPHOR }}>CROSSED</span>
+            </div>
+          </div>
+
+          {/* name */}
+          <h1
+            style={{
+              fontFamily: FONT,
+              fontSize: 56,
+              lineHeight: 0.9,
+              letterSpacing: "0.04em",
+              margin: "0 0 12px",
+              color: PHOSPHOR,
+              fontWeight: 400,
+            }}
+          >
+            {name}
+          </h1>
+
+          {/* motto */}
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.28em",
+              color: signal(70),
+              textTransform: "uppercase",
+              marginBottom: 16,
+            }}
+          >
+            {MOTTO}
+          </div>
+
+          {/* blurb */}
+          <p
+            style={{
+              fontSize: 11,
+              lineHeight: 1.7,
+              color: phosphor(60),
+              maxWidth: 520,
+              margin: "0 0 28px",
+            }}
+          >
+            {description ??
+              "We watch the noise floor for the pattern that shouldn't exist."}
+          </p>
+
+          {/* stats */}
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {stats.map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  border: `1px solid ${BORDER}`,
+                  background: "var(--faction-singularity-light)",
+                  padding: "10px 18px",
+                  textAlign: "center",
+                  minWidth: 96,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 26,
+                    lineHeight: 1,
+                    color: PHOSPHOR,
+                    marginBottom: 4,
+                  }}
+                >
+                  {s.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: 7,
+                    letterSpacing: "0.2em",
+                    color: signal(55),
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* spinning sigil */}
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <div
+            aria-hidden="true"
+            className="sg-pulse"
+            style={{
+              position: "absolute",
+              inset: -20,
+              borderRadius: "50%",
+              background: `radial-gradient(circle, ${phosphor(28)}, transparent 70%)`,
+              opacity: 0.2,
+              pointerEvents: "none",
+            }}
+          />
+          <div className="sg-rotate">
+            <SingularityMark size={120} color={phosphor(55)} />
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SingularityMark size={44} color={PHOSPHOR} />
+          </div>
+        </div>
+      </div>
+
+      {/* signal strip at the foot of the masthead */}
+      <div
+        aria-hidden="true"
+        style={{
+          height: 4,
+          background: signalFill,
+          position: "relative",
+          zIndex: 2,
+          opacity: 0.7,
+        }}
+      />
+    </header>
+  );
+}
