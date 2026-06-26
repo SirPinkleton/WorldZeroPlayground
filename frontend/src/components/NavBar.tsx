@@ -131,7 +131,9 @@ export default function NavBar() {
             <>
               {user.character ? (
                 <NavLink
-                  to={`/characters/${user.character.id}/edit`}
+                  to="/"
+                  end
+                  title="Your FieldDesk — switch lives or begin a new one"
                   className="nav-link transition-colors"
                   style={{ color: 'var(--color-text-secondary)' }}
                 >
