@@ -51,6 +51,16 @@ ALBESCENT_FACTION_SLUG = "albescent"
 # ---------------------------------------------------------------------------
 
 
+def _require_member(praxis: Praxis, character_id: int, action: str) -> None:
+    """403 unless ``character_id`` is a member of ``praxis`` (ADR-0013 co-ownership).
+
+    A collab is co-owned by every member; solo/duel praxes have exactly one
+    member (the creator), so this is equivalent to creator-only for those types.
+    """
+    if character_id not in {m.character_id for m in praxis.members}:
+        raise HTTPException(status_code=403, detail=f"Only a member can {action} this praxis.")
+
+
 def _build_member_out(member: PraxisMember) -> PraxisMemberOut:
     return PraxisMemberOut(
         id=member.id,
@@ -423,10 +433,9 @@ async def update_praxis(
     character_id: int,
     session: AsyncSession,
 ) -> Praxis:
-    """Update title/body_text. Only the creator can update."""
+    """Update title/body_text. Any member may edit (ADR-0013)."""
     praxis = await get_praxis(praxis_id, session)
-    if praxis.created_by_id != character_id:
-        raise HTTPException(status_code=403, detail="Cannot edit another character's praxis.")
+    _require_member(praxis, character_id, "edit")
     if data.title is not None:
         praxis.title = data.title
     if data.body_text is not None:
@@ -443,15 +452,14 @@ async def withdraw_praxis(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> Praxis:
-    """Move praxis back to editing (in_progress). Creator only.
+    """Move praxis back to editing (in_progress). Any member may reopen (ADR-0013).
 
     Votes are preserved but stop contributing to score until resubmitted via
     ``submit_praxis``. For collabs/duels, member submission flags are reset so
     the full group must re-submit.
     """
     praxis = await get_praxis(praxis_id, session)
-    if praxis.created_by_id != character_id:
-        raise HTTPException(status_code=403, detail="Cannot edit another character's praxis.")
+    _require_member(praxis, character_id, "reopen")
     if praxis.status == PraxisStatus.in_progress:
         raise HTTPException(status_code=422, detail="Praxis is already in editing mode.")
 
@@ -800,11 +808,10 @@ async def kick_member(
     requester_id: int,
     session: AsyncSession,
 ) -> None:
-    """Remove a member. Only the creator can kick. Cannot kick self."""
+    """Remove a member. Any member may kick another (incl. the creator); not self (ADR-0013)."""
     praxis = await get_praxis(praxis_id, session)
 
-    if praxis.created_by_id != requester_id:
-        raise HTTPException(status_code=403, detail="Only the creator can kick members.")
+    _require_member(praxis, requester_id, "kick from")
 
     if member_id == requester_id:
         raise HTTPException(status_code=400, detail="Cannot kick yourself.")
@@ -819,12 +826,14 @@ async def kick_member(
     if kickee_member is None:
         raise HTTPException(status_code=400, detail="Target player is not a member.")
 
-    await session.delete(kickee_member)
+    # Remove via the collection so delete-orphan cascades the DELETE *and* the
+    # in-memory members list stays consistent — the route reuses this same
+    # identity-mapped praxis to build its response.
+    praxis.members.remove(kickee_member)
 
     # Reset all submitted states when membership changes
     for member in praxis.members:
-        if member.character_id != member_id:
-            member.has_submitted = False
+        member.has_submitted = False
     praxis.status = PraxisStatus.in_progress
 
     await session.flush()
