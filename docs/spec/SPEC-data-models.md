@@ -1,6 +1,6 @@
 # World Zero — Data Models
 
-> Last synced with code: 2026-04-16
+> Last synced with code: 2026-06-26
 
 ## 5. Data Models
 
@@ -102,16 +102,15 @@ status               -- enum: pending | active | retired (TaskStatus)
 created_by           -- FK -> Character (admin character)
 primary_faction_slug -- FK -> Faction.slug, default "na" (cross-faction sentinel)
 is_task_vision_eligible -- bool; Journeymen can see these when pretired/retired
+task_type            -- enum: standard | metatask (TaskType); default standard
+metatask_faction_slug -- FK -> Faction.slug, nullable; set only when task_type = metatask
 created_at
 updated_at
 ```
-
-### TaskFaction (join table -- future multi-faction support)
-```
-task_id              -- PK, FK -> Task
-faction_slug         -- PK, FK -> Faction.slug
-is_primary
-```
+*A metatask is a Task row with `task_type='metatask'`. It cannot be done standalone —
+it applies to another praxis as a flat point bonus before faction multipliers.
+`metatask_faction_slug` identifies which faction's members (level 7+) may apply it;
+Albescent characters may apply metatasks from any faction.*
 
 ### Praxis
 The canonical work-submission aggregate. Replaces the former Submission + Collaboration tables.
@@ -237,25 +236,15 @@ notes                -- default ""
 updated_at
 ```
 
-### MetaTask
-```
-id
-name
-description
-faction_slug         -- FK -> Faction (group-specific)
-bonus_type           -- enum: flat | percentage (BonusType)
-bonus_value          -- float
-level_required       -- default 0
-created_at
-updated_at
-```
-
 ### PraxisMetaTask
 ```
 praxis_id            -- PK, FK -> Praxis
-meta_task_id         -- PK, FK -> MetaTask
+task_id              -- PK, FK -> Task (the metatask row; task_type = metatask)
 applied_at
 ```
+*`MetaTask` was a separate table; it was unified into `Task` (with `task_type='metatask'`)
+and `BonusType` was removed — metatask bonuses are always flat `point_value`. The old
+`meta_task_id` FK was renamed to `task_id` pointing directly at `Task`.*
 
 ### ContactMessage
 ```
@@ -278,6 +267,7 @@ created_at
 | CharacterStatus | active, paused, banned | Character.status |
 | FactionStatus | visible, hidden, deprecated | Faction.status |
 | TaskStatus | pending, active, retired | Task.status |
+| TaskType | standard, metatask | Task.task_type |
 | PraxisType | solo, collab, duel | Praxis.type |
 | PraxisStatus | in_progress, submitted | Praxis.status |
 | PraxisInviteStatus | pending, accepted, declined | PraxisInvite.status |
@@ -285,5 +275,4 @@ created_at
 | ModerationStatus | visible, flagged, hidden, failed | Praxis.moderation_status |
 | RelationshipType | friend, foe | Relationship.type |
 | RelationshipStatus | active, blocked | Relationship.status |
-| BonusType | flat, percentage | MetaTask.bonus_type |
 | TauntTriggerType | score_overtake, level_up, praxis_complete | TauntMessage.trigger_type |
