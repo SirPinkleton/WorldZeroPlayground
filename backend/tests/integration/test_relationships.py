@@ -155,6 +155,78 @@ async def test_block_relationship(
     assert block_resp.json()["status"] == "blocked"
 
 
+@pytest.mark.asyncio
+async def test_unblock_relationship_restores_active(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+):
+    """Unblock reverses a block (ADR-0009): the edge returns to active and its
+    display status re-derives from the type."""
+    create_resp = await client.post(
+        "/relationships",
+        json={"to_character_id": character2.id, "type": "friend"},
+        headers=auth_headers,
+    )
+    relationship_id = create_resp.json()["id"]
+    await client.put(f"/relationships/{relationship_id}", headers=auth_headers)
+
+    unblock_resp = await client.post(
+        f"/relationships/{relationship_id}/unblock",
+        headers=auth_headers,
+    )
+    assert unblock_resp.status_code == 200
+    assert unblock_resp.json()["status"] == "active"
+
+    # Display status reverts from "Blocked" to the type-derived label.
+    list_resp = await client.get("/relationships", headers=auth_headers)
+    item = next(r for r in list_resp.json() if r["id"] == relationship_id)
+    assert item["display_status"] != "Blocked"
+
+
+@pytest.mark.asyncio
+async def test_unblock_relationship_by_target(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """Either party can unblock — the target (who did not declare the edge) may
+    reverse a block too, symmetric with block."""
+    create_resp = await client.post(
+        "/relationships",
+        json={"to_character_id": character2.id, "type": "friend"},
+        headers=auth_headers,
+    )
+    relationship_id = create_resp.json()["id"]
+    await client.put(f"/relationships/{relationship_id}", headers=auth_headers)
+
+    # character2 is the target, not the declarer — they can still unblock.
+    unblock_resp = await client.post(
+        f"/relationships/{relationship_id}/unblock",
+        headers=auth_headers2,
+    )
+    assert unblock_resp.status_code == 200
+    assert unblock_resp.json()["status"] == "active"
+
+
+@pytest.mark.asyncio
+async def test_unblock_relationship_non_party_forbidden(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    auth_headers: dict,
+):
+    """A non-existent relationship returns 404 (no edge to unblock)."""
+    resp = await client.post(
+        "/relationships/999999/unblock",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # Delete relationship
 # ---------------------------------------------------------------------------

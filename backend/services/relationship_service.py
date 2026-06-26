@@ -113,6 +113,25 @@ async def block_relationship(
     return relationship
 
 
+async def unblock_relationship(
+    relationship_id: int,
+    character: Character,
+    session: AsyncSession,
+) -> Relationship:
+    """Reverse a block (ADR-0009). Either party can unblock; the edge returns to
+    active and its display status re-derives from the relationship types."""
+    relationship = await session.get(Relationship, relationship_id)
+    if relationship is None:
+        raise HTTPException(status_code=404, detail="Relationship not found.")
+    if character.id not in (relationship.from_character_id, relationship.to_character_id):
+        raise HTTPException(status_code=403, detail="Not a party to this relationship.")
+
+    relationship.status = RelationshipStatus.active
+    await session.flush()
+    await session.refresh(relationship)
+    return relationship
+
+
 async def list_relationships(
     character_id: int,
     session: AsyncSession,

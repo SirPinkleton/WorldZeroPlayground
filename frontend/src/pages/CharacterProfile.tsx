@@ -6,6 +6,7 @@ import {
   listRelationships,
   createRelationship,
   deleteRelationship,
+  unblockRelationship,
   type RelationshipListItem,
 } from "../api/relationships";
 import PraxisCard from "../components/PraxisCard";
@@ -108,6 +109,24 @@ export default function CharacterProfile() {
       setRelationship(null);
     } catch {
       setRelationshipError("Could not remove relationship.");
+    } finally {
+      setRelationshipLoading(false);
+    }
+  };
+
+  const handleUnblockRelationship = async () => {
+    if (!relationship || !character) return;
+    setRelationshipLoading(true);
+    setRelationshipError(null);
+    try {
+      await unblockRelationship(relationship.id);
+      // Re-fetch to get the re-derived display status (Blocked → type label).
+      const rels = await listRelationships();
+      setRelationship(
+        rels.find((r) => r.to_character_id === character.id) ?? null,
+      );
+    } catch {
+      setRelationshipError("Could not unblock.");
     } finally {
       setRelationshipLoading(false);
     }
@@ -279,7 +298,7 @@ export default function CharacterProfile() {
                           ? "Friends"
                           : "Foe"}
                     </div>
-                    {relationship.display_status !== "Blocked" && (
+                    {relationship.display_status !== "Blocked" ? (
                       <button
                         onClick={handleRemoveRelationship}
                         disabled={relationshipLoading}
@@ -293,6 +312,22 @@ export default function CharacterProfile() {
                         }}
                       >
                         remove
+                      </button>
+                    ) : (
+                      // ADR-0009 — a block is reversible; either party can unblock.
+                      <button
+                        onClick={handleUnblockRelationship}
+                        disabled={relationshipLoading}
+                        className="eyebrow"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--color-text-tertiary)",
+                          textAlign: "center",
+                        }}
+                      >
+                        unblock
                       </button>
                     )}
                   </>
