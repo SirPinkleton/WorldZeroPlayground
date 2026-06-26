@@ -8,10 +8,7 @@ import {
   withdrawPraxis,
   kickMember,
   inviteToPraxis,
-  votePraxis,
-  getPraxisVotes,
   type PraxisOut,
-  type DuelVoteSummary,
 } from "../api/praxis";
 import { listCharacters, type CharacterOut } from "../api/characters";
 import { useAuth } from "../auth/AuthContext";
@@ -56,16 +53,6 @@ export default function CollaborationDetail() {
   const [showInviteDropdown, setShowInviteDropdown] = useState(false);
   const [inviteError, setInviteError] = useState("");
 
-  // Duel votes
-  const [duelVotes, setDuelVotes] = useState<DuelVoteSummary[]>([]);
-  const [votingForMemberId, setVotingForMemberId] = useState<number | null>(
-    null,
-  );
-  const [voteStars, setVoteStars] = useState(0);
-  const [castingVote, setCastingVote] = useState(false);
-  const [voteError, setVoteError] = useState("");
-  const [voteSuccess, setVoteSuccess] = useState(false);
-
   // Action errors
   const [actionError, setActionError] = useState("");
 
@@ -84,23 +71,9 @@ export default function CollaborationDetail() {
     }
   }, [praxisId, editing]);
 
-  const loadDuelVotes = useCallback(async () => {
-    if (!praxisId || !collab || collab.type !== "duel") return;
-    try {
-      const votes = await getPraxisVotes(praxisId);
-      setDuelVotes(votes as DuelVoteSummary[]);
-    } catch {
-      /* non-fatal */
-    }
-  }, [praxisId, collab]);
-
   useEffect(() => {
     loadCollab();
   }, [loadCollab]);
-
-  useEffect(() => {
-    if (collab?.type === "duel") loadDuelVotes();
-  }, [collab, loadDuelVotes]);
 
   if (loading) {
     return (
@@ -126,10 +99,6 @@ export default function CollaborationDetail() {
   const isCollab = collab.type === "collab";
   const modeLabel = isDuel ? "Duel" : "Collaboration";
   const modeColor = isDuel ? "var(--color-danger)" : "var(--color-success)";
-
-  const winningStars = duelVotes.length
-    ? Math.max(...duelVotes.map((v) => v.total_stars))
-    : 0;
 
   const handleSaveDocument = async () => {
     if (!praxisId) return;
@@ -218,26 +187,6 @@ export default function CollaborationDetail() {
         axiosErr?.response?.data?.detail ?? "Could not send invite.",
       );
     }
-  };
-
-  const handleCastVote = async () => {
-    if (!praxisId || !votingForMemberId || !voteStars) return;
-    setCastingVote(true);
-    setVoteError("");
-    try {
-      await votePraxis(praxisId, {
-        stars: voteStars,
-        praxis_member_id: votingForMemberId,
-      });
-      setVoteSuccess(true);
-      setVotingForMemberId(null);
-      setVoteStars(0);
-      await loadDuelVotes();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      setVoteError(axiosErr?.response?.data?.detail ?? "Could not cast vote.");
-    }
-    setCastingVote(false);
   };
 
   return (
@@ -684,202 +633,6 @@ export default function CollaborationDetail() {
           </p>
         )}
       </div>
-
-      {/* Duel vote tally */}
-      {isDuel && (
-        <div className="sidebar-card mb-4" style={{ padding: "16px 20px" }}>
-          <p className="eyebrow mb-3">Vote Tally</p>
-          {duelVotes.length === 0 ? (
-            <p
-              className="font-body"
-              style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}
-            >
-              No votes yet.
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {duelVotes.map((v) => {
-                const isWinning =
-                  winningStars > 0 && v.total_stars === winningStars;
-                return (
-                  <div
-                    key={v.member_id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "8px 12px",
-                      background: isWinning
-                        ? "rgba(220,38,38,0.07)"
-                        : "var(--color-bg-surface-alt)",
-                      border: `1px solid ${isWinning ? "var(--color-danger)" : "var(--color-border)"}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        background: "var(--color-bg-surface-alt)",
-                        border: "1px solid var(--color-border)",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span
-                      className="font-body"
-                      style={{ fontSize: 12, fontWeight: 700, flex: 1 }}
-                    >
-                      {v.character_display_name}
-                      {isWinning && (
-                        <span
-                          style={{
-                            marginLeft: 8,
-                            color: "var(--color-danger)",
-                            fontSize: 10,
-                          }}
-                        >
-                          leading
-                        </span>
-                      )}
-                    </span>
-                    <span className="eyebrow" style={{ fontSize: 9 }}>
-                      {v.total_stars} stars ({v.vote_count} votes)
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Cast vote (non-members only, published collab) */}
-          {!isMember && isPublished && (
-            <div
-              style={{
-                marginTop: 14,
-                borderTop: "1px dashed var(--color-border)",
-                paddingTop: 14,
-              }}
-            >
-              <p className="eyebrow mb-2" style={{ fontSize: 8 }}>
-                Cast your vote
-              </p>
-              {voteSuccess ? (
-                <p
-                  className="eyebrow"
-                  style={{ color: "var(--color-success)" }}
-                >
-                  Vote recorded!
-                </p>
-              ) : (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                    }}
-                  >
-                    {collab.members.map((member) => (
-                      <div
-                        key={member.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            setVotingForMemberId(
-                              votingForMemberId === member.id
-                                ? null
-                                : member.id,
-                            )
-                          }
-                          style={{
-                            fontFamily: "'Courier Prime', monospace",
-                            fontSize: 9,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            padding: "4px 12px",
-                            background:
-                              votingForMemberId === member.id
-                                ? "var(--color-danger)"
-                                : "transparent",
-                            color:
-                              votingForMemberId === member.id
-                                ? "var(--color-text-on-accent)"
-                                : "var(--color-text-primary)",
-                            border: `1px solid ${votingForMemberId === member.id ? "var(--color-danger)" : "var(--color-border)"}`,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {member.character_display_name}
-                        </button>
-                        {votingForMemberId === member.id && (
-                          <div style={{ display: "flex", gap: 2 }}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={() => setVoteStars(star)}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  fontSize: 18,
-                                  lineHeight: 1,
-                                  padding: "0 2px",
-                                  color:
-                                    star <= voteStars
-                                      ? "var(--color-text-primary)"
-                                      : "var(--color-border)",
-                                  transition: "color 100ms",
-                                }}
-                                aria-label={`${star} star${star !== 1 ? "s" : ""}`}
-                              >
-                                ★
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {votingForMemberId !== null && voteStars > 0 && (
-                    <button
-                      onClick={handleCastVote}
-                      disabled={castingVote}
-                      style={{
-                        marginTop: 10,
-                        fontFamily: "'Courier Prime', monospace",
-                        fontSize: 9,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        background: "var(--color-danger)",
-                        color: "var(--color-text-on-accent)",
-                        border: "none",
-                        padding: "6px 18px",
-                        cursor: castingVote ? "wait" : "pointer",
-                      }}
-                    >
-                      {castingVote ? "Submitting..." : "Submit Vote"}
-                    </button>
-                  )}
-                  {voteError && (
-                    <p
-                      className="eyebrow"
-                      style={{ color: "var(--color-danger)", marginTop: 6 }}
-                    >
-                      {voteError}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Submit / Reopen controls */}
       {isMember && !isPublished && (
