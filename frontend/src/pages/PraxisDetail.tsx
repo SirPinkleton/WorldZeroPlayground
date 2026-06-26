@@ -14,6 +14,7 @@ import type { PraxisDetailState } from './praxisDetail/usePraxisDetail'
 import { pickVariant } from '../utils/factionDispatch'
 import DefaultPraxisDetail from './praxisDetail/archetypes/DefaultPraxisDetail'
 import EphemeristsPraxisDetail from './praxisDetail/archetypes/EphemeristsPraxisDetail'
+import CommentThread from '../components/comments/CommentThread'
 
 /**
  * Per-faction praxis-read archetype map. Keyed by task faction slug.
@@ -39,5 +40,17 @@ export default function PraxisDetail() {
   if (!state.praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
   const Archetype = pickVariant(ARCHETYPE_BY_SLUG, state.praxis.task_faction_slug, DefaultPraxisDetail)
-  return <Archetype state={state} />
+  return (
+    <>
+      <Archetype state={state} />
+      {/* Comments are neutral chrome below every archetype (ADR-0006); a thread
+          renders on a visible praxis only. Mounted at the dispatcher so it covers
+          all faction archetypes, not just the default. */}
+      {state.praxis.moderation_status === 'visible' && (
+        <div className="max-w-2xl">
+          <CommentThread target="praxes" targetId={state.praxis.id} />
+        </div>
+      )}
+    </>
+  )
 }

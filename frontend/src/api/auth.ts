@@ -26,6 +26,7 @@ export interface CurrentUser {
   can_propose_metatask: boolean
   can_see_retired_tasks: boolean
   can_see_pending_tasks: boolean
+  can_comment: boolean
 }
 
 export async function getMe(): Promise<CurrentUser> {

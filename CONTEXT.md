@@ -264,7 +264,18 @@ thread; it never blanket-themes (the page-archetype rule of ADR-0002, at row gra
 The single per-faction Comment archetype, dispatched by `pickVariant(COMMENT_COMPONENTS, …)`
 and rendered in two modes — `row` (read-only, keyed on the author's faction) and `composer`
 (input, keyed on the current character's faction). The call site picks the slug; one
-archetype serves both modes (cf. the vote reframe's caster/summary, ADR-0005).
+archetype serves both modes (cf. the vote reframe's caster/summary, ADR-0005). **Seven**
+archetypes (incl. Albescent as a full faction, not the `→ ua` alias), each at task-card
+fidelity by **reusing** that faction's existing card atoms, not new ornaments (ADR-0018).
+
+**Comment voice** *(ADR-0018)*:
+A faction's comment treatment, defined once and used for both `row` and `composer`. Skins the
+box chrome only — the author slot always composes `FactionAvatar`, and the **timestamp slot is
+a per-faction dialect** (content invariant, presentation per-faction: ua "2 days ago",
+snide "048H AGO", ephemerists "the Nth day", everymen "Shift N", albescent "Vigil the Nth",
+wow "3h", singularity plain-relative). UA wears the orange/gold "University of Asthmatics" look
+for comments; the broader rebrand is out of scope.
+_Avoid_: skin, theme (the chrome), template.
 
 **Relationship edge**:
 A single **directed** declaration `from_character → to_character` carrying a `type`

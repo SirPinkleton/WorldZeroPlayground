@@ -20,6 +20,7 @@ from models.praxis import (
 from models.vote import Vote
 from models.duel import Duel, DuelStatus
 from models.flag import Flag
+from models.comment import Comment, CommentMention
 from models.relationship import Relationship
 from models.message import Message
 from models.meta_task import PraxisMetaTask
@@ -53,6 +54,8 @@ __all__ = [
     "Duel",
     "DuelStatus",
     "Flag",
+    "Comment",
+    "CommentMention",
     "Relationship",
     "Message",
     "PraxisMetaTask",
