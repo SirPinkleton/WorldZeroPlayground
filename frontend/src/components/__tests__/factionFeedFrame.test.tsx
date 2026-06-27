@@ -26,12 +26,10 @@ afterEach(() => {
 });
 
 describe("FactionFeedFrame dispatch", () => {
-  it("registers the five designed faction frames (ua undesigned)", () => {
-    for (const slug of ["everymen", "ephemerists", "wow", "snide", "singularity"]) {
+  it("registers all six designed faction frames", () => {
+    for (const slug of ["everymen", "ephemerists", "wow", "snide", "singularity", "ua"]) {
       expect(REGISTERED_AT_LOAD.has(slug), `${slug} frame registered`).toBe(true);
     }
-    // UA feed is undesigned — it must fall through to the neutral default.
-    expect(REGISTERED_AT_LOAD.has("ua"), "ua feed undesigned").toBe(false);
   });
 
   it("passes the card through unchanged for a neutral (slug-less) card", () => {

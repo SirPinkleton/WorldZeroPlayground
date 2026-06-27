@@ -560,6 +560,7 @@
   --font-faction-blackletter: "UnifrakturCook", "Blackletter", serif;
   --font-faction-script: "Caveat", cursive;
   --font-faction-old: "IM Fell English", Georgia, serif;
+  --font-faction-engraved: "Cinzel", serif;
 }
 
 @layer base {

@@ -19,18 +19,19 @@ import EphemeristsFeedFrame from './EphemeristsFeedFrame'
 import WowFeedFrame from './WowFeedFrame'
 import SnideFeedFrame from './SnideFeedFrame'
 import SingularityFeedFrame from './SingularityFeedFrame'
+import UaFeedFrame from './UaFeedFrame'
 
 type FrameProps = { children: ReactNode }
 
 /** Per-faction frames. Each row makes that faction's feed cards bespoke.
- *  albescent/aged_out inherit ua via pickVariant. UA feed is undesigned, so
- *  ua falls through to the neutral DefaultFeedFrame (#224). */
+ *  albescent/aged_out inherit ua via pickVariant. */
 const FACTION_FEED_FRAMES: Record<string, ComponentType<FrameProps>> = {
   everymen: EverymenFeedFrame,
   ephemerists: EphemeristsFeedFrame,
   wow: WowFeedFrame,
   snide: SnideFeedFrame,
   singularity: SingularityFeedFrame,
+  ua: UaFeedFrame,
 }
 
 /** Neutral fallback. Owns the per-faction tint that the event cards used to
