@@ -16,7 +16,7 @@ import UAVote from './UAVote'
  */
 export interface VoteUIProps {
   praxisId: number
-  currentStars?: number
+  currentValue?: number
   averageStars?: number | null
   totalVotes?: number
   mode?: 'caster' | 'summary'

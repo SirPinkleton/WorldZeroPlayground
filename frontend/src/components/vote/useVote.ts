@@ -8,9 +8,9 @@ import { extractError } from '../../utils/errors'
  * the 1-5 control however they like (stamps, hearts, …) and drive it from this
  * hook so the cast/refetch logic lives in exactly one place.
  */
-export function useVote(praxisId: number, currentStars?: number) {
+export function useVote(praxisId: number, currentValue?: number) {
   const { user, refetch } = useAuth()
-  const [selected, setSelected] = useState(currentStars ?? 0)
+  const [selected, setSelected] = useState(currentValue ?? 0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 

@@ -1,6 +1,7 @@
 import type { VoteUIProps } from './VoteUI'
 import { useVote } from './useVote'
 import { VoteLoginGate, VoteSummary } from './VoteShell'
+import { VOTE_REFRAMES } from './voteReframes'
 
 /**
  * S.N.I.D.E. faction vote UI — the 1-5 rating rendered as a junk-drawer of
@@ -13,9 +14,7 @@ import { VoteLoginGate, VoteSummary } from './VoteShell'
  * cast/refetch logic lives in exactly one place.
  */
 
-interface StampConfig {
-  value: number
-  label: string
+interface StampVisual {
   /** Border + idle text colour (theme-aware token). */
   color: string
   font: string
@@ -25,48 +24,19 @@ interface StampConfig {
   fontSize: number
 }
 
-export const SNIDE_STAMPS: StampConfig[] = [
-  { value: 1, label: 'meh', color: 'var(--color-text-tertiary)', font: 'var(--font-body)', radius: 2, rot: -3, fontSize: 10 },
-  { value: 2, label: 'not bad', color: '#b59a3a', font: 'var(--font-body)', radius: 2, rot: 2, fontSize: 10 },
-  { value: 3, label: 'rad', color: 'var(--faction-snide)', font: 'var(--faction-snide-font-cond)', radius: '50%', rot: -2, fontSize: 13 },
-  { value: 4, label: 'sick', color: 'var(--faction-snide-pink)', font: 'var(--faction-snide-font-black)', radius: 3, rot: 3, fontSize: 12 },
-  { value: 5, label: 'ANARCHY', color: 'var(--color-text-primary)', font: 'var(--faction-snide-font-black)', radius: 4, rot: -4, fontSize: 12 },
-]
+/** Visual tokens per tier value — labels come from voteReframes. */
+const SNIDE_VISUALS: Record<number, StampVisual> = {
+  1: { color: 'var(--color-text-tertiary)', font: 'var(--font-body)', radius: 2, rot: -3, fontSize: 10 },
+  2: { color: '#b59a3a', font: 'var(--font-body)', radius: 2, rot: 2, fontSize: 10 },
+  3: { color: 'var(--faction-snide)', font: 'var(--faction-snide-font-cond)', radius: '50%', rot: -2, fontSize: 13 },
+  4: { color: 'var(--faction-snide-pink)', font: 'var(--faction-snide-font-black)', radius: 3, rot: 3, fontSize: 12 },
+  5: { color: 'var(--color-text-primary)', font: 'var(--faction-snide-font-black)', radius: 4, rot: -4, fontSize: 12 },
+}
 
-export default function SnideVote({ praxisId, currentStars, averageStars, totalVotes, mode = 'caster' }: VoteUIProps) {
-  const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
+const TIERS = VOTE_REFRAMES['snide'].tiers
 
-  if (mode === 'summary') {
-    const tier = SNIDE_STAMPS[Math.max(0, Math.round((averageStars ?? 0)) - 1)] ?? SNIDE_STAMPS[0]
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div
-          style={{
-            minWidth: 46,
-            height: 30,
-            padding: '0 8px',
-            border: `2.5px solid ${tier.color}`,
-            borderRadius: tier.radius,
-            background: `color-mix(in srgb, ${tier.color} 20%, transparent)`,
-            color: tier.color,
-            fontFamily: tier.font,
-            fontSize: tier.fontSize,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: `rotate(${tier.rot}deg)`,
-          }}
-        >
-          {tier.label}
-        </div>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--color-text-secondary)', textAlign: 'center' }}>
-          {totalVotes ?? 0} votes
-        </span>
-      </div>
-    )
-  }
+export default function SnideVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+  const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
     return <VoteLoginGate />
@@ -75,38 +45,39 @@ export default function SnideVote({ praxisId, currentStars, averageStars, totalV
   return (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, alignItems: 'center' }}>
-        {SNIDE_STAMPS.map((stamp) => {
-          const active = selected === stamp.value
-          const reached = selected >= stamp.value
+        {TIERS.map((tier) => {
+          const visual = SNIDE_VISUALS[tier.value] ?? SNIDE_VISUALS[1]
+          const active = selected === tier.value
+          const reached = selected >= tier.value
           return (
             <button
-              key={stamp.value}
+              key={tier.value}
               disabled={saving}
-              onClick={() => void vote(stamp.value)}
-              aria-label={`Rate ${stamp.value} — ${stamp.label}`}
+              onClick={() => void vote(tier.value)}
+              aria-label={`Rate ${tier.value} — ${tier.label}`}
               style={{
                 minWidth: 46,
                 height: 40,
                 padding: '0 10px',
                 cursor: saving ? 'default' : 'pointer',
-                border: `2.5px ${stamp.value === 5 ? 'double' : 'solid'} ${stamp.color}`,
-                borderRadius: stamp.radius,
+                border: `2.5px ${tier.value === 5 ? 'double' : 'solid'} ${visual.color}`,
+                borderRadius: visual.radius,
                 background: active
-                  ? stamp.color
+                  ? visual.color
                   : reached
-                    ? `color-mix(in srgb, ${stamp.color} 16%, transparent)`
+                    ? `color-mix(in srgb, ${visual.color} 16%, transparent)`
                     : 'transparent',
-                color: active ? '#fff' : stamp.color,
-                fontFamily: stamp.font,
-                fontSize: stamp.fontSize,
+                color: active ? '#fff' : visual.color,
+                fontFamily: visual.font,
+                fontSize: visual.fontSize,
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
-                transform: `rotate(${stamp.rot}deg) scale(${active ? 1.08 : 1})`,
+                transform: `rotate(${visual.rot}deg) scale(${active ? 1.08 : 1})`,
                 boxShadow: active ? '2px 3px 0 rgba(0,0,0,0.35)' : 'none',
                 transition: 'all 120ms',
               }}
             >
-              {stamp.label}
+              {tier.label}
             </button>
           )
         })}

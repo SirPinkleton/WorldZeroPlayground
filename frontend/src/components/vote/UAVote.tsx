@@ -1,6 +1,7 @@
 import type { VoteUIProps } from './VoteUI'
 import { useVote } from './useVote'
 import { VoteLoginGate, VoteSummary } from './VoteShell'
+import { VOTE_REFRAMES } from './voteReframes'
 
 /**
  * UA (University of Asthmatics) vote UI — THE GILT SALON. The 1-5 approval is
@@ -14,71 +15,17 @@ import { VoteLoginGate, VoteSummary } from './VoteShell'
  * the shared {@link useVote} hook so cast/refetch logic lives in one place.
  */
 
-interface AppraisalRung {
-  value: number
-  /** Engraved placard label — the Salon's verdict. */
-  label: string
-}
-
-export const UA_APPRAISALS: AppraisalRung[] = [
-  { value: 1, label: 'Noted' },
-  { value: 2, label: 'Sketch' },
-  { value: 3, label: 'Hung' },
-  { value: 4, label: 'Commended' },
-  { value: 5, label: 'Acquired' },
-]
-
 const PLATE_FONT = 'var(--faction-ua-card-font)'
+
+const TIERS = VOTE_REFRAMES['ua'].tiers
 
 export default function UAVote({
   praxisId,
-  currentStars,
+  currentValue,
   averageStars,
   totalVotes,
-  mode = 'caster',
 }: VoteUIProps) {
-  const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
-
-  if (mode === 'summary') {
-    const rung =
-      UA_APPRAISALS[Math.max(0, Math.round(averageStars ?? 0) - 1)] ?? UA_APPRAISALS[0]
-    const acquired = rung.value === 5
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div
-          style={{
-            minWidth: 50,
-            height: 30,
-            padding: '0 9px',
-            border: '1px solid var(--ua-line)',
-            background: acquired ? 'var(--ua-gilt)' : 'var(--faction-ua-card-bg)',
-            color: acquired ? 'var(--ua-paper)' : 'var(--faction-ua-card-accent)',
-            fontFamily: PLATE_FONT,
-            fontSize: 11,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: acquired ? 'inset 0 0 0 1px color-mix(in srgb, var(--ua-paper) 45%, transparent)' : 'none',
-          }}
-        >
-          {rung.label}
-        </div>
-        <span
-          style={{
-            fontFamily: PLATE_FONT,
-            fontSize: 7,
-            letterSpacing: '0.1em',
-            color: 'var(--faction-ua-card-muted)',
-            textAlign: 'center',
-          }}
-        >
-          {totalVotes ?? 0} appraisals
-        </span>
-      </div>
-    )
-  }
+  const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
     return <VoteLoginGate />
@@ -87,19 +34,19 @@ export default function UAVote({
   return (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-        {UA_APPRAISALS.map((rung) => {
-          const active = selected === rung.value
-          const reached = selected >= rung.value
-          const top = rung.value === 5
+        {TIERS.map((tier) => {
+          const active = selected === tier.value
+          const reached = selected >= tier.value
+          const top = tier.value === 5
           return (
             <div
-              key={rung.value}
+              key={tier.value}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}
             >
               <button
                 disabled={saving}
-                onClick={() => void vote(rung.value)}
-                aria-label={`Appraise ${rung.value} — ${rung.label}`}
+                onClick={() => void vote(tier.value)}
+                aria-label={`Appraise ${tier.value} — ${tier.label}`}
                 style={{
                   minWidth: 60,
                   height: 40,
@@ -129,7 +76,7 @@ export default function UAVote({
                   transition: 'all 120ms',
                 }}
               >
-                {rung.label}
+                {tier.label}
               </button>
               <span
                 style={{
@@ -140,7 +87,7 @@ export default function UAVote({
                   textTransform: 'uppercase',
                 }}
               >
-                {rung.value === 5 ? '✦' : `№${rung.value}`}
+                {tier.value === 5 ? '✦' : `№${tier.value}`}
               </span>
             </div>
           )

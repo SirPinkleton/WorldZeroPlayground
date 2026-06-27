@@ -2,6 +2,7 @@ import type { VoteUIProps } from "./VoteUI";
 import { useVote } from "./useVote";
 import { VoteLoginGate, VoteSummary } from "./VoteShell";
 import { CONCORD, toRoman } from "../cards/ephemeristsAtoms";
+import { VOTE_REFRAMES } from "./voteReframes";
 
 /**
  * The Ephemerists vote UI — THE CONCORDANCE. The 1–5 approval becomes a
@@ -11,46 +12,20 @@ import { CONCORD, toRoman } from "../cards/ephemeristsAtoms";
  */
 const SEAL_SIZE = 42;
 
+/** Visual tokens (fill, ink) keyed by tier value — labels come from voteReframes. */
+const CONCORD_VISUALS: Record<number, { fill: string; ink: string }> = Object.fromEntries(
+  CONCORD.map((tier) => [tier.v, { fill: tier.fill, ink: tier.ink }])
+);
+
+const TIERS = VOTE_REFRAMES['ephemerists'].tiers;
+
 export default function EphemeristsVote({
   praxisId,
-  currentStars,
+  currentValue,
   averageStars,
   totalVotes,
-  mode = 'caster',
 }: VoteUIProps) {
-  const { user, selected, saving, error, vote } = useVote(praxisId, currentStars);
-
-  if (mode === 'summary') {
-    const tier = CONCORD[Math.max(0, Math.round((averageStars ?? 0)) - 1)] ?? CONCORD[0];
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            border: '2px solid var(--eph-ink)',
-            background: tier.fill,
-            color: tier.ink,
-            fontFamily: 'var(--eph-display)',
-            fontWeight: 700,
-            fontSize: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {toRoman(tier.v)}
-        </div>
-        <span style={{ fontFamily: 'var(--eph-serif)', fontSize: 8, fontStyle: 'italic', color: 'var(--eph-muted)', textAlign: 'center' }}>
-          {tier.label}
-        </span>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--eph-muted)', textAlign: 'center' }}>
-          {totalVotes ?? 0} votes
-        </span>
-      </div>
-    );
-  }
+  const { user, selected, saving, error, vote } = useVote(praxisId, currentValue);
 
   if (!user) {
     return <VoteLoginGate />;
@@ -59,15 +34,16 @@ export default function EphemeristsVote({
   return (
     <div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        {CONCORD.map((tier) => {
-          const filled = selected >= tier.v;
-          const active = selected === tier.v;
+        {TIERS.map((tier) => {
+          const visual = CONCORD_VISUALS[tier.value] ?? CONCORD_VISUALS[1];
+          const filled = selected >= tier.value;
+          const active = selected === tier.value;
           return (
-            <div key={tier.v} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+            <div key={tier.value} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
               <button
                 disabled={saving}
-                onClick={() => void vote(tier.v)}
-                aria-label={`Mark ${tier.v} — ${tier.label}`}
+                onClick={() => void vote(tier.value)}
+                aria-label={`Mark ${tier.value} — ${tier.label}`}
                 style={{
                   position: "relative",
                   width: SEAL_SIZE,
@@ -76,8 +52,8 @@ export default function EphemeristsVote({
                   padding: 0,
                   borderRadius: "50%",
                   border: "2px solid var(--eph-ink)",
-                  background: filled ? tier.fill : "var(--eph-vellum)",
-                  color: filled ? tier.ink : "var(--eph-muted)",
+                  background: filled ? visual.fill : "var(--eph-vellum)",
+                  color: filled ? visual.ink : "var(--eph-muted)",
                   fontFamily: "var(--eph-display)",
                   fontWeight: 700,
                   fontSize: SEAL_SIZE * 0.34,
@@ -105,7 +81,7 @@ export default function EphemeristsVote({
                     pointerEvents: "none",
                   }}
                 />
-                {toRoman(tier.v)}
+                {toRoman(tier.value)}
               </button>
               <span
                 style={{
