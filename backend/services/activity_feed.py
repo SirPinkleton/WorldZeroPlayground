@@ -6,13 +6,15 @@ timeline with cursor-based pagination.
 Per SPEC-backend-architecture.md, this service returns dataclasses. The
 router owns the Pydantic schema conversion.
 """
+import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Callable, Coroutine, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from db import AsyncSessionLocal
 from game_config import CURRENT_ERA
 from models.character import Character
 from models.comment import Comment, CommentMention
@@ -105,6 +107,20 @@ FILTER_QUERIES: dict[str, set[str]] = {
 }
 
 SUB_QUERY_LIMIT = 50
+
+
+async def _run_with_own_session(
+    coro_factory: Callable[[AsyncSession], Coroutine[Any, Any, Any]],
+    session_factory: Callable,
+) -> Any:
+    """Open a session from session_factory, run coro_factory(session), and close it.
+
+    Each concurrent sub-query gets its own session so they can run safely under
+    asyncio.gather without sharing session state. The factory is injected so tests
+    can substitute one that reuses the test-transaction session.
+    """
+    async with session_factory() as session:
+        return await coro_factory(session)
 
 
 async def _get_related_ids(
@@ -685,150 +701,181 @@ async def _compute_counts(
     character_id: int,
     friend_ids: list[int],
     my_task_ids: list[int],
-    session: AsyncSession,
+    session_factory: Callable,
 ) -> FeedCountsDC:
-    """Compute badge counts for each filter tab using lightweight COUNT queries."""
+    """Compute badge counts for each filter tab.
+
+    Each COUNT query runs in its own session so they can execute concurrently
+    under asyncio.gather.
+    """
 
     async def count_votes_on_mine() -> int:
-        result = await session.execute(
-            select(func.count())
-            .select_from(Vote)
-            .join(Praxis, Vote.praxis_id == Praxis.id)
-            .where(Praxis.created_by_id == character_id)
-        )
-        return result.scalar_one()
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(Vote)
+                .join(Praxis, Vote.praxis_id == Praxis.id)
+                .where(Praxis.created_by_id == character_id)
+            )
+            return result.scalar_one()
 
     async def count_friend_completions() -> int:
         if not friend_ids:
             return 0
-        result = await session.execute(
-            select(func.count())
-            .select_from(Praxis)
-            .where(
-                Praxis.created_by_id.in_(friend_ids),
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(Praxis)
+                .where(
+                    Praxis.created_by_id.in_(friend_ids),
                     Praxis.status == PraxisStatus.submitted,
+                )
             )
-        )
-        return result.scalar_one()
+            return result.scalar_one()
 
     async def count_friend_signups() -> int:
         if not friend_ids or not my_task_ids:
             return 0
-        result = await session.execute(
-            select(func.count())
-            .select_from(PraxisMember)
-            .join(Praxis, PraxisMember.praxis_id == Praxis.id)
-            .where(
-                PraxisMember.character_id.in_(friend_ids),
-                Praxis.task_id.in_(my_task_ids),
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(PraxisMember)
+                .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+                .where(
+                    PraxisMember.character_id.in_(friend_ids),
+                    Praxis.task_id.in_(my_task_ids),
                 )
-        )
-        return result.scalar_one()
+            )
+            return result.scalar_one()
 
     async def count_foe_taunts() -> int:
-        result = await session.execute(
-            select(func.count())
-            .select_from(TauntMessage)
-            .where(TauntMessage.to_character_id == character_id)
-        )
-        return result.scalar_one()
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(TauntMessage)
+                .where(TauntMessage.to_character_id == character_id)
+            )
+            return result.scalar_one()
 
-    era_row = await get_current_era_row(session)
+    async def count_foe_completions() -> int:
+        async with session_factory() as s:
+            foe_ids = await _get_related_ids(character_id, RelationshipType.foe, s)
+            if not foe_ids:
+                return 0
+            result = await s.execute(
+                select(func.count())
+                .select_from(Praxis)
+                .where(
+                    Praxis.created_by_id.in_(foe_ids),
+                    Praxis.status == PraxisStatus.submitted,
+                )
+            )
+            return result.scalar_one()
+
+    async def count_praxis_invites() -> int:
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(PraxisInvite)
+                .where(PraxisInvite.invitee_id == character_id)
+            )
+            return result.scalar_one()
 
     async def count_invitation_letters() -> int:
-        result = await session.execute(
-            select(func.count())
-            .select_from(InvitationLetter)
-            .where(
-                InvitationLetter.character_id == character_id,
-                InvitationLetter.era_id == era_row.id,
+        async with session_factory() as s:
+            era_row = await get_current_era_row(s)
+            result = await s.execute(
+                select(func.count())
+                .select_from(InvitationLetter)
+                .where(
+                    InvitationLetter.character_id == character_id,
+                    InvitationLetter.era_id == era_row.id,
+                )
             )
-        )
-        return result.scalar_one()
+            return result.scalar_one()
 
     async def count_friend_defections() -> int:
         if not friend_ids:
             return 0
-        result = await session.execute(
-            select(func.count())
-            .select_from(FactionDefectionHistory)
-            .where(
-                FactionDefectionHistory.character_id.in_(friend_ids),
-                FactionDefectionHistory.era_id == era_row.id,
+        async with session_factory() as s:
+            era_row = await get_current_era_row(s)
+            result = await s.execute(
+                select(func.count())
+                .select_from(FactionDefectionHistory)
+                .where(
+                    FactionDefectionHistory.character_id.in_(friend_ids),
+                    FactionDefectionHistory.era_id == era_row.id,
+                )
             )
-        )
-        return result.scalar_one()
+            return result.scalar_one()
 
     async def count_comment_mentions() -> int:
-        result = await session.execute(
-            select(func.count())
-            .select_from(CommentMention)
-            .join(Comment, CommentMention.comment_id == Comment.id)
-            .where(
-                CommentMention.mentioned_character_id == character_id,
-                Comment.is_withdrawn.is_(False),
-                Comment.moderation_status == ModerationStatus.visible,
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(CommentMention)
+                .join(Comment, CommentMention.comment_id == Comment.id)
+                .where(
+                    CommentMention.mentioned_character_id == character_id,
+                    Comment.is_withdrawn.is_(False),
+                    Comment.moderation_status == ModerationStatus.visible,
+                )
             )
-        )
-        return result.scalar_one()
-
-    async def count_your_stuff() -> int:
-        """Votes on mine + praxis invites + invitation letters + @mentions."""
-        invite_result = await session.execute(
-            select(func.count())
-            .select_from(PraxisInvite)
-            .where(PraxisInvite.invitee_id == character_id)
-        )
-        invite_count = invite_result.scalar_one()
-        votes_count = await count_votes_on_mine()
-        letters_count = await count_invitation_letters()
-        mentions_count = await count_comment_mentions()
-        return votes_count + invite_count + letters_count + mentions_count
+            return result.scalar_one()
 
     async def count_global() -> int:
-        tasks_result = await session.execute(
-            select(func.count())
-            .select_from(Task)
-            .where(Task.status == TaskStatus.active)
-        )
-        era_result = await session.execute(
-            select(func.count()).select_from(Era)
-        )
-        return tasks_result.scalar_one() + era_result.scalar_one()
+        async with session_factory() as s:
+            tasks_result = await s.execute(
+                select(func.count())
+                .select_from(Task)
+                .where(Task.status == TaskStatus.active)
+            )
+            era_result = await s.execute(
+                select(func.count()).select_from(Era)
+            )
+            return tasks_result.scalar_one() + era_result.scalar_one()
 
     async def count_requests() -> int:
-        result = await session.execute(
-            select(func.count())
-            .select_from(PraxisInvite)
-            .where(
-                PraxisInvite.invitee_id == character_id,
-                PraxisInvite.status == PraxisInviteStatus.pending,
+        async with session_factory() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(PraxisInvite)
+                .where(
+                    PraxisInvite.invitee_id == character_id,
+                    PraxisInvite.status == PraxisInviteStatus.pending,
+                )
             )
-        )
-        return result.scalar_one()
+            return result.scalar_one()
 
-    # Run counts sequentially (shared async session)
-    friend_completions_count = await count_friend_completions()
-    friend_signups_count = await count_friend_signups()
-    friend_defections_count = await count_friend_defections()
+    (
+        votes_count,
+        friend_completions_count,
+        friend_signups_count,
+        friend_defections_count,
+        foe_taunts_count,
+        foe_completions_count,
+        invites_count,
+        letters_count,
+        mentions_count,
+        global_count,
+        requests_count,
+    ) = await asyncio.gather(
+        count_votes_on_mine(),
+        count_friend_completions(),
+        count_friend_signups(),
+        count_friend_defections(),
+        count_foe_taunts(),
+        count_foe_completions(),
+        count_praxis_invites(),
+        count_invitation_letters(),
+        count_comment_mentions(),
+        count_global(),
+        count_requests(),
+    )
+
     friends_count = friend_completions_count + friend_signups_count + friend_defections_count
-    foe_ids_for_count = await _get_related_ids(character_id, RelationshipType.foe, session)
-    foe_completions_count = 0
-    if foe_ids_for_count:
-        foe_completions_result = await session.execute(
-            select(func.count())
-            .select_from(Praxis)
-            .where(
-                Praxis.created_by_id.in_(foe_ids_for_count),
-                    Praxis.status == PraxisStatus.submitted,
-            )
-        )
-        foe_completions_count = foe_completions_result.scalar_one()
-    foes_count = await count_foe_taunts() + foe_completions_count
-    your_stuff_count = await count_your_stuff()
-    global_count = await count_global()
-    requests_count = await count_requests()
-
+    foes_count = foe_taunts_count + foe_completions_count
+    your_stuff_count = votes_count + invites_count + letters_count + mentions_count
     all_count = friends_count + foes_count + your_stuff_count + global_count
 
     return FeedCountsDC(
@@ -844,6 +891,7 @@ async def _compute_counts(
 async def get_activity_feed(
     character_id: int,
     session: AsyncSession,
+    session_factory: Callable,
     feed_filter: Optional[str] = None,
     before_cursor: Optional[datetime] = None,
     limit: int = 20,
@@ -852,7 +900,11 @@ async def get_activity_feed(
 
     Args:
         character_id: The character requesting the feed.
-        session: Database session.
+        session: Database session for the pre-fetch phase (friend/foe/task IDs).
+        session_factory: Callable that returns an async session context manager.
+            Each concurrent sub-query gets its own session from this factory.
+            Injected via FastAPI's Depends(get_session_factory); tests override
+            it to reuse the test-transaction session.
         feed_filter: One of "all", "friends", "foes", "your_stuff", "global", "requests".
         before_cursor: ISO datetime cursor for pagination (items before this time).
         limit: Max items to return.
@@ -880,64 +932,95 @@ async def get_activity_feed(
     if needs_my_tasks:
         my_task_ids = await _get_my_task_ids(character_id, session)
 
-    # Build list of coroutines to run in parallel
-    fetch_tasks: list = []
+    # Build per-sub-query coroutine factories; each gets its own session so
+    # they can run concurrently under asyncio.gather without sharing state.
+    fetch_coros: list[Coroutine[Any, Any, list[ActivityFeedItemDC]]] = []
 
     if FEED_ITEM_TYPE_VOTE_ON_MINE in allowed_types:
-        fetch_tasks.append(_fetch_votes_on_mine(character_id, session, before_cursor))
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_votes_on_mine(character_id, s, before_cursor),
+            session_factory,
+        ))
 
     if FEED_ITEM_TYPE_FRIEND_COMPLETION in allowed_types:
-        fetch_tasks.append(_fetch_completions(friend_ids, FEED_ITEM_TYPE_FRIEND_COMPLETION, session, before_cursor))
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_completions(friend_ids, FEED_ITEM_TYPE_FRIEND_COMPLETION, s, before_cursor),
+            session_factory,
+        ))
 
     if FEED_ITEM_TYPE_FOE_TAUNT in allowed_types:
-        fetch_tasks.append(_fetch_foe_taunts(character_id, session, before_cursor))
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_foe_taunts(character_id, s, before_cursor),
+            session_factory,
+        ))
 
     if FEED_ITEM_TYPE_FOE_COMPLETION in allowed_types:
-        fetch_tasks.append(_fetch_completions(foe_ids, FEED_ITEM_TYPE_FOE_COMPLETION, session, before_cursor))
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_completions(foe_ids, FEED_ITEM_TYPE_FOE_COMPLETION, s, before_cursor),
+            session_factory,
+        ))
 
     if FEED_ITEM_TYPE_GLOBAL_TASK in allowed_types:
-        fetch_tasks.append(_fetch_global_tasks(session, before_cursor))
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_global_tasks(s, before_cursor),
+            session_factory,
+        ))
 
     if FEED_ITEM_TYPE_ERA_ANNOUNCEMENT in allowed_types:
-        fetch_tasks.append(_fetch_era_announcements(session, before_cursor))
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_era_announcements(s, before_cursor),
+            session_factory,
+        ))
 
     if FEED_ITEM_TYPE_COLLAB_INVITE in allowed_types:
-        fetch_tasks.append(_fetch_praxis_invites(
-            character_id, PraxisType.collab, FEED_ITEM_TYPE_COLLAB_INVITE,
-            "inviter_character_id", session, before_cursor, pending_only=is_requests_filter,
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_praxis_invites(
+                character_id, PraxisType.collab, FEED_ITEM_TYPE_COLLAB_INVITE,
+                "inviter_character_id", s, before_cursor, pending_only=is_requests_filter,
+            ),
+            session_factory,
         ))
 
     if FEED_ITEM_TYPE_DUEL_CHALLENGE in allowed_types:
-        fetch_tasks.append(_fetch_duel_challenges(
-            character_id, session, before_cursor, pending_only=is_requests_filter,
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_duel_challenges(character_id, s, before_cursor, pending_only=is_requests_filter),
+            session_factory,
         ))
 
     if FEED_ITEM_TYPE_FRIEND_SIGNUP in allowed_types:
-        fetch_tasks.append(_fetch_friend_signups(
-            friend_ids, my_task_ids, session, before_cursor,
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_friend_signups(friend_ids, my_task_ids, s, before_cursor),
+            session_factory,
         ))
 
     if FEED_ITEM_TYPE_INVITATION_LETTER in allowed_types:
-        fetch_tasks.append(_fetch_invitation_letters(
-            character_id, session, before_cursor,
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_invitation_letters(character_id, s, before_cursor),
+            session_factory,
         ))
 
     if FEED_ITEM_TYPE_FRIEND_DEFECTION in allowed_types:
-        fetch_tasks.append(_fetch_friend_defections(
-            friend_ids, session, before_cursor,
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_friend_defections(friend_ids, s, before_cursor),
+            session_factory,
         ))
 
     if FEED_ITEM_TYPE_COMMENT_MENTION in allowed_types:
-        fetch_tasks.append(_fetch_comment_mentions(
-            character_id, session, before_cursor,
+        fetch_coros.append(_run_with_own_session(
+            lambda s: _fetch_comment_mentions(character_id, s, before_cursor),
+            session_factory,
         ))
 
-    # Run all sub-queries (they share the same session, so sequential is safer
-    # with SQLAlchemy async — asyncio.gather can cause issues with shared session)
+    # Run feed fan-out and badge counts concurrently; each sub-query has its own session.
+    gather_results = await asyncio.gather(
+        *fetch_coros,
+        _compute_counts(character_id, friend_ids, my_task_ids, session_factory),
+    )
+    counts: FeedCountsDC = gather_results[-1]
+
     all_items: list[ActivityFeedItemDC] = []
-    for task in fetch_tasks:
-        items = await task
-        all_items.extend(items)
+    for item_list in gather_results[:-1]:
+        all_items.extend(item_list)
 
     # Sort by timestamp descending, slice to limit
     all_items.sort(key=lambda item: item.timestamp, reverse=True)
@@ -947,9 +1030,6 @@ async def get_activity_feed(
     next_cursor = None
     if len(all_items) > limit:
         next_cursor = paginated[-1].timestamp.isoformat()
-
-    # Compute badge counts (separate from pagination)
-    counts = await _compute_counts(character_id, friend_ids, my_task_ids, session)
 
     return ActivityFeedResponseDC(
         items=paginated,

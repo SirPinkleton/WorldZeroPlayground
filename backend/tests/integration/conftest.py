@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 from config import settings
-from db import get_db
+from db import get_db, get_session_factory
 from main import app
 import models  # noqa: F401 — registers all models on Base.metadata for create_all
 from models.account import Account
@@ -112,6 +112,24 @@ async def db_session(db_connection):
     await session.close()
 
 
+class _ReuseSessionContext:
+    """Null context manager that yields the shared test session without closing it.
+
+    Used by the test session_factory override so that concurrent sub-query sessions
+    (created by ``asyncio.gather`` in the activity-feed service) reuse the same
+    SAVEPOINT-backed session and therefore see uncommitted fixture data.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def __aenter__(self) -> AsyncSession:
+        return self._session
+
+    async def __aexit__(self, *args: object) -> None:
+        pass  # Do NOT close; the test fixture owns the session lifecycle.
+
+
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession):
     """Provide an AsyncClient with the get_db dependency overridden.
@@ -123,13 +141,21 @@ async def client(db_session: AsyncSession):
     test body is still holding (fixtures like ``era``, ``character``, etc.).
     Isolation is preserved by the outer test transaction, which rolls back
     unconditionally at the end of the test.
+
+    Also overrides ``get_session_factory`` so concurrent sub-queries (used by
+    the activity-feed service under ``asyncio.gather``) reuse ``db_session``
+    rather than opening new connections that cannot see uncommitted test data.
     """
 
     async def _override_get_db():
         yield db_session
         await db_session.commit()
 
+    def _override_session_factory():
+        return lambda: _ReuseSessionContext(db_session)
+
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_session_factory] = _override_session_factory
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
