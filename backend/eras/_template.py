@@ -211,7 +211,8 @@ ERA_N = EraConfig(
     second_character_level_required=4,
     albescent_level_required=8,
     faction_graduation_level=3,
-    invitation_point_threshold=20,
+    invitation_point_threshold=50,   # ADR-0022: points from a faction's tasks
+    invitation_task_threshold=2,     # ADR-0022: completed tasks for that faction
 
     reset_score=True,
     reset_level=True,

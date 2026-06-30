@@ -27,6 +27,9 @@ export interface CurrentUser {
   can_see_retired_tasks: boolean
   can_see_pending_tasks: boolean
   can_comment: boolean
+  // FieldDesk locked-dossier gate copy (#270/#274). Never hardcode the gate number.
+  second_character_level_required: number
+  era_name: string
 }
 
 export async function getMe(): Promise<CurrentUser> {
