@@ -1,36 +1,30 @@
 import type { VoteUIProps } from './VoteUI'
 import { useVote } from './useVote'
 import { VoteLoginGate, VoteSummary } from './VoteShell'
+import { VOTE_REFRAMES } from './voteReframes'
 
 /**
  * Warriors of Whimsy faction vote UI — the 1-5 rating rendered as filled hearts in the
  * pink computer-witch language. Empty hearts are outline-only; filled hearts
  * climb an escalating pastel-pink ramp left-to-right, each in a soft rounded
- * stamp tile with tiny uppercase word labels (Caveat script numerals elsewhere
- * in the kit; here the labels use the body font to match GVoteStamps).
+ * stamp tile with tiny uppercase word labels.
  *
  * Plugs into the vote dispatcher via the shared {@link useVote} hook so the
  * cast/refetch logic lives in exactly one place.
  */
 
-interface HeartConfig {
-  value: number
-  label: string
-  fill: string
-}
-
 /** Escalating pink heart-fill ramp (from wow-kit.jsx voteFills). */
-const VOTE_FILLS = ['#f6b8cf', '#f489b0', '#ec5f99', '#df3f86', '#c52470'] as const
+const HEART_FILLS: Record<number, string> = {
+  1: '#f6b8cf',
+  2: '#f489b0',
+  3: '#ec5f99',
+  4: '#df3f86',
+  5: '#c52470',
+}
 
 const HEART_TILE = 40
 
-export const HEARTS: HeartConfig[] = [
-  { value: 1, label: 'a start',   fill: VOTE_FILLS[0] },
-  { value: 2, label: 'solid',     fill: VOTE_FILLS[1] },
-  { value: 3, label: 'good',      fill: VOTE_FILLS[2] },
-  { value: 4, label: 'excellent', fill: VOTE_FILLS[3] },
-  { value: 5, label: 'legendary', fill: VOTE_FILLS[4] },
-]
+const TIERS = VOTE_REFRAMES['wow'].tiers
 
 /** Inline heart glyph — filled (ramp color) or outline-only when empty. */
 function HeartGlyph({ filled, color, size = 30 }: { filled: boolean; color: string; size?: number }) {
@@ -47,24 +41,8 @@ function HeartGlyph({ filled, color, size = 30 }: { filled: boolean; color: stri
   )
 }
 
-export default function WowVote({ praxisId, currentStars, averageStars, totalVotes, mode = 'caster' }: VoteUIProps) {
-  const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
-
-  if (mode === 'summary') {
-    const roundedAvg = Math.round(averageStars ?? 0)
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div style={{ display: 'flex', gap: 3 }}>
-          {HEARTS.map((heart) => (
-            <HeartGlyph key={heart.value} filled={heart.value <= roundedAvg} color={heart.fill} size={20} />
-          ))}
-        </div>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 7, color: 'var(--faction-wow-card-muted)', textAlign: 'center' }}>
-          {totalVotes ?? 0} votes
-        </span>
-      </div>
-    )
-  }
+export default function WowVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+  const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
     return <VoteLoginGate />
@@ -73,18 +51,19 @@ export default function WowVote({ praxisId, currentStars, averageStars, totalVot
   return (
     <div>
       <div style={{ display: 'flex', gap: 9 }}>
-        {HEARTS.map((heart) => {
-          const filled = selected >= heart.value
-          const active = selected === heart.value
+        {TIERS.map((tier) => {
+          const fill = HEART_FILLS[tier.value] ?? HEART_FILLS[1]
+          const filled = selected >= tier.value
+          const active = selected === tier.value
           return (
             <div
-              key={heart.value}
+              key={tier.value}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
             >
               <button
                 disabled={saving}
-                onClick={() => void vote(heart.value)}
-                aria-label={`Rate ${heart.value} — ${heart.label}`}
+                onClick={() => void vote(tier.value)}
+                aria-label={`Rate ${tier.value} — ${tier.label}`}
                 style={{
                   width: HEART_TILE,
                   height: HEART_TILE,
@@ -101,7 +80,7 @@ export default function WowVote({ praxisId, currentStars, averageStars, totalVot
                   transition: 'all 120ms',
                 } as React.CSSProperties}
               >
-                <HeartGlyph filled={filled} color={heart.fill} />
+                <HeartGlyph filled={filled} color={fill} />
               </button>
               <span
                 style={{
@@ -109,13 +88,13 @@ export default function WowVote({ praxisId, currentStars, averageStars, totalVot
                   fontSize: 7,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
-                  color: filled ? heart.fill : 'var(--faction-wow-card-muted)',
+                  color: filled ? fill : 'var(--faction-wow-card-muted)',
                   maxWidth: HEART_TILE + 2,
                   textAlign: 'center',
                   lineHeight: 1.2,
                 }}
               >
-                {heart.label}
+                {tier.label}
               </span>
             </div>
           )

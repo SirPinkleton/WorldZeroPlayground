@@ -1,6 +1,7 @@
 import type { VoteUIProps } from './VoteUI'
 import { useVote } from './useVote'
 import { VoteLoginGate, VoteSummary } from './VoteShell'
+import { VOTE_REFRAMES } from './voteReframes'
 
 /**
  * Singularity faction vote UI — THE CONSENSUS ARRAY. The 1-5 rating is rendered
@@ -14,69 +15,25 @@ import { VoteLoginGate, VoteSummary } from './VoteShell'
  * the shared {@link useVote} hook so cast/refetch logic lives in one place.
  */
 
-interface SignalTier {
-  value: number
-  label: string
-  /** Confidence ramp colour — token-derived, low (blue chrome) → high (green). */
-  fill: string
-}
-
 /**
- * Signal ramp. The design ramp runs cool→warm→green; with the available always-
- * dark tokens we express the same "weak → verified" confidence climb by mixing
- * the terminal-green accent up from the blue brand chrome as confidence rises.
+ * Signal ramp fills per tier value — labels come from voteReframes. The ramp
+ * runs cool→warm→green: terminal-green accent mixed up from the blue brand chrome
+ * as confidence rises.
  */
-export const SG_CONSENSUS: SignalTier[] = [
-  { value: 1, label: 'NOISE', fill: 'var(--faction-singularity-card-muted)' },
-  { value: 2, label: 'WEAK', fill: 'color-mix(in srgb, var(--faction-singularity-card-muted) 70%, var(--faction-singularity-card-accent))' },
-  { value: 3, label: 'SIGNAL', fill: 'color-mix(in srgb, var(--faction-singularity-card-muted) 40%, var(--faction-singularity-card-accent))' },
-  { value: 4, label: 'CLEAR', fill: 'color-mix(in srgb, var(--faction-singularity-card-accent) 75%, var(--faction-singularity-card-muted))' },
-  { value: 5, label: 'VERIFIED', fill: 'var(--faction-singularity-card-accent)' },
-]
+const SG_FILLS: Record<number, string> = {
+  1: 'var(--faction-singularity-card-muted)',
+  2: 'color-mix(in srgb, var(--faction-singularity-card-muted) 70%, var(--faction-singularity-card-accent))',
+  3: 'color-mix(in srgb, var(--faction-singularity-card-muted) 40%, var(--faction-singularity-card-accent))',
+  4: 'color-mix(in srgb, var(--faction-singularity-card-accent) 75%, var(--faction-singularity-card-muted))',
+  5: 'var(--faction-singularity-card-accent)',
+}
 
 const KEY_SIZE = 42
 
-export default function SingularityVote({ praxisId, currentStars, averageStars, totalVotes, mode = 'caster' }: VoteUIProps) {
-  const { user, selected, saving, error, vote } = useVote(praxisId, currentStars)
+const TIERS = VOTE_REFRAMES['singularity'].tiers
 
-  if (mode === 'summary') {
-    const tier = SG_CONSENSUS[Math.max(0, Math.round(averageStars ?? 0) - 1)] ?? SG_CONSENSUS[0]
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div
-          style={{
-            minWidth: 46,
-            height: 30,
-            padding: '0 9px',
-            background: 'var(--faction-singularity-card-bg)',
-            outline: `1px solid ${tier.fill}`,
-            color: tier.fill,
-            fontFamily: 'var(--font-faction-terminal)',
-            fontSize: 9,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: `0 0 10px color-mix(in srgb, ${tier.fill} 33%, transparent)`,
-          }}
-        >
-          {tier.label}
-        </div>
-        <span
-          style={{
-            fontFamily: 'var(--font-faction-terminal)',
-            fontSize: 7,
-            letterSpacing: '0.12em',
-            color: 'color-mix(in srgb, var(--faction-singularity-card-muted) 55%, transparent)',
-            textAlign: 'center',
-          }}
-        >
-          {totalVotes ?? 0} signals
-        </span>
-      </div>
-    )
-  }
+export default function SingularityVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+  const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
     return <VoteLoginGate />
@@ -107,7 +64,8 @@ export default function SingularityVote({ praxisId, currentStars, averageStars, 
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {SG_CONSENSUS.map((tier) => {
+        {TIERS.map((tier) => {
+          const fill = SG_FILLS[tier.value] ?? SG_FILLS[1]
           const reached = selected >= tier.value
           const picked = selected === tier.value
           return (
@@ -123,7 +81,7 @@ export default function SingularityVote({ praxisId, currentStars, averageStars, 
                   cursor: saving ? 'default' : 'pointer',
                   padding: 0,
                   border: 'none',
-                  background: reached ? tier.fill : 'var(--faction-singularity-light)',
+                  background: reached ? fill : 'var(--faction-singularity-light)',
                   color: reached ? 'var(--faction-singularity-card-bg)' : 'color-mix(in srgb, var(--faction-singularity-card-muted) 55%, transparent)',
                   fontFamily: 'var(--font-faction-terminal)',
                   fontWeight: 700,
@@ -134,8 +92,8 @@ export default function SingularityVote({ praxisId, currentStars, averageStars, 
                   justifyContent: 'center',
                   transform: picked ? 'scale(1.12)' : 'none',
                   transition: 'all 110ms',
-                  outline: `1px solid ${reached ? tier.fill : 'var(--faction-singularity-border)'}`,
-                  boxShadow: reached ? `0 0 12px color-mix(in srgb, ${tier.fill} 33%, transparent)` : 'none',
+                  outline: `1px solid ${reached ? fill : 'var(--faction-singularity-border)'}`,
+                  boxShadow: reached ? `0 0 12px color-mix(in srgb, ${fill} 33%, transparent)` : 'none',
                 }}
               >
                 {tier.value}
@@ -144,7 +102,7 @@ export default function SingularityVote({ praxisId, currentStars, averageStars, 
                 style={{
                   fontSize: 6.5,
                   letterSpacing: '0.08em',
-                  color: picked ? tier.fill : 'color-mix(in srgb, var(--faction-singularity-card-muted) 45%, transparent)',
+                  color: picked ? fill : 'color-mix(in srgb, var(--faction-singularity-card-muted) 45%, transparent)',
                   maxWidth: KEY_SIZE + 8,
                   textAlign: 'center',
                   lineHeight: 1.2,
