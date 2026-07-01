@@ -100,7 +100,11 @@ the link drops and the challenger's praxis stays as a plain solo praxis (**conve
 **Collaboration (collab)**:
 Genuinely shared work on one task: **one** praxis, many `PraxisMember`s, one shared body + media,
 one shared vote pool. Every member is scored off the same star total (through their own faction's
-collab modifier). Contrast **Duel**, which is *not* shared.
+collab modifier). Contrast **Duel**, which is *not* shared. **Invite level-lift** (by design):
+accepting a collab invite lets a **lower-level player** work on a task above their own sign-up
+level — `respond_to_invite` gates the accept only on bank-cap + not-already-submitted, never the
+invitee's level or the task's `level_required`. A qualified creator's invite is the lift; not a
+bypass to be "fixed" (#318).
 
 **Praxis status**:
 The `in_progress → submitted` axis of a praxis. What flips it depends on type — **solo**:
