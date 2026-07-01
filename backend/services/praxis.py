@@ -628,6 +628,33 @@ def can_view_praxis(viewer: Optional[Character], praxis: Praxis) -> bool:
     return viewer.id in {member.character_id for member in praxis.members}
 
 
+async def _praxis_author_account_id(
+    praxis: Praxis, session: AsyncSession
+) -> Optional[int]:
+    """The account that owns ``praxis``'s author (created_by is usually loaded)."""
+    author = praxis.created_by
+    if author is None and praxis.created_by_id is not None:
+        author = await session.get(Character, praxis.created_by_id)
+    return author.account_id if author is not None else None
+
+
+async def _account_already_flagged(
+    praxis_id: int, account_id: int, session: AsyncSession
+) -> bool:
+    """True if any character on ``account_id`` already flagged this praxis (#328 anti-gang).
+
+    Joins ``Flag.flagged_by → Character.account_id`` so no ``flagged_by_account_id``
+    column / migration is needed.
+    """
+    result = await session.execute(
+        select(Flag.id)
+        .join(Character, Character.id == Flag.flagged_by)
+        .where(Flag.praxis_id == praxis_id, Character.account_id == account_id)
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def can_flag_praxis(
     viewer: Optional[Character],
     praxis: Praxis,
@@ -636,14 +663,19 @@ async def can_flag_praxis(
 ) -> bool:
     """Return True if ``viewer`` may flag ``praxis``.
 
-    Mirrors the rules enforced in :func:`flag_praxis`:
+    Mirrors the rules enforced in :func:`flag_praxis` so the ``can_flag`` UI flag
+    hides the control exactly when the action would 403/409 (#328):
     - Viewer must be authenticated (anonymous viewers cannot flag).
+    - Viewer's **account** cannot own the praxis author (account-scoped anti-self-flag).
+    - Viewer's **account** must not already have a flag on this praxis (anti-gang).
     - Viewer must be at or above ``era.flag_level_required`` in the current era.
-    - Viewer cannot flag a praxis they authored (character-level check).
     """
     if viewer is None:
         return False
-    if viewer.id == praxis.created_by_id:
+    author_account_id = await _praxis_author_account_id(praxis, session)
+    if author_account_id is not None and author_account_id == viewer.account_id:
+        return False
+    if await _account_already_flagged(praxis.id, viewer.account_id, session):
         return False
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, viewer.id, era_row.id)
@@ -792,10 +824,19 @@ async def flag_praxis(
     """Flag a praxis for moderation review. Requires ``era.flag_level_required`` or above."""
     praxis = await get_praxis(praxis_id, session)
 
-    # Self-flag is always rejected with its own error message so the caller
-    # sees a clearer reason than a generic level failure.
-    if flagged_by.id == praxis.created_by_id:
+    # Account-scoped anti-self-flag (#328): no account can flag its own work
+    # across lives — mirror the account-level anti-self-vote shape. Own message
+    # so the caller sees a clearer reason than a generic level failure.
+    author_account_id = await _praxis_author_account_id(praxis, session)
+    if author_account_id is not None and author_account_id == flagged_by.account_id:
         raise HTTPException(status_code=403, detail="Cannot flag your own praxis.")
+
+    # Account-scoped uniqueness (#328): one flag per account per praxis — a second
+    # life can't stack a second flag to gang up on a third-party praxis.
+    if await _account_already_flagged(praxis.id, flagged_by.account_id, session):
+        raise HTTPException(
+            status_code=409, detail="Your account has already flagged this praxis."
+        )
 
     if not await can_flag_praxis(flagged_by, praxis, session, era):
         raise HTTPException(
