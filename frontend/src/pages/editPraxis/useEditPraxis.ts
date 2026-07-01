@@ -141,7 +141,7 @@ export function modeSwitchPrompt(
 
 export function useEditPraxis(idParam: string | undefined): EditPraxisState {
   const navigate = useNavigate();
-  const { user, refetch } = useAuth();
+  const { user, refetch, loading: authLoading } = useAuth();
 
   // ---- Core state ----
   const [praxis, setPraxis] = useState<PraxisOut | null>(null);
@@ -185,11 +185,22 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
   // ---- Initial load ----
   useEffect(() => {
     if (!idParam) return;
+    // Wait for auth to resolve before the membership guard — otherwise a
+    // still-loading `user` would bounce to the read page, which redirects
+    // in_progress praxes right back here (infinite loop).
+    if (authLoading) return;
     const praxisId = parseInt(idParam, 10);
     setLoading(true);
     getPraxis(praxisId)
       .then(async (loaded) => {
-        if (user?.character?.id !== loaded.created_by_id) {
+        // A collab is co-owned — any member may edit (ADR-0013), not just the
+        // creator. Gating on created_by_id looped non-creator members between
+        // this page and the read page's in_progress → edit redirect.
+        const viewerId = user?.character?.id;
+        const isMember =
+          viewerId != null &&
+          loaded.members.some((member) => member.character_id === viewerId);
+        if (!isMember) {
           navigate(`/praxes/${idParam}`, { replace: true });
           return;
         }
@@ -218,7 +229,7 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
       })
       .catch(() => setError("Couldn't load this praxis."))
       .finally(() => setLoading(false));
-  }, [idParam, user, navigate]);
+  }, [idParam, user, authLoading, navigate]);
 
   // ---- Duel gating: level required + the viewer's foes (surfaced first) ----
   useEffect(() => {
