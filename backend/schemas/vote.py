@@ -22,7 +22,6 @@ class VoteOut(BaseModel):
 class VoteSummary(BaseModel):
     praxis_id: int
     total_votes: int
-    average_value: float
     total_score: float
 
 

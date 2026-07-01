@@ -26,7 +26,7 @@ const STAMP_SIZE = 40
 
 const TIERS = VOTE_REFRAMES['everymen'].tiers
 
-export default function EverymenVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+export default function EverymenVote({ praxisId, currentValue, points, totalVotes }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
@@ -101,7 +101,7 @@ export default function EverymenVote({ praxisId, currentValue, averageStars, tot
 
       <VoteSummary
         selected={selected}
-        averageStars={averageStars}
+        points={points}
         totalVotes={totalVotes}
         error={error}
         theme={{

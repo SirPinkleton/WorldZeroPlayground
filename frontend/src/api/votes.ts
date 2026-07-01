@@ -12,7 +12,6 @@ export interface VoteOut {
 export interface VoteSummary {
   praxis_id: number
   total_votes: number
-  average_value: number
   total_score: number
 }
 

@@ -187,8 +187,7 @@ The **sum** of a praxis's vote values, added flat to score *after* all multiplie
 as *points* (the "73" in a "15 + 73 points" display = base + points-from-votes), never as its
 own noun. Distinct from **voter count** — how many votes were cast (the "45 votes" label). The
 **average** of a praxis's vote values is *not* a domain quantity — a praxis's standing is the sum
-(points-from-votes) and the count, never the mean (SPEC-game-rules: "Not an average"). A vestigial
-display-only `average_value` field still lingers in code, pending its own removal.
+(points-from-votes) and the count, never the mean (SPEC-game-rules: "Not an average").
 _Avoid_: average rating, avg score.
 
 **Vote tally** *(read-model; `services/vote_tally.py`)*:

@@ -41,7 +41,7 @@ function HeartGlyph({ filled, color, size = 30 }: { filled: boolean; color: stri
   )
 }
 
-export default function WowVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+export default function WowVote({ praxisId, currentValue, points, totalVotes }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
@@ -103,7 +103,7 @@ export default function WowVote({ praxisId, currentValue, averageStars, totalVot
 
       <VoteSummary
         selected={selected}
-        averageStars={averageStars}
+        points={points}
         totalVotes={totalVotes}
         error={error}
         theme={{

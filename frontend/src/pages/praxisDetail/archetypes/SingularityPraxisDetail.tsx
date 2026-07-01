@@ -430,7 +430,7 @@ export default function SingularityPraxisDetail({ state }: { state: PraxisDetail
             )}
             <SingularityVote
               praxisId={praxis.id}
-              averageStars={votes?.average_value}
+              points={votes?.total_score}
               totalVotes={votes?.total_votes}
               mode="caster"
             />

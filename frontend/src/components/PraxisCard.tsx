@@ -12,7 +12,6 @@ import {
   PraxisByline,
   PraxisSeal,
   PraxisStats,
-  VoteUISummary,
   type AdminProps,
 } from "./praxisCard/shared";
 import { usePraxisCard } from "./praxisCard/usePraxisCard";
@@ -58,12 +57,6 @@ function PlaceholderPraxisBody({
   sealLabel?: string;
   titleStyle?: CSSProperties;
 }) {
-  const hero =
-    praxis.average_value !== null && praxis.average_value !== undefined ? (
-      <VoteUISummary praxis={praxis} color={tint} border={tint} />
-    ) : (
-      <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />
-    );
   return (
     <>
       <div
@@ -78,7 +71,7 @@ function PlaceholderPraxisBody({
           <PraxisTitle praxis={praxis} style={titleStyle} />
           <PraxisTaskLink praxis={praxis} style={{ color: muted }} />
         </div>
-        {hero}
+        <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />
       </div>
       <PraxisStats praxis={praxis} style={{ color: muted, marginTop: 8 }} />
       <PraxisByline praxis={praxis} style={{ color: muted }} />

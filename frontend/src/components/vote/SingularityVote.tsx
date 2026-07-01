@@ -32,7 +32,7 @@ const KEY_SIZE = 42
 
 const TIERS = VOTE_REFRAMES['singularity'].tiers
 
-export default function SingularityVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+export default function SingularityVote({ praxisId, currentValue, points, totalVotes }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
@@ -117,7 +117,7 @@ export default function SingularityVote({ praxisId, currentValue, averageStars, 
 
       <VoteSummary
         selected={selected}
-        averageStars={averageStars}
+        points={points}
         totalVotes={totalVotes}
         error={error}
         theme={{

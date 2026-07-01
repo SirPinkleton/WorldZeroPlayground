@@ -256,7 +256,7 @@ export default function EverymenPraxisDetail({ state }: { state: PraxisDetailSta
         <div style={{ marginBottom: 20 }}>
           <EverymenVote
             praxisId={praxis.id}
-            averageStars={votes?.average_value}
+            points={votes?.total_score}
             totalVotes={votes?.total_votes}
             mode="caster"
           />

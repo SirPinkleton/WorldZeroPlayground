@@ -63,7 +63,6 @@ const PRAXIS: PraxisOut = {
 const VOTES: VoteSummary = {
   praxis_id: 1,
   total_votes: 4,
-  average_value: 4.2,
   total_score: 16,
 };
 

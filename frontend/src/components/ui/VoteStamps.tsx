@@ -25,12 +25,12 @@ const STAMPS: StampConfig[] = [
 interface Props {
   praxisId: number
   currentValue?: number
-  averageStars?: number | null
+  points?: number | null
   totalVotes?: number
   mode?: 'caster' | 'summary'
 }
 
-export default function VoteStamps({ praxisId, currentValue, averageStars, totalVotes }: Props) {
+export default function VoteStamps({ praxisId, currentValue, points, totalVotes }: Props) {
   const { user, refetch } = useAuth()
   const [selected, setSelected] = useState(currentValue ?? 0)
   const [saving, setSaving] = useState(false)
@@ -110,9 +110,9 @@ export default function VoteStamps({ praxisId, currentValue, averageStars, total
       )}
 
       {/* Summary */}
-      {averageStars != null && (
+      {points != null && (
         <p className="font-body" style={{ fontSize: 9, color: 'var(--color-text-secondary)' }}>
-          {averageStars.toFixed(1)} avg · {totalVotes ?? 0} votes
+          {totalVotes ?? 0} votes · {points} pts
         </p>
       )}
 

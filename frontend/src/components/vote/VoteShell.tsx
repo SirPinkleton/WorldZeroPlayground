@@ -1,7 +1,7 @@
 /**
  * Shared chrome for per-faction vote UIs. The 1-5 control itself is faction-
  * specific (ink stamps, hearts, …), but the logged-out gate and the
- * average/"voted"/error summary are identical in structure — only their theme
+ * points/"voted"/error summary are identical in structure — only their theme
  * colors differ. These two helpers keep that chrome in one place.
  */
 
@@ -19,16 +19,16 @@ export interface VoteSummaryTheme {
   avgLetterSpacing?: string
 }
 
-/** "Voted N pts", the average display, and the error line — themeable. */
+/** "Voted N pts", the votes/points display, and the error line — themeable. */
 export function VoteSummary({
   selected,
-  averageStars,
+  points,
   totalVotes,
   error,
   theme,
 }: {
   selected: number
-  averageStars?: number | null
+  points?: number | null
   totalVotes?: number
   error: string
   theme: VoteSummaryTheme
@@ -41,7 +41,7 @@ export function VoteSummary({
         </p>
       )}
 
-      {averageStars != null && (
+      {points != null && (
         <p
           className="font-body"
           style={{
@@ -51,10 +51,11 @@ export function VoteSummary({
             letterSpacing: theme.avgLetterSpacing,
           }}
         >
+          {totalVotes ?? 0} votes ·{' '}
           <b style={{ color: theme.accent, fontFamily: theme.accentFont, fontSize: theme.avgFontSize }}>
-            {averageStars.toFixed(1)}
+            {points}
           </b>{' '}
-          avg · {totalVotes ?? 0} votes
+          pts
         </p>
       )}
 

@@ -277,10 +277,6 @@ async def build_praxis_card_out(
     tally_map = await tally_votes([praxis.id], session)
     tally = get_tally(tally_map, praxis.id)
     score = float(task_point_value + tally.points_from_votes)
-    average_value = (
-        tally.points_from_votes / tally.voter_count
-        if tally.voter_count > 0 else None
-    )
 
     return PraxisCardOut(
         id=praxis.id,
@@ -299,7 +295,6 @@ async def build_praxis_card_out(
         submitted_at=praxis.submitted_at,
         member_count=len(praxis.members),
         score=score,
-        average_value=average_value,
         voter_count=tally.voter_count,
         task_faction_slug=praxis.task.primary_faction_slug if praxis.task else None,
     )
