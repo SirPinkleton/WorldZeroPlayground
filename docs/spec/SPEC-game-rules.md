@@ -193,9 +193,10 @@ Each member's score is computed independently using their own faction's collab m
 
 ### Collaboration
 
-- Requires character level ≥ 1 (hardcoded).
+- Requires character level ≥ 1 (hardcoded) **to *create* a collab**.
 - **No participant cap** in Era 1 — any number of characters may join a collaboration.
 - Creator invites other characters. Each accepts or declines via the invite flow.
+- **Level-lift rule (by design):** accepting a collab invite lets a **lower-level player collaborate on a task above their own sign-up level**. `respond_to_invite` gates the accept only on the invitee's **bank cap** and the collab not already being **submitted** — it deliberately does **not** check the invitee's level or the task's `level_required`. An invite is a lift by a qualified creator; this is not a bypass to be "fixed" later.
 - A collab reaches `submitted` status when **all current members** have individually marked `has_submitted = True`.
 - Each member's score is computed independently using their own faction modifiers.
 - Votes are praxis-wide. Members cannot vote on their own collab (account-level anti-self-vote).
