@@ -89,7 +89,6 @@ export interface PraxisCardOut {
   submitted_at: string | null
   member_count: number
   score: number
-  average_value: number | null
   voter_count: number
   task_faction_slug: string | null
 }

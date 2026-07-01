@@ -432,7 +432,7 @@ export default function WowPraxisDetail({ state }: { state: PraxisDetailState })
             </div>
             <WowVote
               praxisId={praxis.id}
-              averageStars={votes?.average_value}
+              points={votes?.total_score}
               totalVotes={votes?.total_votes}
               mode="caster"
             />

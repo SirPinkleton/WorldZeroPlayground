@@ -155,64 +155,6 @@ export function PraxisSeal({
   );
 }
 
-/**
- * Slot: compact read-only vote summary — the card hero once the praxis has been
- * rated. Replaces PraxisSeal when average_value is present.
- *
- * Shows the average star rating (1–5) + vote count in a compact badge. Per-faction
- * reframe labels (Concordance, Signal, etc.) are wired per archetype when their
- * designs land; this is the generic fallback that drives the slot.
- */
-export function VoteUISummary({
-  praxis,
-  color,
-  border,
-}: {
-  praxis: PraxisCardOut;
-  color?: string;
-  border?: string;
-}) {
-  if (praxis.average_value === null || praxis.average_value === undefined) return null;
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        minWidth: 50,
-        padding: "5px 8px",
-        border: `2px solid ${border ?? "currentColor"}`,
-        borderRadius: 4,
-        transform: "rotate(-3deg)",
-        color: color ?? "inherit",
-        lineHeight: 1,
-        gap: 2,
-      }}
-    >
-      <span className="font-display" style={{ fontWeight: 800, fontSize: "var(--text-lg)" }}>
-        {praxis.average_value.toFixed(1)}
-      </span>
-      <span
-        style={{
-          fontSize: 7,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          opacity: 0.75,
-        }}
-      >
-        ★ avg
-      </span>
-      {praxis.voter_count > 0 && (
-        <span style={{ fontSize: 7, opacity: 0.6 }}>
-          {praxis.voter_count}v
-        </span>
-      )}
-    </div>
-  );
-}
-
 /** Slot: base points + collaboration mode — a compact stat line. */
 export function PraxisStats({
   praxis,

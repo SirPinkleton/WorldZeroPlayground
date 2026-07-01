@@ -1479,7 +1479,7 @@ async def test_create_praxis_retired_task_allowed_for_ephemerists(
 
 
 # ---------------------------------------------------------------------------
-# PraxisCardOut new fields: task_level_required, average_value, voter_count,
+# PraxisCardOut new fields: task_level_required, voter_count,
 # submitted_at (issue #159)
 # ---------------------------------------------------------------------------
 
@@ -1491,7 +1491,7 @@ async def test_praxis_card_includes_new_fields(
     active_task: Task,
     auth_headers: dict,
 ):
-    """GET /praxes list returns task_level_required, average_value (null), voter_count (0),
+    """GET /praxes list returns task_level_required, voter_count (0),
     and submitted_at (null) for a newly-created in_progress praxis."""
     create_resp = await client.post(
         "/praxes",
@@ -1511,7 +1511,6 @@ async def test_praxis_card_includes_new_fields(
     assert isinstance(card["task_level_required"], int)
     assert card["task_level_required"] == active_task.level_required
 
-    assert card["average_value"] is None
     assert card["voter_count"] == 0
     assert card["submitted_at"] is None
 
@@ -1546,7 +1545,7 @@ async def test_submitted_at_set_on_submit(
 
 
 @pytest.mark.asyncio
-async def test_average_value_and_voter_count_after_vote(
+async def test_voter_count_and_score_after_vote(
     client: AsyncClient,
     character: Character,
     character2: Character,
@@ -1554,7 +1553,7 @@ async def test_average_value_and_voter_count_after_vote(
     auth_headers: dict,
     auth_headers2: dict,
 ):
-    """average_value and voter_count reflect votes cast on the praxis."""
+    """voter_count and score (task points + points-from-votes) reflect votes cast on the praxis."""
     # character2 creates a praxis
     create_resp = await client.post(
         "/praxes",
@@ -1576,8 +1575,7 @@ async def test_average_value_and_voter_count_after_vote(
     card = next(c for c in list_resp.json() if c["id"] == praxis_id)
 
     assert card["voter_count"] == 1
-    assert card["average_value"] is not None
-    assert abs(card["average_value"] - 4.0) < 0.01
+    assert card["score"] == active_task.point_value + 4
 
 
 # ---------------------------------------------------------------------------

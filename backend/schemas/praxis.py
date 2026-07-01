@@ -92,7 +92,6 @@ class PraxisCardOut(BaseModel):
     submitted_at: Optional[datetime] = None
     member_count: int
     score: float
-    average_value: Optional[float] = None
     voter_count: int = 0
     task_faction_slug: Optional[str] = None
 

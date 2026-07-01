@@ -22,7 +22,7 @@ const TIERS = VOTE_REFRAMES['ephemerists'].tiers;
 export default function EphemeristsVote({
   praxisId,
   currentValue,
-  averageStars,
+  points,
   totalVotes,
 }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentValue);
@@ -104,7 +104,7 @@ export default function EphemeristsVote({
 
       <VoteSummary
         selected={selected}
-        averageStars={averageStars}
+        points={points}
         totalVotes={totalVotes}
         error={error}
         theme={{

@@ -22,7 +22,7 @@ const TIERS = VOTE_REFRAMES['ua'].tiers
 export default function UAVote({
   praxisId,
   currentValue,
-  averageStars,
+  points,
   totalVotes,
 }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
@@ -96,7 +96,7 @@ export default function UAVote({
 
       <VoteSummary
         selected={selected}
-        averageStars={averageStars}
+        points={points}
         totalVotes={totalVotes}
         error={error}
         theme={{

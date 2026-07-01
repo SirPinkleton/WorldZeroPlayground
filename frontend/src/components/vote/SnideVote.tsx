@@ -35,7 +35,7 @@ const SNIDE_VISUALS: Record<number, StampVisual> = {
 
 const TIERS = VOTE_REFRAMES['snide'].tiers
 
-export default function SnideVote({ praxisId, currentValue, averageStars, totalVotes }: VoteUIProps) {
+export default function SnideVote({ praxisId, currentValue, points, totalVotes }: VoteUIProps) {
   const { user, selected, saving, error, vote } = useVote(praxisId, currentValue)
 
   if (!user) {
@@ -85,7 +85,7 @@ export default function SnideVote({ praxisId, currentValue, averageStars, totalV
 
       <VoteSummary
         selected={selected}
-        averageStars={averageStars}
+        points={points}
         totalVotes={totalVotes}
         error={error}
         theme={{

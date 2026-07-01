@@ -50,7 +50,6 @@ const PRAXIS: PraxisCardOut = {
   submitted_at: "2026-01-02T00:00:00Z",
   member_count: 1,
   score: 4.2,
-  average_value: null,
   voter_count: 0,
   task_faction_slug: "ua",
 };

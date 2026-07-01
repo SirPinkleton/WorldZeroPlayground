@@ -40,17 +40,11 @@ async def get_vote_summary(
     tallies = await tally_votes([praxis_id], session)
     tally = tallies.get(praxis_id)
     total_votes = tally.voter_count if tally else 0
-    average_value = (
-        tally.points_from_votes / tally.voter_count
-        if tally and tally.voter_count > 0
-        else 0.0
-    )
     total_score = float(tally.points_from_votes) if tally else 0.0
 
     return VoteSummary(
         praxis_id=praxis_id,
         total_votes=total_votes,
-        average_value=average_value,
         total_score=total_score,
     )
 

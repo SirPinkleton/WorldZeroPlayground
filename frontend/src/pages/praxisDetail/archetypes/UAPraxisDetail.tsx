@@ -333,7 +333,7 @@ export default function UAPraxisDetail({ state }: { state: PraxisDetailState }) 
           <VoteUI
             factionSlug={praxis.task_faction_slug}
             praxisId={praxis.id}
-            averageStars={votes?.average_value}
+            points={votes?.total_score}
             totalVotes={votes?.total_votes}
             mode="caster"
           />
