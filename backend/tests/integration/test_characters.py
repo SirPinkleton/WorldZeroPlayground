@@ -126,6 +126,22 @@ async def test_list_characters_search_by_username(
 
 
 @pytest.mark.asyncio
+async def test_list_characters_search_by_display_name(
+    client: AsyncClient, character: Character, character2: Character
+):
+    """Search matches display_name, not just username (#229 — powers @mention typeahead).
+
+    character2's display_name is "Other Character"; its username ("othercharacter")
+    has no space, so this substring only matches via display_name.
+    """
+    resp = await client.get("/characters", params={"search": "Other Character"})
+    assert resp.status_code == 200
+    ids = [c["id"] for c in resp.json()]
+    assert character2.id in ids
+    assert character.id not in ids
+
+
+@pytest.mark.asyncio
 async def test_list_characters_filter_by_faction(
     client: AsyncClient, character: Character, character2: Character
 ):

@@ -3,7 +3,7 @@ import re
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.sql import Select, false as sa_false
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -436,7 +436,14 @@ async def list_characters_for_viewer(
 
     query = _character_stats_era_join(era_id)
     if search:
-        query = query.where(Character.username.ilike(f"%{search}%"))
+        # Match on handle OR display name so "@Mol" surfaces "Molly" (@mollusk).
+        # The inserted mention is still @username; display_name only *matches*.
+        query = query.where(
+            or_(
+                Character.username.ilike(f"%{search}%"),
+                Character.display_name.ilike(f"%{search}%"),
+            )
+        )
     if faction_slug:
         query = query.where(Character.faction_slug == faction_slug)
     query = (
