@@ -11,6 +11,7 @@ import type { ComponentType } from 'react'
 import { Link } from 'react-router-dom'
 import type { CharacterOut } from '../../api/auth'
 import type { CommentMention, CommentOut } from '../../api/comments'
+import { MentionDropdown, useMentionAutocomplete } from './useMentionAutocomplete'
 
 export interface CommentRowProps {
   mode: 'row'
@@ -109,27 +110,45 @@ export function ComposerControls({
   text?: string
 }) {
   const disabled = submitting || value.trim().length === 0
+  const mention = useMentionAutocomplete(value, onChange)
   return (
     <div>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="Write a comment… type @ to mention someone"
-        rows={2}
-        disabled={submitting}
-        style={{
-          width: '100%',
-          resize: 'vertical',
-          background: bg,
-          color: text,
-          border: `1px solid ${accent}`,
-          borderRadius: 6,
-          padding: '8px 10px',
-          font: 'inherit',
-          fontFamily: 'inherit',
-          boxSizing: 'border-box',
-        }}
-      />
+      <div style={{ position: 'relative' }}>
+        <textarea
+          ref={mention.textareaRef}
+          value={value}
+          onChange={mention.handleChange}
+          onKeyDown={mention.handleKeyDown}
+          onBlur={mention.close}
+          placeholder="Write a comment… type @ to mention someone"
+          rows={2}
+          disabled={submitting}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={mention.open}
+          aria-controls="mention-listbox"
+          aria-activedescendant={mention.activeOptionId}
+          style={{
+            width: '100%',
+            resize: 'vertical',
+            background: bg,
+            color: text,
+            border: `1px solid ${accent}`,
+            borderRadius: 6,
+            padding: '8px 10px',
+            font: 'inherit',
+            fontFamily: 'inherit',
+            boxSizing: 'border-box',
+          }}
+        />
+        {mention.open && (
+          <MentionDropdown
+            results={mention.results}
+            highlight={mention.highlight}
+            onPick={mention.pick}
+          />
+        )}
+      </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
         <button
           onClick={onSubmit}
