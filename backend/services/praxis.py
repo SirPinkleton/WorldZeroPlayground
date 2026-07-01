@@ -4,7 +4,9 @@ Handles all three praxis types: solo, collab, and duel.
 Replaces the old services/submission.py and services/collaboration.py.
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from typing import Optional
 
 from fastapi import HTTPException
@@ -406,6 +408,87 @@ async def list_praxes(
     return praxes
 
 
+class SignupDenialReason(str, Enum):
+    """Why the type-agnostic sign-up gates reject a claim (ADR-0008)."""
+
+    below_level = "below_level"
+    task_status_closed = "task_status_closed"
+    already_active_member = "already_active_member"
+    bank_full = "bank_full"
+
+
+@dataclass(frozen=True)
+class SignupEligibility:
+    """Result of :func:`evaluate_signup`. ``reason`` is set iff ``allowed`` is False."""
+
+    allowed: bool
+    reason: Optional[SignupDenialReason] = None
+
+
+async def evaluate_signup(
+    character: Optional[Character],
+    task: Task,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> SignupEligibility:
+    """The single sign-up predicate — true iff ``create_praxis``'s **type-agnostic**
+    gates would accept (ADR-0008). Owns the four gates every claim shares: level,
+    retired/pending faction carve-out, active-member, and the task-bank cap. The
+    mode-specific gates (duel-via-challenge, collab level) stay in
+    :func:`allowed_praxis_modes` and are applied by :func:`_check_create_preconditions`.
+
+    Anonymous viewers are never eligible (``allowed=False``, no ``reason``).
+    """
+    if character is None:
+        return SignupEligibility(allowed=False)
+
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character.id, era_row.id)
+
+    if stats.level < task.level_required:
+        return SignupEligibility(False, SignupDenialReason.below_level)
+
+    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
+        return SignupEligibility(False, SignupDenialReason.task_status_closed)
+    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
+        return SignupEligibility(False, SignupDenialReason.task_status_closed)
+
+    if await is_active_member_of_task(character, task, session):
+        return SignupEligibility(False, SignupDenialReason.already_active_member)
+
+    in_progress_count = await _count_in_progress_praxes(character.id, session)
+    if in_progress_count >= era.max_task_signups:
+        return SignupEligibility(False, SignupDenialReason.bank_full)
+
+    return SignupEligibility(allowed=True)
+
+
+def _signup_denial_to_http(
+    reason: Optional[SignupDenialReason], task: Task, era: EraConfig
+) -> HTTPException:
+    """Map a :class:`SignupDenialReason` to the route error it has always raised."""
+    if reason == SignupDenialReason.below_level:
+        return HTTPException(
+            status_code=403, detail=f"This task requires level {task.level_required}."
+        )
+    if reason == SignupDenialReason.task_status_closed:
+        detail = (
+            "This task is retired and is not open for new praxes."
+            if task.status == TaskStatus.retired
+            else "This task is pending and is not open for new praxes."
+        )
+        return HTTPException(status_code=403, detail=detail)
+    if reason == SignupDenialReason.already_active_member:
+        return HTTPException(
+            status_code=409, detail="You have already submitted a praxis for this task."
+        )
+    # bank_full (and the anonymous/None fallback, which create_praxis never hits).
+    return HTTPException(
+        status_code=400,
+        detail=f"Task bank is full ({era.max_task_signups} in-progress praxes). Complete or withdraw one first.",
+    )
+
+
 async def _check_create_preconditions(
     task_id: int,
     praxis_type: PraxisType,
@@ -418,45 +501,25 @@ async def _check_create_preconditions(
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
 
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, character_id, era_row.id)
-
-    if stats.level < task.level_required:
-        raise HTTPException(
-            status_code=403,
-            detail=f"This task requires level {task.level_required}.",
-        )
-
-    # One-praxis-per-task gate (with Everymen Double Dipper carve-out).
-    # Uses the same helper that powers the ``can_submit_praxis`` flag on the
-    # task detail response so the rule is single-sourced.
     character = await session.get(Character, character_id)
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
 
-    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
-        raise HTTPException(
-            status_code=403,
-            detail="This task is retired and is not open for new praxes.",
-        )
-    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
-        raise HTTPException(
-            status_code=403,
-            detail="This task is pending and is not open for new praxes.",
-        )
+    # Type-agnostic gates: level, retired/pending, active-member, bank cap — one
+    # predicate, so the can_submit_praxis flag can't drift from enforcement.
+    eligibility = await evaluate_signup(character, task, session, era)
+    if not eligibility.allowed:
+        raise _signup_denial_to_http(eligibility.reason, task, era)
 
-    if not await can_submit_praxis_for_task(character, task, session, era):
-        raise HTTPException(
-            status_code=409,
-            detail="You have already submitted a praxis for this task.",
-        )
-
+    # Mode-specific gates stay here (single-sourced via allowed_praxis_modes).
     if praxis_type == PraxisType.duel:
         raise HTTPException(
             status_code=400,
             detail="Duels are issued via the challenge endpoint, not direct praxis creation (ADR-0011).",
         )
 
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character_id, era_row.id)
     allowed = allowed_praxis_modes(character, stats.level, era)
     if praxis_type not in allowed:
         _denial: dict[PraxisType, str] = {
@@ -467,12 +530,6 @@ async def _check_create_preconditions(
             detail=_denial.get(praxis_type, "Praxis mode not available."),
         )
 
-    in_progress_count = await _count_in_progress_praxes(character_id, session)
-    if in_progress_count >= era.max_task_signups:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task bank is full ({era.max_task_signups} in-progress praxes). Complete or withdraw one first.",
-        )
     return task
 
 
@@ -728,34 +785,15 @@ async def can_submit_praxis_for_task(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> bool:
-    """Return True if ``character`` passes every signup gate for ``task``.
+    """Return True iff ``create_praxis``'s type-agnostic gates would accept — the
+    truthful ``can_submit_praxis`` flag on ``TaskOut`` (ADR-0008).
 
-    Mirrors all guards enforced in :func:`_check_create_preconditions` so the
-    frontend ``can_submit_praxis`` flag on ``TaskOut`` is always truthful:
-    - Anonymous viewers → False.
-    - Character level below ``task.level_required`` → False.
-    - Task is retired/pending and character's faction is not in the
-      ``allow_praxis_on_retired/pending_task_factions`` carve-out → False.
-    - Character already holds an active ``PraxisMember`` row (authored *or*
-      joined via collab invite) on a non-deleted praxis for this task → False.
-      The Everymen faction (Double Dipper perk) is exempt from this last gate
-      only — level and task-status gates still apply to everyone.
+    Derives from :func:`evaluate_signup`, so it covers every shared gate: level,
+    retired/pending faction carve-out, active-member (Everymen Double-Dipper
+    exempt), **and the task-bank cap** — the last was previously omitted here,
+    which made the sign-up button lie once a character's bank was full.
     """
-    if character is None:
-        return False
-
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, character.id, era_row.id)
-
-    if stats.level < task.level_required:
-        return False
-
-    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
-        return False
-    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
-        return False
-
-    return not await is_active_member_of_task(character, task, session)
+    return (await evaluate_signup(character, task, session, era)).allowed
 
 
 def allowed_praxis_modes(
@@ -1286,6 +1324,7 @@ __all__ = [
     "can_view_praxis",
     "create_praxis",
     "delete_praxis",
+    "evaluate_signup",
     "flag_praxis",
     "get_praxis",
     "invite_to_praxis",
@@ -1298,6 +1337,8 @@ __all__ = [
     "moderate_praxis",
     "remove_metatask",
     "respond_to_invite",
+    "SignupDenialReason",
+    "SignupEligibility",
     "submit_praxis",
     "update_praxis",
     "withdraw_praxis",
