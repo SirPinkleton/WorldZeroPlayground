@@ -43,7 +43,9 @@ export default function FeedCardCollabInvite({ item }: Props) {
       }
       setStatus("accepted");
       setShowDropModal(false);
-      navigate(`/praxes/${praxis_id}`);
+      // New members land on the editor so they can contribute; the editor
+      // self-locks if the collab is already submitted (controlsLocked). (#298)
+      navigate(`/praxes/${praxis_id}/edit`);
     } catch {
       setDropError("Could not accept invite. Please try again.");
     }
