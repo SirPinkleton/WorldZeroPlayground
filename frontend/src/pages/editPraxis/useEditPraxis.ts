@@ -449,6 +449,16 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
         return;
       }
 
+      // Only a *pending* challenge can be cancelled (the backend forbids
+      // unilaterally cancelling an accepted duel). Once the opponent has
+      // accepted, the challenger can't switch away.
+      if (inDuel && duel && duel.status !== "pending") {
+        setError(
+          "This duel is already underway — it can't be cancelled from here.",
+        );
+        return;
+      }
+
       const prompt = modeSwitchPrompt(
         next,
         praxis.type,
@@ -479,7 +489,7 @@ export function useEditPraxis(idParam: string | undefined): EditPraxisState {
         setSwitchingMode(null);
       }
     },
-    [praxis],
+    [praxis, duel],
   );
 
   // ---- Invite search (debounced via input change handler in caller, but

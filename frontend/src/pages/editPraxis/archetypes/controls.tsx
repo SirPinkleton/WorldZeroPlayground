@@ -63,23 +63,29 @@ export function InviteSearch({
                 }}
               >
                 ⚔ {state.duel?.opponent.display_name ?? "opponent"}{" "}
-                <em>· challenged</em>
-                <button
-                  type="button"
-                  onClick={() => void state.cancelDuel()}
-                  aria-label="cancel challenge"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "inherit",
-                    cursor: "pointer",
-                    fontSize: 14,
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
-                >
-                  ×
-                </button>
+                <em>
+                  · {state.duel?.status === "active" ? "accepted" : "challenged"}
+                </em>
+                {/* Only a pending challenge can be withdrawn (backend forbids
+                    cancelling an accepted duel). */}
+                {(state.duel == null || state.duel.status === "pending") && (
+                  <button
+                    type="button"
+                    onClick={() => void state.cancelDuel()}
+                    aria-label="cancel challenge"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "inherit",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
               </span>
             )
           : [
