@@ -343,33 +343,34 @@ async def test_second_life_governs_viewer_flags_on_read(
     db_session: AsyncSession,
     account: Account,
     character: Character,
+    character2: Character,
     era: Era,
     faction_ua: Faction,
     active_task: Task,
     auth_headers: dict,
+    auth_headers2: dict,
 ):
-    """The optional viewer resolver (public detail reads) also honours the carried
-    life: ``can_flag`` on the *first* life's own praxis flips to True once the
-    second life is carried (a life may flag a sibling's praxis; anti-self-flag is
-    character-scoped today — see #328)."""
-    # First life authors a praxis while it is still the only (newest) active life.
+    """The optional viewer resolver (public detail reads) honours the carried life.
+
+    ``can_flag`` on a *third-party* praxis flips with the carried life's **level**
+    (a character-scoped gate). The target must be on a different account because
+    account-scoped anti-self-flag (#328) forbids flagging a sibling's praxis.
+    """
+    # A different account (character2) authors + submits the praxis.
     create = await client.post(
         "/praxes",
-        json={"task_id": active_task.id, "type": "solo", "title": "First life work"},
-        headers=auth_headers,
+        json={"task_id": active_task.id, "type": "solo", "title": "Rival work"},
+        headers=auth_headers2,
     )
     assert create.status_code == 201, create.text
     praxis_id = create.json()["id"]
-    assert create.json()["created_by_id"] == character.id
-    # Submit so the (non-member) second life can view it — in_progress praxes are
-    # member-only (ADR-0024); the viewer-flag flip is what's under test here.
-    await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers)
+    assert (await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)).status_code == 200
 
-    # Viewed as the author (first life): cannot flag your own praxis.
-    as_author = await client.get(f"/praxes/{praxis_id}", headers=auth_headers)
-    assert as_author.json()["can_flag"] is False
+    # First life (character) is level 0 — below the flag level → can_flag False.
+    as_first = await client.get(f"/praxes/{praxis_id}", headers=auth_headers)
+    assert as_first.json()["can_flag"] is False
 
-    # Carry a second life at/above the flag level, then view again.
+    # Carry a second life at/above the flag level; can_flag flips to True.
     second = await _add_character(
         db_session, account, era, username="secondlife",
         level=CURRENT_ERA.flag_level_required,
@@ -382,7 +383,7 @@ async def test_second_life_governs_viewer_flags_on_read(
     as_second = await client.get(f"/praxes/{praxis_id}", headers=auth_headers)
     assert as_second.json()["can_flag"] is True, (
         "Optional viewer resolver ignored the carried life: can_flag should reflect "
-        "the second life (a non-author) once it is carried."
+        "the carried second life's level once it is carried."
     )
 
 
