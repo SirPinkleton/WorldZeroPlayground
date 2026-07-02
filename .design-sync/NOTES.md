@@ -13,6 +13,7 @@ Reconciled the hand-built Claude Design project **"World Zero Design System"** (
 - **#232** albescent first-class — cloud `templates/albescent/` supplies the previously-missing kit (faction page, task card, task detail, edit praxis). Repo still aliases `albescent→ua` (`utils/factions.ts:68`). Repo already has albescent comment/feed-frame/read-page. Cloud does NOT cover albescent avatar/backdrop/vote — those still need design.
 - **#136** task-detail specs — cloud has per-faction Task Detail templates (all 7); repo has 6 + Default (albescent missing).
 - **#200** ua kit — only **UA avatar** left (no `components/avatar/UAAvatar.tsx`); UAVote/UABackdrop/UAFactionHero exist.
+- **#372** (NEW) UA task-card **fidelity drift** — repo `TaskCardUA` got gilt-salon palette+frame but DROPPED the crest/masthead/motto-ribbon/Matriculate button that `templates/ua/UA Task Card.dc.html` marks as locked identity. Crest already exists in-repo (`UAFactionHero.UACrest`) → extract & reuse. **Lesson: existence ≠ fidelity — the initial pass only checked cards exist, not that they match. Other 5 faction cards still need a design-vs-repo fidelity pass.**
 - Not gaps: Join = faction-page `viewer.state` block (Factions.tsx); Kit/Gold-Palettes = design scaffolding/guidelines; character-creation = #275 epic.
 
 ## Phase 2 — repo→cloud /design-sync (PENDING, user reviewing before start)
