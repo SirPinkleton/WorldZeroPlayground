@@ -6,23 +6,13 @@ import type { PraxisCardOut } from "../../api/praxis";
  * Praxis-card shared building blocks.
  *
  * Each faction's praxis card owns a bespoke FRAME (tilted memo, ruled paper,
- * scrap collage, torn evidence, vellum leaf, terminal, gazette…) but the
- * CONTENT inside used to be a single monolithic `PraxisContent`, so the cards
- * "read flat" below the chrome (SPEC §1 #2). These exports break the content
- * into independently-placeable structural slots — `PraxisTitle`,
- * `PraxisTaskLink`, `PraxisByline` — so an archetype can arrange (or replace)
- * its own content layout instead of only re-coloring one fixed block.
- *
- * `PraxisContent` is the DEFAULT composition of those slots, byte-identical to
- * the original; archetypes that want the standard layout keep calling it, and
- * the dispatch stays a true per-faction dispatch rather than chrome-only.
+ * scrap collage, torn evidence, vellum leaf, terminal, gazette…). The CONTENT
+ * inside is broken into independently-placeable structural slots — `PraxisTitle`,
+ * `PraxisTaskLink`, `PraxisScoreHero`, `PraxisStats`, `PraxisByline` — so an
+ * archetype can arrange them (via the shared `PraxisBody` composition in
+ * PraxisCard.tsx) instead of only re-coloring one fixed block. The dispatch stays
+ * a true per-faction dispatch rather than chrome-only.
  */
-
-export interface ContentProps {
-  praxis: PraxisCardOut;
-  titleStyle?: CSSProperties;
-  metaStyle?: CSSProperties;
-}
 
 /** Slot: the praxis title, linked to the praxis detail page. */
 export function PraxisTitle({
@@ -101,25 +91,25 @@ export function PraxisByline({
 }
 
 /**
- * Slot: the score "seal" — the hero of a completed praxis, a stamped badge
- * showing the vote-weighted score instead of the buried byline number.
- *
- * ponytail: placeholder hero, shows the computed `score`; the canonical
- * per-faction cards replace it with the faction's vote reframe (Concordance,
- * heart ramp, ink stamps) at the rated tier — swap out when those land.
+ * Slot: the score hero — a completed praxis's earned-points readout, stamped as
+ * `{base} + {votes}`: the task's base points plus the points scored FROM votes
+ * (ADR-0014 merit = `task base + points_from_votes`, so vote-points =
+ * `score - task_point_value`). This is a points sum, never a 1–5 rating or an
+ * average. `voter_count` (a people-count) is deliberately not shown — the second
+ * number is vote *points*, per Molly's #375 call.
  */
-export function PraxisSeal({
+export function PraxisScoreHero({
   praxis,
   color,
   border,
-  label = "sealed",
 }: {
   praxis: PraxisCardOut;
   color?: string;
   border?: string;
-  label?: string;
 }) {
   if (praxis.score === null || praxis.score === undefined) return null;
+  const base = praxis.task_point_value;
+  const votePoints = Math.max(0, Math.round(praxis.score - base));
   return (
     <div
       style={{
@@ -128,8 +118,8 @@ export function PraxisSeal({
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        minWidth: 50,
-        padding: "5px 8px",
+        minWidth: 54,
+        padding: "6px 10px",
         border: `2px solid ${border ?? "currentColor"}`,
         borderRadius: 4,
         transform: "rotate(-3deg)",
@@ -137,19 +127,21 @@ export function PraxisSeal({
         lineHeight: 1,
       }}
     >
-      <span className="font-display" style={{ fontWeight: 800, fontSize: "var(--text-lg)" }}>
-        {praxis.score.toFixed(0)}
+      <span className="font-display" style={{ fontWeight: 800, fontSize: "var(--text-lg)", whiteSpace: "nowrap" }}>
+        {base}
+        <span style={{ opacity: 0.55, margin: "0 2px" }}>+</span>
+        {votePoints}
       </span>
       <span
         style={{
           fontSize: 7,
-          letterSpacing: "0.18em",
+          letterSpacing: "0.16em",
           textTransform: "uppercase",
           marginTop: 3,
           opacity: 0.8,
         }}
       >
-        {label}
+        pts + votes
       </span>
     </div>
   );
@@ -188,21 +180,6 @@ export function PraxisStats({
         </>
       )}
     </div>
-  );
-}
-
-/**
- * Default content composition — title, task link, byline. Visually identical to
- * the pre-refactor `PraxisContent`. An archetype that wants a different content
- * structure composes the slots above directly instead of calling this.
- */
-export function PraxisContent({ praxis, titleStyle, metaStyle }: ContentProps) {
-  return (
-    <>
-      <PraxisTitle praxis={praxis} style={titleStyle} />
-      <PraxisTaskLink praxis={praxis} style={metaStyle} />
-      <PraxisByline praxis={praxis} style={metaStyle} />
-    </>
   );
 }
 

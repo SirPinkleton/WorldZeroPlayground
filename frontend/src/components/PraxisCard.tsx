@@ -6,11 +6,10 @@ import SnideMasthead from "./cards/SnideMasthead";
 import { EphMark, Foxing } from "./cards/ephemeristsAtoms";
 import {
   AdminOverlay,
-  PraxisContent,
   PraxisTitle,
   PraxisTaskLink,
   PraxisByline,
-  PraxisSeal,
+  PraxisScoreHero,
   PraxisStats,
   type AdminProps,
 } from "./praxisCard/shared";
@@ -23,38 +22,32 @@ interface Props {
 
 /**
  * Each faction's praxis card owns a bespoke frame. The content inside is
- * composed from the shared structural slots in ./praxisCard/shared (an archetype
- * may rearrange them; today every archetype uses the default PraxisContent
- * composition). Admin moderation + the optimistic local praxis come from
- * usePraxisCard; the frame is selected by task faction via pickVariant.
+ * composed from the shared structural slots in ./praxisCard/shared via the local
+ * `PraxisBody` composition (an archetype may rearrange the slots). Admin
+ * moderation + the optimistic local praxis come from usePraxisCard; the frame is
+ * selected by task faction via pickVariant.
  */
 export type ArchetypeProps = { praxis: PraxisCardOut; adminProps: AdminProps };
 
 // ─── Per-faction archetypes ───────────────────────────────────────────────────
 
 /**
- * Shared interim content body for every faction's praxis card: title + task link
- * on the left, the score "seal" (hero) on the right, then a points/mode line and
- * the byline. Each faction's own frame wraps this; tint / muted / sealLabel carry
- * the faction voice (e.g. snide "case", ephemerists "concord", singularity
- * "verified").
- *
- * ponytail: the seal is a placeholder hero showing the computed score. The fully
- * designed per-faction cards — and the vote-reframe summary (Concordance, Signal,
- * heart/ink ramps) that replaces the seal — supersede this once the design and
- * the rating/level/date API fields land. See docs/adr/0005.
+ * Shared content body for every faction's praxis card: title + task link on the
+ * left, the score hero (`{base} + {votes}` points) on the right, then a
+ * points/mode line and the byline. Each faction's own frame wraps this; tint /
+ * muted carry the faction voice via the frame's accent tokens. The hero shows
+ * earned points (task base + points-from-votes, ADR-0014) — not a rating, not an
+ * average, not a voter count (#375, Molly's call).
  */
-function PlaceholderPraxisBody({
+function PraxisBody({
   praxis,
   tint,
   muted,
-  sealLabel = "sealed",
   titleStyle,
 }: {
   praxis: PraxisCardOut;
   tint: string;
   muted: string;
-  sealLabel?: string;
   titleStyle?: CSSProperties;
 }) {
   return (
@@ -71,7 +64,7 @@ function PlaceholderPraxisBody({
           <PraxisTitle praxis={praxis} style={titleStyle} />
           <PraxisTaskLink praxis={praxis} style={{ color: muted }} />
         </div>
-        <PraxisSeal praxis={praxis} color={tint} border={tint} label={sealLabel} />
+        <PraxisScoreHero praxis={praxis} color={tint} border={tint} />
       </div>
       <PraxisStats praxis={praxis} style={{ color: muted, marginTop: 8 }} />
       <PraxisByline praxis={praxis} style={{ color: muted }} />
@@ -126,7 +119,7 @@ function UAPraxisCard({ praxis, adminProps }: ArchetypeProps) {
           Acquisition · filed
         </div>
         <AdminOverlay {...adminProps} />
-        <PlaceholderPraxisBody
+        <PraxisBody
           praxis={praxis}
           tint={factionCssVar("ua", "card-accent")}
           muted={factionCssVar("ua", "card-muted")}
@@ -169,7 +162,7 @@ function EverymenPraxisCard({ praxis, adminProps }: ArchetypeProps) {
         }}
       />
       <AdminOverlay {...adminProps} />
-      <PlaceholderPraxisBody
+      <PraxisBody
         praxis={praxis}
         tint={factionCssVar("everymen", "card-accent")}
         muted={factionCssVar("everymen", "card-muted")}
@@ -243,7 +236,7 @@ function WowPraxisCard({ praxis, adminProps }: ArchetypeProps) {
           }}
         />
         <AdminOverlay {...adminProps} />
-        <PlaceholderPraxisBody
+        <PraxisBody
           praxis={praxis}
           tint={factionCssVar("wow", "card-accent")}
           muted={factionCssVar("wow", "card-muted")}
@@ -297,11 +290,10 @@ function SnidePraxisCard({ praxis, adminProps }: ArchetypeProps) {
       <div className="snide-tape" style={{ top: -10, left: 22, transform: "rotate(-8deg)" }} />
       <SnideMasthead subtitle="evidence locker" />
       <AdminOverlay {...adminProps} />
-      <PlaceholderPraxisBody
+      <PraxisBody
         praxis={praxis}
         tint={factionCssVar("snide", "card-accent")}
         muted={factionCssVar("snide", "card-muted")}
-        sealLabel="case"
       />
     </div>
   );
@@ -358,11 +350,10 @@ function EphemeristsPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       </div>
       <div style={{ position: "relative", zIndex: 2, padding: "10px 14px 14px" }}>
         <AdminOverlay {...adminProps} />
-        <PlaceholderPraxisBody
+        <PraxisBody
           praxis={praxis}
           tint="var(--eph-rubric)"
           muted="var(--eph-muted)"
-          sealLabel="concord"
           titleStyle={{ fontFamily: "var(--eph-display)", color: "var(--eph-vellum-text)" }}
         />
       </div>
@@ -494,11 +485,10 @@ function SingularityPraxisCard({ praxis, adminProps }: ArchetypeProps) {
           />
         </div>
         <AdminOverlay {...adminProps} />
-        <PlaceholderPraxisBody
+        <PraxisBody
           praxis={praxis}
           tint="var(--faction-singularity-card-text)"
           muted="var(--faction-singularity-card-muted)"
-          sealLabel="verified"
         />
       </div>
       <SingularityHoles />
@@ -526,9 +516,10 @@ export function DefaultPraxisCard({ praxis, adminProps }: ArchetypeProps) {
       }}
     >
       <AdminOverlay {...adminProps} />
-      <PraxisContent
+      <PraxisBody
         praxis={praxis}
-        metaStyle={{ color: factionCssVar(slug, "card-muted") }}
+        tint={factionCssVar(slug, "card-accent")}
+        muted={factionCssVar(slug, "card-muted")}
       />
     </div>
   );
