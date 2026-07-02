@@ -1,13 +1,56 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
+**SESSION STATUS (banked 2026-07-02):** UA column fully audited → issues #372/#373/#374 filed (+#200 narrowed). Task Card row complete (UA sole drift). Faction-page heroes triaged ▸. Rest is queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
+
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
 > **DIRECTION OF TRUTH (Molly, 2026-07-02): the cloud DESIGN is correct; where the repo diverges, the REPO is out of date and gets fixed to match the design.** This applies to copy/vocabulary too, not just layout. Consequence: earlier ✅ marks were judged on STRUCTURAL fidelity only — cells with matching structure but divergent word-level copy vs the design are drift and need a closer copy pass (flagged per-cell below).
 
+---
+
+## ▶ RESUME PROMPT — paste this to continue (built to run overnight, autonomously)
+
+```
+Resume the World Zero design-fidelity audit. Read .design-sync/AUDIT.md first — it is the
+ledger and holds all state, the direction-of-truth rule, the method, and the priority queue.
+
+Then work the PRIORITY QUEUE top-down, autonomously, without stopping to ask me:
+- For each cell, read the cloud design (DesignSync get_file, projectId 019e221c-7853-7530-a934-7d3b2b7c8b43)
+  AND the repo file, and compare BOTH layout/structure AND copy/vocabulary.
+- Rule: the cloud design is canonical. Any repo divergence (layout OR wording) = drift.
+- On drift: `gh issue create --label ready-for-agent`, one focused issue per surface. Reuse
+  existing repo atoms and cite them (e.g. UACrest in UAFactionHero). Do NOT edit frontend source.
+- Do NOT double-file albescent (🔁) cells — those roll up into #232.
+- After EACH cell: update the matrix + findings log in AUDIT.md and `git commit` it. Record as you go.
+- Only stop to ask me if: DesignSync auth is unavailable (needs /design-login), or a finding is a
+  genuine product/copy DECISION rather than a clear design↔repo mismatch. Otherwise keep going until
+  the matrix has no ⬜/▸ left, then post a summary of every issue filed.
+
+Work in this worktree/branch. Commit ledger updates as you go; do not touch frontend/src.
+```
+
+## Priority queue (work top-down — highest drift-risk first)
+1. **Faction-page heroes** (▸): cloud-compare wow/snide/ephemerists/singularity/everymen heroes vs `templates/<faction>/... Faction Page.dc.html`. The #359 standardization zone — next most-likely drift after UA.
+2. **Task Detail** row, non-UA (⬜): vs `templates/<faction>/... Task Detail.dc.html`. (#136 tracks task-detail spec-match generally — cross-link, don't duplicate.)
+3. **Edit Praxis** row, non-UA (⬜): vs `... Edit Praxis`. Check the crest-drop / copy pattern that hit UA (#373).
+4. **Vote** row, non-UA (⬜): vs each faction's praxis-read vote widget. Copy-level (rung words) now counts — see #374.
+5. **Praxis (read)** + **Praxis Card** rows, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`.
+6. **Comment Box** row (⬜): vs `... Comment Box.html`. Repo: `components/comments/voices/*`.
+7. **Updates/Feed** row (⬜): vs `... Updates`. Repo: `components/feed/*FeedFrame` + `FeedCard*`.
+8. **Avatar** + **Backdrop** rows, non-UA (⬜): repo `components/avatar/*` + `components/backdrop/*`.
+9. **Albescent (🔁)**: skip per-cell; ensure #232 references the cloud `templates/albescent/` kit.
+
+## Issues filed so far (this audit)
+- **#372** UA task card — dropped crest/masthead/motto/Matriculate. `ready-for-agent`.
+- **#373** UA edit-praxis — dropped crest (ribbon+slip) + copy divergence. `ready-for-agent`.
+- **#374** UA vote rungs — copy out of date vs design critique vocabulary. `ready-for-agent`.
+- **#200** (narrowed) UA avatar missing. **#232** (albescent kit unblocked). **#136** (task-detail spec ref). **#363–#371** = the separate repo→cloud sync run (Phase 2), not this audit.
+- Minor, unfiled: stale comment `UAPraxisDetail.tsx:13-14`; wow task-card generic sign-up button (flavored-copy nit).
+
 ## How to resume (read this first if you're a fresh session)
 1. Cloud project = **"World Zero Design System"**, projectId `019e221c-7853-7530-a934-7d3b2b7c8b43`. Read designs with `DesignSync(get_file, projectId, path)`. Needs design auth (`/design-login` if headless-blocked).
 2. Repo components live under `frontend/src/`. Faction dispatch via `utils/factionDispatch.ts` `pickVariant`; `albescent`→`ua` alias in `utils/factions.ts:68`.
-3. Find the **first ⬜ pending** cell in the matrix below and continue. Read the cloud template + the repo file, compare signature elements (layout, type faces, motifs/SVG, color tokens, key copy), decide match vs drift.
+3. Work the **Priority queue** (above) top-down — not raw matrix order. Read the cloud template + the repo file, compare BOTH structure AND copy (design is canonical), decide match vs drift.
 4. On drift: `gh issue create --label ready-for-agent`, one focused issue (reuse existing repo atoms where possible — cite them). Then mark the cell `⚠️→#NNN` and write a one-line finding under the matrix.
 5. On match: mark `✅`. On not-applicable (no cloud design / no repo surface): `⏭️` with a note.
 6. Commit `.design-sync/AUDIT.md` after each row (or small batch). Issues already filed are the durable record; this file tracks coverage.
