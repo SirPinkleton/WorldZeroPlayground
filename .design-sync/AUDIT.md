@@ -1,6 +1,6 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
-**SESSION STATUS (banked 2026-07-02):** UA column fully audited → issues #372/#373/#374 filed (+#200 narrowed). Task Card row complete (UA sole drift). Faction-page heroes triaged ▸. Rest is queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
+**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row = SYSTEMIC drift, all factions → #375** (Molly-reported; placeholder body never got the vote-reframe hero). Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
 
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
@@ -34,7 +34,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 2. **Task Detail** row, non-UA (⬜): vs `templates/<faction>/... Task Detail.dc.html`. (#136 tracks task-detail spec-match generally — cross-link, don't duplicate.)
 3. **Edit Praxis** row, non-UA (⬜): vs `... Edit Praxis`. Check the crest-drop / copy pattern that hit UA (#373).
 4. **Vote** row, non-UA (⬜): vs each faction's praxis-read vote widget. Copy-level (rung words) now counts — see #374.
-5. **Praxis (read)** + **Praxis Card** rows, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`.
+5. **Praxis (read)** row, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`. (Praxis **Card** row DONE → #375 systemic.)
 6. **Comment Box** row (⬜): vs `... Comment Box.html`. Repo: `components/comments/voices/*`.
 7. **Updates/Feed** row (⬜): vs `... Updates`. Repo: `components/feed/*FeedFrame` + `FeedCard*`.
 8. **Avatar** + **Backdrop** rows, non-UA (⬜): repo `components/avatar/*` + `components/backdrop/*`.
@@ -44,6 +44,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **#372** UA task card — dropped crest/masthead/motto/Matriculate. `ready-for-agent`.
 - **#373** UA edit-praxis — dropped crest (ribbon+slip) + copy divergence. `ready-for-agent`.
 - **#374** UA vote rungs — copy out of date vs design critique vocabulary. `ready-for-agent`.
+- **#375** Praxis cards (ALL factions) — placeholder body/seal instead of the design's per-faction vote-reframe hero. `ready-for-agent`. Systemic; frames are fine, hero is missing.
 - **#200** (narrowed) UA avatar missing. **#232** (albescent kit unblocked). **#136** (task-detail spec ref). **#363–#371** = the separate repo→cloud sync run (Phase 2), not this audit.
 - Minor, unfiled: stale comment `UAPraxisDetail.tsx:13-14`; wow task-card generic sign-up button (flavored-copy nit).
 
@@ -76,7 +77,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 | Task Detail    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
 | Praxis (read)  | ✅¢ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Praxis Card    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Praxis Card    | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | 🔁 |
 | Edit Praxis    | ⚠️→#373 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Comment Box    | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Updates/Feed   | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -110,6 +111,12 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **Edit-praxis / ua ⚠️→#373**: cloud "Submit to the Salon" has the crest ×2 (masthead ribbon + commission slip) + design copy (Alone/Atelier/Salon Duel, "Hang it in the Salon"). Repo `EditPraxisUA` ("The Atelier") is structurally close (gilt Plates, RegaliaLabel, shared ModePicker) but **drops the crest** (0 SVG — same as #372) and diverges on copy (Sole/Joint/Contested, "File the acquisition"). Filed #373 (reuse UACrest, align copy).
 - **Praxis-read / ua ✅¢ (copy caveat under new principle)**: structure faithful (see above) BUT word-level copy drift vs design: repo names the standing section **"The Standing"**, design calls it **"The Critique"** / "Sit the Critique"; the standing/distribution rung words are the same out-of-date set covered by #374 (shared `voteReframes` source). If a full copy-alignment is wanted, add "The Standing"→"The Critique" to #374's scope or a copy-sweep issue.
 - **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched (`VoteUI.tsx:31`). Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
+
+### Praxis Card row — SYSTEMIC drift, ALL factions → #375 (2026-07-02, reported by Molly)
+- **CORRECTION**: I earlier marked Praxis-card/ua ✅ on a weak grep signal (gilt tokens present). Molly flagged the cards don't match design for ANY group — **confirmed and correct**. My ✅ was wrong; this is the existence≠fidelity trap again, and it applies to the whole row.
+- **Root cause (single)**: every faction praxis card in `PraxisCard.tsx` has a faithful bespoke FRAME but renders the shared `PlaceholderPraxisBody` → generic rotated score-number `PraxisSeal`. The design's per-faction **vote-reframe hero** (ua Critique / wow heart marks / snide stamped marks / ephemerists Concordance / singularity ascii bar / everymen star marks) was never built. Self-documented placeholder (`PraxisCard.tsx:42-46`, `shared.tsx:108`, ADR-0005).
+- **Now buildable**: the deferred API fields exist (`PraxisCardOut.score`/`voter_count`/`task_level_required`/`submitted_at`); tier vocab in `voteReframes.ts`. Filed #375 `ready-for-agent` (one systemic issue, 6 archetypes + default). Flags the #264 tier-vs-average decision + missing excerpt field.
+- **AUDIT LESSON (reinforced)**: do NOT mark a cell ✅ from a token/grep signal — read the actual render vs the cloud design. Re-examine any remaining ✅ that wasn't a full read (esp. Task Detail/ua, which was crest+Matriculate grep, not a full body/copy read).
 
 > **COPY-PASS CAVEAT (applies to all prior ✅):** ✅ marks above were STRUCTURAL. Under the design-is-canonical directive, cells like Task Detail/ua (✅) and Faction Page/ua (✅) have NOT been word-level copy-checked vs their cloud designs — a copy-diff pass may surface more #374-style label drift. Task Card/ua (#372) and Edit Praxis/ua (#373) are the confirmed structural+copy drifts so far.
 
