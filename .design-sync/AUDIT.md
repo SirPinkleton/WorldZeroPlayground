@@ -1,6 +1,6 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
-**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box + Task Detail rows DONE — both healthy (content-first bespoke, not the disease); only UAComment drifted → #377 (now an explicit **ADR-0018 reversal**). ADR dimension added (Molly): reconcile findings vs `docs/adr/*`, file ADR breaks. Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
+**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box + Task Detail + Vote rows DONE — all healthy systems (faction methods + per-voter breakdown built); drifts: UAComment #377 (ADR-0018 reversal), task-detail averages #378 (ADR-0014 violation), UA vote copy #374. ADR dimension added (Molly): reconcile findings vs `docs/adr/*`, file ADR breaks; DESIGN-vs-ADR override on averages (ADR wins). Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
 
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
@@ -41,7 +41,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 1. **Faction-page heroes** (▸): cloud-compare wow/snide/ephemerists/singularity/everymen heroes vs `templates/<faction>/... Faction Page.dc.html`. The #359 standardization zone — next most-likely drift after UA.
 2. **Task Detail** row — UA ✅ verified; other 5 ▸ signature-confirmed (content-first bespoke, NOT the disease). Optional: promote ▸→✅ via cloud-compare per faction. Low priority (healthy row). Comments confirmed present via `TaskDetail.tsx:71`.
 3. **Edit Praxis** row, non-UA (⬜): vs `... Edit Praxis`. Check the crest-drop / copy pattern that hit UA (#373).
-4. **Vote** row, non-UA (⬜): vs each faction's praxis-read vote widget. Copy-level (rung words) now counts — see #374.
+4. **Vote** row — DONE (2026-07-02): faction methods healthy; per-voter breakdown built; UA copy #374 + averages #378. See findings.
 5. **Praxis (read)** row, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`. (Praxis **Card** row DONE → #375 systemic.)
 6. **Comment Box** row — DONE (2026-07-02): healthy per-faction archetypes; only UAComment drifted → #377. See findings.
 7. **Updates/Feed** row (⬜): vs `... Updates`. Repo: `components/feed/*FeedFrame` + `FeedCard*`.
@@ -55,6 +55,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **#375** Praxis cards (ALL factions) — placeholder body/seal instead of the design's per-faction vote-reframe hero. `ready-for-agent`. Systemic; frames are fine, hero is missing.
 - **#376** Activity feed (ALL factions) — faction frames wrap NEUTRAL event-card content; design wants per-faction `FactionActivityCard` rows (slot-driven, no event switching). `ready-for-agent`. Systemic; flags full-adopt vs hybrid arch decision.
 - **#377** **REVERSE ADR-0018's UA-comment decision** + reskin UAComment to gilt salon. `ready-for-agent`. (Molly's explicit ADR-reversal ask. Retitled from "UAComment out of date". Requires a superseding ADR.)
+- **#378** Task-detail pages still show a vote AVERAGE — **ADR-0014 / #264 violation** (missed tail of #264). `ready-for-agent`. Carries the design-vs-ADR override rule (don't port design averages).
 
 ### ADR reconciliation (2026-07-02, Molly: "read ADRs; ADR breaks are issues too")
 - **#375 ↔ ADR-0005 + #159 (CLOSED)**: the praxis placeholder is ADR-0005-documented interim; #159 landed the DATA (score/voter_count/level/date) but NOT the hero. Mechanism per ADR-0005 = compose existing `VoteUI` in a new read-only **summary mode** (don't hand-roll). Commented on #375.
@@ -97,7 +98,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 | Edit Praxis    | ⚠️→#373 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Comment Box    | ⚠️→#377 | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁 |
 | Updates/Feed   | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | 🔁 |
-| Vote           | ⚠️→#374 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
+| Vote           | ⚠️→#374 | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁(#232) |
 | Avatar         | ⚠️→#200 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Backdrop       | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 
@@ -127,6 +128,12 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **Edit-praxis / ua ⚠️→#373**: cloud "Submit to the Salon" has the crest ×2 (masthead ribbon + commission slip) + design copy (Alone/Atelier/Salon Duel, "Hang it in the Salon"). Repo `EditPraxisUA` ("The Atelier") is structurally close (gilt Plates, RegaliaLabel, shared ModePicker) but **drops the crest** (0 SVG — same as #372) and diverges on copy (Sole/Joint/Contested, "File the acquisition"). Filed #373 (reuse UACrest, align copy).
 - **Praxis-read / ua ✅¢ (copy caveat under new principle)**: structure faithful (see above) BUT word-level copy drift vs design: repo names the standing section **"The Standing"**, design calls it **"The Critique"** / "Sit the Critique"; the standing/distribution rung words are the same out-of-date set covered by #374 (shared `voteReframes` source). If a full copy-alignment is wanted, add "The Standing"→"The Critique" to #374's scope or a copy-sweep issue.
 - **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched (`VoteUI.tsx:31`). Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
+
+### Vote row — HEALTHY system; UA copy #374 + task-detail averages #378 (2026-07-02, Molly: "no averages; who voted how many; faction-specific methods")
+- **Faction-specific vote methods: HEALTHY ✅** — all 6 archetypes real (UAVote/WowVote/SnideVote/EphemeristsVote/SingularityVote/EverymenVote, 101–134 ln), wired via `VoteUI` `pickVariant` (ua/wow/snide/ephemerists/singularity/everymen → their component, VoteStamps default), single-sourced reframe registry `voteReframes.ts` (#194). Reframe words match the design's FactionPraxisCard prompt (eph apocryphal→canonical, wow a-start→legendary, etc.) — EXCEPT ua (Noted/Sketch/Hung/Commended/Acquired vs design rough-sketch→masterwork) → #374.
+- **"Who voted how many points": ALREADY BUILT ✅** — `PraxisVoterBreakdown` (`praxisDetail/shared.tsx:171`) renders a "Who voted" list: each voter (linked) + their value via `reframeLabel(task_faction_slug, value)` + count, fed by `/praxes/{id}/voters` (`api/votes.ts getVoters`). Rendered in all praxis-detail archetypes. The backend chain #192 (vote_tally, ADR-0014) / #185 (duels) / #195 (this UI) all CLOSED+shipped. The "reserved (#195)" archetype comments are STALE — slot is filled. (Minor: shows the reframed LABEL, not the raw point number — matches ADR-0014's faction-vocabulary intent.)
+- **Averages STILL shown → #378 (ADR-0014 / #264 violation)**: `useTaskDetail.ts:229` computes `avgVoteNumber` (mean of submission scores); task-detail archetypes render "Avg Vote"/"AVG"/"Average Critique"/"avg love". #264 removed the backend `average_value` but missed this client-side task-level mean. Filed #378.
+- **⚠️ DESIGN-vs-ADR OVERRIDE (cross-cutting, recorded in #378)**: cloud designs SHOW averages (UA task-detail "4.1 avg critique", praxis-read "avg 4.0"). **Do NOT port them** — ADR-0014 + #264 + Molly forbid vote averages. Where a design shows an avg, substitute votes/points/who-voted. The ADR wins over the design here. Applies to all design-fidelity fixes (esp. anything touching UA task-detail / praxis-read).
 
 ### Task Detail row — HEALTHY (content-first bespoke, not the disease); UA verified (2026-07-02)
 - **Structure**: `taskDetail/archetypes/shared.tsx` is 43 ln of helpers only (relationOf, ErrorBanner) — NOT a shared content body. Each archetype is 674–877 ln of bespoke per-faction code. Content-first, like comment boxes → NOT the frames-only disease.
