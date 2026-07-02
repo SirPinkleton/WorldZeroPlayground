@@ -10,7 +10,9 @@
 5. On match: mark `✅`. On not-applicable (no cloud design / no repo surface): `⏭️` with a note.
 6. Commit `.design-sync/AUDIT.md` after each row (or small batch). Issues already filed are the durable record; this file tracks coverage.
 
-**Legend:** ⬜ pending · ✅ match · ⚠️→#N drift filed · ⏭️ n/a · 🔁 albescent (aliased→ua; drift = #232 scope, note don't double-file)
+**Legend:** ⬜ pending · ✅ match (fully verified: read repo + cloud, or architecture confirmed) · ▸ triaged (repo signature present via grep/read, cloud-compare deferred — low drift risk) · ⚠️→#N drift filed · ⏭️ n/a · 🔁 albescent (aliased→ua; drift = #232 scope, don't double-file)
+
+**Resume note:** ▸ cells are the cheapest to finish — repo signature already confirmed present; just need a cloud-design read to promote to ✅ or catch a subtle drift. ⬜ cells need both sides read.
 
 ## Cloud template map (reference files, per faction)
 - **ua**: `templates/ua/UA Task Card.dc.html`, `UA Task Detail.dc.html`, `UA Faction Page.dc.html`, `UA Praxis - Read.dc.html`, `UA Edit Praxis.dc.html` (no comment/updates design)
@@ -26,16 +28,16 @@
 | Surface \ Faction | ua | wow | snide | ephemerists | singularity | everymen | albescent |
 |---|---|---|---|---|---|---|---|
 | Task Card      | ⚠️→#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁 |
-| Task Detail    | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Faction Page   | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Praxis (read)  | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Praxis Card    | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Edit Praxis    | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Task Detail    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Faction Page   | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Praxis (read)  | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Praxis Card    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Edit Praxis    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Comment Box    | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Updates/Feed   | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Vote           | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Avatar         | ⚠️→#200 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
-| Backdrop       | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
+| Backdrop       | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 
 ## Findings log
 - **Task Card / ua → #372**: repo `TaskCardUA` has gilt-salon palette+frame but DROPPED the locked crest/masthead/motto-ribbon/Matriculate button in `templates/ua/UA Task Card.dc.html`. Crest exists in-repo (`UAFactionHero.UACrest`) → extract+reuse. `ready-for-agent`.
@@ -46,5 +48,14 @@
 - **Task Card / singularity ✅**: `TaskCardSingularity` = terminal printout (corner brackets, sprocket holes ×2, scanlines, blinking cursor, `> title`, PTS/LVL). Faithful. (Compact + 0 SVG is correct — terminal is CSS/text.)
 - **Task Card / wow ✅\***: `TaskCardWow` = wow.exe window (title-bar dots + sparkle + "wow.exe" + ▭✕, dotted grid, notepad, Caveat headline). Signature faithful. **Minor nit** (not filed): sign-up button is the generic `btn-primary` 7px "sign up" — snide/eph/everymen use faction-flavored button copy; UA's is #372. Low-priority polish; fold into a "flavored button copy" sweep if desired. Same nit applies to UA (already in #372).
 - **Task Card ROW COMPLETE**: only UA drifted (#372). The 5 established faction cards are faithful — they predate UA's gilt-salon re-skin (PR #361), which is where the regression entered.
+
+### UA column (2026-07-02)
+- **Task Detail / ua ✅**: `TaskDetailUA` has crest SVG + "Matriculate" + ua-gilt (8 crest/svg hits). Faithful.
+- **Faction Page / ua ✅**: page is composed in `FactionDetail.tsx` as `FACTION_HEROES[ua]=UAFactionHero` (full crest, "Ars Longa" motto, 9 hits) ABOVE `UaFactionBody` (sections ②–⑥). Crest lives in the hero by design — body correctly has none. Architecture confirmed.
+- **Backdrop / ua ✅**: `UABackdrop` = gilt-salon parchment wall + gilt corner glow + ledger dot-grid, all `--ua-*` tokens (always-light). Matches the task-card design's ground recipe. Read in full.
+- **Praxis-read / ua ▸**: `UAPraxisDetail` has Playfair+Marcellus+ua-gilt, no crest (a ledger sheet — crest not expected). Purpose-built as "The Standing" gilt ledger in #358, so likely faithful; cloud-compare `templates/ua/UA Praxis - Read.dc.html` to confirm.
+- **Praxis-card / ua ▸**: UA branch of `PraxisCard.tsx` has crest hits (3) + Playfair+Marcellus+ua-gilt. Signature present; cloud-compare pending.
+- **Edit-praxis / ua ▸**: `EditPraxisUA` has Playfair+Marcellus+ua-gilt ×2, no crest (a form). #361 port; cloud-compare `templates/ua/UA Edit Praxis.dc.html` pending.
+- **KEY TAKEAWAY**: #372 (task card) is an ISOLATED miss within UA's #361 re-skin, NOT systemic — task-detail/faction-page/backdrop all got the full gilt-salon treatment. UA vote still ⬜ (needs cloud vote design). Comment/Updates ⏭️ (no UA cloud design exists).
 
 - **Albescent (all 🔁)**: aliased→ua; every albescent variant is missing by design. Tracked wholesale by #232 (cloud kit now supplies the designs). Do NOT file per-surface albescent drift issues — fold into #232.
