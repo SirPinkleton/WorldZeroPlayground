@@ -17,8 +17,9 @@ Resume the World Zero design-fidelity audit. Read .design-sync/AUDIT.md first �
 ledger and holds all state, the direction-of-truth rule, the method, and the priority queue.
 
 Then work the PRIORITY QUEUE top-down, autonomously, without stopping to ask me:
+- CANONICAL SOURCE = `components/factions/<faction>/…` + root `*-contract.json` (READ THE CONTRACT FIRST). `templates/…` is DEPRECATED/stale — do not audit against it (only for surfaces not yet migrated, and flag it). See "CANONICAL SOURCE MOVED" above.
 - For each cell, read the cloud design (DesignSync get_file, projectId 019e221c-7853-7530-a934-7d3b2b7c8b43)
-  AND the repo file, and compare BOTH layout/structure AND copy/vocabulary.
+  AND the repo file, and compare BOTH layout/structure AND copy/vocabulary. Contracts define the required SLOTS — a repo surface missing a contract slot (e.g. `votePoints`) is drift.
 - Rule: the cloud design is canonical. Any repo divergence (layout OR wording) = drift.
 - ADR CHECK: skim docs/adr/* for the surface. If the repo breaks an ADR, that's also an issue.
   Before filing, reconcile: does an ADR already track this (search closed+open issues it names)?
@@ -57,6 +58,13 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **#377** **REVERSE ADR-0018's UA-comment decision** + reskin UAComment to gilt salon. `ready-for-agent`. (Molly's explicit ADR-reversal ask. Retitled from "UAComment out of date". Requires a superseding ADR.)
 - **#378** Task-detail pages still show a vote AVERAGE — **ADR-0014 / #264 violation** (missed tail of #264). `ready-for-agent`. Carries the design-vs-ADR override rule (don't port design averages).
 
+### DESIGN RESTRUCTURE discovered (2026-07-02) — connection freshness + new average conflict
+- **Freshness canary (Molly)**: pulled `templates/ua/UA Praxis - Read.dc.html`, it lacked the task-desc/votePoints update → Molly flagged staleness. ROOT CAUSE: templates/ is the DEPRECATED copy; canonical moved to `components/factions/` + contract JSONs. Re-listed, confirmed fresh (contract shows `votePoints` "ADDED 2026-07-02"). Template map re-pointed (top of file).
+- **New praxis-card contract** (`praxis-card-contract.json`, authoritative): uniform payload `{ task, finding, author?, excerpt?, rating, marks, votePoints, points, level }`. `task` = "re: …" reference on every card. **`votePoints` (points earned from votes) ADDED today** — ADR-0014/#264-aligned (surfaces points-from-votes). Feeds #375 (the vote-reframe hero now has a canonical shape + votePoints).
+- **🚩 AVERAGE CONFLICT (needs Molly decision)**: the fresh contract defines `rating` = **"the community's 1–5 vote AVERAGE (float) … drives the rating meter and the faction standing label … shown to one decimal (Ephemerists, Singularity)."** This DIRECTLY conflicts with Molly's "no averages" (prev msg) + ADR-0014/#264 (#378). The same update added votePoints (good) but KEPT the average as the meter/label driver. Design-vs-directive conflict on a surface Molly JUST updated → asked her how to reconcile (update design to drop avg / accept avg on the card / tier-from-distribution). **Do not build #375's hero until resolved** — its meter/label source depends on this.
+- **UA reframe words CHANGED**: new contract `voteReframing.ua` = rough sketch · study · **fair hand · fine work** · masterwork (was accomplished/distinguished). #374 target updated via comment. New albescent reframe: unseeing · glimpsed · witnessed · verified · inscribed.
+- **RE-AUDIT NEEDED against new source**: TaskCard/PraxisCard/EditPraxis rows were audited vs the STALE templates/ — re-verify the migrated 3 surfaces against `components/factions/` + contracts. (Task cards were judged faithful, but against old designs; the contracts may have added slots like votePoints the repo lacks.)
+
 ### ADR reconciliation (2026-07-02, Molly: "read ADRs; ADR breaks are issues too")
 - **#375 ↔ ADR-0005 + #159 (CLOSED)**: the praxis placeholder is ADR-0005-documented interim; #159 landed the DATA (score/voter_count/level/date) but NOT the hero. Mechanism per ADR-0005 = compose existing `VoteUI` in a new read-only **summary mode** (don't hand-roll). Commented on #375.
 - **#376 ↔ ADR-0016 (the law) + 0010 + 0023**: ADR-0016 mandates archetypes own only presentation over one contract — the neutral-content feed violates it; `FactionActivityCard` is the compliant target. Faction words = catalog copy (ADR-0010 `copy/en.ts`). Feed stays read-time projection (ADR-0023). Commented on #376.
@@ -77,7 +85,15 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 
 **Resume note:** ▸ cells are the cheapest to finish — repo signature already confirmed present; just need a cloud-design read to promote to ✅ or catch a subtle drift. ⬜ cells need both sides read.
 
-## Cloud template map (reference files, per faction)
+## ⚠️ CANONICAL SOURCE MOVED (2026-07-02) — templates/ is DEPRECATED
+Molly is converting the designs into uniformly-named TS packages. **The canonical design source is now:**
+- **`components/factions/<faction>/<Faction>{TaskCard,PraxisCard,EditPraxis}.{jsx,d.ts}`** + preview `<faction>.{card,praxis,editpraxis}.card.html` — per-faction packages. (7 factions incl. albescent.)
+- **Root CONTRACT JSONs** = the authoritative slot spec (READ THESE FIRST per surface): `task-card-contract.json`, `praxis-card-contract.json`, `edit-praxis-contract.json`, `faction-contract.json`. Also `guidelines/*-contract.html`.
+- DS-level components: `components/cards/Faction{TaskCard,PraxisCard,EditPraxis}.{jsx,prompt.md}`, `components/feed/FactionActivityCard`, `components/feedback/FactionCommentBox`/`FactionVoteStamps`.
+- **`templates/<faction>/…` = STALE COPIES.** Do NOT audit against them (they lag — e.g. `templates/ua/UA Praxis - Read.dc.html` is missing the 2026-07-02 `votePoints`/task-ref update). Only surfaces NOT yet migrated to `components/factions/` (faction page, task detail, comment box, updates/feed, praxis-READ page) may still need templates/ as the least-bad reference — flag when you do.
+- Migrated so far: **TaskCard, PraxisCard, EditPraxis** (all 7 factions). NOT yet migrated: faction page, task detail, praxis-READ page, comment box, updates.
+
+## Cloud template map (reference files, per faction) — LEGACY templates/ paths, deprecated (see above)
 - **ua**: `templates/ua/UA Task Card.dc.html`, `UA Task Detail.dc.html`, `UA Faction Page.dc.html`, `UA Praxis - Read.dc.html`, `UA Edit Praxis.dc.html` (no comment/updates design)
 - **wow**: `templates/wow/Warriors of Whimsy EXE.html` (task surface), `Warriors of Whimsy Page.html`, `... Task Detail.dc.html`, `... Praxis.html`, `... Edit Praxis.dc.html`, `... Comment Box.html`, `... Updates.html`
 - **snide**: `templates/snide/SNIDE Task Card.html` (+ `v2`), `SNIDE Task Detail.dc.html`, `SNIDE Faction Page.dc.html`/`Dispatch Board.html`, `SNIDE Praxis Detail.html`/`Completed Praxis.html`, `SNIDE Edit Praxis.html`, `SNIDE Comment Box.html`, (updates?)
