@@ -30,12 +30,12 @@
 | Task Card      | ⚠️→#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁 |
 | Task Detail    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
-| Praxis (read)  | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Praxis Card    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Praxis (read)  | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Praxis Card    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Edit Praxis    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Comment Box    | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Updates/Feed   | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Vote           | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
+| Vote           | ✅* | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Avatar         | ⚠️→#200 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Backdrop       | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 
@@ -57,6 +57,12 @@
 - **Praxis-card / ua ▸**: UA branch of `PraxisCard.tsx` has crest hits (3) + Playfair+Marcellus+ua-gilt. Signature present; cloud-compare pending.
 - **Edit-praxis / ua ▸**: `EditPraxisUA` has Playfair+Marcellus+ua-gilt ×2, no crest (a form). #361 port; cloud-compare `templates/ua/UA Edit Praxis.dc.html` pending.
 - **KEY TAKEAWAY**: #372 (task card) is an ISOLATED miss within UA's #361 re-skin, NOT systemic — task-detail/faction-page/backdrop all got the full gilt-salon treatment. UA vote still ⬜ (needs cloud vote design). Comment/Updates ⏭️ (no UA cloud design exists).
+
+### UA praxis + vote confirmed via cloud read (2026-07-02)
+- **Praxis-read / ua ✅**: cloud `UA Praxis - Read.dc.html` = "The Acquisition Sheet" (gilt-framed plate, "The Process" blob-bullet list, "The Critique" sidebar w/ standing meter + named rungs). Repo `UAPraxisDetail` (442 ln) carries Acquisition/Exhibited/Plate/"The Process"/"The Standing" + gilt plate + brushes sigil (6 hits). Faithful (repo names the standing section "The Standing" vs cloud "The Critique" — synonym, fine).
+- **Praxis-card / ua ✅**: UA branch of `PraxisCard.tsx` has crest(3)+Playfair+Marcellus+ua-gilt. No separate cloud praxis-card design (card = faction-page recentPraxis treatment); signature consistent with the read sheet. Faithful.
+- **Vote / ua ✅\* (COPY-DRIFT, not a defect — DO NOT auto-file)**: `UAVote` (wired in `VoteUI.tsx:31` as `ua:UAVote`) renders 5 gilt museum-placard rungs from `VOTE_REFRAMES['ua']` — structure/visual matches the cloud "Sit the Critique" widget. But rung WORDS differ: **cloud** = rough sketch/study/accomplished/distinguished/masterwork; **repo** = Noted/Sketch/Hung/Commended/Acquired. Vote-reframe copy is a governed product decision (ADR-0010 catalog, #264/#265), so repo is likely canonical and the *design* is the stale side. Needs a human direction-of-truth call, NOT a repo fix. → surface to Molly / ADR-0010 owner.
+- **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched. Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
 
 ### Faction Page row — heroes triaged (2026-07-02)
 - All 6 heroes registered in `FactionDetail.FACTION_HEROES` and substantial (lines / visual-hits): UA 277/7, Wow 236/5, Snide 285/1 (photocopy archetype = few gradients, expected), Ephemerists 176/5, Singularity 303/4, Everymen 235/2. None are stubs. Marked ▸ (wow/snide/eph/sing/everymen) pending a cloud-compare vs `templates/<faction>/... Faction Page.dc.html`. UA ✅ (architecture confirmed above).
