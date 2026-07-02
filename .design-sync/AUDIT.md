@@ -1,6 +1,6 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
-**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box flagged as next same-disease suspect. Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
+**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box row DONE — healthy per-faction archetypes; only UAComment drifted → #377. Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
 
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
@@ -35,7 +35,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 3. **Edit Praxis** row, non-UA (⬜): vs `... Edit Praxis`. Check the crest-drop / copy pattern that hit UA (#373).
 4. **Vote** row, non-UA (⬜): vs each faction's praxis-read vote widget. Copy-level (rung words) now counts — see #374.
 5. **Praxis (read)** row, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`. (Praxis **Card** row DONE → #375 systemic.)
-6. **Comment Box** row (⬜) — **HIGH PRIORITY, same-disease suspect** (after #375 praxis + #376 feed): check if `components/comments/voices/*` are per-faction archetypes or neutral content in faction chrome. Design: `FactionCommentBox` (gilt salon / whimsy.exe / ransom slip / vellum marginalia / terminal line / union entry / the register). NOTE: no `templates/<f>/*Comment*` files but the DS `FactionCommentBox` component covers all 7 — design exists.
+6. **Comment Box** row — DONE (2026-07-02): healthy per-faction archetypes; only UAComment drifted → #377. See findings.
 7. **Updates/Feed** row (⬜): vs `... Updates`. Repo: `components/feed/*FeedFrame` + `FeedCard*`.
 8. **Avatar** + **Backdrop** rows, non-UA (⬜): repo `components/avatar/*` + `components/backdrop/*`.
 9. **Albescent (🔁)**: skip per-cell; ensure #232 references the cloud `templates/albescent/` kit.
@@ -46,6 +46,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **#374** UA vote rungs — copy out of date vs design critique vocabulary. `ready-for-agent`.
 - **#375** Praxis cards (ALL factions) — placeholder body/seal instead of the design's per-faction vote-reframe hero. `ready-for-agent`. Systemic; frames are fine, hero is missing.
 - **#376** Activity feed (ALL factions) — faction frames wrap NEUTRAL event-card content; design wants per-faction `FactionActivityCard` rows (slot-driven, no event switching). `ready-for-agent`. Systemic; flags full-adopt vs hybrid arch decision.
+- **#377** UAComment out of date — pre-gilt-salon palette + hardcoded hex, not the `--ua-*` gilt frame. `ready-for-agent`. (Comment boxes otherwise HEALTHY — not the frames-only disease.)
 - **#200** (narrowed) UA avatar missing. **#232** (albescent kit unblocked). **#136** (task-detail spec ref). **#363–#371** = the separate repo→cloud sync run (Phase 2), not this audit.
 - Minor, unfiled: stale comment `UAPraxisDetail.tsx:13-14`; wow task-card generic sign-up button (flavored-copy nit).
 
@@ -80,7 +81,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 | Praxis (read)  | ✅¢ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Praxis Card    | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | 🔁 |
 | Edit Praxis    | ⚠️→#373 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Comment Box    | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Comment Box    | ⚠️→#377 | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁 |
 | Updates/Feed   | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | 🔁 |
 | Vote           | ⚠️→#374 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Avatar         | ⚠️→#200 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
@@ -112,6 +113,13 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **Edit-praxis / ua ⚠️→#373**: cloud "Submit to the Salon" has the crest ×2 (masthead ribbon + commission slip) + design copy (Alone/Atelier/Salon Duel, "Hang it in the Salon"). Repo `EditPraxisUA` ("The Atelier") is structurally close (gilt Plates, RegaliaLabel, shared ModePicker) but **drops the crest** (0 SVG — same as #372) and diverges on copy (Sole/Joint/Contested, "File the acquisition"). Filed #373 (reuse UACrest, align copy).
 - **Praxis-read / ua ✅¢ (copy caveat under new principle)**: structure faithful (see above) BUT word-level copy drift vs design: repo names the standing section **"The Standing"**, design calls it **"The Critique"** / "Sit the Critique"; the standing/distribution rung words are the same out-of-date set covered by #374 (shared `voteReframes` source). If a full copy-alignment is wanted, add "The Standing"→"The Critique" to #374's scope or a copy-sweep issue.
 - **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched (`VoteUI.tsx:31`). Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
+
+### Comment Box row — HEALTHY (not the frames-only disease), UA-lag exception → #377 (2026-07-02)
+- **NOT the same disease.** All 7 `components/comments/voices/*` are genuine per-faction archetypes: bespoke type/labels/body, dispatched via `pickVariant` (`CommentThread.tsx`), styled in read + composer modes. Content carries faction identity. Good — the frames-only pattern (#375/#376) does NOT extend here.
+- **Hex/token survey**: UAComment 7 hex / 0 tokens (worst); Albescent 3/0 (🔁 #232); Wow 3/9; Eph 1/9; Singularity 1/11; Everymen 0/7; Snide 0/12.
+- **UAComment ⚠️→#377**: pre-gilt-salon (ADR-0018 comment-scoped orange, flat gold border — NOT `--ua-gilt`), all hardcoded hex. Out of date vs the current UA gilt-salon identity + CLAUDE.md hex rule. Same UA-rebrand-lag as #372/#373/#374. Filed #377 (reskin to `--ua-*` gilt frame).
+- **Minor (noted in #377, not filed separately)**: residual hex in Wow(3)/Eph(1)/Singularity(1) — small `var(--*)` sweep, low priority.
+- **PATTERN REFINED**: the frames-only disease hit the two surfaces where content was deferred behind a "placeholder/neutral body" (praxis #375, feed #376). Comment boxes were built content-first per faction, so they're healthy. Lesson: the disease is specifically where a SHARED content layer exists (PlaceholderPraxisBody / neutral FeedCard*), not everywhere.
 
 ### Updates/Feed row — SYSTEMIC drift, ALL factions → #376 (2026-07-02, Molly: "check feed for the same thing")
 - **Same disease as #375, confirmed.** Repo `*FeedFrame` = chrome-only wrapper (UaFeedFrame: *"must NOT reimplement the card internals"*); the 11 `FeedCard*` event cards render NEUTRAL content (generic `--color-text-*` tokens, generic avatar/layout, faction only via `factionColor()` accent). Design `FactionActivityCard` wants each faction to OWN the whole row (7 archetypes, slot-driven, no event-type switching: actor/action/headline/meta).
