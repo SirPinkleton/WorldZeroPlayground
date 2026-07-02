@@ -30,14 +30,17 @@ surfaces share one data contract).
   `#faf9f7`), near-black ink (`--al-ink`), Cormorant Garamond, a hairline rule and embossed
   monogram. The quietest card, fitting the neutral/becoming-white faction.
 
-- **UA wears the new orange/gold look here; the rebrand at large is out of scope.** The UA
-  comment archetype uses ivory `#f9f2e2`, a gold border (`#c9a23c`, highlight `#ecd089`),
-  orange accent `#c8601a` (eyebrow, mentions, button), bronze muted `#b07a3a`, dark-brown text
-  `#2a1a10`, in `Marcellus` (labels) + `Playfair Display` italic (name + body). The
-  "University of Asthmatics" framing rides along visually. Rolling that name and palette through
-  the rest of the UA kit (avatars, cards, heroes) is a **separate follow-up**, not this work.
-  (The stale `--faction-ua-card-*` purple tokens in the mock are unused by the box; the box
-  styles inline.)
+- **UA wears the new orange/gold look here; the rebrand at large is out of scope.**
+  **⚠️ SUPERSEDED by [ADR-0026](0026-ua-comment-adopts-the-gilt-salon.md) (2026-07-02).** The
+  gilt-salon UA rebrand has since landed globally (PR #361), so `UAComment` now renders the
+  gilt salon on `--ua-*` tokens like every other UA surface; the inline hex + "rebrand out of
+  scope" clause below is retired. Kept here for the record. — The UA comment archetype uses
+  ivory `#f9f2e2`, a gold border (`#c9a23c`, highlight `#ecd089`), orange accent `#c8601a`
+  (eyebrow, mentions, button), bronze muted `#b07a3a`, dark-brown text `#2a1a10`, in
+  `Marcellus` (labels) + `Playfair Display` italic (name + body). The "University of
+  Asthmatics" framing rides along visually. Rolling that name and palette through the rest of
+  the UA kit (avatars, cards, heroes) is a **separate follow-up**, not this work. (The stale
+  `--faction-ua-card-*` purple tokens in the mock are unused by the box; the box styles inline.)
 
 - **Author-identity slot composes `FactionAvatar`** (ADR-0006). The comment never hand-rolls an
   avatar — it reuses the dispatcher, which already frames per faction and re-themes live on
