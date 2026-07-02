@@ -29,7 +29,7 @@
 |---|---|---|---|---|---|---|---|
 | Task Card      | ⚠️→#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁 |
 | Task Detail    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Faction Page   | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
 | Praxis (read)  | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Praxis Card    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Edit Praxis    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
@@ -57,5 +57,15 @@
 - **Praxis-card / ua ▸**: UA branch of `PraxisCard.tsx` has crest hits (3) + Playfair+Marcellus+ua-gilt. Signature present; cloud-compare pending.
 - **Edit-praxis / ua ▸**: `EditPraxisUA` has Playfair+Marcellus+ua-gilt ×2, no crest (a form). #361 port; cloud-compare `templates/ua/UA Edit Praxis.dc.html` pending.
 - **KEY TAKEAWAY**: #372 (task card) is an ISOLATED miss within UA's #361 re-skin, NOT systemic — task-detail/faction-page/backdrop all got the full gilt-salon treatment. UA vote still ⬜ (needs cloud vote design). Comment/Updates ⏭️ (no UA cloud design exists).
+
+### Faction Page row — heroes triaged (2026-07-02)
+- All 6 heroes registered in `FactionDetail.FACTION_HEROES` and substantial (lines / visual-hits): UA 277/7, Wow 236/5, Snide 285/1 (photocopy archetype = few gradients, expected), Ephemerists 176/5, Singularity 303/4, Everymen 235/2. None are stubs. Marked ▸ (wow/snide/eph/sing/everymen) pending a cloud-compare vs `templates/<faction>/... Faction Page.dc.html`. UA ✅ (architecture confirmed above).
+
+### STRATEGIC PATTERN (drives remaining audit)
+Across 2 full rows (Task Card, Faction Page heroes): **the 5 established factions are faithful; drift concentrates in RECENTLY-REWORKED surfaces.** The only confirmed drift (#372) came from PR #361's UA re-skin. Highest-yield remaining audit targets = surfaces changed by recent PRs, not a blind sweep:
+- **PR #361** (UA task card/praxis/edit-praxis → gilt salon): task card drifted (#372); UA praxis/edit-praxis still ▸ to confirm.
+- **PR #359** (all faction pages standardized): heroes triaged ▸ above.
+- **PR #358** (UA praxis-read "The Standing").
+- Recommend: cloud-compare the ▸ cells (cheap — repo signature already confirmed), then spot-check the remaining ⬜ rows (praxis-card, edit-praxis, vote, avatar, backdrop, comment, feed) for the non-UA factions, prioritizing any surface touched by a recent PR. A blind full-depth sweep of all ~48 remaining cells is low-yield given the pattern.
 
 - **Albescent (all 🔁)**: aliased→ua; every albescent variant is missing by design. Tracked wholesale by #232 (cloud kit now supplies the designs). Do NOT file per-surface albescent drift issues — fold into #232.
