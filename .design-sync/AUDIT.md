@@ -1,10 +1,12 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
-**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box row DONE — healthy per-faction archetypes; only UAComment drifted → #377. Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
+**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box + Task Detail rows DONE — both healthy (content-first bespoke, not the disease); only UAComment drifted → #377 (now an explicit **ADR-0018 reversal**). ADR dimension added (Molly): reconcile findings vs `docs/adr/*`, file ADR breaks. Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
 
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
 > **DIRECTION OF TRUTH (Molly, 2026-07-02): the cloud DESIGN is correct; where the repo diverges, the REPO is out of date and gets fixed to match the design.** This applies to copy/vocabulary too, not just layout. Consequence: earlier ✅ marks were judged on STRUCTURAL fidelity only — cells with matching structure but divergent word-level copy vs the design are drift and need a closer copy pass (flagged per-cell below).
+
+> **ADR DIMENSION (Molly, 2026-07-02): read `docs/adr/*` for context as you audit; if the repo breaks an ADR, that's ALSO an issue.** And reconcile every finding against the ADRs before filing — a "repo out of date" call may (a) duplicate an existing tracking issue the ADR names (e.g. #375 ↔ #159), (b) need to adopt the ADR's mandated *mechanism* (e.g. ADR-0005 → compose `VoteUI` summary mode, not hand-roll), or (c) require explicitly REVERSING an ADR when the design supersedes it (Molly's call — see #377 reversing ADR-0018). ADR quick-map for audited surfaces: **0002** page=composition · **0005** praxis-card content model (#375) · **0006** comment system · **0010** copy catalog `copy/en.ts` via `t()` (#374 copy belongs here) · **0016** per-faction surfaces share ONE contract, archetypes own only presentation — *the law behind the frames-only disease* (#375/#376) · **0018** comment voice / UA-orange — *being reversed* (#377) · **0023** feed = read-time projection (#376).
 
 ---
 
@@ -18,6 +20,12 @@ Then work the PRIORITY QUEUE top-down, autonomously, without stopping to ask me:
 - For each cell, read the cloud design (DesignSync get_file, projectId 019e221c-7853-7530-a934-7d3b2b7c8b43)
   AND the repo file, and compare BOTH layout/structure AND copy/vocabulary.
 - Rule: the cloud design is canonical. Any repo divergence (layout OR wording) = drift.
+- ADR CHECK: skim docs/adr/* for the surface. If the repo breaks an ADR, that's also an issue.
+  Before filing, reconcile: does an ADR already track this (search closed+open issues it names)?
+  does the ADR mandate a specific mechanism to adopt? does the design supersede an ADR (flag a
+  reversal for Molly)? Cite the ADR in the issue.
+- VERIFY BEFORE FILING: confirm the repo really lacks it (grep the PAGE wrapper too, not just the
+  archetype — e.g. TaskDetail.tsx renders CommentThread, not the archetype). Don't file phantoms.
 - On drift: `gh issue create --label ready-for-agent`, one focused issue per surface. Reuse
   existing repo atoms and cite them (e.g. UACrest in UAFactionHero). Do NOT edit frontend source.
 - Do NOT double-file albescent (🔁) cells — those roll up into #232.
@@ -31,7 +39,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 
 ## Priority queue (work top-down — highest drift-risk first)
 1. **Faction-page heroes** (▸): cloud-compare wow/snide/ephemerists/singularity/everymen heroes vs `templates/<faction>/... Faction Page.dc.html`. The #359 standardization zone — next most-likely drift after UA.
-2. **Task Detail** row, non-UA (⬜): vs `templates/<faction>/... Task Detail.dc.html`. (#136 tracks task-detail spec-match generally — cross-link, don't duplicate.)
+2. **Task Detail** row — UA ✅ verified; other 5 ▸ signature-confirmed (content-first bespoke, NOT the disease). Optional: promote ▸→✅ via cloud-compare per faction. Low priority (healthy row). Comments confirmed present via `TaskDetail.tsx:71`.
 3. **Edit Praxis** row, non-UA (⬜): vs `... Edit Praxis`. Check the crest-drop / copy pattern that hit UA (#373).
 4. **Vote** row, non-UA (⬜): vs each faction's praxis-read vote widget. Copy-level (rung words) now counts — see #374.
 5. **Praxis (read)** row, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`. (Praxis **Card** row DONE → #375 systemic.)
@@ -46,7 +54,13 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **#374** UA vote rungs — copy out of date vs design critique vocabulary. `ready-for-agent`.
 - **#375** Praxis cards (ALL factions) — placeholder body/seal instead of the design's per-faction vote-reframe hero. `ready-for-agent`. Systemic; frames are fine, hero is missing.
 - **#376** Activity feed (ALL factions) — faction frames wrap NEUTRAL event-card content; design wants per-faction `FactionActivityCard` rows (slot-driven, no event switching). `ready-for-agent`. Systemic; flags full-adopt vs hybrid arch decision.
-- **#377** UAComment out of date — pre-gilt-salon palette + hardcoded hex, not the `--ua-*` gilt frame. `ready-for-agent`. (Comment boxes otherwise HEALTHY — not the frames-only disease.)
+- **#377** **REVERSE ADR-0018's UA-comment decision** + reskin UAComment to gilt salon. `ready-for-agent`. (Molly's explicit ADR-reversal ask. Retitled from "UAComment out of date". Requires a superseding ADR.)
+
+### ADR reconciliation (2026-07-02, Molly: "read ADRs; ADR breaks are issues too")
+- **#375 ↔ ADR-0005 + #159 (CLOSED)**: the praxis placeholder is ADR-0005-documented interim; #159 landed the DATA (score/voter_count/level/date) but NOT the hero. Mechanism per ADR-0005 = compose existing `VoteUI` in a new read-only **summary mode** (don't hand-roll). Commented on #375.
+- **#376 ↔ ADR-0016 (the law) + 0010 + 0023**: ADR-0016 mandates archetypes own only presentation over one contract — the neutral-content feed violates it; `FactionActivityCard` is the compliant target. Faction words = catalog copy (ADR-0010 `copy/en.ts`). Feed stays read-time projection (ADR-0023). Commented on #376.
+- **#377 ↔ ADR-0018 REVERSAL**: ADR-0018 deliberately froze UA comment on orange/hardcoded ("rebrand out of scope"). Rebrand landed (#361) → Molly wants ADR-0018's UA clause explicitly reversed via a superseding ADR. #377 rewritten to that.
+- **#374 ↔ ADR-0010/0016**: vote-tier labels are catalog copy (ADR-0010) keyed by faction (ADR-0016 slot #4). CHECK on build: should UA rung words live in `copy/en.ts` (via `t()`) rather than hardcoded in `voteReframes.ts`? If voteReframes hardcodes faction copy, that may itself be an ADR-0010 gap — flag for a future cell.
 - **#200** (narrowed) UA avatar missing. **#232** (albescent kit unblocked). **#136** (task-detail spec ref). **#363–#371** = the separate repo→cloud sync run (Phase 2), not this audit.
 - Minor, unfiled: stale comment `UAPraxisDetail.tsx:13-14`; wow task-card generic sign-up button (flavored-copy nit).
 
@@ -76,7 +90,7 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 | Surface \ Faction | ua | wow | snide | ephemerists | singularity | everymen | albescent |
 |---|---|---|---|---|---|---|---|
 | Task Card      | ⚠️→#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁 |
-| Task Detail    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Task Detail    | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
 | Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
 | Praxis (read)  | ✅¢ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Praxis Card    | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | 🔁 |
@@ -113,6 +127,12 @@ Work in this worktree/branch. Commit ledger updates as you go; do not touch fron
 - **Edit-praxis / ua ⚠️→#373**: cloud "Submit to the Salon" has the crest ×2 (masthead ribbon + commission slip) + design copy (Alone/Atelier/Salon Duel, "Hang it in the Salon"). Repo `EditPraxisUA` ("The Atelier") is structurally close (gilt Plates, RegaliaLabel, shared ModePicker) but **drops the crest** (0 SVG — same as #372) and diverges on copy (Sole/Joint/Contested, "File the acquisition"). Filed #373 (reuse UACrest, align copy).
 - **Praxis-read / ua ✅¢ (copy caveat under new principle)**: structure faithful (see above) BUT word-level copy drift vs design: repo names the standing section **"The Standing"**, design calls it **"The Critique"** / "Sit the Critique"; the standing/distribution rung words are the same out-of-date set covered by #374 (shared `voteReframes` source). If a full copy-alignment is wanted, add "The Standing"→"The Critique" to #374's scope or a copy-sweep issue.
 - **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched (`VoteUI.tsx:31`). Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
+
+### Task Detail row — HEALTHY (content-first bespoke, not the disease); UA verified (2026-07-02)
+- **Structure**: `taskDetail/archetypes/shared.tsx` is 43 ln of helpers only (relationOf, ErrorBanner) — NOT a shared content body. Each archetype is 674–877 ln of bespoke per-faction code. Content-first, like comment boxes → NOT the frames-only disease.
+- **UA ✅ VERIFIED (not grep-guessed this time)**: `TaskDetailUA` matches cloud `UA Task Detail.dc.html` — gilt-plate hero (crest + Playfair title + "Ars Longa" motto ribbon + ANNO/HONORARIA/STANDING stat plates), Matriculate CTA, all 3 sections (The Commission / The Salon Wall / The Critique) + FINEST HAND crown. Header notes "every raw hex from the kit is mapped" to tokens. Composes `PraxisCard` (inherits #375) — that's #375's problem, not task-detail's.
+- **Other 5 ▸**: signature-confirmed via grep (SNIDE ransom/tape/acid; Wow wow.exe/notepad/sparkle; Eph vellum/lapis/map/concord; Singularity terminal/scanline/protocol; Everymen cog/sunburst/union/seal). Content-first bespoke; full cloud-compare deferred.
+- **Comments: NOT a gap (verified).** Archetype "The Critique" = read-only vote AGGREGATE; the discussion thread is rendered by the PAGE wrapper `TaskDetail.tsx:71` `<CommentThread target="tasks" .../>` (faction-voiced via COMMENT_COMPONENTS). Design puts comments inside the archetype's Critique; repo composes them page-level (ADR-0002 arrangement) — both present. Backend supports task comments (`/tasks/{id}/comments`, `Comment.task_id`, ADR-0006/#167). **Almost filed a phantom issue here — TaskDetail.tsx:71 resolved it.**
 
 ### Comment Box row — HEALTHY (not the frames-only disease), UA-lag exception → #377 (2026-07-02)
 - **NOT the same disease.** All 7 `components/comments/voices/*` are genuine per-faction archetypes: bespoke type/labels/body, dispatched via `pickVariant` (`CommentThread.tsx`), styled in read + composer modes. Content carries faction identity. Good — the frames-only pattern (#375/#376) does NOT extend here.
