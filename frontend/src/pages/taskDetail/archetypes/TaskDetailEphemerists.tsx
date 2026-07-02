@@ -315,7 +315,7 @@ export default function TaskDetailEphemerists({
     slotsOpen,
     maxTaskSlots,
     modifiedPoints,
-    avgVoteNumber,
+    topScore,
     voteCount,
     sortedSubmissions,
     submissionSort,
@@ -723,7 +723,7 @@ export default function TaskDetailEphemerists({
                   color: "var(--eph-rubric)",
                 }}
               >
-                {avgVoteNumber.toFixed(1)}
+                {topScore}
               </span>
               <div style={{ paddingBottom: 6 }}>
                 <div
@@ -734,7 +734,7 @@ export default function TaskDetailEphemerists({
                     color: VELLUM_TEXT,
                   }}
                 >
-                  OF V
+                  HIGHEST
                 </div>
                 <div
                   style={{

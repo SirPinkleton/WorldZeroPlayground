@@ -202,7 +202,7 @@ export default function TaskDetailEverymen({
     slotsOpen,
     maxTaskSlots,
     modifiedPoints,
-    avgVoteNumber,
+    topScore,
     voteCount,
     sortedSubmissions,
     submissionSort,
@@ -619,7 +619,7 @@ export default function TaskDetailEverymen({
                     color: RED,
                   }}
                 >
-                  {avgVoteNumber.toFixed(1)}
+                  {topScore}
                 </span>
                 <div style={{ paddingBottom: 6 }}>
                   <div
@@ -630,7 +630,7 @@ export default function TaskDetailEverymen({
                       color: INK,
                     }}
                   >
-                    OUT OF 5
+                    TOP MARK
                   </div>
                   <div
                     style={{
