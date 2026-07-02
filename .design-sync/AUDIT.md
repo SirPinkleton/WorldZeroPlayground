@@ -2,6 +2,8 @@
 
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
+> **DIRECTION OF TRUTH (Molly, 2026-07-02): the cloud DESIGN is correct; where the repo diverges, the REPO is out of date and gets fixed to match the design.** This applies to copy/vocabulary too, not just layout. Consequence: earlier ✅ marks were judged on STRUCTURAL fidelity only — cells with matching structure but divergent word-level copy vs the design are drift and need a closer copy pass (flagged per-cell below).
+
 ## How to resume (read this first if you're a fresh session)
 1. Cloud project = **"World Zero Design System"**, projectId `019e221c-7853-7530-a934-7d3b2b7c8b43`. Read designs with `DesignSync(get_file, projectId, path)`. Needs design auth (`/design-login` if headless-blocked).
 2. Repo components live under `frontend/src/`. Faction dispatch via `utils/factionDispatch.ts` `pickVariant`; `albescent`→`ua` alias in `utils/factions.ts:68`.
@@ -10,7 +12,7 @@
 5. On match: mark `✅`. On not-applicable (no cloud design / no repo surface): `⏭️` with a note.
 6. Commit `.design-sync/AUDIT.md` after each row (or small batch). Issues already filed are the durable record; this file tracks coverage.
 
-**Legend:** ⬜ pending · ✅ match (fully verified: read repo + cloud, or architecture confirmed) · ▸ triaged (repo signature present via grep/read, cloud-compare deferred — low drift risk) · ⚠️→#N drift filed · ⏭️ n/a · 🔁 albescent (aliased→ua; drift = #232 scope, don't double-file)
+**Legend:** ⬜ pending · ✅ match (fully verified: read repo + cloud, or architecture confirmed) · ✅¢ structural match but word-level copy drift vs design (see note) · ▸ triaged (repo signature present via grep/read, cloud-compare deferred — low drift risk) · ⚠️→#N drift filed · ⏭️ n/a · 🔁 albescent (aliased→ua; drift = #232 scope, don't double-file)
 
 **Resume note:** ▸ cells are the cheapest to finish — repo signature already confirmed present; just need a cloud-design read to promote to ✅ or catch a subtle drift. ⬜ cells need both sides read.
 
@@ -30,12 +32,12 @@
 | Task Card      | ⚠️→#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁 |
 | Task Detail    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
-| Praxis (read)  | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Praxis (read)  | ✅¢ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Praxis Card    | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
-| Edit Praxis    | ▸ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
+| Edit Praxis    | ⚠️→#373 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁 |
 | Comment Box    | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Updates/Feed   | ⏭️ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Vote           | ✅* | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
+| Vote           | ⚠️→#374 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Avatar         | ⚠️→#200 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Backdrop       | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 
@@ -61,8 +63,12 @@
 ### UA praxis + vote confirmed via cloud read (2026-07-02)
 - **Praxis-read / ua ✅**: cloud `UA Praxis - Read.dc.html` = "The Acquisition Sheet" (gilt-framed plate, "The Process" blob-bullet list, "The Critique" sidebar w/ standing meter + named rungs). Repo `UAPraxisDetail` (442 ln) carries Acquisition/Exhibited/Plate/"The Process"/"The Standing" + gilt plate + brushes sigil (6 hits). Faithful (repo names the standing section "The Standing" vs cloud "The Critique" — synonym, fine).
 - **Praxis-card / ua ✅**: UA branch of `PraxisCard.tsx` has crest(3)+Playfair+Marcellus+ua-gilt. No separate cloud praxis-card design (card = faction-page recentPraxis treatment); signature consistent with the read sheet. Faithful.
-- **Vote / ua ✅\* (COPY-DRIFT, not a defect — DO NOT auto-file)**: `UAVote` (wired in `VoteUI.tsx:31` as `ua:UAVote`) renders 5 gilt museum-placard rungs from `VOTE_REFRAMES['ua']` — structure/visual matches the cloud "Sit the Critique" widget. But rung WORDS differ: **cloud** = rough sketch/study/accomplished/distinguished/masterwork; **repo** = Noted/Sketch/Hung/Commended/Acquired. Vote-reframe copy is a governed product decision (ADR-0010 catalog, #264/#265), so repo is likely canonical and the *design* is the stale side. Needs a human direction-of-truth call, NOT a repo fix. → surface to Molly / ADR-0010 owner.
-- **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched. Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
+- **Vote / ua ⚠️→#374 (RESOLVED direction: repo out of date)**: `UAVote` structure faithful, but rung WORDS out of date vs design. **cloud** = rough sketch/study/accomplished/distinguished/masterwork; **repo** (`voteReframes.ts ua.tiers`) = Noted/Sketch/Hung/Commended/Acquired. Molly confirmed design is canonical → filed #374 to update repo. (Earlier I wrongly assumed repo was canonical.)
+- **Edit-praxis / ua ⚠️→#373**: cloud "Submit to the Salon" has the crest ×2 (masthead ribbon + commission slip) + design copy (Alone/Atelier/Salon Duel, "Hang it in the Salon"). Repo `EditPraxisUA` ("The Atelier") is structurally close (gilt Plates, RegaliaLabel, shared ModePicker) but **drops the crest** (0 SVG — same as #372) and diverges on copy (Sole/Joint/Contested, "File the acquisition"). Filed #373 (reuse UACrest, align copy).
+- **Praxis-read / ua ✅¢ (copy caveat under new principle)**: structure faithful (see above) BUT word-level copy drift vs design: repo names the standing section **"The Standing"**, design calls it **"The Critique"** / "Sit the Critique"; the standing/distribution rung words are the same out-of-date set covered by #374 (shared `voteReframes` source). If a full copy-alignment is wanted, add "The Standing"→"The Critique" to #374's scope or a copy-sweep issue.
+- **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched (`VoteUI.tsx:31`). Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
+
+> **COPY-PASS CAVEAT (applies to all prior ✅):** ✅ marks above were STRUCTURAL. Under the design-is-canonical directive, cells like Task Detail/ua (✅) and Faction Page/ua (✅) have NOT been word-level copy-checked vs their cloud designs — a copy-diff pass may surface more #374-style label drift. Task Card/ua (#372) and Edit Praxis/ua (#373) are the confirmed structural+copy drifts so far.
 
 ### Faction Page row — heroes triaged (2026-07-02)
 - All 6 heroes registered in `FactionDetail.FACTION_HEROES` and substantial (lines / visual-hits): UA 277/7, Wow 236/5, Snide 285/1 (photocopy archetype = few gradients, expected), Ephemerists 176/5, Singularity 303/4, Everymen 235/2. None are stubs. Marked ▸ (wow/snide/eph/sing/everymen) pending a cloud-compare vs `templates/<faction>/... Faction Page.dc.html`. UA ✅ (architecture confirmed above).
