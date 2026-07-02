@@ -53,8 +53,7 @@ export interface TaskDetailState {
   maxTaskSlots: number;
   factionMultiplier: number;
   modifiedPoints: number;
-  avgVote: string; // "—" or toFixed(1) — for the default's stat tile
-  avgVoteNumber: number; // numeric form — for SNIDE stamps / VoteUI
+  topScore: number; // highest submission merit — non-mean signal (ADR-0014; no averages)
   voteCount: number;
 
   // Submission sort (shared so every archetype gets the same toggle)
@@ -226,12 +225,11 @@ export function useTaskDetail(idParam: string | undefined): TaskDetailState {
   const slotsOpen = maxTaskSlots - taskSlotCount;
 
   const voteCount = submissions.length;
-  const avgVoteNumber =
-    submissions.length > 0
-      ? submissions.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-        submissions.length
-      : 0;
-  const avgVote = submissions.length > 0 ? avgVoteNumber.toFixed(1) : "—";
+  // ADR-0014 forbids vote averages; expose the highest submission merit instead.
+  const topScore = submissions.reduce(
+    (max, s) => Math.max(max, s.score ?? 0),
+    0,
+  );
 
   const sortedSubmissions = useMemo(() => {
     return [...submissions].sort((a, b) => {
@@ -259,8 +257,7 @@ export function useTaskDetail(idParam: string | undefined): TaskDetailState {
     maxTaskSlots,
     factionMultiplier,
     modifiedPoints,
-    avgVote,
-    avgVoteNumber,
+    topScore,
     voteCount,
 
     submissionSort,

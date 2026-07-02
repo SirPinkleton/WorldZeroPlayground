@@ -189,7 +189,7 @@ export default function TaskDetailSingularity({
     slotsOpen,
     maxTaskSlots,
     modifiedPoints,
-    avgVoteNumber,
+    topScore,
     voteCount,
     sortedSubmissions,
     submissionSort,
@@ -541,7 +541,7 @@ export default function TaskDetailSingularity({
             {voteCount > 0 ? (
               <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
                 <span style={{ fontFamily: TERM_FONT, fontSize: 48, lineHeight: 0.8, color: GREEN }}>
-                  {avgVoteNumber.toFixed(1)}
+                  {topScore}
                 </span>
                 <div style={{ paddingBottom: 4 }}>
                   <div
@@ -553,7 +553,7 @@ export default function TaskDetailSingularity({
                       textTransform: "uppercase",
                     }}
                   >
-                    consensus / 5
+                    peak signal
                   </div>
                   <div style={{ fontSize: 8, letterSpacing: "0.1em", color: BLUE_DIM }}>
                     {voteCount} logs sealed
