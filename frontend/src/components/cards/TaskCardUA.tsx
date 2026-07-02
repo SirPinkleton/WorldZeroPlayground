@@ -1,14 +1,16 @@
 import { Link } from "react-router-dom";
 import type { TaskOut } from "../../api/tasks";
 import LevelPill from "../ui/LevelPill";
+import { UACrest, MottoRibbon, UA_FULL_NAME } from "./UACrest";
 
 /**
- * UA — Gilt salon placard (the University of Asthmatics archetype).
- * A small gold-framed acquisition plate on the salon wall: gilt-gradient
- * frame, parchment ground, Marcellus small-caps regalia, burnt-amber accent.
- * Matches the UA praxis-read sheet + UAVote. All colors via --ua-* tokens
- * (never hardcode hex — CLAUDE.md); the salon is always-light, so tokens read
- * identically in both themes.
+ * UA — Gilt salon crest placard (the University of Asthmatics archetype).
+ * A gold-framed acquisition plate on the salon wall, center-composed around the
+ * heraldic crest: masthead ("University of Asthmatics · EST · MMXX"), motto
+ * ribbon, Playfair-italic title, and a "Matriculate" sign-up affordance. The
+ * crest + motto are shared with UAFactionHero (see UACrest.tsx), not re-drawn.
+ * All colors via --ua-* tokens (never hardcode hex — CLAUDE.md); the salon is
+ * always-light, so tokens read identically in both themes.
  */
 
 const REGALIA = "'Marcellus SC', serif";
@@ -23,36 +25,66 @@ interface Props {
 
 export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
   return (
-    // Gilt frame: gold-leaf gradient border, then the parchment plate.
+    // Gilt frame: gold-leaf gradient border, then the parchment plate, hung with
+    // a slight rotation like a plate on the salon wall.
     <div
       style={{
-        minWidth: 130,
-        maxWidth: 150,
-        flex: "0 1 135px",
-        padding: 3,
+        minWidth: 240,
+        maxWidth: 282,
+        flex: "0 1 264px",
+        padding: 4,
         background: "var(--ua-gilt)",
+        transform: "rotate(-0.6deg)",
         boxShadow:
-          "0 8px 18px color-mix(in srgb, var(--ua-ink) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, white 40%, transparent)",
+          "0 10px 22px color-mix(in srgb, var(--ua-ink) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, white 40%, transparent)",
       }}
     >
       <div
         style={{
           background: "var(--ua-paper)",
+          backgroundImage:
+            "radial-gradient(color-mix(in srgb, var(--ua-ink) 3%, transparent) 1px, transparent 1px)",
+          backgroundSize: "5px 5px",
           border: "1px solid var(--ua-line-soft)",
-          padding: "12px 12px 10px",
+          padding: "18px 20px 14px",
           color: "var(--ua-ink)",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
+        {/* Crest */}
+        <UACrest width={72} height={86} />
+
+        {/* Masthead */}
         <div
-          className="card-meta"
           style={{
             fontFamily: REGALIA,
-            letterSpacing: "0.12em",
-            color: "var(--ua-gold)",
+            fontSize: 10,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "var(--ua-orange)",
+            marginTop: 8,
           }}
         >
-          UA · {displayPoints} pts
+          {UA_FULL_NAME}
         </div>
+        <div
+          style={{
+            fontFamily: REGALIA,
+            fontSize: 8,
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "var(--ua-muted)",
+            marginBottom: 10,
+          }}
+        >
+          EST · MMXX
+        </div>
+
+        {/* Motto ribbon */}
+        <MottoRibbon fontSize={9} padding="4px 18px" />
 
         <Link
           to={`/tasks/${task.id}`}
@@ -63,9 +95,9 @@ export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
               fontFamily: DISPLAY,
               fontStyle: "italic",
               fontWeight: 600,
-              fontSize: "var(--text-md)",
+              fontSize: "var(--text-lg)",
               lineHeight: 1.2,
-              margin: "4px 0 6px",
+              margin: "12px 0 6px",
               overflowWrap: "anywhere",
             }}
           >
@@ -76,25 +108,50 @@ export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
         {task.description && (
           <div
             className="card-description"
-            style={{ fontFamily: SERIF, color: "var(--ua-sub)" }}
+            style={{ fontFamily: SERIF, color: "var(--ua-sub)", marginBottom: 4 }}
           >
             {task.description}
           </div>
         )}
 
+        <div
+          style={{
+            fontFamily: REGALIA,
+            fontSize: 9,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--ua-gold)",
+            margin: "6px 0 10px",
+          }}
+        >
+          UA · {displayPoints} pts
+        </div>
+
         {onSignup && (
           <button
             onClick={() => onSignup(task.id)}
             className="btn-primary"
-            style={{ fontSize: 7, padding: "2px 8px", marginBottom: 6 }}
+            style={{
+              fontFamily: REGALIA,
+              fontSize: 10,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              padding: "7px 22px",
+              marginBottom: 12,
+              background: "var(--ua-orange)",
+              border: "none",
+            }}
           >
-            sign up
+            Matriculate
           </button>
         )}
 
         <div
           className="card-footer"
-          style={{ borderTop: "1px solid var(--ua-line-soft)" }}
+          style={{
+            width: "100%",
+            borderTop: "1px solid var(--ua-line-soft)",
+          }}
         >
           <LevelPill level={task.level_required} factionSlug="ua" />
           <span

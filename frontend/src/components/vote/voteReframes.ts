@@ -61,11 +61,11 @@ export const VOTE_REFRAMES: Record<string, VoteReframe> = {
   },
   ua: {
     tiers: [
-      { value: 1, label: 'Noted' },
-      { value: 2, label: 'Sketch' },
-      { value: 3, label: 'Hung' },
-      { value: 4, label: 'Commended' },
-      { value: 5, label: 'Acquired' },
+      { value: 1, label: 'rough sketch' },
+      { value: 2, label: 'study' },
+      { value: 3, label: 'accomplished' },
+      { value: 4, label: 'distinguished' },
+      { value: 5, label: 'masterwork' },
     ],
   },
 }
