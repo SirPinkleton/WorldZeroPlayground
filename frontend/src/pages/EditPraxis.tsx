@@ -18,19 +18,20 @@ import EditPraxisPaperCollage from "./editPraxis/archetypes/EditPraxisPaperColla
 import EditPraxisEphemeris from "./editPraxis/archetypes/EditPraxisEphemeris";
 import EditPraxisStickyNote from "./editPraxis/archetypes/EditPraxisStickyNote";
 import EditPraxisEverymen from "./editPraxis/archetypes/EditPraxisEverymen";
+import EditPraxisUA from "./editPraxis/archetypes/EditPraxisUA";
 
 type Archetype = (props: { state: EditPraxisState }) => JSX.Element;
 
-// albescent / aged_out inherit ua's archetype via pickVariant's alias rule, so
-// they need no explicit rows here. ua is listed for documentation even though it
-// matches the fallback.
+// ua owns the gilt-salon Atelier archetype. albescent / aged_out inherit it via
+// pickVariant's alias rule, so they need no explicit rows. StickyNote remains
+// the fallback for `na` / unknown factions.
 const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
   everymen: EditPraxisEverymen,
   snide: EditPraxisPunkZine,
   singularity: EditPraxisTerminal,
   wow: EditPraxisPaperCollage,
   ephemerists: EditPraxisEphemeris,
-  ua: EditPraxisStickyNote,
+  ua: EditPraxisUA,
 };
 
 export default function EditPraxis() {
