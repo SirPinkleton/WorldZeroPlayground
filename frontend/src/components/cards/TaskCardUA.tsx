@@ -1,14 +1,19 @@
 import { Link } from "react-router-dom";
 import type { TaskOut } from "../../api/tasks";
 import LevelPill from "../ui/LevelPill";
-import { factionCssVar } from "../../utils/factions";
 
 /**
- * UA — Sticky Note card.
- * Pastel yellow/pink, push pin at top, clipped corner, slight rotation.
+ * UA — Gilt salon placard (the University of Asthmatics archetype).
+ * A small gold-framed acquisition plate on the salon wall: gilt-gradient
+ * frame, parchment ground, Marcellus small-caps regalia, burnt-amber accent.
+ * Matches the UA praxis-read sheet + UAVote. All colors via --ua-* tokens
+ * (never hardcode hex — CLAUDE.md); the salon is always-light, so tokens read
+ * identically in both themes.
  */
 
-const ROTATIONS = [-2, 1.5, -1, 2.5];
+const REGALIA = "'Marcellus SC', serif";
+const DISPLAY = "'Playfair Display', serif";
+const SERIF = "'EB Garamond', serif";
 
 interface Props {
   task: TaskOut;
@@ -17,87 +22,93 @@ interface Props {
 }
 
 export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
-  const rotation = ROTATIONS[task.id % ROTATIONS.length];
-
   return (
+    // Gilt frame: gold-leaf gradient border, then the parchment plate.
     <div
       style={{
-        minWidth: 115,
-        maxWidth: 140,
-        flex: "0 1 125px",
-        background: factionCssVar("ua", "card-bg"),
-        clipPath: "polygon(0 0, 100% 0, 100% 88%, 88% 100%, 0 100%)",
-        transform: `rotate(${rotation}deg)`,
-        position: "relative",
-        padding: "24px 12px 14px",
-        fontFamily: factionCssVar("ua", "card-font"),
-        color: factionCssVar("ua", "card-text"),
-        transition: "background 150ms, color 150ms",
+        minWidth: 130,
+        maxWidth: 150,
+        flex: "0 1 135px",
+        padding: 3,
+        background: "var(--ua-gilt)",
+        boxShadow:
+          "0 8px 18px color-mix(in srgb, var(--ua-ink) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, white 40%, transparent)",
       }}
     >
-      {/* Push pin */}
       <div
         style={{
-          position: "absolute",
-          top: 6,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 10,
-          height: 10,
-          borderRadius: "50%",
-          background: factionCssVar("ua", "card-accent"),
-          border: "2px solid var(--color-overlay-strong)",
+          background: "var(--ua-paper)",
+          border: "1px solid var(--ua-line-soft)",
+          padding: "12px 12px 10px",
+          color: "var(--ua-ink)",
         }}
-      />
-
-      <div
-        className="card-meta"
-        style={{ color: factionCssVar("ua", "card-accent") }}
-      >
-        UA · {displayPoints} pts
-      </div>
-
-      <Link
-        to={`/tasks/${task.id}`}
-        style={{ textDecoration: "none", color: "inherit" }}
       >
         <div
+          className="card-meta"
           style={{
-            fontSize: "var(--text-md)",
-            fontWeight: 700,
-            lineHeight: 1.3,
-            marginBottom: 6,
-            overflowWrap: "anywhere",
+            fontFamily: REGALIA,
+            letterSpacing: "0.12em",
+            color: "var(--ua-gold)",
           }}
         >
-          {task.title}
+          UA · {displayPoints} pts
         </div>
-      </Link>
 
-      {task.description && (
+        <Link
+          to={`/tasks/${task.id}`}
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div
+            style={{
+              fontFamily: DISPLAY,
+              fontStyle: "italic",
+              fontWeight: 600,
+              fontSize: "var(--text-md)",
+              lineHeight: 1.2,
+              margin: "4px 0 6px",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {task.title}
+          </div>
+        </Link>
+
+        {task.description && (
+          <div
+            className="card-description"
+            style={{ fontFamily: SERIF, color: "var(--ua-sub)" }}
+          >
+            {task.description}
+          </div>
+        )}
+
+        {onSignup && (
+          <button
+            onClick={() => onSignup(task.id)}
+            className="btn-primary"
+            style={{ fontSize: 7, padding: "2px 8px", marginBottom: 6 }}
+          >
+            sign up
+          </button>
+        )}
+
         <div
-          className="card-description"
-          style={{ color: factionCssVar("ua", "card-muted") }}
+          className="card-footer"
+          style={{ borderTop: "1px solid var(--ua-line-soft)" }}
         >
-          {task.description}
+          <LevelPill level={task.level_required} factionSlug="ua" />
+          <span
+            style={{
+              fontFamily: DISPLAY,
+              fontStyle: "italic",
+              fontSize: "var(--text-base)",
+              fontWeight: 700,
+              color: "var(--ua-orange)",
+            }}
+          >
+            {displayPoints}
+          </span>
         </div>
-      )}
-
-      {onSignup && (
-        <button
-          onClick={() => onSignup(task.id)}
-          className="btn-primary"
-          style={{ fontSize: 7, padding: "2px 8px", marginBottom: 6 }}
-        >
-          sign up
-        </button>
-      )}
-
-      <div className="card-footer">
-        <LevelPill level={task.level_required} factionSlug="ua" />
-        <span style={{ fontSize: "var(--text-base)", fontWeight: 700 }}>
-          {displayPoints}
-        </span>
       </div>
     </div>
   );
