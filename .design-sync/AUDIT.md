@@ -1,6 +1,6 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
-**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box + Task Detail + Vote rows DONE — all healthy systems (faction methods + per-voter breakdown built); drifts: UAComment #377 (ADR-0018 reversal), task-detail averages #378 (ADR-0014 violation), UA vote copy #374. ADR dimension added (Molly): reconcile findings vs `docs/adr/*`, file ADR breaks; DESIGN-vs-ADR override on averages (ADR wins). Faction-page heroes triaged ▸. Rest queued below for a later/overnight run — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
+**SESSION STATUS (banked 2026-07-02):** UA column fully audited → #372/#373/#374 (+#200 narrowed). Task Card row complete (UA sole drift). **Praxis Card row → #375** + **Updates/Feed row → #376** = SYSTEMIC drift, all factions (Molly-reported; faithful frames wrap neutral/placeholder content instead of per-faction archetypes). Comment Box + Task Detail + Vote rows DONE — all healthy systems (faction methods + per-voter breakdown built); drifts: UAComment #377 (ADR-0018 reversal), task-detail averages #378 (ADR-0014 violation), UA vote copy #374. ADR dimension added (Molly): reconcile findings vs `docs/adr/*`, file ADR breaks; DESIGN-vs-ADR override on averages (ADR wins). Faction-page heroes triaged ▸. **⚠️ DESIGN RESTRUCTURED 2026-07-02: canonical source moved to `components/factions/` + `*-contract.json`; `templates/` is now STALE (see "CANONICAL SOURCE MOVED").** TaskCard/PraxisCard/EditPraxis were audited vs stale templates/ → re-audit flagged (queue A1). Average conflict on the fresh praxis contract RESOLVED (no average; votePoints+marks+tier). Rest queued below — paste the RESUME PROMPT. Nothing in `frontend/src` was edited; all output is GitHub issues + this ledger.
 
 **Goal:** for every faction × surface, compare the hand-built Claude Design template against the repo implementation. File a `ready-for-agent` GitHub issue for each real drift. Record status here after **each** cell so this is resumable.
 
@@ -38,16 +38,20 @@ Then work the PRIORITY QUEUE top-down, autonomously, without stopping to ask me:
 Work in this worktree/branch. Commit ledger updates as you go; do not touch frontend/src.
 ```
 
-## Priority queue (work top-down — highest drift-risk first)
-1. **Faction-page heroes** (▸): cloud-compare wow/snide/ephemerists/singularity/everymen heroes vs `templates/<faction>/... Faction Page.dc.html`. The #359 standardization zone — next most-likely drift after UA.
-2. **Task Detail** row — UA ✅ verified; other 5 ▸ signature-confirmed (content-first bespoke, NOT the disease). Optional: promote ▸→✅ via cloud-compare per faction. Low priority (healthy row). Comments confirmed present via `TaskDetail.tsx:71`.
-3. **Edit Praxis** row, non-UA (⬜): vs `... Edit Praxis`. Check the crest-drop / copy pattern that hit UA (#373).
-4. **Vote** row — DONE (2026-07-02): faction methods healthy; per-voter breakdown built; UA copy #374 + averages #378. See findings.
-5. **Praxis (read)** row, non-UA (⬜): vs `... Completed Praxis`/`Praxis Index`. (Praxis **Card** row DONE → #375 systemic.)
-6. **Comment Box** row — DONE (2026-07-02): healthy per-faction archetypes; only UAComment drifted → #377. See findings.
-7. **Updates/Feed** row (⬜): vs `... Updates`. Repo: `components/feed/*FeedFrame` + `FeedCard*`.
-8. **Avatar** + **Backdrop** rows, non-UA (⬜): repo `components/avatar/*` + `components/backdrop/*`.
-9. **Albescent (🔁)**: skip per-cell; ensure #232 references the cloud `templates/albescent/` kit.
+## Priority queue (work top-down) — UPDATED 2026-07-02 for the design restructure
+**Split by whether the surface is MIGRATED to the new `components/factions/` + contract source (audit against fresh canon) or NOT-yet-migrated (only stale `templates/` exists — hold or audit repo-vs-contract, and flag staleness).**
+
+**A. Migrated to new canon (audit against `components/factions/` + `*-contract.json`) — do these FIRST, source is fresh:**
+1. **RE-AUDIT TaskCard + PraxisCard** (all factions): both were audited vs the STALE templates/. Re-verify vs the new `components/factions/<f>/<F>{TaskCard,PraxisCard}.jsx` + `task-card-contract.json` / `praxis-card-contract.json`. Watch for NEW contract slots the repo lacks — esp. praxis `votePoints` (points-from-votes) and the `task` "re:" ref. (Praxis Card is already #375; confirm its scope covers the new slots + the no-average decision.)
+2. **Edit Praxis** row, non-UA (⬜): audit vs new `components/factions/<f>/<F>EditPraxis.jsx` + `edit-praxis-contract.json`. Watch the crest-drop/copy pattern that hit UA (#373).
+
+**B. NOT-yet-migrated (new packages don't exist yet — faction page, task detail, praxis-READ page, updates/feed, comment box). templates/ is stale; either HOLD for Molly's migration or audit repo-vs-contract & flag:**
+3. **Avatar + Backdrop** rows, non-UA (⬜): repo `components/avatar/*` + `components/backdrop/*` (no dedicated contract; derive from faction palette).
+4. **Faction-page heroes** (▸) + **Task Detail** other-5 (▸): both healthy/triaged; promote ▸→✅ only if a fresh design lands. Low priority.
+5. **Praxis (read) PAGE**, non-UA (⬜): NOT migrated; the read PAGE ≠ the praxis CARD. Molly's "praxis read update" has no new file yet — HOLD until migrated, or audit repo `*PraxisDetail` vs `praxis-card-contract.json` slots + the no-average rule.
+
+**DONE (issues filed, no re-audit unless noted):** Vote (#374/#378), Comment Box (#377), Updates/Feed (#376 systemic), Praxis Card (#375 — but re-check new slots per A1), Task Card (UA #372 — but re-audit per A1).
+6. **Albescent (🔁)**: skip per-cell; #232 now has the full `components/factions/albescent/` kit (AlbescentTaskCard/PraxisCard/EditPraxis) — update #232 to cite the new paths, not `templates/albescent/`.
 
 ## Issues filed so far (this audit)
 - **#372** UA task card — dropped crest/masthead/motto/Matriculate. `ready-for-agent`.
@@ -120,6 +124,8 @@ Molly is converting the designs into uniformly-named TS packages. **The canonica
 | Avatar         | ⚠️→#200 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 | Backdrop       | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | 🔁(#232) |
 
+> **MATRIX CAVEAT (2026-07-02 restructure):** the **Task Card** ✅ marks and the **Praxis Card** (#375) row were assessed against the now-STALE `templates/` designs. They need re-audit vs `components/factions/` + contracts (queue A1) — the fresh contracts added slots (praxis `votePoints`, `task` "re:" ref) the repo may lack. Treat these rows as provisional until re-checked. **Praxis (read)** ua ✅¢ was also vs stale templates/ and the read PAGE isn't migrated (queue B5).
+
 ## Findings log
 - **Task Card / ua → #372**: repo `TaskCardUA` has gilt-salon palette+frame but DROPPED the locked crest/masthead/motto-ribbon/Matriculate button in `templates/ua/UA Task Card.dc.html`. Crest exists in-repo (`UAFactionHero.UACrest`) → extract+reuse. `ready-for-agent`.
 - **Avatar / ua → #200**: no `components/avatar/UAAvatar.tsx`; FactionAvatar falls through for ua. Narrowed #200 to this.
@@ -137,12 +143,12 @@ Molly is converting the designs into uniformly-named TS packages. **The canonica
 - **Praxis-read / ua ▸**: `UAPraxisDetail` has Playfair+Marcellus+ua-gilt, no crest (a ledger sheet — crest not expected). Purpose-built as "The Standing" gilt ledger in #358, so likely faithful; cloud-compare `templates/ua/UA Praxis - Read.dc.html` to confirm.
 - **Praxis-card / ua ▸**: UA branch of `PraxisCard.tsx` has crest hits (3) + Playfair+Marcellus+ua-gilt. Signature present; cloud-compare pending.
 - **Edit-praxis / ua ▸**: `EditPraxisUA` has Playfair+Marcellus+ua-gilt ×2, no crest (a form). #361 port; cloud-compare `templates/ua/UA Edit Praxis.dc.html` pending.
-- **KEY TAKEAWAY**: #372 (task card) is an ISOLATED miss within UA's #361 re-skin, NOT systemic — task-detail/faction-page/backdrop all got the full gilt-salon treatment. UA vote still ⬜ (needs cloud vote design). Comment/Updates ⏭️ (no UA cloud design exists).
+- **KEY TAKEAWAY**: #372 (task card) is an ISOLATED miss within UA's #361 re-skin, NOT systemic — task-detail/faction-page/backdrop all got the full gilt-salon treatment. (SUPERSEDED note: the "Comment/Updates ⏭️ no UA design" claim here was WRONG — corrected below; `FactionCommentBox`/`FactionActivityCard` cover UA.)
 
 ### UA praxis + vote confirmed via cloud read (2026-07-02)
 - **Praxis-read / ua ✅**: cloud `UA Praxis - Read.dc.html` = "The Acquisition Sheet" (gilt-framed plate, "The Process" blob-bullet list, "The Critique" sidebar w/ standing meter + named rungs). Repo `UAPraxisDetail` (442 ln) carries Acquisition/Exhibited/Plate/"The Process"/"The Standing" + gilt plate + brushes sigil (6 hits). Faithful (repo names the standing section "The Standing" vs cloud "The Critique" — synonym, fine).
 - **Praxis-card / ua ✅**: UA branch of `PraxisCard.tsx` has crest(3)+Playfair+Marcellus+ua-gilt. No separate cloud praxis-card design (card = faction-page recentPraxis treatment); signature consistent with the read sheet. Faithful.
-- **Vote / ua ⚠️→#374 (RESOLVED direction: repo out of date)**: `UAVote` structure faithful, but rung WORDS out of date vs design. **cloud** = rough sketch/study/accomplished/distinguished/masterwork; **repo** (`voteReframes.ts ua.tiers`) = Noted/Sketch/Hung/Commended/Acquired. Molly confirmed design is canonical → filed #374 to update repo. (Earlier I wrongly assumed repo was canonical.)
+- **Vote / ua ⚠️→#374**: `UAVote` structure faithful, rung WORDS out of date. **repo** (`voteReframes.ts ua.tiers`) = Noted/Sketch/Hung/Commended/Acquired → align to design. ⚠️ UPDATED TARGET (2026-07-02 restructure): the canonical UA words are now **rough sketch · study · fair hand · fine work · masterwork** (per `praxis-card-contract.json`), NOT the "accomplished/distinguished" from the old templates/. #374 corrected via comment.
 - **Edit-praxis / ua ⚠️→#373**: cloud "Submit to the Salon" has the crest ×2 (masthead ribbon + commission slip) + design copy (Alone/Atelier/Salon Duel, "Hang it in the Salon"). Repo `EditPraxisUA` ("The Atelier") is structurally close (gilt Plates, RegaliaLabel, shared ModePicker) but **drops the crest** (0 SVG — same as #372) and diverges on copy (Sole/Joint/Contested, "File the acquisition"). Filed #373 (reuse UACrest, align copy).
 - **Praxis-read / ua ✅¢ (copy caveat under new principle)**: structure faithful (see above) BUT word-level copy drift vs design: repo names the standing section **"The Standing"**, design calls it **"The Critique"** / "Sit the Critique"; the standing/distribution rung words are the same out-of-date set covered by #374 (shared `voteReframes` source). If a full copy-alignment is wanted, add "The Standing"→"The Critique" to #374's scope or a copy-sweep issue.
 - **MINOR code-doc drift (not filed)**: `pages/praxisDetail/archetypes/UAPraxisDetail.tsx:13-14` comment says "no bespoke UA vote component exists" — FALSE; `UAVote` exists and is dispatched (`VoteUI.tsx:31`). Stale since UAVote landed. Trivial 2-line doc cleanup; note only.
