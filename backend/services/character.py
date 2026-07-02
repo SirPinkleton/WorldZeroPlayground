@@ -3,7 +3,7 @@ import re
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.sql import Select, false as sa_false
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,7 @@ from models.account import Account
 from models.character import Character, CharacterStatus
 from models.character_stats import CharacterStats
 from models.invitation_letter import InvitationLetter
-from models.praxis import ModerationStatus, Praxis, PraxisStatus
+from models.praxis import ModerationStatus, Praxis, PraxisMember, PraxisStatus
 from models.task import Task
 from schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
 from services.era import get_current_era_row, get_current_era_row_safe, get_or_create_stats
@@ -393,12 +393,58 @@ async def update_character(
     return character
 
 
-async def soft_delete_character(character_id: int, session: AsyncSession) -> None:
+async def soft_delete_character(
+    character_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> None:
     character = await get_character_by_id(character_id, session)
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
     character.status = CharacterStatus.banned
+
+    # ADR-0011 §Forfeit (#307): a ban forfeits every *settled* duel the banned
+    # character is a side of — the opponent wins by default. Sticky: leave duels
+    # already forfeited untouched. Recalc the winners so their win modifier lands
+    # (the banned side's own score is never read, so we don't recalc it).
+    from models.duel import Duel, DuelStatus
+    from services.character_stats import recalculate_character_stats
+
+    own_praxis_ids = select(Praxis.id).where(Praxis.created_by_id == character_id)
+    duels = (await session.execute(
+        select(Duel).where(
+            Duel.status == DuelStatus.settled,
+            Duel.forfeited_by_character_id.is_(None),
+            or_(
+                Duel.opponent_character_id == character_id,
+                Duel.challenger_praxis_id.in_(own_praxis_ids),
+            ),
+        )
+    )).scalars().all()
+
+    winner_ids: set[int] = set()
+    for duel in duels:
+        duel.forfeited_by_character_id = character_id
+        challenger_praxis = await session.get(Praxis, duel.challenger_praxis_id)
+        challenger_character_id = (
+            challenger_praxis.created_by_id if challenger_praxis else None
+        )
+        winner_id = (
+            duel.opponent_character_id
+            if challenger_character_id == character_id
+            else challenger_character_id
+        )
+        if winner_id is not None:
+            winner_ids.add(winner_id)
     await session.flush()
+
+    if winner_ids:
+        era_row = await get_current_era_row(session)
+        for winner_id in winner_ids:
+            await recalculate_character_stats(
+                winner_id, session, era, era_row=era_row
+            )
+        await session.flush()
 
 
 def _character_stats_era_join(era_id: int | None) -> Select:
@@ -427,18 +473,50 @@ async def list_characters_for_viewer(
     *,
     search: Optional[str] = None,
     faction_slug: Optional[str] = None,
+    exclude_active_task_id: Optional[int] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[tuple[Character, CharacterStats | None]]:
-    """List active characters with current-era stats. Optional name/faction filters."""
+    """List active characters with current-era stats. Optional name/faction filters.
+
+    ``exclude_active_task_id`` drops characters who already hold an active
+    (in_progress or submitted) praxis membership for that task — so the invite
+    search doesn't surface players the backend would 409 (#320). Everymen are
+    never excluded (Double Dipper perk: they may hold multiple memberships per
+    task), mirroring :func:`services.praxis.is_active_member_of_task`.
+    """
+    from services.praxis import EVERYMEN_FACTION_SLUG
+
     era_row = await get_current_era_row_safe(session)
     era_id = era_row.id if era_row else None
 
     query = _character_stats_era_join(era_id)
     if search:
-        query = query.where(Character.username.ilike(f"%{search}%"))
+        # Match on handle OR display name so "@Mol" surfaces "Molly" (@mollusk).
+        # The inserted mention is still @username; display_name only *matches*.
+        query = query.where(
+            or_(
+                Character.username.ilike(f"%{search}%"),
+                Character.display_name.ilike(f"%{search}%"),
+            )
+        )
     if faction_slug:
         query = query.where(Character.faction_slug == faction_slug)
+    if exclude_active_task_id is not None:
+        active_member_ids = (
+            select(PraxisMember.character_id)
+            .join(Praxis, PraxisMember.praxis_id == Praxis.id)
+            .where(
+                Praxis.task_id == exclude_active_task_id,
+                Praxis.status.in_([PraxisStatus.in_progress, PraxisStatus.submitted]),
+            )
+        )
+        query = query.where(
+            or_(
+                Character.faction_slug == EVERYMEN_FACTION_SLUG,
+                Character.id.notin_(active_member_ids),
+            )
+        )
     query = (
         query.order_by(CharacterStats.score.desc().nulls_last())
         .limit(limit)

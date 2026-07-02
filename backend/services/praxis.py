@@ -4,11 +4,13 @@ Handles all three praxis types: solo, collab, and duel.
 Replaces the old services/submission.py and services/collaboration.py.
 """
 
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -36,6 +38,7 @@ from schemas.praxis import (
     PraxisOut,
     PraxisUpdate,
 )
+from services import collab_consensus
 from services.character_stats import recalculate_character_stats
 from services.era import get_current_era_row, get_or_create_stats
 from models.duel import Duel, DuelStatus
@@ -51,72 +54,15 @@ ALBESCENT_FACTION_SLUG = "albescent"
 # ---------------------------------------------------------------------------
 
 
-async def _publish_collab(praxis: Praxis, session: AsyncSession, era: EraConfig) -> None:
-    """Seal a collab to Live: status=submitted, mark everyone submitted, recalc members.
-
-    Shared by the all-submitted path, the lazy-on-access timeout, and the leave path.
-    """
-    praxis.status = PraxisStatus.submitted
-    praxis.submitted_at = datetime.now(timezone.utc)
-    praxis.submit_proposed_at = None
-    for member in praxis.members:
-        member.has_submitted = True
-    await session.flush()
-    era_row = await get_current_era_row(session)
-    for member in praxis.members:
-        await recalculate_character_stats(member.character_id, session, era, era_row=era_row)
-    await session.flush()
-
-
-async def _publish_if_window_lapsed(
-    praxis: Praxis, session: AsyncSession, era: EraConfig
-) -> None:
-    """Lazy-on-access timeout (ADR-0012): auto-publish a pending collab whose window elapsed.
-
-    Called from the read paths (:func:`get_praxis`, :func:`list_praxes`) so no scheduler
-    is needed. Cheap no-op for everything except a collab with an open, lapsed window.
-
-    ponytail: a collab nobody ever reads stays in_progress until first touch (members'
-    scores understated); self-heals on next read of any kind. Upgrade path if deterministic
-    timing is ever needed: an in-process periodic sweep calling this same helper.
-    """
-    if (
-        praxis.type != PraxisType.collab
-        or praxis.status != PraxisStatus.in_progress
-        or praxis.submit_proposed_at is None
-    ):
-        return
-    deadline = praxis.submit_proposed_at + timedelta(days=era.collab_auto_submit_days)
-    if datetime.now(timezone.utc) < deadline:
-        return
-    await _publish_collab(praxis, session, era)
-
-
 async def cancel_pending_publish_on_edit(
     praxis: Praxis, session: AsyncSession, era: EraConfig = CURRENT_ERA
 ) -> None:
-    """Hard reset on a collab edit (ADR-0012): an edit means "we're not done".
+    """Backwards-compatible alias for :func:`collab_consensus.on_member_edit`.
 
-    Cancels the pending-publish window, clears *everyone's* ``has_submitted``, and
-    returns the collab to drafting. No-op for solo/duel, or a collab that is neither
-    pending nor Live. Used by title/body edits and media add/remove.
+    Kept so the media/edit routes keep their existing import; the ADR-0012 window
+    logic now lives in ``services.collab_consensus`` (#331).
     """
-    if praxis.type != PraxisType.collab:
-        return
-    if praxis.submit_proposed_at is None and praxis.status != PraxisStatus.submitted:
-        return
-    was_live = praxis.status == PraxisStatus.submitted
-    praxis.submit_proposed_at = None
-    praxis.status = PraxisStatus.in_progress
-    for member in praxis.members:
-        member.has_submitted = False
-    await session.flush()
-    if was_live:
-        # Leaving Live changes scoring — recompute every member's stats.
-        era_row = await get_current_era_row(session)
-        for member in praxis.members:
-            await recalculate_character_stats(member.character_id, session, era, era_row=era_row)
-        await session.flush()
+    await collab_consensus.on_member_edit(praxis, session, era)
 
 
 def _require_member(praxis: Praxis, character_id: int, action: str) -> None:
@@ -330,8 +276,24 @@ async def get_praxis(
     praxis = result.scalar_one_or_none()
     if praxis is None:
         raise HTTPException(status_code=404, detail="Praxis not found.")
-    await _publish_if_window_lapsed(praxis, session, era)
+    await collab_consensus.settle_if_window_lapsed(praxis, session, era)
     return praxis
+
+
+def praxis_visibility_condition(viewer_id: Optional[int]):
+    """SQL predicate for who may see a praxis (ADR-0024).
+
+    ``submitted`` praxes are public; an ``in_progress`` praxis is visible only to
+    its members (character-scoped, matching ``_require_member``). Push this into
+    the query so pagination stays honest instead of post-filtering a page.
+    """
+    visible = Praxis.status == PraxisStatus.submitted
+    if viewer_id is not None:
+        member_praxis_ids = select(PraxisMember.praxis_id).where(
+            PraxisMember.character_id == viewer_id
+        )
+        visible = or_(visible, Praxis.id.in_(member_praxis_ids))
+    return visible
 
 
 async def list_praxes(
@@ -343,12 +305,17 @@ async def list_praxes(
     status: Optional[PraxisStatus] = None,
     moderation_status: Optional[str] = None,
     faction: Optional[str] = None,
+    viewer_id: Optional[int] = None,
     limit: int = 50,
     offset: int = 0,
     era: EraConfig = CURRENT_ERA,
 ) -> list[Praxis]:
-    """List praxes with optional filters."""
-    query = select(Praxis)
+    """List praxes with optional filters.
+
+    ``in_progress`` praxes are member-only (ADR-0024): pass ``viewer_id`` to
+    include the viewer's own drafts; everyone else sees only ``submitted``.
+    """
+    query = select(Praxis).where(praxis_visibility_condition(viewer_id))
 
     if faction is not None:
         # Praxis has no faction of its own; it inherits the linked task's faction.
@@ -381,8 +348,89 @@ async def list_praxes(
     result = await session.execute(query)
     praxes = list(result.scalars().all())
     for praxis in praxes:
-        await _publish_if_window_lapsed(praxis, session, era)
+        await collab_consensus.settle_if_window_lapsed(praxis, session, era)
     return praxes
+
+
+class SignupDenialReason(str, Enum):
+    """Why the type-agnostic sign-up gates reject a claim (ADR-0008)."""
+
+    below_level = "below_level"
+    task_status_closed = "task_status_closed"
+    already_active_member = "already_active_member"
+    bank_full = "bank_full"
+
+
+@dataclass(frozen=True)
+class SignupEligibility:
+    """Result of :func:`evaluate_signup`. ``reason`` is set iff ``allowed`` is False."""
+
+    allowed: bool
+    reason: Optional[SignupDenialReason] = None
+
+
+async def evaluate_signup(
+    character: Optional[Character],
+    task: Task,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> SignupEligibility:
+    """The single sign-up predicate — true iff ``create_praxis``'s **type-agnostic**
+    gates would accept (ADR-0008). Owns the four gates every claim shares: level,
+    retired/pending faction carve-out, active-member, and the task-bank cap. The
+    mode-specific gates (duel-via-challenge, collab level) stay in
+    :func:`allowed_praxis_modes` and are applied by :func:`_check_create_preconditions`.
+
+    Anonymous viewers are never eligible (``allowed=False``, no ``reason``).
+    """
+    if character is None:
+        return SignupEligibility(allowed=False)
+
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character.id, era_row.id)
+
+    if stats.level < task.level_required:
+        return SignupEligibility(False, SignupDenialReason.below_level)
+
+    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
+        return SignupEligibility(False, SignupDenialReason.task_status_closed)
+    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
+        return SignupEligibility(False, SignupDenialReason.task_status_closed)
+
+    if await is_active_member_of_task(character, task, session):
+        return SignupEligibility(False, SignupDenialReason.already_active_member)
+
+    in_progress_count = await _count_in_progress_praxes(character.id, session)
+    if in_progress_count >= era.max_task_signups:
+        return SignupEligibility(False, SignupDenialReason.bank_full)
+
+    return SignupEligibility(allowed=True)
+
+
+def _signup_denial_to_http(
+    reason: Optional[SignupDenialReason], task: Task, era: EraConfig
+) -> HTTPException:
+    """Map a :class:`SignupDenialReason` to the route error it has always raised."""
+    if reason == SignupDenialReason.below_level:
+        return HTTPException(
+            status_code=403, detail=f"This task requires level {task.level_required}."
+        )
+    if reason == SignupDenialReason.task_status_closed:
+        detail = (
+            "This task is retired and is not open for new praxes."
+            if task.status == TaskStatus.retired
+            else "This task is pending and is not open for new praxes."
+        )
+        return HTTPException(status_code=403, detail=detail)
+    if reason == SignupDenialReason.already_active_member:
+        return HTTPException(
+            status_code=409, detail="You have already submitted a praxis for this task."
+        )
+    # bank_full (and the anonymous/None fallback, which create_praxis never hits).
+    return HTTPException(
+        status_code=400,
+        detail=f"Task bank is full ({era.max_task_signups} in-progress praxes). Complete or withdraw one first.",
+    )
 
 
 async def _check_create_preconditions(
@@ -397,45 +445,25 @@ async def _check_create_preconditions(
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
 
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, character_id, era_row.id)
-
-    if stats.level < task.level_required:
-        raise HTTPException(
-            status_code=403,
-            detail=f"This task requires level {task.level_required}.",
-        )
-
-    # One-praxis-per-task gate (with Everymen Double Dipper carve-out).
-    # Uses the same helper that powers the ``can_submit_praxis`` flag on the
-    # task detail response so the rule is single-sourced.
     character = await session.get(Character, character_id)
     if character is None:
         raise HTTPException(status_code=404, detail="Character not found.")
 
-    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
-        raise HTTPException(
-            status_code=403,
-            detail="This task is retired and is not open for new praxes.",
-        )
-    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
-        raise HTTPException(
-            status_code=403,
-            detail="This task is pending and is not open for new praxes.",
-        )
+    # Type-agnostic gates: level, retired/pending, active-member, bank cap — one
+    # predicate, so the can_submit_praxis flag can't drift from enforcement.
+    eligibility = await evaluate_signup(character, task, session, era)
+    if not eligibility.allowed:
+        raise _signup_denial_to_http(eligibility.reason, task, era)
 
-    if not await can_submit_praxis_for_task(character, task, session, era):
-        raise HTTPException(
-            status_code=409,
-            detail="You have already submitted a praxis for this task.",
-        )
-
+    # Mode-specific gates stay here (single-sourced via allowed_praxis_modes).
     if praxis_type == PraxisType.duel:
         raise HTTPException(
             status_code=400,
             detail="Duels are issued via the challenge endpoint, not direct praxis creation (ADR-0011).",
         )
 
+    era_row = await get_current_era_row(session)
+    stats = await get_or_create_stats(session, character_id, era_row.id)
     allowed = allowed_praxis_modes(character, stats.level, era)
     if praxis_type not in allowed:
         _denial: dict[PraxisType, str] = {
@@ -446,12 +474,6 @@ async def _check_create_preconditions(
             detail=_denial.get(praxis_type, "Praxis mode not available."),
         )
 
-    in_progress_count = await _count_in_progress_praxes(character_id, session)
-    if in_progress_count >= era.max_task_signups:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task bank is full ({era.max_task_signups} in-progress praxes). Complete or withdraw one first.",
-        )
     return task
 
 
@@ -523,6 +545,86 @@ async def update_praxis(
     return await get_praxis(praxis_id, session)
 
 
+async def change_praxis_type(
+    praxis_id: int,
+    new_type: PraxisType,
+    character_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> Praxis:
+    """Flip a praxis between solo and collab in place, preserving id/content/media (#321).
+
+    A collab is just a ``type=solo`` praxis + members; recreation is unnecessary
+    and destructive (the old flow ``delete_praxis`` + ``create_praxis`` discarded
+    the draft). This flips ``Praxis.type`` instead.
+
+    Guards:
+    - Only the author may change mode.
+    - Praxis must be ``in_progress``.
+    - Target must be solo or collab — duels are issued via the challenge endpoint
+      (ADR-0011), never a direct type change.
+    - solo → collab requires ``era.collaboration_level_required``.
+    - A duel side (a solo praxis linked by a live Duel row) cannot change type.
+
+    solo → collab flips the type; collab → solo drops every non-author member and
+    any pending invites (the caller confirms this loss first).
+    """
+    if new_type not in (PraxisType.solo, PraxisType.collab):
+        raise HTTPException(
+            status_code=400,
+            detail="Only solo and collab modes can be switched in place; duels use the challenge endpoint (ADR-0011).",
+        )
+
+    praxis = await get_praxis(praxis_id, session)
+    if praxis.created_by_id != character_id:
+        raise HTTPException(status_code=403, detail="Only the author can change the praxis mode.")
+    if praxis.status != PraxisStatus.in_progress:
+        raise HTTPException(status_code=422, detail="Only an in-progress praxis can change mode.")
+
+    # A duel side is a solo praxis linked by a Duel row; never let it morph.
+    duel_result = await session.execute(
+        select(Duel.id).where(
+            or_(
+                Duel.challenger_praxis_id == praxis_id,
+                Duel.opponent_praxis_id == praxis_id,
+            ),
+            Duel.status.in_([DuelStatus.pending, DuelStatus.active, DuelStatus.settled]),
+        )
+    )
+    if duel_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This praxis is part of a duel and cannot change mode.",
+        )
+
+    if praxis.type == new_type:
+        return praxis
+
+    if new_type == PraxisType.collab:
+        era_row = await get_current_era_row(session)
+        stats = await get_or_create_stats(session, character_id, era_row.id)
+        if stats.level < era.collaboration_level_required:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Collaborations require level {era.collaboration_level_required}.",
+            )
+    else:
+        # collab → solo: drop everyone but the author + any pending invites.
+        # delete-orphan cascades the row DELETEs (see models/praxis.py).
+        for member in list(praxis.members):
+            if member.character_id != character_id:
+                praxis.members.remove(member)
+        for invite in list(praxis.invites):
+            if invite.status == PraxisInviteStatus.pending:
+                praxis.invites.remove(invite)
+
+    praxis.type = new_type
+    await session.flush()
+    # A type change is a structural edit — reset any collab pending-publish window.
+    await cancel_pending_publish_on_edit(praxis, session, era)
+    return await get_praxis(praxis_id, session)
+
+
 async def withdraw_praxis(
     praxis_id: int,
     character_id: int,
@@ -534,11 +636,35 @@ async def withdraw_praxis(
     Votes are preserved but stop contributing to score until resubmitted via
     ``submit_praxis``. For collabs/duels, member submission flags are reset so
     the full group must re-submit.
+
+    Unsubmitting a *settled* duel side forfeits the contest (ADR-0011 §Forfeit):
+    the opponent wins by default, the duel stays ``settled``, and the forfeit is
+    permanent — resubmitting does not restore it.
     """
     praxis = await get_praxis(praxis_id, session)
     _require_member(praxis, character_id, "reopen")
     if praxis.status == PraxisStatus.in_progress:
         raise HTTPException(status_code=422, detail="Praxis is already in editing mode.")
+
+    # ADR-0011 §Forfeit (#307): unsubmitting a *settled* duel side forfeits the
+    # contest. Mark the forfeit (first one sticks) and recalc the winner below so
+    # their guaranteed-win modifier lands immediately.
+    from services.duel import get_duel_for_praxis
+
+    duel = await get_duel_for_praxis(praxis_id, session)
+    forfeit_winner_character_id: Optional[int] = None
+    if duel is not None and duel.status == DuelStatus.settled:
+        if duel.forfeited_by_character_id is None:
+            duel.forfeited_by_character_id = character_id
+        winner_praxis_id = (
+            duel.opponent_praxis_id
+            if duel.challenger_praxis_id == praxis_id
+            else duel.challenger_praxis_id
+        )
+        if winner_praxis_id is not None:
+            winner_praxis = await session.get(Praxis, winner_praxis_id)
+            if winner_praxis is not None:
+                forfeit_winner_character_id = winner_praxis.created_by_id
 
     praxis.status = PraxisStatus.in_progress
     praxis.submit_proposed_at = None
@@ -546,7 +672,89 @@ async def withdraw_praxis(
         member.has_submitted = False
     await session.flush()
 
-    await recalculate_character_stats(character_id, session, era)
+    # Recalc *every* member: on a collab, co-authors' scores also counted this
+    # praxis while it was submitted, so all of them must drop (the submit paths
+    # already recalc all members — this fixes the prior single-actor under-recalc).
+    era_row = await get_current_era_row(session)
+    for member in praxis.members:
+        await recalculate_character_stats(
+            member.character_id, session, era, era_row=era_row
+        )
+    if forfeit_winner_character_id is not None:
+        await recalculate_character_stats(
+            forfeit_winner_character_id, session, era, era_row=era_row
+        )
+    await session.flush()
+    return await get_praxis(praxis_id, session)
+
+
+async def change_praxis_type(
+    praxis_id: int,
+    new_type: PraxisType,
+    character_id: int,
+    session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
+) -> Praxis:
+    """Flip a praxis between ``solo`` and ``collab`` in place (#321).
+
+    Preserves content, **id**, and media — never delete+recreate. Guards: the
+    praxis must be ``in_progress``; the actor must be a member; a duel side
+    (it has a live ``Duel`` row) must dissolve the duel first; ``collab``
+    requires ``era.collaboration_level_required``. ``duel`` is not a target here
+    — a duel is a solo praxis + ``Duel`` row (ADR-0011), issued via the challenge
+    endpoint.
+
+    ``collab → solo`` is an intentional **takeover** (grill 2026-07-01): any
+    member may do it and becomes the sole owner — ``created_by_id`` is reassigned
+    to the actor, every other member and pending invite is dropped, content is
+    kept. Trust has stakes.
+    """
+    if new_type not in (PraxisType.solo, PraxisType.collab):
+        raise HTTPException(
+            status_code=400, detail="Can only switch between solo and collab."
+        )
+
+    praxis = await get_praxis(praxis_id, session)
+    _require_member(praxis, character_id, "change the mode of")
+    if praxis.status != PraxisStatus.in_progress:
+        raise HTTPException(
+            status_code=422, detail="Can only change mode while the praxis is in editing."
+        )
+    if praxis.type == new_type:
+        return praxis
+
+    # A duel side is a solo praxis + Duel row; dissolve the duel before switching.
+    from services.duel import get_duel_for_praxis
+
+    if await get_duel_for_praxis(praxis_id, session) is not None:
+        raise HTTPException(
+            status_code=409, detail="End the duel before changing this praxis's mode."
+        )
+
+    if new_type == PraxisType.collab:
+        era_row = await get_current_era_row(session)
+        stats = await get_or_create_stats(session, character_id, era_row.id)
+        if stats.level < era.collaboration_level_required:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Collaborations require level {era.collaboration_level_required}.",
+            )
+        praxis.type = PraxisType.collab
+    else:
+        # collab → solo: the actor takes it over as their own solo praxis.
+        # Mutate the loaded collections so the delete-orphan cascade fires *and*
+        # the returned/serialized praxis reflects the drop (session.delete alone
+        # would leave the selectin-cached collections stale).
+        praxis.type = PraxisType.solo
+        praxis.created_by_id = character_id
+        for member in list(praxis.members):
+            if member.character_id != character_id:
+                praxis.members.remove(member)
+        for invite in list(praxis.invites):
+            if invite.status == PraxisInviteStatus.pending:
+                praxis.invites.remove(invite)
+
+    # in_progress praxes aren't scored, so no stat recalc is needed here.
     await session.flush()
     return await get_praxis(praxis_id, session)
 
@@ -569,6 +777,52 @@ async def delete_praxis(
     await session.flush()
 
 
+def can_view_praxis(viewer: Optional[Character], praxis: Praxis) -> bool:
+    """Whether ``viewer`` may see ``praxis`` (ADR-0024).
+
+    - ``hidden`` (moderation) → never (mirror the existing hidden branch: 404).
+    - ``submitted`` → public.
+    - ``in_progress`` → members only (character-scoped, matching ``_require_member``;
+      the account-vs-character question in #293 is deliberately not entangled here).
+
+    Reads only always-loaded columns/relationships (``members``), so it stays sync.
+    """
+    if praxis.moderation_status == ModerationStatus.hidden:
+        return False
+    if praxis.status == PraxisStatus.submitted:
+        return True
+    if viewer is None:
+        return False
+    return viewer.id in {member.character_id for member in praxis.members}
+
+
+async def _praxis_author_account_id(
+    praxis: Praxis, session: AsyncSession
+) -> Optional[int]:
+    """The account that owns ``praxis``'s author (created_by is usually loaded)."""
+    author = praxis.created_by
+    if author is None and praxis.created_by_id is not None:
+        author = await session.get(Character, praxis.created_by_id)
+    return author.account_id if author is not None else None
+
+
+async def _account_already_flagged(
+    praxis_id: int, account_id: int, session: AsyncSession
+) -> bool:
+    """True if any character on ``account_id`` already flagged this praxis (#328 anti-gang).
+
+    Joins ``Flag.flagged_by → Character.account_id`` so no ``flagged_by_account_id``
+    column / migration is needed.
+    """
+    result = await session.execute(
+        select(Flag.id)
+        .join(Character, Character.id == Flag.flagged_by)
+        .where(Flag.praxis_id == praxis_id, Character.account_id == account_id)
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def can_flag_praxis(
     viewer: Optional[Character],
     praxis: Praxis,
@@ -577,14 +831,19 @@ async def can_flag_praxis(
 ) -> bool:
     """Return True if ``viewer`` may flag ``praxis``.
 
-    Mirrors the rules enforced in :func:`flag_praxis`:
+    Mirrors the rules enforced in :func:`flag_praxis` so the ``can_flag`` UI flag
+    hides the control exactly when the action would 403/409 (#328):
     - Viewer must be authenticated (anonymous viewers cannot flag).
+    - Viewer's **account** cannot own the praxis author (account-scoped anti-self-flag).
+    - Viewer's **account** must not already have a flag on this praxis (anti-gang).
     - Viewer must be at or above ``era.flag_level_required`` in the current era.
-    - Viewer cannot flag a praxis they authored (character-level check).
     """
     if viewer is None:
         return False
-    if viewer.id == praxis.created_by_id:
+    author_account_id = await _praxis_author_account_id(praxis, session)
+    if author_account_id is not None and author_account_id == viewer.account_id:
+        return False
+    if await _account_already_flagged(praxis.id, viewer.account_id, session):
         return False
     era_row = await get_current_era_row(session)
     stats = await get_or_create_stats(session, viewer.id, era_row.id)
@@ -637,34 +896,15 @@ async def can_submit_praxis_for_task(
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> bool:
-    """Return True if ``character`` passes every signup gate for ``task``.
+    """Return True iff ``create_praxis``'s type-agnostic gates would accept — the
+    truthful ``can_submit_praxis`` flag on ``TaskOut`` (ADR-0008).
 
-    Mirrors all guards enforced in :func:`_check_create_preconditions` so the
-    frontend ``can_submit_praxis`` flag on ``TaskOut`` is always truthful:
-    - Anonymous viewers → False.
-    - Character level below ``task.level_required`` → False.
-    - Task is retired/pending and character's faction is not in the
-      ``allow_praxis_on_retired/pending_task_factions`` carve-out → False.
-    - Character already holds an active ``PraxisMember`` row (authored *or*
-      joined via collab invite) on a non-deleted praxis for this task → False.
-      The Everymen faction (Double Dipper perk) is exempt from this last gate
-      only — level and task-status gates still apply to everyone.
+    Derives from :func:`evaluate_signup`, so it covers every shared gate: level,
+    retired/pending faction carve-out, active-member (Everymen Double-Dipper
+    exempt), **and the task-bank cap** — the last was previously omitted here,
+    which made the sign-up button lie once a character's bank was full.
     """
-    if character is None:
-        return False
-
-    era_row = await get_current_era_row(session)
-    stats = await get_or_create_stats(session, character.id, era_row.id)
-
-    if stats.level < task.level_required:
-        return False
-
-    if task.status == TaskStatus.retired and character.faction_slug not in era.allow_praxis_on_retired_task_factions:
-        return False
-    if task.status == TaskStatus.pending and character.faction_slug not in era.allow_praxis_on_pending_task_factions:
-        return False
-
-    return not await is_active_member_of_task(character, task, session)
+    return (await evaluate_signup(character, task, session, era)).allowed
 
 
 def allowed_praxis_modes(
@@ -733,10 +973,19 @@ async def flag_praxis(
     """Flag a praxis for moderation review. Requires ``era.flag_level_required`` or above."""
     praxis = await get_praxis(praxis_id, session)
 
-    # Self-flag is always rejected with its own error message so the caller
-    # sees a clearer reason than a generic level failure.
-    if flagged_by.id == praxis.created_by_id:
+    # Account-scoped anti-self-flag (#328): no account can flag its own work
+    # across lives — mirror the account-level anti-self-vote shape. Own message
+    # so the caller sees a clearer reason than a generic level failure.
+    author_account_id = await _praxis_author_account_id(praxis, session)
+    if author_account_id is not None and author_account_id == flagged_by.account_id:
         raise HTTPException(status_code=403, detail="Cannot flag your own praxis.")
+
+    # Account-scoped uniqueness (#328): one flag per account per praxis — a second
+    # life can't stack a second flag to gang up on a third-party praxis.
+    if await _account_already_flagged(praxis.id, flagged_by.account_id, session):
+        raise HTTPException(
+            status_code=409, detail="Your account has already flagged this praxis."
+        )
 
     if not await can_flag_praxis(flagged_by, praxis, session, era):
         raise HTTPException(
@@ -909,14 +1158,8 @@ async def kick_member(
     # identity-mapped praxis to build its response.
     praxis.members.remove(kickee_member)
 
-    # A kick resets everyone back to drafting (ADR-0013): cancel any pending-publish
-    # window and clear submissions so the changed group must re-consent.
-    for member in praxis.members:
-        member.has_submitted = False
-    praxis.status = PraxisStatus.in_progress
-    praxis.submit_proposed_at = None
-
-    await session.flush()
+    # A kick resets the changed group back to drafting (ADR-0013).
+    await collab_consensus.on_member_kicked(praxis, session)
 
 
 async def leave_praxis(
@@ -940,14 +1183,8 @@ async def leave_praxis(
     praxis.members.remove(leaver)
     await session.flush()
 
-    remaining = praxis.members
-    if (
-        remaining
-        and praxis.status != PraxisStatus.submitted
-        and all(m.has_submitted for m in remaining)
-    ):
-        # Departure can complete the consensus among those who stayed.
-        await _publish_collab(praxis, session, era)
+    # A departure can complete the consensus among those who stayed.
+    await collab_consensus.on_member_leave(praxis, session, era)
 
     # The leaver's stake is gone — recompute their stats regardless.
     await recalculate_character_stats(character_id, session, era)
@@ -974,20 +1211,11 @@ async def submit_praxis(
     if character_id not in member_ids:
         raise HTTPException(status_code=403, detail="You are not a member of this praxis.")
 
-    for member in praxis.members:
-        if member.character_id == character_id:
-            member.has_submitted = True
-            break
-
-    await session.flush()
-    await session.refresh(praxis)
-
-    if all(m.has_submitted for m in praxis.members):
-        praxis.status = PraxisStatus.submitted
-        praxis.submitted_at = datetime.now(timezone.utc)
-        praxis.submit_proposed_at = None
-        await session.flush()
-        # Settle the duel if both sides have now submitted (ADR-0011).
+    went_live = await collab_consensus.on_submit(praxis, character_id, session, era)
+    if went_live:
+        # Settle any duel BEFORE the stats recalc — the outcome feeds the duel
+        # multiplier. Kept here (not in collab_consensus) because it depends on
+        # services.duel, which imports services.praxis (import-cycle avoidance).
         from services.duel import maybe_settle_duel
         await maybe_settle_duel(praxis_id, session)
         era_row = await get_current_era_row(session)
@@ -995,11 +1223,7 @@ async def submit_praxis(
             await recalculate_character_stats(
                 member.character_id, session, era, era_row=era_row
             )
-    elif praxis.type == PraxisType.collab and praxis.submit_proposed_at is None:
-        # First member to submit opens the silence-is-consent countdown.
-        praxis.submit_proposed_at = datetime.now(timezone.utc)
-
-    await session.flush()
+        await session.flush()
     return await get_praxis(praxis_id, session)
 
 
@@ -1183,8 +1407,10 @@ __all__ = [
     "cancel_pending_publish_on_edit",
     "can_flag_praxis",
     "can_submit_praxis_for_task",
+    "can_view_praxis",
     "create_praxis",
     "delete_praxis",
+    "evaluate_signup",
     "flag_praxis",
     "get_praxis",
     "invite_to_praxis",
@@ -1193,9 +1419,12 @@ __all__ = [
     "kick_member",
     "leave_praxis",
     "list_praxes",
+    "praxis_visibility_condition",
     "moderate_praxis",
     "remove_metatask",
     "respond_to_invite",
+    "SignupDenialReason",
+    "SignupEligibility",
     "submit_praxis",
     "update_praxis",
     "withdraw_praxis",

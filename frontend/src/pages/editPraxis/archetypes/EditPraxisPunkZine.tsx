@@ -7,7 +7,7 @@ import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
 import MediaArt from "../blocks/MediaArt";
-import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
+import { pickArtKey } from "../blocks/useMediaArt";
 import {
   Breadcrumb,
   ErrorBanner,
@@ -26,7 +26,6 @@ import {
   MetatasksList,
   ModePicker,
   PublishButton,
-  SaveButton,
   TitleField,
 } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
@@ -272,8 +271,7 @@ export default function EditPraxisPunkZine({ state }: Props) {
         )}
 
         {/* Invite */}
-        {state.showCollabInvite &&
-          !(praxis.type === "duel" && state.duelSlotFull) && (
+        {state.showInviteBox && (
             <div
               style={{
                 marginBottom: 22,
@@ -286,7 +284,7 @@ export default function EditPraxisPunkZine({ state }: Props) {
                 className="eyebrow"
                 style={{ color: hot, display: "block", marginBottom: 8 }}
               >
-                {praxis.type === "duel" ? "✗ THE OPPOSITION ✗" : "WHO ELSE"}
+                {state.duelMode ? "✗ THE OPPOSITION ✗" : "WHO ELSE"}
               </span>
               <InviteSearch
                 state={state}
@@ -295,10 +293,9 @@ export default function EditPraxisPunkZine({ state }: Props) {
                   inputBg: surface,
                   inputColor: ink,
                   inputBorder: `2px dashed ${accentDeep}`,
-                  placeholder:
-                    praxis.type === "duel"
-                      ? "@ who are you fighting?"
-                      : "@ who else?",
+                  placeholder: state.duelMode
+                    ? "@ who are you fighting?"
+                    : "@ who else?",
                   pillBg: lightBg,
                   acceptedBg: accentDeep,
                   acceptedColor: "var(--color-text-on-accent)",
@@ -525,72 +522,6 @@ export default function EditPraxisPunkZine({ state }: Props) {
           >
             ↳ glue in proof · photos / audio / receipts
           </span>
-          <div
-            style={{
-              display: "flex",
-              gap: 14,
-              flexWrap: "wrap",
-              marginBottom: 8,
-            }}
-          >
-            {state.newFiles.map((file, index) => (
-              <div
-                key={index}
-                style={{
-                  position: "relative",
-                  border: `2px solid ${accentDeep}`,
-                  padding: 6,
-                  background: surface,
-                  transform: `rotate(${index % 2 ? 2 : -2.4}deg)`,
-                  boxShadow: `2px 2px 0 ${accentDeep}`,
-                }}
-              >
-                <div
-                  style={{
-                    width: 140,
-                    height: 100,
-                    overflow: "hidden",
-                    filter: "contrast(1.15)",
-                  }}
-                >
-                  <MediaArt art={mediaArtKeysFromFile(file)} />
-                </div>
-                <div
-                  style={{
-                    fontSize: 9,
-                    marginTop: 4,
-                    color: accentDeep,
-                    fontStyle: "italic",
-                  }}
-                >
-                  FIG. {state.media.length + index + 1} · {file.name}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => state.removeNewFile(index)}
-                  aria-label={`Remove ${file.name}`}
-                  style={{
-                    position: "absolute",
-                    top: -8,
-                    right: -8,
-                    width: 22,
-                    height: 22,
-                    background: lightBg,
-                    border: `2px solid ${ink}`,
-                    color: ink,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    lineHeight: 1,
-                    padding: 0,
-                    borderRadius: "50%",
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
           <FilePicker
             state={state}
             skin={{
@@ -694,26 +625,6 @@ export default function EditPraxisPunkZine({ state }: Props) {
                 position: "relative",
                 transform: "rotate(-1.8deg)",
                 boxShadow: `4px 4px 0 ${ink}`,
-              },
-            }}
-          />
-          <SaveButton
-            state={state}
-            skin={{
-              idleLabel: "save draft",
-              busyLabel: "saving...",
-              style: {
-                background: surface,
-                color: accentDeep,
-                fontFamily: "'Special Elite', serif",
-                fontSize: 12,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                padding: "10px 18px",
-                border: `2px solid ${accentDeep}`,
-                cursor: state.saving ? "wait" : "pointer",
-                transform: "rotate(0.6deg)",
               },
             }}
           />

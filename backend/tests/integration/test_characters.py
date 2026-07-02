@@ -126,6 +126,22 @@ async def test_list_characters_search_by_username(
 
 
 @pytest.mark.asyncio
+async def test_list_characters_search_by_display_name(
+    client: AsyncClient, character: Character, character2: Character
+):
+    """Search matches display_name, not just username (#229 — powers @mention typeahead).
+
+    character2's display_name is "Other Character"; its username ("othercharacter")
+    has no space, so this substring only matches via display_name.
+    """
+    resp = await client.get("/characters", params={"search": "Other Character"})
+    assert resp.status_code == 200
+    ids = [c["id"] for c in resp.json()]
+    assert character2.id in ids
+    assert character.id not in ids
+
+
+@pytest.mark.asyncio
 async def test_list_characters_filter_by_faction(
     client: AsyncClient, character: Character, character2: Character
 ):
@@ -144,6 +160,32 @@ async def test_list_characters_faction_no_match(client: AsyncClient, character: 
     resp = await client.get("/characters", params={"faction": "nonexistent_faction"})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+@pytest.mark.asyncio
+async def test_list_characters_excludes_players_active_on_task(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers2: dict,
+):
+    """exclude_active_task_id hides players already active on that task (#320)."""
+    # character2 signs up solo on the task → active member for it.
+    create = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo"},
+        headers=auth_headers2,
+    )
+    assert create.status_code == 201
+
+    resp = await client.get(
+        "/characters", params={"exclude_active_task_id": active_task.id}
+    )
+    assert resp.status_code == 200
+    ids = [c["id"] for c in resp.json()]
+    assert character2.id not in ids  # active on the task → hidden
+    assert character.id in ids  # not active → still listed
 
 
 @pytest.mark.asyncio
@@ -204,11 +246,15 @@ async def test_get_character_praxes_returns_list(
     active_task: Task,
 ):
     """GET /characters/{id}/praxes returns seeded praxis entries."""
-    from models.praxis import PraxisType
+    from models.praxis import PraxisStatus, PraxisType
     praxis = Praxis(
         task_id=active_task.id,
         created_by_id=character.id,
         type=PraxisType.solo,
+        # submitted so it's publicly visible on the profile grid (ADR-0024):
+        # in_progress praxes are member-only, and this ORM-seeded row has no
+        # PraxisMember, so it would be filtered out otherwise.
+        status=PraxisStatus.submitted,
         title="My Praxis",
         body_text="Proof here",
     )
@@ -230,12 +276,14 @@ async def test_get_character_praxes_pagination(
     active_task: Task,
 ):
     """GET /characters/{id}/praxes respects limit and offset."""
-    from models.praxis import PraxisType
+    from models.praxis import PraxisStatus, PraxisType
     for index in range(3):
         praxis = Praxis(
             task_id=active_task.id,
             created_by_id=character.id,
             type=PraxisType.solo,
+            # submitted so it's publicly visible (ADR-0024); see returns_list test.
+            status=PraxisStatus.submitted,
             title=f"Praxis {index}",
             body_text="proof",
         )
@@ -532,18 +580,22 @@ async def test_upload_avatar_wrong_owner(
 
 
 @pytest.mark.asyncio
-async def test_upload_avatar_not_found(
+async def test_upload_avatar_not_active_character(
     client: AsyncClient,
     auth_headers: dict,
 ):
-    """Uploading an avatar for a nonexistent character returns 404."""
+    """Uploading to an id that isn't the caller's active character returns 403.
+
+    The avatar guard is identity-based, matching edit/delete (ADR-0025): a
+    mismatched id (here, a nonexistent one) is rejected as 403, not 404.
+    """
     jpeg_bytes = _make_jpeg_bytes()
     resp = await client.post(
         "/characters/99999/avatar",
         files={"file": ("avatar.jpg", jpeg_bytes, "image/jpeg")},
         headers=auth_headers,
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio

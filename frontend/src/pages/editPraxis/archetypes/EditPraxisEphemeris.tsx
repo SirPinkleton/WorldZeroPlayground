@@ -13,7 +13,7 @@ import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
 import MediaArt from "../blocks/MediaArt";
-import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
+import { pickArtKey } from "../blocks/useMediaArt";
 import { Breadcrumb, ErrorBanner, formatAutosave } from "./shared";
 import {
   BodyPreview,
@@ -24,7 +24,6 @@ import {
   MetatasksList,
   ModePicker,
   PublishButton,
-  SaveButton,
   TitleField,
 } from "./controls";
 import { EphMark, Foxing, LapisLastWord, toRoman } from "../../../components/cards/ephemeristsAtoms";
@@ -228,10 +227,10 @@ export default function EditPraxisEphemeris({ state }: Props) {
         )}
 
         {/* invite (collab / duel) */}
-        {state.showCollabInvite && !(praxis.type === "duel" && state.duelSlotFull) && (
+        {state.showInviteBox && (
           <div style={{ marginBottom: 28 }}>
-            <FieldLabel meta={praxis.type === "duel" ? "name the disputant" : "name the co-witness"}>
-              {praxis.type === "duel" ? "IN DISPUTE WITH" : "IN CONCORD WITH"}
+            <FieldLabel meta={state.duelMode ? "name the disputant" : "name the co-witness"}>
+              {state.duelMode ? "IN DISPUTE WITH" : "IN CONCORD WITH"}
             </FieldLabel>
             <InviteSearch
               state={state}
@@ -310,7 +309,7 @@ export default function EditPraxisEphemeris({ state }: Props) {
 
         {/* the evidence */}
         <div style={{ marginBottom: 30 }}>
-          <FieldLabel meta={`${state.media.length + state.newFiles.length} pinned`}>THE EVIDENCE</FieldLabel>
+          <FieldLabel meta={`${state.media.length} pinned`}>THE EVIDENCE</FieldLabel>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 14 }}>
             {state.media.map((item, index) => {
               const filename = item.file_path.split("/").pop() ?? item.file_path;
@@ -332,16 +331,6 @@ export default function EditPraxisEphemeris({ state }: Props) {
                 </Specimen>
               );
             })}
-            {state.newFiles.map((file, index) => (
-              <Specimen
-                key={index}
-                rotation={[1.8, -2.4, 1.2, -1.6][index % 4]}
-                caption={file.name}
-                onRemove={() => state.removeNewFile(index)}
-              >
-                <MediaArt art={mediaArtKeysFromFile(file)} />
-              </Specimen>
-            ))}
           </div>
           <FilePicker
             state={state}
@@ -421,25 +410,6 @@ export default function EditPraxisEphemeris({ state }: Props) {
                 whiteSpace: "nowrap",
                 boxShadow:
                   "inset 0 2px 4px rgba(255,255,255,0.16), inset 0 -4px 7px rgba(0,0,0,0.38), 0 2px 5px rgba(0,0,0,0.25)",
-              },
-            }}
-          />
-          <SaveButton
-            state={state}
-            skin={{
-              idleLabel: "Keep as marginalia",
-              busyLabel: "saving…",
-              style: {
-                cursor: state.saving ? "wait" : "pointer",
-                border: `1px solid ${INK}`,
-                background: "transparent",
-                color: TEXT,
-                fontFamily: "var(--eph-serif)",
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                padding: "13px 20px",
               },
             }}
           />

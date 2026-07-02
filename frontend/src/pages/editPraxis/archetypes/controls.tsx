@@ -36,52 +36,109 @@ export function InviteSearch({
   skin: InviteSearchSkin;
 }) {
   const praxis = state.praxis!;
+  // Duel mode reuses this same box as a one-opponent challenge picker (#311):
+  // picking issues a challenge; once attached, the opponent shows as a chip and
+  // the search input is hidden (a duel has exactly one opponent).
+  const duelMode = state.duelMode;
+  const challengeAttached = duelMode && praxis.duel_id != null;
+  const onPick = duelMode ? state.sendChallenge : state.sendInvite;
   return (
     <div>
       <div
         style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}
       >
-        {praxis.members
-          .filter((member) => member.character_id !== state.currentCharacterId)
-          .map((member) => (
-            <span
-              key={member.id}
-              style={{
-                fontFamily: skin.fontFamily,
-                fontSize: 11,
-                padding: "4px 10px",
-                background: skin.acceptedBg ?? "var(--color-success)",
-                color: skin.acceptedColor ?? "var(--color-text-on-accent)",
-              }}
-            >
-              {member.character_display_name}
-            </span>
-          ))}
-        {praxis.invites
-          .filter((invite) => invite.status === "pending")
-          .map((invite) => (
-            <span
-              key={invite.id}
-              style={{
-                fontFamily: skin.fontFamily,
-                fontSize: 11,
-                padding: "4px 10px",
-                background: skin.pendingBg ?? "transparent",
-                color: skin.pendingColor ?? "inherit",
-                border: "1px dashed currentColor",
-              }}
-            >
-              {invite.invitee_display_name} <em>· pending</em>
-            </span>
-          ))}
+        {duelMode
+          ? challengeAttached && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontFamily: skin.fontFamily,
+                  fontSize: 11,
+                  padding: "4px 10px",
+                  background: skin.pendingBg ?? "transparent",
+                  color: skin.pendingColor ?? "inherit",
+                  border: "1px dashed currentColor",
+                }}
+              >
+                ⚔ {state.duel?.opponent.display_name ?? "opponent"}{" "}
+                <em>
+                  · {state.duel?.status === "active" ? "accepted" : "challenged"}
+                </em>
+                {/* Only a pending challenge can be withdrawn (backend forbids
+                    cancelling an accepted duel). */}
+                {(state.duel == null || state.duel.status === "pending") && (
+                  <button
+                    type="button"
+                    onClick={() => void state.cancelDuel()}
+                    aria-label="cancel challenge"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "inherit",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            )
+          : [
+              ...praxis.members
+                .filter(
+                  (member) => member.character_id !== state.currentCharacterId,
+                )
+                .map((member) => (
+                  <span
+                    key={`m-${member.id}`}
+                    style={{
+                      fontFamily: skin.fontFamily,
+                      fontSize: 11,
+                      padding: "4px 10px",
+                      background: skin.acceptedBg ?? "var(--color-success)",
+                      color: skin.acceptedColor ?? "var(--color-text-on-accent)",
+                    }}
+                  >
+                    {member.character_display_name}
+                  </span>
+                )),
+              ...praxis.invites
+                .filter((invite) => invite.status === "pending")
+                .map((invite) => (
+                  <span
+                    key={`i-${invite.id}`}
+                    style={{
+                      fontFamily: skin.fontFamily,
+                      fontSize: 11,
+                      padding: "4px 10px",
+                      background: skin.pendingBg ?? "transparent",
+                      color: skin.pendingColor ?? "inherit",
+                      border: "1px dashed currentColor",
+                    }}
+                  >
+                    {invite.invitee_display_name} <em>· pending</em>
+                  </span>
+                )),
+            ]}
       </div>
+      {!challengeAttached && (
       <div style={{ position: "relative" }}>
         <input
           type="text"
           value={state.inviteQuery}
           onChange={(event) => state.setInviteQuery(event.target.value)}
-          placeholder={skin.placeholder ?? "search player name or @handle"}
-          aria-label="search players to invite"
+          placeholder={
+            skin.placeholder ??
+            (duelMode
+              ? "search an opponent to challenge"
+              : "search player name or @handle")
+          }
+          aria-label={duelMode ? "search an opponent" : "search players to invite"}
           style={{
             width: "100%",
             fontFamily: skin.fontFamily,
@@ -118,7 +175,7 @@ export function InviteSearch({
                 key={character.id}
                 type="button"
                 disabled={state.inviting}
-                onMouseDown={() => void state.sendInvite(character)}
+                onMouseDown={() => void onPick(character)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -155,6 +212,7 @@ export function InviteSearch({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -439,9 +497,20 @@ export function ModePicker<O extends { key: PraxisType }>({
   return (
     <div style={skin.containerStyle}>
       {skin.options
-        .filter((option) => skin.allowedModes.includes(option.key))
+        .filter((option) =>
+          // Duel isn't in task.allowed_modes (it's issued via challenge, ADR-0011);
+          // it's gated on the viewer's level instead (#311). Hide, don't disable.
+          option.key === "duel"
+            ? state.duelChipVisible
+            : skin.allowedModes.includes(option.key),
+        )
         .map((option, index) => {
-          const active = praxis.type === option.key;
+          // A duel side stays type='solo' + duel_id, so the duel chip's active
+          // state is driven by duelMode, not praxis.type.
+          const active =
+            option.key === "duel"
+              ? state.duelMode
+              : praxis.type === option.key && !state.duelMode;
           const disabled =
             state.modeIsLocked || state.switchingMode !== null;
           if (state.modeIsLocked && !active) return null;
@@ -459,11 +528,11 @@ export function ModePicker<O extends { key: PraxisType }>({
 }
 
 /* -------------------------------------------------------------------------- */
-/* PublishButton / SaveButton — the seal-and-save pair. Each owns its own      */
-/* guard: PublishButton renders nothing once published and is disabled while   */
-/* saving / submitting / switching mode; SaveButton is disabled while saving / */
-/* submitting (optionally also while switching). The archetype arranges them   */
-/* inside its bespoke file bar and supplies faction-voiced labels via skin.    */
+/* PublishButton — renders nothing once published and is disabled while        */
+/* saving / submitting / switching mode. The archetype arranges it inside its   */
+/* bespoke file bar and supplies faction-voiced labels via skin. (The old       */
+/* Save Draft button was removed in #297 — autosave persists title/body and     */
+/* media uploads on pick, so no manual draft-save control is needed.)           */
 /* -------------------------------------------------------------------------- */
 export interface PublishButtonSkin {
   style: CSSProperties;
@@ -484,7 +553,7 @@ export function PublishButton({
     <button
       type="button"
       onClick={() => void state.publish()}
-      disabled={state.saving || state.submitting || state.switchingMode !== null}
+      disabled={state.submitting || state.switchingMode !== null}
       style={skin.style}
     >
       {skin.ornament}
@@ -493,34 +562,3 @@ export function PublishButton({
   );
 }
 
-export interface SaveButtonSkin {
-  style: CSSProperties;
-  idleLabel: ReactNode;
-  busyLabel: ReactNode;
-  /** When true, also disable while a mode switch is in flight (matches the
-   * archetypes that guarded save on `switchingMode`). */
-  lockOnSwitch?: boolean;
-}
-
-export function SaveButton({
-  state,
-  skin,
-}: {
-  state: EditPraxisState;
-  skin: SaveButtonSkin;
-}) {
-  const disabled =
-    state.saving ||
-    state.submitting ||
-    (skin.lockOnSwitch ? state.switchingMode !== null : false);
-  return (
-    <button
-      type="button"
-      onClick={() => void state.save()}
-      disabled={disabled}
-      style={skin.style}
-    >
-      {state.saving ? skin.busyLabel : skin.idleLabel}
-    </button>
-  );
-}

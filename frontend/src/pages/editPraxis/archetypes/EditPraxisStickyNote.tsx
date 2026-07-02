@@ -5,7 +5,7 @@
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
 import MediaArt from "../blocks/MediaArt";
-import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
+import { pickArtKey } from "../blocks/useMediaArt";
 import {
   Breadcrumb,
   ErrorBanner,
@@ -24,7 +24,6 @@ import {
   MetatasksList,
   ModePicker,
   PublishButton,
-  SaveButton,
   TitleField,
 } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
@@ -262,8 +261,7 @@ export default function EditPraxisStickyNote({ state }: Props) {
         )}
 
         {/* Invite */}
-        {state.showCollabInvite &&
-          !(praxis.type === "duel" && state.duelSlotFull) && (
+        {state.showInviteBox && (
             <div
               style={{
                 background: STICKY_PAPER,
@@ -281,7 +279,7 @@ export default function EditPraxisStickyNote({ state }: Props) {
                   marginBottom: 6,
                 }}
               >
-                ↳ {praxis.type === "duel" ? "me v." : "who else?"}
+                ↳ {state.duelMode ? "me v." : "who else?"}
               </div>
               <InviteSearch
                 state={state}
@@ -477,16 +475,6 @@ export default function EditPraxisStickyNote({ state }: Props) {
               </PolaroidStickie>
             );
           })}
-          {state.newFiles.map((file, index) => (
-            <PolaroidStickie
-              key={index}
-              rotation={index % 2 ? -2.5 : 2.2}
-              caption={file.name}
-              onRemove={() => state.removeNewFile(index)}
-            >
-              <MediaArt art={mediaArtKeysFromFile(file)} />
-            </PolaroidStickie>
-          ))}
           <FilePicker
             state={state}
             skin={{
@@ -603,23 +591,6 @@ export default function EditPraxisStickyNote({ state }: Props) {
                 transform: "rotate(-2deg)",
                 boxShadow: "4px 5px 8px rgba(0,0,0,.3)",
                 position: "relative",
-              },
-            }}
-          />
-          <SaveButton
-            state={state}
-            skin={{
-              idleLabel: "save for later",
-              busyLabel: "saving...",
-              style: {
-                background: STICKY_PAPER,
-                color: SLATE_DEEP,
-                fontFamily: "'Permanent Marker', cursive",
-                fontSize: 16,
-                padding: "10px 18px",
-                border: `2px solid ${SLATE_DEEP}`,
-                cursor: state.saving ? "wait" : "pointer",
-                transform: "rotate(1deg)",
               },
             }}
           />

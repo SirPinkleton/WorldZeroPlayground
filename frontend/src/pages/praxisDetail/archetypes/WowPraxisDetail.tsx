@@ -19,7 +19,7 @@ import MediaGallery from '../../../components/MediaGallery'
 import WowVote from '../../../components/vote/WowVote'
 import { factionCssVar } from '../../../utils/factions'
 import { formatTimestamp } from '../../../utils/dates'
-import { PraxisAdminBar, PraxisStatusBanners, PraxisOwnerActions, PraxisFlagBlock } from '../shared'
+import { PraxisAdminBar, PraxisStatusBanners, PraxisOwnerActions, PraxisFlagBlock, PraxisVoterBreakdown } from '../shared'
 import type { PraxisDetailState } from '../usePraxisDetail'
 
 // ── whimsy.exe token vocabulary (same as TaskDetailWow) ──────────────────────
@@ -35,10 +35,10 @@ const SCRIPT = 'var(--faction-wow-card-font)' // Caveat
 const BODY = 'var(--font-body)' // Courier Prime
 const ON_ACCENT = 'var(--color-text-on-accent)'
 
-/** Party-voiced label for the filing mode. */
+/** Party-voiced label for the filing mode. A duel side is a solo praxis
+ * (ADR-0011) — its duel context is shown by the shared DuelCrossLink, not here. */
 function modeVoice(type: string): string {
   if (type === 'collab') return 'cast together'
-  if (type === 'duel') return 'cast in a duel'
   return 'filed solo'
 }
 
@@ -441,6 +441,8 @@ export default function WowPraxisDetail({ state }: { state: PraxisDetailState })
 
         {/* ── 7 · flag block (invariant) ── */}
         <PraxisFlagBlock state={state} />
+
+        <PraxisVoterBreakdown state={state} />
       </div>
     </div>
   )

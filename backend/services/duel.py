@@ -26,11 +26,11 @@ from models.praxis import (
     PraxisType,
 )
 from models.task import Task
-from schemas.duel import DuelOut
+from schemas.duel import DuelDetailOut, DuelOut, DuelSideOut
 from services.character_stats import recalculate_character_stats
+from services.vote_tally import get_tally, tally_votes
 from services.era import get_current_era_row, get_or_create_stats
 from services.praxis import (
-    _check_create_preconditions,
     _count_in_progress_praxes,
     get_praxis,
     is_active_member_of_task,
@@ -70,33 +70,118 @@ async def get_duel_for_praxis(praxis_id: int, session: AsyncSession) -> Optional
     return result.scalar_one_or_none()
 
 
+async def get_duel_detail(
+    duel_id: int,
+    viewer: Optional[Character],
+    session: AsyncSession,
+) -> DuelDetailOut:
+    """Read-oriented duel view for the praxis read page (#308).
+
+    Returns both sides' display info + live vote points in one round trip, plus
+    ``viewer_is_participant`` (account-level, mirroring #309) which drives the
+    opponent-side anti-vote UI. Never returns a praxis body — a forfeited or
+    unsubmitted side still renders name/avatar but ``is_submitted`` is False.
+    """
+    duel = await get_duel(duel_id, session)
+
+    challenger_praxis = await session.get(Praxis, duel.challenger_praxis_id)
+    opponent_praxis = (
+        await session.get(Praxis, duel.opponent_praxis_id)
+        if duel.opponent_praxis_id is not None
+        else None
+    )
+    challenger_character = (
+        await session.get(Character, challenger_praxis.created_by_id)
+        if challenger_praxis is not None
+        else None
+    )
+    opponent_character = await session.get(Character, duel.opponent_character_id)
+
+    praxis_ids = [
+        pid
+        for pid in (duel.challenger_praxis_id, duel.opponent_praxis_id)
+        if pid is not None
+    ]
+    tallies = await tally_votes(praxis_ids, session)
+
+    def _side(character: Optional[Character], praxis: Optional[Praxis], praxis_id: Optional[int]) -> DuelSideOut:
+        return DuelSideOut(
+            praxis_id=praxis_id,
+            character_id=character.id if character is not None else 0,
+            display_name=character.display_name if character is not None else "",
+            faction_slug=(character.faction_slug or "na") if character is not None else "na",
+            avatar_url=character.avatar_url if character is not None else "",
+            points_from_votes=(
+                get_tally(tallies, praxis_id).points_from_votes if praxis_id is not None else 0
+            ),
+            is_submitted=praxis is not None and praxis.status == PraxisStatus.submitted,
+        )
+
+    participant_account_ids = {
+        character.account_id
+        for character in (challenger_character, opponent_character)
+        if character is not None
+    }
+    viewer_is_participant = (
+        viewer is not None and viewer.account_id in participant_account_ids
+    )
+
+    return DuelDetailOut(
+        id=duel.id,
+        task_id=duel.task_id,
+        status=duel.status,
+        forfeited_by_character_id=duel.forfeited_by_character_id,
+        challenger=_side(challenger_character, challenger_praxis, duel.challenger_praxis_id),
+        opponent=_side(opponent_character, opponent_praxis, duel.opponent_praxis_id),
+        viewer_is_participant=viewer_is_participant,
+    )
+
+
 async def issue_duel_challenge(
     challenger_character_id: int,
-    task_id: int,
+    challenger_praxis_id: int,
     opponent_character_id: int,
     session: AsyncSession,
     era: EraConfig = CURRENT_ERA,
 ) -> tuple[Praxis, Duel]:
-    """Issue a duel challenge: create the challenger's praxis + a pending Duel row.
+    """Attach a duel challenge to the challenger's existing in_progress praxis.
 
-    The challenger must meet all create-praxis preconditions (level, bank cap,
-    task eligibility). The opponent must not already have an active praxis for
-    this task (Everymen exempt). The challenger and opponent cannot be the same.
+    The challenger signs up solo first, then attaches an opponent (ADR-0011).
+    This does NOT create a praxis — it loads the challenger's existing one and
+    creates only the pending Duel row pointing at it. The opponent must not
+    already have an active praxis for this task (Everymen exempt); challenger
+    and opponent cannot be the same.
     """
     if challenger_character_id == opponent_character_id:
         raise HTTPException(status_code=400, detail="Cannot challenge yourself.")
 
-    challenger = await session.get(Character, challenger_character_id)
-    if challenger is None:
-        raise HTTPException(status_code=404, detail="Character not found.")
+    challenger_praxis = await get_praxis(challenger_praxis_id, session)
+    if challenger_praxis.created_by_id != challenger_character_id:
+        raise HTTPException(status_code=403, detail="You do not own this praxis.")
+    if challenger_praxis.status != PraxisStatus.in_progress:
+        raise HTTPException(
+            status_code=422,
+            detail="A duel can only start from an in-progress praxis.",
+        )
+    # A duel side is a solo praxis (ADR-0011); duel and collab are mutually exclusive.
+    if challenger_praxis.type != PraxisType.solo:
+        raise HTTPException(
+            status_code=422,
+            detail="Only a solo praxis can issue a duel challenge.",
+        )
+    if await get_duel_for_praxis(challenger_praxis_id, session) is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This praxis is already part of a duel.",
+        )
+
+    task = await session.get(Task, challenger_praxis.task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task no longer exists.")
 
     opponent = await session.get(Character, opponent_character_id)
     if opponent is None:
         raise HTTPException(status_code=404, detail="Opponent character not found.")
-
-    task = await _check_create_preconditions(
-        task_id, PraxisType.solo, challenger_character_id, session, era
-    )
 
     # Opponent eligibility: must not already have an active praxis for this task.
     if await is_active_member_of_task(opponent, task, session):
@@ -114,37 +199,16 @@ async def issue_duel_challenge(
             detail=f"Duels require level {era.duel_level_required}.",
         )
 
-    # Create the challenger's solo praxis.
-    praxis = Praxis(
-        task_id=task_id,
-        type=PraxisType.solo,
-        status=PraxisStatus.in_progress,
-        body_text="",
-        moderation_status=ModerationStatus.visible,
-        created_by_id=challenger_character_id,
-    )
-    session.add(praxis)
-    await session.flush()
-
-    member = PraxisMember(
-        praxis_id=praxis.id,
-        character_id=challenger_character_id,
-        has_submitted=False,
-    )
-    session.add(member)
-    await session.flush()
-
-    # Create the pending Duel row.
+    # Create only the pending Duel row, pointing at the existing praxis.
     duel = Duel(
-        task_id=task_id,
-        challenger_praxis_id=praxis.id,
+        task_id=challenger_praxis.task_id,
+        challenger_praxis_id=challenger_praxis.id,
         opponent_character_id=opponent_character_id,
         status=DuelStatus.pending,
     )
     session.add(duel)
     await session.flush()
 
-    challenger_praxis = await get_praxis(praxis.id, session)
     return challenger_praxis, duel
 
 
@@ -245,23 +309,40 @@ async def cancel_duel_challenge(
     duel_id: int,
     character_id: int,
     session: AsyncSession,
+    era: EraConfig = CURRENT_ERA,
 ) -> Duel:
-    """Challenger cancels a pending duel challenge.
+    """Dissolve a pending *or* active duel — any participant may (ADR-0011 §Forfeit grill).
 
-    Transitions Duel → declined. Challenger's praxis remains as a plain solo
-    praxis (convert-to-solo).
+    Transitions Duel → declined; both sides remain plain ``type=solo`` praxes
+    (convert-to-solo, no penalty). "If they don't want it to be a duel, it
+    becomes a single task for both parties." An *active* duel may already have a
+    submitted side scored with the duel multiplier, so both participants are
+    recalculated to revert to plain-solo scoring.
     """
     duel = await get_duel(duel_id, session)
 
-    challenger_praxis = await session.get(Praxis, duel.challenger_praxis_id)
-    if challenger_praxis is None or challenger_praxis.created_by_id != character_id:
-        raise HTTPException(status_code=403, detail="Only the challenger can cancel.")
+    if duel.status not in (DuelStatus.pending, DuelStatus.active):
+        raise HTTPException(status_code=400, detail="Duel has already been resolved.")
 
-    if duel.status != DuelStatus.pending:
-        raise HTTPException(status_code=400, detail="Challenge has already been resolved.")
+    challenger_praxis = await session.get(Praxis, duel.challenger_praxis_id)
+    challenger_character_id = (
+        challenger_praxis.created_by_id if challenger_praxis is not None else None
+    )
+    if character_id not in (challenger_character_id, duel.opponent_character_id):
+        raise HTTPException(status_code=403, detail="Only a duel participant can end it.")
 
     duel.status = DuelStatus.declined
     duel.declined_at = datetime.now(timezone.utc)
+    await session.flush()
+
+    # An active duel may have a submitted side scored with the duel multiplier;
+    # recalc both participants so they revert to plain-solo scoring.
+    era_row = await get_current_era_row(session)
+    for participant_id in {challenger_character_id, duel.opponent_character_id}:
+        if participant_id is not None:
+            await recalculate_character_stats(
+                participant_id, session, era, era_row=era_row
+            )
     await session.flush()
     return duel
 

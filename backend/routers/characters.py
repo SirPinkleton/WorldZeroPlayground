@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from db import get_db
-from dependencies import get_current_character
+from dependencies import get_current_character, get_current_character_optional
 from models.account import Account
 from models.character import Character, CharacterStatus
 from models.relationship import Relationship
@@ -29,7 +29,7 @@ from services.character import (
 )
 from services.era import load_current_era_stats
 from services.media import process_and_save_avatar
-from services.praxis import build_praxis_out
+from services.praxis import build_praxis_out, praxis_visibility_condition
 
 router = APIRouter()
 
@@ -38,13 +38,23 @@ router = APIRouter()
 async def list_characters(
     search: Optional[str] = None,
     faction: Optional[str] = None,
+    exclude_active_task_id: Optional[int] = None,
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
 ):
-    """List all active characters. Optionally filter by name or faction."""
+    """List all active characters. Optionally filter by name or faction.
+
+    ``exclude_active_task_id`` hides players already active on that task (invite
+    search pre-filter, #320).
+    """
     rows = await list_characters_for_viewer(
-        session, search=search, faction_slug=faction, limit=limit, offset=offset
+        session,
+        search=search,
+        faction_slug=faction,
+        exclude_active_task_id=exclude_active_task_id,
+        limit=limit,
+        offset=offset,
     )
     return [build_character_out(character, stats) for character, stats in rows]
 
@@ -109,11 +119,17 @@ async def get_character_praxes(
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_db),
+    viewer: Optional[Character] = Depends(get_current_character_optional),
 ):
+    # ADR-0024: an in_progress praxis is member-only, so a profile grid shows
+    # another character's drafts only when the viewer is a member.
     result = await session.execute(
         select(Praxis)
         .options(selectinload(Praxis.invites), selectinload(Praxis.media_items))
-        .where(Praxis.created_by_id == character_id)
+        .where(
+            Praxis.created_by_id == character_id,
+            praxis_visibility_condition(viewer.id if viewer else None),
+        )
         .order_by(Praxis.created_at.desc())
         .limit(limit)
         .offset(offset)
@@ -126,19 +142,12 @@ async def get_character_praxes(
 async def upload_avatar(
     character_id: int,
     file: UploadFile = File(...),
-    account: Account = Depends(get_current_account),
+    current_character: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    character = await session.scalar(
-        select(Character).where(
-            Character.id == character_id,
-            Character.status == CharacterStatus.active,
-        )
-    )
-    if character is None:
-        raise HTTPException(status_code=404, detail="Character not found.")
-    if character.account_id != account.id:
+    if current_character.id != character_id:
         raise HTTPException(status_code=403, detail="Cannot update another character's avatar.")
+    character = current_character
     character.avatar_url = await process_and_save_avatar(file, character_id)
     await session.flush()
     await session.refresh(character)

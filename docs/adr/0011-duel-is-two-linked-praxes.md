@@ -27,9 +27,12 @@ A duel is **two separate praxes that compete**, joined by a new `Duel` row.
 - **Lifecycle states:** `pending` (challenged, only challenger's praxis exists) →
   `active` (opponent accepted, opponent's praxis created) → `settled` (both
   submitted, voting open). `declined` is terminal.
-- **Cold symmetric challenge.** The challenger's praxis is created `in_progress` at
-  challenge time; both sides then work and `submit` independently, exactly like a solo
-  praxis. No "challenger must finish first" rule.
+- **Cold symmetric challenge.** The challenge **attaches to the challenger's existing
+  `in_progress` praxis** (created at signup), rather than creating one at challenge time.
+  Decline/cancel drops the `Duel` row and the praxis remains a plain `type=solo` praxis
+  (unchanged). The data model (two linked solo praxes + `Duel` row) is identical; only the
+  challenge entry point changes. Both sides then work and `submit` independently, exactly
+  like a solo praxis. No "challenger must finish first" rule.
 - **Decline / cancel → convert to solo.** On decline or challenger-cancel, the `Duel`
   link drops and the challenger's praxis remains as a normal `type=solo` praxis. No
   data loss, no special delete path.
@@ -37,6 +40,24 @@ A duel is **two separate praxes that compete**, joined by a new `Duel` row.
 - **The winner floats with the votes until era reset.** Consistent with the
   always-live-on-read scoring model; there is no per-duel voting window or freeze. The
   duel win/loss multiplier is applied per side at scoring time from the current tally.
+
+### Forfeit
+
+Once a duel is `settled`, backing out of it forfeits the contest rather than reopening it.
+
+- **Triggers.** Unsubmitting a `settled` duel side (`withdraw_praxis`), or the ban /
+  soft-delete of a side's character (`soft_delete_character`), forfeits that side.
+- **Opponent wins by default.** The forfeiter takes their faction **loss** modifier; the
+  opponent takes their **win** modifier. Vote tallies no longer decide the outcome — the
+  duel-side scoring branch reads `Duel.forfeited_by_character_id` and skips the tally
+  comparison. The winner is scored even if the forfeited side is now `in_progress` or the
+  forfeiter is banned.
+- **Sticky.** `forfeited_by_character_id` is recorded on the first forfeit and never
+  overwritten; the duel **stays `settled`**. Resubmitting the thrown side does not restore
+  the contest — the forfeiter keeps the loss modifier on resubmit.
+- **No body leak.** A forfeited-by-unsubmit side is `in_progress`, so its read link 404s
+  for non-members exactly like any editing praxis (ADR-0024); read surfaces show only
+  "forfeited — won by default".
 
 ## Consequences
 

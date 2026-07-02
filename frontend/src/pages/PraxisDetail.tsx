@@ -8,7 +8,7 @@
  * not-found guards live here so archetypes can assume a non-null praxis.
  */
 import type { ComponentType } from 'react'
-import { useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { usePraxisDetail } from './praxisDetail/usePraxisDetail'
 import type { PraxisDetailState } from './praxisDetail/usePraxisDetail'
 import { pickVariant } from '../utils/factionDispatch'
@@ -21,6 +21,7 @@ import WowPraxisDetail from './praxisDetail/archetypes/WowPraxisDetail'
 import UAPraxisDetail from './praxisDetail/archetypes/UAPraxisDetail'
 import AlbescentPraxisDetail from './praxisDetail/archetypes/AlbescentPraxisDetail'
 import CommentThread from '../components/comments/CommentThread'
+import DuelCrossLink from './praxisDetail/DuelCrossLink'
 
 /**
  * Per-faction praxis-read archetype map. Keyed by task faction slug.
@@ -53,9 +54,19 @@ export default function PraxisDetail() {
   )
   if (!state.praxis) return <div className="py-8 font-body text-muted">Not found.</div>
 
+  // ADR-0024: the public detail view never renders a draft. Only members reach
+  // here (the API 404s everyone else) — route them to the editor, the sole
+  // surface for in_progress work.
+  if (state.praxis.status === 'in_progress') {
+    return <Navigate to={`/praxes/${state.praxis.id}/edit`} replace />
+  }
+
   const Archetype = pickVariant(ARCHETYPE_BY_SLUG, state.praxis.task_faction_slug, DefaultPraxisDetail)
   return (
     <>
+      {/* Duel cross-link is neutral chrome above every archetype (#313); one
+          shared faction-tokened widget, per the grilled #310 decision. */}
+      {state.duel && <DuelCrossLink praxis={state.praxis} duel={state.duel} />}
       <Archetype state={state} />
       {/* Comments are neutral chrome below every archetype (ADR-0006); a thread
           renders on a visible praxis only. Mounted at the dispatcher so it covers

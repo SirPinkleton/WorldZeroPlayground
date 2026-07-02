@@ -1,17 +1,20 @@
 """Duel router — challenge flow for two-linked-praxes duels (ADR-0011)."""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
-from dependencies import get_current_character
+from dependencies import get_current_character, get_current_character_optional
 from game_config import CURRENT_ERA
 from models.character import Character
-from schemas.duel import DuelChallengeIn, DuelOut, DuelRespondIn
+from schemas.duel import DuelChallengeIn, DuelDetailOut, DuelOut, DuelRespondIn
 from schemas.praxis import PraxisOut
 from services.duel import (
     cancel_duel_challenge,
     get_duel,
+    get_duel_detail,
     issue_duel_challenge,
     list_pending_duel_challenges_for_character,
     respond_to_duel_challenge,
@@ -37,15 +40,26 @@ async def issue_challenge_route(
     character: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    """Issue a duel challenge. Body: ``{task_id, opponent_character_id}``."""
+    """Attach a duel to an existing praxis. Body: ``{challenger_praxis_id, opponent_character_id}``."""
     _praxis, duel = await issue_duel_challenge(
         challenger_character_id=character.id,
-        task_id=data.task_id,
+        challenger_praxis_id=data.challenger_praxis_id,
         opponent_character_id=data.opponent_character_id,
         session=session,
         era=CURRENT_ERA,
     )
     return DuelOut.model_validate(duel)
+
+
+@router.get("/{duel_id}/detail", response_model=DuelDetailOut)
+async def get_duel_detail_route(
+    duel_id: int,
+    viewer: Optional[Character] = Depends(get_current_character_optional),
+    session: AsyncSession = Depends(get_db),
+):
+    """Read-oriented duel view for the praxis read page: both sides' display
+    info + live vote points + ``viewer_is_participant`` in one round trip (#308)."""
+    return await get_duel_detail(duel_id, viewer, session)
 
 
 @router.get("/{duel_id}", response_model=DuelOut)
@@ -81,10 +95,11 @@ async def cancel_challenge_route(
     character: Character = Depends(get_current_character),
     session: AsyncSession = Depends(get_db),
 ):
-    """Challenger cancels a pending duel challenge."""
+    """Dissolve a pending or active duel — any participant. Both sides revert to plain solo."""
     duel = await cancel_duel_challenge(
         duel_id=duel_id,
         character_id=character.id,
         session=session,
+        era=CURRENT_ERA,
     )
     return DuelOut.model_validate(duel)

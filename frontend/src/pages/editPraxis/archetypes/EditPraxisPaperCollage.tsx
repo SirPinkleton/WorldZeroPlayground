@@ -7,7 +7,7 @@ import { factionCssVar } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import { type PraxisType } from "../../../api/praxis";
 import MediaArt from "../blocks/MediaArt";
-import { mediaArtKeysFromFile, pickArtKey } from "../blocks/useMediaArt";
+import { pickArtKey } from "../blocks/useMediaArt";
 import {
   Breadcrumb,
   ErrorBanner,
@@ -24,7 +24,6 @@ import {
   MetatasksList,
   ModePicker,
   PublishButton,
-  SaveButton,
   TitleField,
 } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
@@ -449,8 +448,7 @@ export default function EditPraxisPaperCollage({ state }: Props) {
             )}
 
             {/* Invite */}
-            {state.showCollabInvite &&
-              !(praxis.type === "duel" && state.duelSlotFull) && (
+            {state.showInviteBox && (
                 <div
                   style={{
                     ...notepadPanel,
@@ -459,7 +457,7 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                   }}
                 >
                   <span style={{ ...eyebrowStyle, marginBottom: 10 }}>
-                    ↳ {praxis.type === "duel" ? "racing" : "walking together"}
+                    ↳ {state.duelMode ? "racing" : "walking together"}
                   </span>
                   <InviteSearch
                     state={state}
@@ -571,7 +569,7 @@ export default function EditPraxisPaperCollage({ state }: Props) {
             <div style={{ ...notepadPanel, marginBottom: 18 }}>
               <span style={{ ...eyebrowStyle, marginBottom: 12 }}>
                 scraps &amp; specimens ·{" "}
-                {state.media.length + state.newFiles.length} pasted
+                {state.media.length} pasted
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
                 {state.media.map((item) => {
@@ -612,18 +610,6 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                     </MediaTile>
                   );
                 })}
-                {state.newFiles.map((file, index) => (
-                  <MediaTile
-                    key={index}
-                    caption={file.name}
-                    borderColor={notepadBorder}
-                    tileBg={notepadBg}
-                    removeColor={pink}
-                    onRemove={() => state.removeNewFile(index)}
-                  >
-                    <MediaArt art={mediaArtKeysFromFile(file)} />
-                  </MediaTile>
-                ))}
               </div>
               <div style={{ marginTop: 14 }}>
                 <FilePicker
@@ -729,25 +715,6 @@ export default function EditPraxisPaperCollage({ state }: Props) {
                     borderRadius: 9,
                     cursor: state.submitting ? "wait" : "pointer",
                     boxShadow: "0 4px 12px rgba(236,95,153,.32)",
-                  },
-                }}
-              />
-              <SaveButton
-                state={state}
-                skin={{
-                  idleLabel: "save draft",
-                  busyLabel: "saving...",
-                  style: {
-                    background: notepadBg,
-                    color: ink,
-                    fontFamily: "var(--font-body)",
-                    fontSize: 11,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    border: `1.5px solid ${notepadBorder}`,
-                    borderRadius: 7,
-                    padding: "10px 18px",
-                    cursor: state.saving ? "wait" : "pointer",
                   },
                 }}
               />

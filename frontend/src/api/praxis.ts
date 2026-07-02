@@ -149,6 +149,12 @@ export async function deletePraxis(id: number): Promise<void> {
   await api.delete(`/praxes/${id}`)
 }
 
+/** Flip a praxis between solo and collab in place, preserving id/content/media (#321). */
+export async function changePraxisType(id: number, type: PraxisType): Promise<PraxisOut> {
+  const { data } = await api.post<PraxisOut>(`/praxes/${id}/change-type`, { type })
+  return data
+}
+
 // ---------------------------------------------------------------------------
 // Lifecycle transitions
 // ---------------------------------------------------------------------------
@@ -198,16 +204,6 @@ export async function respondToInvite(
     `/praxes/${praxisId}/invite/${inviteId}/respond`,
     { accept },
   )
-  return data
-}
-
-export async function kickMember(praxisId: number, memberId: number): Promise<void> {
-  await api.post(`/praxes/${praxisId}/kick/${memberId}`)
-}
-
-/** Remove your own membership from a collab (ADR-0012). Distinct from kick/withdraw. */
-export async function leavePraxis(praxisId: number): Promise<PraxisOut> {
-  const { data } = await api.post<PraxisOut>(`/praxes/${praxisId}/leave`)
   return data
 }
 

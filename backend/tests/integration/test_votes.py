@@ -205,6 +205,24 @@ async def test_vote_updates_author_stats(
 # ---------------------------------------------------------------------------
 
 
+async def _challenge_from_new_praxis(client, headers, task_id, opponent_id):
+    """Sign up solo, then attach a duel to that praxis (ADR-0011 challenge flow).
+
+    Returns ``(challenger_praxis_id, challenge_response)``.
+    """
+    create = await client.post(
+        "/praxes", json={"task_id": task_id, "type": "solo"}, headers=headers
+    )
+    assert create.status_code == 201
+    praxis_id = create.json()["id"]
+    resp = await client.post(
+        "/duels/challenge",
+        json={"challenger_praxis_id": praxis_id, "opponent_character_id": opponent_id},
+        headers=headers,
+    )
+    return praxis_id, resp
+
+
 @pytest.mark.asyncio
 async def test_creating_type_duel_praxis_is_rejected(
     client: AsyncClient,
@@ -238,10 +256,8 @@ async def test_duel_challenge_issue_and_cancel(
 
     # character2 already has level 5 from fixture — meets duel level gate
     # Issue challenge
-    challenge_resp = await client.post(
-        "/duels/challenge",
-        json={"task_id": active_task.id, "opponent_character_id": character.id},
-        headers=auth_headers2,
+    _challenger_praxis_id, challenge_resp = await _challenge_from_new_praxis(
+        client, auth_headers2, active_task.id, character.id
     )
     assert challenge_resp.status_code == 201
     duel = challenge_resp.json()
@@ -285,10 +301,8 @@ async def test_duel_challenge_accept_creates_opponent_praxis(
     await db_session.commit()
 
     # Issue challenge from character2
-    challenge_resp = await client.post(
-        "/duels/challenge",
-        json={"task_id": active_task.id, "opponent_character_id": character.id},
-        headers=auth_headers2,
+    _challenger_praxis_id, challenge_resp = await _challenge_from_new_praxis(
+        client, auth_headers2, active_task.id, character.id
     )
     assert challenge_resp.status_code == 201
     duel_id = challenge_resp.json()["id"]
@@ -308,6 +322,79 @@ async def test_duel_challenge_accept_creates_opponent_praxis(
     get_resp = await client.get(f"/duels/{duel_id}")
     assert get_resp.status_code == 200
     assert get_resp.json()["status"] == "active"
+
+
+@pytest.mark.asyncio
+async def test_duel_challenge_from_praxis_you_do_not_own_is_forbidden(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """Attaching a duel to a praxis you don't own → 403."""
+    # character owns this praxis; character2 tries to duel with it.
+    create = await client.post(
+        "/praxes", json={"task_id": active_task.id, "type": "solo"}, headers=auth_headers
+    )
+    assert create.status_code == 201
+    resp = await client.post(
+        "/duels/challenge",
+        json={
+            "challenger_praxis_id": create.json()["id"],
+            "opponent_character_id": character.id,
+        },
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_duel_challenge_from_submitted_praxis_is_unprocessable(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers2: dict,
+):
+    """A duel can only start from an in_progress praxis → submitted gives 422."""
+    create = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "solo", "body_text": "done"},
+        headers=auth_headers2,
+    )
+    assert create.status_code == 201
+    praxis_id = create.json()["id"]
+    submit = await client.post(f"/praxes/{praxis_id}/submit", headers=auth_headers2)
+    assert submit.status_code == 200
+    resp = await client.post(
+        "/duels/challenge",
+        json={"challenger_praxis_id": praxis_id, "opponent_character_id": character.id},
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_duel_challenge_on_already_dueled_praxis_conflicts(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers2: dict,
+):
+    """A second challenge on a praxis already linked to a Duel → 409."""
+    praxis_id, first = await _challenge_from_new_praxis(
+        client, auth_headers2, active_task.id, character.id
+    )
+    assert first.status_code == 201
+    resp = await client.post(
+        "/duels/challenge",
+        json={"challenger_praxis_id": praxis_id, "opponent_character_id": character.id},
+        headers=auth_headers2,
+    )
+    assert resp.status_code == 409
 
 
 @pytest.mark.asyncio
@@ -336,10 +423,8 @@ async def test_vote_on_duel_side_praxis(
     await db_session.commit()
 
     # Issue and accept the duel
-    challenge_resp = await client.post(
-        "/duels/challenge",
-        json={"task_id": active_task.id, "opponent_character_id": character.id},
-        headers=auth_headers2,
+    _challenger_praxis_id, challenge_resp = await _challenge_from_new_praxis(
+        client, auth_headers2, active_task.id, character.id
     )
     assert challenge_resp.status_code == 201
     duel_data = challenge_resp.json()
@@ -541,3 +626,390 @@ async def test_anti_self_vote_fallback_allows_unrelated_voter(
     assert vote.value == 3
     assert vote.voter_character_id == character2.id
     assert vote.praxis_id == praxis_solo.id
+
+
+# ---------------------------------------------------------------------------
+# Duel anti-participation (#309) — a participant cannot rate either side.
+# ---------------------------------------------------------------------------
+
+
+async def _create_and_submit_solo(
+    client: AsyncClient, task: Task, headers: dict
+) -> int:
+    create = await client.post(
+        "/praxes",
+        json={"task_id": task.id, "type": "solo", "title": "Duel side"},
+        headers=headers,
+    )
+    assert create.status_code == 201, create.text
+    praxis_id = create.json()["id"]
+    submit = await client.post(f"/praxes/{praxis_id}/submit", headers=headers)
+    assert submit.status_code == 200, submit.text
+    return praxis_id
+
+
+@pytest.mark.asyncio
+async def test_duel_participant_cannot_vote_on_either_side(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """A duel participant (any life on their account) cannot rate either side (403)."""
+    from models.duel import Duel, DuelStatus
+
+    challenger_pid = await _create_and_submit_solo(client, active_task, auth_headers)
+    opponent_pid = await _create_and_submit_solo(client, active_task, auth_headers2)
+    db_session.add(
+        Duel(
+            task_id=active_task.id,
+            challenger_praxis_id=challenger_pid,
+            opponent_character_id=character2.id,
+            opponent_praxis_id=opponent_pid,
+            status=DuelStatus.settled,
+        )
+    )
+    await db_session.commit()
+
+    # Challenger's account voting on the OPPONENT's side — the gap this fixes.
+    on_opponent = await client.post(
+        f"/praxes/{opponent_pid}/vote", json={"value": 1}, headers=auth_headers
+    )
+    assert on_opponent.status_code == 403
+
+    # Opponent's account voting on the CHALLENGER's side — symmetric.
+    on_challenger = await client.post(
+        f"/praxes/{challenger_pid}/vote", json={"value": 1}, headers=auth_headers2
+    )
+    assert on_challenger.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_non_participant_can_vote_on_duel_side(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    era: Era,
+    faction_ua,
+    auth_headers: dict,
+):
+    """A third party who isn't in the duel can still rate a duel side (200)."""
+    from models.duel import Duel, DuelStatus
+    from services.auth import create_jwt
+
+    challenger_pid = await _create_and_submit_solo(client, active_task, auth_headers)
+    db_session.add(
+        Duel(
+            task_id=active_task.id,
+            challenger_praxis_id=challenger_pid,
+            opponent_character_id=character2.id,
+            status=DuelStatus.settled,
+        )
+    )
+    await db_session.commit()
+
+    # A fresh third account/character — not a participant in the duel.
+    third = Account(email="third@example.com")
+    db_session.add(third)
+    await db_session.flush()
+    third_char = Character(
+        account_id=third.id,
+        username="thirdchar",
+        display_name="Third Char",
+        faction_slug="ua",
+    )
+    db_session.add(third_char)
+    await db_session.flush()
+    db_session.add(
+        CharacterStats(character_id=third_char.id, era_id=era.id, votes_spent_this_era=0)
+    )
+    await db_session.commit()
+    third_headers = {"Authorization": f"Bearer {create_jwt(third.id)}"}
+
+    resp = await client.post(
+        f"/praxes/{challenger_pid}/vote", json={"value": 4}, headers=third_headers
+    )
+    assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Duel forfeit (#307) — unsubmit / ban → opponent wins by default (ADR-0011)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_forfeit_by_unsubmit_gives_opponent_win_regardless_of_votes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    era: Era,
+):
+    """Unsubmitting a settled duel side forfeits it: the opponent scores the win
+    modifier (not the 1.0x tie), the forfeiter the loss modifier, votes ignored;
+    resubmitting does not restore the contest (ADR-0011 §Forfeit)."""
+    from game_config import CURRENT_ERA
+    from models.duel import Duel, DuelStatus
+    from services.praxis import get_praxis, withdraw_praxis
+    from services.praxis_scoring import compute_contributions
+
+    challenger_pid = await _create_and_submit_solo(client, active_task, auth_headers)
+    opponent_pid = await _create_and_submit_solo(client, active_task, auth_headers2)
+    db_session.add(Duel(
+        task_id=active_task.id,
+        challenger_praxis_id=challenger_pid,
+        opponent_character_id=character2.id,
+        opponent_praxis_id=opponent_pid,
+        status=DuelStatus.settled,
+    ))
+    await db_session.commit()
+
+    win = CURRENT_ERA.factions[character.faction_slug].duel_win_modifier
+    loss = CURRENT_ERA.factions[character.faction_slug].duel_loss_modifier
+
+    # No votes cast on either side → without forfeit this is a 1.0x tie for both.
+    # character2 forfeits by unsubmitting their side.
+    await withdraw_praxis(opponent_pid, character2.id, db_session)
+
+    challenger_praxis = await get_praxis(challenger_pid, db_session)
+    contribs = await compute_contributions(
+        [challenger_praxis], character, CURRENT_ERA, db_session
+    )
+    assert contribs[challenger_pid].duel_multiplier == win
+
+    # Resubmit does not restore: the forfeiter keeps the loss modifier and the
+    # opponent keeps the win modifier.
+    assert (await client.post(f"/praxes/{opponent_pid}/submit", headers=auth_headers2)).status_code == 200
+    opponent_praxis = await get_praxis(opponent_pid, db_session)
+    contribs_loser = await compute_contributions(
+        [opponent_praxis], character2, CURRENT_ERA, db_session
+    )
+    assert contribs_loser[opponent_pid].duel_multiplier == loss
+    contribs_winner = await compute_contributions(
+        [challenger_praxis], character, CURRENT_ERA, db_session
+    )
+    assert contribs_winner[challenger_pid].duel_multiplier == win
+
+
+@pytest.mark.asyncio
+async def test_ban_forfeits_settled_duels(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    era: Era,
+):
+    """Banning a character forfeits their settled duels; the opponent wins by default."""
+    from game_config import CURRENT_ERA
+    from models.duel import Duel, DuelStatus
+    from services.character import soft_delete_character
+    from services.praxis import get_praxis
+    from services.praxis_scoring import compute_contributions
+
+    challenger_pid = await _create_and_submit_solo(client, active_task, auth_headers)
+    opponent_pid = await _create_and_submit_solo(client, active_task, auth_headers2)
+    duel = Duel(
+        task_id=active_task.id,
+        challenger_praxis_id=challenger_pid,
+        opponent_character_id=character2.id,
+        opponent_praxis_id=opponent_pid,
+        status=DuelStatus.settled,
+    )
+    db_session.add(duel)
+    await db_session.commit()
+
+    # Ban character2 (the opponent side).
+    await soft_delete_character(character2.id, db_session)
+    await db_session.refresh(duel)
+    assert duel.status == DuelStatus.settled
+    assert duel.forfeited_by_character_id == character2.id
+
+    # The challenger (still active) wins by default.
+    win = CURRENT_ERA.factions[character.faction_slug].duel_win_modifier
+    challenger_praxis = await get_praxis(challenger_pid, db_session)
+    contribs = await compute_contributions(
+        [challenger_praxis], character, CURRENT_ERA, db_session
+    )
+    assert contribs[challenger_pid].duel_multiplier == win
+
+
+# ---------------------------------------------------------------------------
+# Read-oriented duel detail (#308) — GET /duels/{id}/detail
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_duel_detail_returns_both_sides_with_tallies(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    era: Era,
+    faction_ua,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """Settled-duel detail: both sides' display info + live vote points in one call.
+
+    ``viewer_is_participant`` is True for a side's account, False for a third
+    party and for anonymous. No praxis body is ever included.
+    """
+    from models.duel import Duel, DuelStatus
+    from services.auth import create_jwt
+
+    challenger_pid = await _create_and_submit_solo(client, active_task, auth_headers)
+    opponent_pid = await _create_and_submit_solo(client, active_task, auth_headers2)
+    duel = Duel(
+        task_id=active_task.id,
+        challenger_praxis_id=challenger_pid,
+        opponent_character_id=character2.id,
+        opponent_praxis_id=opponent_pid,
+        status=DuelStatus.settled,
+    )
+    db_session.add(duel)
+    await db_session.commit()
+
+    # A non-participant third party votes on the challenger side.
+    third = Account(email="duel_detail_voter@example.com")
+    db_session.add(third)
+    await db_session.flush()
+    third_char = Character(
+        account_id=third.id,
+        username="duel_detail_voter",
+        display_name="DD Voter",
+        faction_slug="ua",
+    )
+    db_session.add(third_char)
+    await db_session.flush()
+    db_session.add(CharacterStats(
+        character_id=third_char.id, era_id=era.id, score=100,
+        all_time_score=100, level=3, votes_spent_this_era=0,
+    ))
+    await db_session.commit()
+    third_headers = {"Authorization": f"Bearer {create_jwt(third.id)}"}
+    assert (await client.post(
+        f"/praxes/{challenger_pid}/vote", json={"value": 4}, headers=third_headers
+    )).status_code == 200
+
+    resp = await client.get(f"/duels/{duel.id}/detail", headers=auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "settled"
+    assert body["forfeited_by_character_id"] is None
+    assert body["viewer_is_participant"] is True
+    assert body["challenger"]["character_id"] == character.id
+    assert body["challenger"]["display_name"] == character.display_name
+    assert body["challenger"]["is_submitted"] is True
+    assert body["challenger"]["points_from_votes"] > 0
+    assert body["opponent"]["character_id"] == character2.id
+    assert body["opponent"]["points_from_votes"] == 0
+    assert "body_text" not in body["challenger"]  # never leak the praxis body
+
+    # Third party and anonymous are not participants.
+    assert (await client.get(
+        f"/duels/{duel.id}/detail", headers=third_headers
+    )).json()["viewer_is_participant"] is False
+    anon = await client.get(f"/duels/{duel.id}/detail")
+    assert anon.status_code == 200
+    assert anon.json()["viewer_is_participant"] is False
+
+
+@pytest.mark.asyncio
+async def test_either_participant_dissolves_active_duel(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    era: Era,
+):
+    """An active (accepted) duel can be dissolved by either participant → declined;
+    both sides revert to plain solo, no penalty (grill 2026-07-01)."""
+    from models.character_stats import CharacterStats
+
+    # Raise the opponent (character) to the duel level so they can accept.
+    stats = (await db_session.execute(
+        select(CharacterStats).where(CharacterStats.character_id == character.id)
+    )).scalar_one()
+    stats.level = 2
+    await db_session.commit()
+
+    _pid, challenge_resp = await _challenge_from_new_praxis(
+        client, auth_headers2, active_task.id, character.id
+    )
+    assert challenge_resp.status_code == 201
+    duel = challenge_resp.json()
+    duel_id = duel["id"]
+
+    accept = await client.post(
+        f"/duels/{duel_id}/respond", json={"accept": True}, headers=auth_headers
+    )
+    assert accept.status_code == 200
+    assert accept.json()["status"] == "active"
+
+    # The OPPONENT (not the challenger) dissolves the active duel.
+    dissolve = await client.post(f"/duels/{duel_id}/cancel", headers=auth_headers)
+    assert dissolve.status_code == 200
+    assert dissolve.json()["status"] == "declined"
+
+    # Both sides are now plain solo praxes (the Duel is unlinked).
+    from services.duel import get_duel_for_praxis
+
+    assert await get_duel_for_praxis(duel["challenger_praxis_id"], db_session) is None
+    assert await get_duel_for_praxis(accept.json()["opponent_praxis_id"], db_session) is None
+
+
+@pytest.mark.asyncio
+async def test_duel_detail_marks_forfeited_side(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+    era: Era,
+):
+    """A forfeited duel: winner renders fully, thrown side marked unsubmitted, no body leak."""
+    from models.duel import Duel, DuelStatus
+    from services.praxis import withdraw_praxis
+
+    challenger_pid = await _create_and_submit_solo(client, active_task, auth_headers)
+    opponent_pid = await _create_and_submit_solo(client, active_task, auth_headers2)
+    duel = Duel(
+        task_id=active_task.id,
+        challenger_praxis_id=challenger_pid,
+        opponent_character_id=character2.id,
+        opponent_praxis_id=opponent_pid,
+        status=DuelStatus.settled,
+    )
+    db_session.add(duel)
+    await db_session.commit()
+
+    # character2 forfeits by unsubmitting their side; commit so the API view sees it.
+    await withdraw_praxis(opponent_pid, character2.id, db_session)
+    await db_session.commit()
+
+    resp = await client.get(f"/duels/{duel.id}/detail")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "settled"
+    assert body["forfeited_by_character_id"] == character2.id
+    assert body["challenger"]["is_submitted"] is True
+    assert body["opponent"]["is_submitted"] is False
+    assert body["opponent"]["display_name"] == character2.display_name
+    assert "body_text" not in body["opponent"]

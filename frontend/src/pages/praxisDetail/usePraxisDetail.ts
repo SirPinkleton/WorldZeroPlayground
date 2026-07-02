@@ -19,7 +19,8 @@ import {
   removeMetatask,
   type PraxisOut,
 } from "../../api/praxis";
-import { getVotes, type VoteSummary } from "../../api/votes";
+import { getVotes, getVoters, type VoteSummary, type VoterDetail } from "../../api/votes";
+import { getDuelDetail, type DuelDetailOut } from "../../api/duel";
 import { useAuth } from "../../auth/AuthContext";
 import { useAdminMode } from "../../auth/AdminModeContext";
 import { moderatePraxis } from "../../api/admin";
@@ -35,6 +36,9 @@ export interface PraxisDetailState {
 
   // Entities
   votes: VoteSummary | null;
+  voters: VoterDetail[];
+  /** Duel detail when this praxis is one side of a duel (#313); null otherwise. */
+  duel: DuelDetailOut | null;
 
   // Derived
   isOwner: boolean;
@@ -88,6 +92,8 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
 
   const [praxis, setPraxis] = useState<PraxisOut | null>(null);
   const [votes, setVotes] = useState<VoteSummary | null>(null);
+  const [voters, setVoters] = useState<VoterDetail[]>([]);
+  const [duel, setDuel] = useState<DuelDetailOut | null>(null);
   const [metatasks, setMetatasks] = useState<TaskOut[]>([]);
   const [metataskLoading, setMetataskLoading] = useState(false);
   const [metataskError, setMetataskError] = useState<string | null>(null);
@@ -130,16 +136,37 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
   useEffect(() => {
     if (!idParam) return;
     const pid = parseInt(idParam, 10);
-    Promise.all([getPraxis(pid), getVotes(pid)])
-      .then(([p, v]) => {
+    Promise.all([getPraxis(pid), getVotes(pid), getVoters(pid)])
+      .then(([p, v, vr]) => {
         setPraxis(p);
         setVotes(v);
+        setVoters(vr);
       })
       .catch((err) =>
         setFetchError(extractError(err, "Couldn't load this praxis.")),
       )
       .finally(() => setLoading(false));
   }, [idParam]);
+
+  // Fetch duel detail in one round trip whenever this praxis is a duel side (#313).
+  useEffect(() => {
+    const duelId = praxis?.duel_id ?? null;
+    if (duelId == null) {
+      setDuel(null);
+      return;
+    }
+    let cancelled = false;
+    getDuelDetail(duelId)
+      .then((d) => {
+        if (!cancelled) setDuel(d);
+      })
+      .catch(() => {
+        /* non-fatal — the page still renders without the cross-link */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [praxis?.duel_id]);
 
   useEffect(() => {
     if (!praxis) return;
@@ -240,6 +267,8 @@ export function usePraxisDetail(idParam: string | undefined): PraxisDetailState 
     fetchError,
 
     votes,
+    voters,
+    duel,
 
     user,
 

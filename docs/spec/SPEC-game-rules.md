@@ -193,9 +193,10 @@ Each member's score is computed independently using their own faction's collab m
 
 ### Collaboration
 
-- Requires character level ≥ 1 (hardcoded).
+- Requires character level ≥ 1 (hardcoded) **to *create* a collab**.
 - **No participant cap** in Era 1 — any number of characters may join a collaboration.
 - Creator invites other characters. Each accepts or declines via the invite flow.
+- **Level-lift rule (by design):** accepting a collab invite lets a **lower-level player collaborate on a task above their own sign-up level**. `respond_to_invite` gates the accept only on the invitee's **bank cap** and the collab not already being **submitted** — it deliberately does **not** check the invitee's level or the task's `level_required`. An invite is a lift by a qualified creator; this is not a bypass to be "fixed" later.
 - A collab reaches `submitted` status when **all current members** have individually marked `has_submitted = True`.
 - Each member's score is computed independently using their own faction modifiers.
 - Votes are praxis-wide. Members cannot vote on their own collab (account-level anti-self-vote).
@@ -206,8 +207,9 @@ Each member's score is computed independently using their own faction's collab m
 - Max participants: `era.max_duel_participants` (Era 1: 2).
 - Creator invites one opponent. Opponent accepts or declines.
 - Votes are **per-member** (`praxis_member_id` required). Voters may vote for one or both members — each is a separate `Vote` row.
-- Duel participants cannot vote on their own duel at the **account level** (a voter cannot use any of their characters to rate either side of a duel they participate in). Account-level anti-self-vote is enforced per-praxis in `services/vote.py` (a voter cannot rate a side authored by any character on their account). _Note: this blocks the participant's own side; blocking a participant from rating the **opponent's** side is not yet enforced — tracked separately._
+- Duel participants cannot vote on **either side** of a duel they're in, at the **account level** — a voter cannot use any of their characters to rate the challenger's *or* the opponent's side. Enforced per-praxis in `services/vote.py`: the account-level anti-self-vote blocks the participant's own side, and when the target praxis is a duel side, the vote is additionally rejected (403) if the voter's account owns either side of that duel (#309).
 - Winner is determined by the highest `total_stars` across each member's votes.
+- **Forfeit (sticky).** Unsubmitting a `settled` duel side, or having your character banned, forfeits the contest: the opponent wins by default — win/loss faction modifiers apply and vote tallies are ignored — and the duel stays `settled`. Recorded once in `Duel.forfeited_by_character_id`; resubmitting does not restore the contest (ADR-0011 §Forfeit). Scored in `services/praxis_scoring.py::compute_contributions`; triggered by `withdraw_praxis` / `soft_delete_character`.
 
 ### Duel outcome multipliers (Era 1)
 
@@ -362,7 +364,7 @@ Items flagged ⚠️ above, consolidated for engineering:
 1. ~~Enforce task signup level gate (`character.level ≥ task.level_required` on praxis creation).~~ — ✅ **done** (`services/praxis.py::_check_create_preconditions`).
 2. Remove `task_submit_level_gap` from `EraConfig` and any references.
 3. ~~Add `max_collab_participants` to `EraConfig`~~ — **removed**. Era 1 collaborations are unlimited. Do not add this field.
-4. ~~Switch duel anti-self-vote from character-level to account-level (same behavior as solo/collab).~~ — ✅ **done** (account-level anti-self-vote per-praxis in `services/vote.py`; see the duel note in §Duels for the residual opponent-side scope).
+4. ~~Switch duel anti-self-vote from character-level to account-level (same behavior as solo/collab).~~ — ✅ **done** (account-level anti-self-vote per-praxis in `services/vote.py`; opponent-side blocking landed in #309 — a participant cannot rate either side of their duel).
 5. ~~Vote budget on-read recomputation: compute `votes_available = vote_budget_base + floor(multiplier × score) − votes_spent_this_era` fresh on every read. Replace stored running counter with stored `votes_spent_this_era` only.~~ — ✅ **done** (`services/scoring.py::compute_votes_available`; stored column is `votes_spent_this_era`).
 6. ~~Snide tie rule: opponent gets **own** faction's `duel_loss_modifier`, not Snide's. Update `compute_duel_multiplier`.~~ — ✅ **done** (`services/scoring.py::compute_duel_multiplier`).
 7. Second character level gate: raise from 3 → **4**. Gate the Albescent faction choice for new characters behind "account has at least one character at level 8 who has completed at least one task from each faction."

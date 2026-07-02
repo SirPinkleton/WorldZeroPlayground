@@ -16,7 +16,6 @@ import {
   MetatasksList,
   ModePicker,
   PublishButton,
-  SaveButton,
   TitleField,
 } from "./controls";
 import type { EditPraxisState } from "../useEditPraxis";
@@ -260,8 +259,7 @@ export default function EditPraxisTerminal({ state }: Props) {
         )}
 
         {/* Invite */}
-        {state.showCollabInvite &&
-          !(praxis.type === "duel" && state.duelSlotFull) && (
+        {state.showInviteBox && (
             <div style={{ marginBottom: 22 }}>
               <div style={{ fontSize: 10, color: dim, marginBottom: 8 }}>
                 <span style={{ color: term }}>$ </span>wz praxis invite
@@ -487,7 +485,7 @@ export default function EditPraxisTerminal({ state }: Props) {
               background: "rgba(37,99,235,.04)",
             }}
           >
-            {state.media.length === 0 && state.newFiles.length === 0 ? (
+            {state.media.length === 0 ? (
               <div
                 style={{
                   fontSize: 11,
@@ -555,41 +553,6 @@ export default function EditPraxisTerminal({ state }: Props) {
                     </div>
                   );
                 })}
-                {state.newFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "6px 10px",
-                      background: "rgba(74,222,128,.06)",
-                      border: `1px dashed ${accent}`,
-                      fontSize: 11,
-                      color: term,
-                    }}
-                  >
-                    <span style={{ color: accent }}>[staged]</span>
-                    <span style={{ flex: 1 }}>{file.name}</span>
-                    <span style={{ color: dim, fontSize: 9 }}>
-                      {(file.size / 1024 / 1024).toFixed(1)}MB
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => state.removeNewFile(index)}
-                      style={{
-                        background: "transparent",
-                        color: "#f87171",
-                        border: "none",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        fontSize: 10,
-                      }}
-                    >
-                      rm
-                    </button>
-                  </div>
-                ))}
               </div>
             )}
             <FilePicker
@@ -691,24 +654,6 @@ export default function EditPraxisTerminal({ state }: Props) {
                 cursor: state.submitting ? "wait" : "pointer",
                 textTransform: "uppercase",
                 position: "relative",
-              },
-            }}
-          />
-          <SaveButton
-            state={state}
-            skin={{
-              idleLabel: ":w (save draft)",
-              busyLabel: ":saving",
-              style: {
-                background: "transparent",
-                color: term,
-                fontFamily: "'Share Tech Mono', monospace",
-                fontSize: 11,
-                letterSpacing: "0.1em",
-                padding: "10px 16px",
-                border: `1px solid ${term}`,
-                cursor: state.saving ? "wait" : "pointer",
-                textTransform: "uppercase",
               },
             }}
           />
