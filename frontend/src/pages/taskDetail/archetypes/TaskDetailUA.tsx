@@ -303,7 +303,7 @@ export default function TaskDetailUA({
     slotsOpen,
     maxTaskSlots,
     modifiedPoints,
-    avgVoteNumber,
+    topScore,
     voteCount,
     sortedSubmissions,
     submissionSort,
@@ -682,7 +682,7 @@ export default function TaskDetailUA({
                     color: ORANGE,
                   }}
                 >
-                  {avgVoteNumber.toFixed(1)}
+                  {topScore}
                 </span>
                 <div style={{ paddingBottom: 6 }}>
                   <div
@@ -693,7 +693,7 @@ export default function TaskDetailUA({
                       color: INK,
                     }}
                   >
-                    Average Critique
+                    Finest Critique
                   </div>
                   <div
                     style={{
