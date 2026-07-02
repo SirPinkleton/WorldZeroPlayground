@@ -20,10 +20,10 @@ import { pickArtKey } from "../blocks/useMediaArt";
 import {
   Breadcrumb,
   ErrorBanner,
-  TaskMetaInline,
   TitleCounter,
   formatAutosave,
 } from "./shared";
+import { UACrest } from "../../../components/cards/UACrest";
 import {
   BodyPreview,
   BodyTextarea,
@@ -47,9 +47,9 @@ const SERIF = "'EB Garamond', serif";
 const MONO = "'Courier Prime', monospace";
 
 const MODE_OPTIONS: Array<{ key: PraxisType; label: string; desc: string }> = [
-  { key: "solo", label: "Sole", desc: "a sole acquisition" },
-  { key: "collab", label: "Joint", desc: "a joint acquisition" },
-  { key: "duel", label: "Contested", desc: "a contested acquisition" },
+  { key: "solo", label: "Alone", desc: "a sole acquisition" },
+  { key: "collab", label: "Atelier", desc: "a joint acquisition" },
+  { key: "duel", label: "Salon Duel", desc: "a contested acquisition" },
 ];
 
 /** A gilt-framed card — the recurring salon surface for each editor region. */
@@ -108,42 +108,57 @@ export default function EditPraxisUA({ state }: Props) {
           inkColor="var(--ua-gold)"
         />
 
-        {/* Masthead — the acquisition sheet's letterhead */}
+        {/* Masthead — the salon submission sheet's letterhead */}
         <Plate style={{ padding: 0, marginBottom: 26 }}>
+          {/* burnt-amber ribbon — crest + house line */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 14,
-              padding: "12px 24px",
-              borderBottom: "1px solid var(--ua-line-soft)",
-              background:
-                "linear-gradient(180deg, color-mix(in srgb, var(--ua-gold-pale) 28%, var(--ua-paper)), var(--ua-paper))",
+              padding: "10px 20px",
+              background: "var(--ua-orange)",
             }}
           >
-            <span style={{ fontFamily: REGALIA, fontSize: 10, letterSpacing: "0.14em", color: "var(--ua-gold)" }}>
-              University of Asthmatics · The Atelier
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <UACrest width={22} height={26} />
+              <span style={{ fontFamily: REGALIA, fontSize: 10, letterSpacing: "0.14em", color: "var(--ua-paper-warm)" }}>
+                University of Asthmatics · Salon Submission №{praxis.id}
+              </span>
             </span>
-            <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ua-sub)", fontStyle: "italic" }}>
+            <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ua-paper-warm)", fontStyle: "italic", whiteSpace: "nowrap" }}>
               {state.autosaveAt ? `sketched ${formatAutosave(state.autosaveAt)}` : "unsaved"}
             </span>
           </div>
-          <div style={{ padding: "20px 24px 22px" }}>
-            <div style={{ fontFamily: MONO, fontSize: 8, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--ua-muted)", marginBottom: 8 }}>
-              Preparing an acquisition
-            </div>
-            <h1 style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 600, fontSize: 34, lineHeight: 1.08, color: "var(--ua-ink)", margin: "0 0 6px" }}>
-              re: {praxis.task_title}
+          <div style={{ padding: "22px 24px 22px" }}>
+            <h1 style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 600, fontSize: 50, lineHeight: 1.04, color: "var(--ua-ink)", margin: "0 0 14px" }}>
+              Submit to the Salon
             </h1>
-            <TaskMetaInline praxis={praxis} task={task} textColor="var(--ua-muted)" />
+            {/* red/gold dashed rule */}
+            <div style={{ height: 0, borderTop: "1.5px dashed var(--ua-gold)", marginBottom: 18 }} />
+            {/* commission reference slip — crest, task, points, era mark */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, border: "1px solid var(--ua-line)", background: "var(--ua-paper-warm)", padding: "12px 16px" }}>
+              <UACrest width={50} height={60} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: MONO, fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--ua-muted)", marginBottom: 4 }}>
+                  Commission · Anno III
+                </div>
+                <div style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: 20, color: "var(--ua-ink)", lineHeight: 1.15, overflowWrap: "anywhere" }}>
+                  {praxis.task_title}
+                </div>
+                <div style={{ fontFamily: REGALIA, fontSize: 10, letterSpacing: "0.12em", color: "var(--ua-gold)", marginTop: 4 }}>
+                  {praxis.task_point_value} pts
+                </div>
+              </div>
+            </div>
           </div>
         </Plate>
 
         {/* Mode — engraved plates */}
         {!state.controlsLocked && (
           <div style={{ marginBottom: 24 }}>
-            <RegaliaLabel>The manner of acquisition</RegaliaLabel>
+            <RegaliaLabel>The Hand</RegaliaLabel>
             <ModePicker
               state={state}
               skin={{
@@ -205,7 +220,7 @@ export default function EditPraxisUA({ state }: Props) {
 
         {/* Title */}
         <Plate>
-          <RegaliaLabel>The title of the work</RegaliaLabel>
+          <RegaliaLabel>The Title of the Work</RegaliaLabel>
           <TitleField
             state={state}
             skin={{
@@ -232,7 +247,7 @@ export default function EditPraxisUA({ state }: Props) {
 
         {/* Body — the process */}
         <Plate>
-          <RegaliaLabel>The Process · {state.wordCount} words · markdown</RegaliaLabel>
+          <RegaliaLabel>The Statement · {state.wordCount} words · markdown</RegaliaLabel>
           <BodyTextarea
             state={state}
             skin={{
@@ -269,7 +284,7 @@ export default function EditPraxisUA({ state }: Props) {
 
         {/* The plates — media */}
         <div style={{ marginBottom: 22 }}>
-          <RegaliaLabel>The plates</RegaliaLabel>
+          <RegaliaLabel>The Plate</RegaliaLabel>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
             {state.media.map((item) => {
               const filename = item.file_path.split("/").pop() ?? item.file_path;
@@ -345,8 +360,8 @@ export default function EditPraxisUA({ state }: Props) {
           <PublishButton
             state={state}
             skin={{
-              idleLabel: "File the acquisition",
-              busyLabel: "filing…",
+              idleLabel: "✦ Hang it in the Salon ✦",
+              busyLabel: "hanging…",
               style: {
                 background: "var(--ua-orange)",
                 color: "var(--ua-paper)",
@@ -364,7 +379,7 @@ export default function EditPraxisUA({ state }: Props) {
           <DropButton
             state={state}
             skin={{
-              label: "discard this work",
+              label: "Withdraw Work",
               style: {
                 background: "transparent",
                 border: "none",

@@ -72,12 +72,12 @@ describe('EverymenVote renders from registry', () => {
 
 describe('reframeLabel', () => {
   it('labels a value in the task faction vocabulary', () => {
-    expect(reframeLabel('ua', 5)).toBe('Acquired')
+    expect(reframeLabel('ua', 5)).toBe('masterwork')
     expect(reframeLabel('snide', 1)).toBe('meh')
   })
 
   it('resolves the albescent→ua alias', () => {
-    expect(reframeLabel('albescent', 3)).toBe('Hung')
+    expect(reframeLabel('albescent', 3)).toBe('accomplished')
   })
 
   it('falls back to the arabic number when no reframe exists', () => {
