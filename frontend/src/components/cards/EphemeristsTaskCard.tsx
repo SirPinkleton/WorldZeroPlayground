@@ -17,7 +17,7 @@ interface Props {
   onSignup?: (id: number) => void;
 }
 
-export default function TaskCardEphemerists({ task, displayPoints, onSignup }: Props) {
+export default function EphemeristsTaskCard({ task, displayPoints, onSignup }: Props) {
   return (
     <div
       style={{

@@ -12,13 +12,13 @@ import {
   useEditPraxis,
   type EditPraxisState,
 } from "./editPraxis/useEditPraxis";
-import EditPraxisPunkZine from "./editPraxis/archetypes/EditPraxisPunkZine";
-import EditPraxisTerminal from "./editPraxis/archetypes/EditPraxisTerminal";
-import EditPraxisPaperCollage from "./editPraxis/archetypes/EditPraxisPaperCollage";
-import EditPraxisEphemeris from "./editPraxis/archetypes/EditPraxisEphemeris";
-import EditPraxisStickyNote from "./editPraxis/archetypes/EditPraxisStickyNote";
-import EditPraxisEverymen from "./editPraxis/archetypes/EditPraxisEverymen";
-import EditPraxisUA from "./editPraxis/archetypes/EditPraxisUA";
+import SNIDEEditPraxis from "./editPraxis/archetypes/SNIDEEditPraxis";
+import SingularityEditPraxis from "./editPraxis/archetypes/SingularityEditPraxis";
+import WowEditPraxis from "./editPraxis/archetypes/WowEditPraxis";
+import EphemeristsEditPraxis from "./editPraxis/archetypes/EphemeristsEditPraxis";
+import DefaultEditPraxis from "./editPraxis/archetypes/DefaultEditPraxis";
+import EverymenEditPraxis from "./editPraxis/archetypes/EverymenEditPraxis";
+import UAEditPraxis from "./editPraxis/archetypes/UAEditPraxis";
 import AlbescentEditPraxis from "./editPraxis/archetypes/AlbescentEditPraxis";
 
 type Archetype = (props: { state: EditPraxisState }) => JSX.Element;
@@ -28,12 +28,12 @@ type Archetype = (props: { state: EditPraxisState }) => JSX.Element;
 // slice 1) — its explicit entry beats the albescent→ua alias. StickyNote remains
 // the fallback for `na` / unknown factions.
 const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
-  everymen: EditPraxisEverymen,
-  snide: EditPraxisPunkZine,
-  singularity: EditPraxisTerminal,
-  wow: EditPraxisPaperCollage,
-  ephemerists: EditPraxisEphemeris,
-  ua: EditPraxisUA,
+  everymen: EverymenEditPraxis,
+  snide: SNIDEEditPraxis,
+  singularity: SingularityEditPraxis,
+  wow: WowEditPraxis,
+  ephemerists: EphemeristsEditPraxis,
+  ua: UAEditPraxis,
   albescent: AlbescentEditPraxis,
 };
 
@@ -63,7 +63,7 @@ export default function EditPraxis() {
   }
 
   const slug = state.task?.primary_faction_slug ?? null;
-  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, slug, EditPraxisStickyNote);
+  const Archetype = pickVariant(ARCHETYPE_BY_SLUG, slug, DefaultEditPraxis);
 
   return (
     <>

@@ -172,7 +172,7 @@ function PointsSeal({
 
 /* ── card ───────────────────────────────────────────────────────── */
 
-export default function TaskCardEverymen({ task, displayPoints, onSignup }: Props) {
+export default function EverymenTaskCard({ task, displayPoints, onSignup }: Props) {
   return (
     <div
       style={{

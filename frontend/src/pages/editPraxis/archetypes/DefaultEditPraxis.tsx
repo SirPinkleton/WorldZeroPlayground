@@ -50,7 +50,7 @@ const CORK_DEEP = "#a17c4f";
 const SLATE = "#475569";
 const SLATE_DEEP = "#1e293b";
 
-export default function EditPraxisStickyNote({ state }: Props) {
+export default function DefaultEditPraxis({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
 

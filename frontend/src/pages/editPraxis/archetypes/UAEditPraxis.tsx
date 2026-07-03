@@ -83,7 +83,7 @@ function RegaliaLabel({ children }: { children: ReactNode }) {
   );
 }
 
-export default function EditPraxisUA({ state }: Props) {
+export default function UAEditPraxis({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
   const allowedModes = task?.allowed_modes ?? ["solo", "collab", "duel"];

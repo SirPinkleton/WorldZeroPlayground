@@ -22,7 +22,7 @@ import type { FactionDetailState } from "../useFactionDetail";
  *
  * Every colour resolves to a --faction-wow-* token (dark-mode-aware via the
  * cascade). The script face is the WoW card-font token (Caveat); body copy uses
- * --font-body, matching TaskCardWow and the WoW PraxisCard branch.
+ * --font-body, matching WowTaskCard and the WoW PraxisCard branch.
  */
 
 const PINK = "var(--faction-wow)";

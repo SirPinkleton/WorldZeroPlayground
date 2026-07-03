@@ -190,7 +190,7 @@ function Ivy({
   );
 }
 
-export default function EditPraxisPaperCollage({ state }: Props) {
+export default function WowEditPraxis({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
 

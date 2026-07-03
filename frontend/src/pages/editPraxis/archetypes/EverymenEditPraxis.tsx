@@ -145,7 +145,7 @@ function FieldLabel({
   );
 }
 
-export default function EditPraxisEverymen({ state }: Props) {
+export default function EverymenEditPraxis({ state }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const praxis = state.praxis!;
   const task = state.task;
