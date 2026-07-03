@@ -33,7 +33,7 @@ export default function DefaultTaskDetail({
     maxTaskSlots,
     factionMultiplier,
     modifiedPoints,
-    avgVote,
+    topScore,
     sortedSubmissions,
     submissionSort,
     setSubmissionSort,
@@ -193,7 +193,7 @@ export default function DefaultTaskDetail({
                   : []),
                 { label: "Completed", value: submissions.length },
                 { label: "In Progress", value: signups.length },
-                { label: "Avg Vote", value: avgVote },
+                { label: "Top Score", value: topScore },
               ].map((stat) => (
                 <div
                   key={stat.label}

@@ -287,7 +287,7 @@ export default function TaskDetailSNIDE({
     modifiedPoints,
     slotsOpen,
     maxTaskSlots,
-    avgVoteNumber,
+    topScore,
     voteCount,
     sortedSubmissions,
     submissionSort,
@@ -592,7 +592,7 @@ export default function TaskDetailSNIDE({
             }}
           >
             {voteCount > 0
-              ? `${submissions.length} CLOSED · ${avgVoteNumber.toFixed(1)} AVG`
+              ? `${submissions.length} CLOSED · TOP ${topScore}`
               : "NO VERDICT YET"}
           </div>
         </div>

@@ -198,7 +198,7 @@ export default function TaskDetailWow({ state }: { state: TaskDetailState }) {
     slotsOpen,
     maxTaskSlots,
     modifiedPoints,
-    avgVoteNumber,
+    topScore,
     voteCount,
     sortedSubmissions,
     submissionSort,
@@ -590,7 +590,7 @@ export default function TaskDetailWow({ state }: { state: TaskDetailState }) {
                   color: PINK,
                 }}
               >
-                {avgVoteNumber.toFixed(1)}
+                {topScore}
               </span>
               <div style={{ paddingBottom: 6 }}>
                 <div
@@ -600,7 +600,7 @@ export default function TaskDetailWow({ state }: { state: TaskDetailState }) {
                     color: TITLE_TEXT,
                   }}
                 >
-                  avg love · out of 5
+                  top love
                 </div>
                 <div style={{ fontSize: 10, color: CARD_MUTED }}>
                   {voteCount} {voteCount === 1 ? "spell" : "spells"} adored

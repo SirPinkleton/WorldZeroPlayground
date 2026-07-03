@@ -33,9 +33,9 @@ describe('t()', () => {
     expect(t('vote.snide.anarchy')).toBe('ANARCHY')
   })
 
-  it('resolves title-case values for UA labels', () => {
-    expect(t('vote.ua.acquired')).toBe('Acquired')
-    expect(t('vote.ua.commended')).toBe('Commended')
+  it('resolves the salon-critique values for UA labels', () => {
+    expect(t('vote.ua.masterwork')).toBe('masterwork')
+    expect(t('vote.ua.distinguished')).toBe('distinguished')
   })
 })
 

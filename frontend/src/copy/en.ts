@@ -52,11 +52,11 @@ export const en = {
       verified: "VERIFIED",
     },
     ua: {
-      noted: "Noted",
-      sketch: "Sketch",
-      hung: "Hung",
-      commended: "Commended",
-      acquired: "Acquired",
+      "rough-sketch": "rough sketch",
+      study: "study",
+      accomplished: "accomplished",
+      distinguished: "distinguished",
+      masterwork: "masterwork",
     },
   },
 } as const
