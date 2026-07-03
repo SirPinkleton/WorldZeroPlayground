@@ -30,4 +30,4 @@ them**:
 
 Only UA's description is corrected in this change. Removing `is_selectable` and
 retiring `aged_out` (the latter needs a data migration for any legacy rows) is
-deferred to a follow-up issue.
+deferred to follow-up issue #428.
