@@ -47,7 +47,7 @@ identity on this surface** (no longer a `ua` alias here) — see decision 7 belo
 | snide | ✅ bundle | ❌ → Default | #205 |
 | singularity | ✅ bundle | ❌ → Default | #206 (+ build `SingularityVote`) |
 | ua | ✅ bundle | ❌ → Default | #209 (+ build `UaVote`) |
-| albescent | ✅ bundle (always-light) | ❌ → Default (ua alias) | #231 first-class on this surface; #232 promote everywhere |
+| albescent | ✅ bundle (always-light) | ✅ first-class everywhere | #231 read page; **#232 done** — promoted on all surfaces; `albescent → ua` alias dropped |
 | aged_out | ❌ (inherits `ua`) | ❌ → Default | stays a `ua` alias |
 
 ### 2. A shared slot module owns the behavior slots; archetypes own presentation
