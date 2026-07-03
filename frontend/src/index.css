@@ -222,6 +222,7 @@
   --faction-albescent-card-font: "Cormorant Garamond", Georgia, serif;
   /* Full vellum-correspondence set — the whole palette is one near-black hue. */
   --faction-albescent-primary: #1c1c1a; /* near-black ink */
+  --faction-albescent: var(--faction-albescent-primary); /* bare primary — first-class, no longer aliases ua (#232) */
   --faction-albescent-light: #faf9f7; /* warm off-white sheet */
   --faction-albescent-border: rgba(0, 0, 0, 0.1);
   --faction-albescent-surface: #ffffff; /* the sheet */
@@ -385,6 +386,7 @@
   --faction-albescent-card-muted: rgba(28, 28, 26, 0.44);
   --faction-albescent-card-font: "Cormorant Garamond", Georgia, serif;
   --faction-albescent-primary: #1c1c1a;
+  --faction-albescent: var(--faction-albescent-primary); /* bare primary — first-class, no longer aliases ua (#232) */
   --faction-albescent-light: #faf9f7;
   --faction-albescent-border: rgba(0, 0, 0, 0.1);
   --faction-albescent-surface: #ffffff;

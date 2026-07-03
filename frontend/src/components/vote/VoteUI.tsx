@@ -7,6 +7,7 @@ import SnideVote from './SnideVote'
 import EphemeristsVote from './EphemeristsVote'
 import SingularityVote from './SingularityVote'
 import UAVote from './UAVote'
+import AlbescentVote from './AlbescentVote'
 
 /**
  * Per-faction vote/rating UI dispatcher (Tier-3 surface). Keyed by the voted
@@ -29,6 +30,7 @@ const FACTION_VOTE: Record<string, ComponentType<VoteUIProps>> = {
   ephemerists: EphemeristsVote,
   singularity: SingularityVote,
   ua: UAVote,
+  albescent: AlbescentVote,
 }
 
 export default function VoteUI({

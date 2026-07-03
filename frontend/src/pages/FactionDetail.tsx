@@ -11,12 +11,14 @@ import SingularityFactionBody from "./factionDetail/archetypes/SingularityFactio
 import SnideFactionBody from "./factionDetail/archetypes/SnideFactionBody";
 import EphemeristsFactionBody from "./factionDetail/archetypes/EphemeristsFactionBody";
 import WowFactionBody from "./factionDetail/archetypes/WowFactionBody";
+import AlbescentFactionBody from "./factionDetail/archetypes/AlbescentFactionBody";
 import EphemeristsFactionHero from "../components/cards/EphemeristsFactionHero";
 import SnideFactionHero from "../components/cards/SnideFactionHero";
 import SingularityFactionHero from "../components/cards/SingularityFactionHero";
 import EverymenFactionHero from "../components/cards/EverymenFactionHero";
 import UAFactionHero from "../components/cards/UAFactionHero";
 import WowFactionHero from "../components/cards/WowFactionHero";
+import AlbescentFactionHero from "../components/cards/AlbescentFactionHero";
 
 /**
  * Faction detail page (`/factions/:slug`). Per-faction surface #13 in
@@ -48,11 +50,12 @@ const FACTION_HEROES: Record<string, ComponentType<FactionHeroProps>> = {
   everymen: EverymenFactionHero,
   ua: UAFactionHero,
   wow: WowFactionHero,
+  albescent: AlbescentFactionHero,
 };
 
-// The standardized six-section body, dispatched per faction. albescent is not
-// registered: it aliases to ua (FACTION_ALIASES) and so inherits the UA body
-// via pickVariant until its own vellum skin lands with the alias removal.
+// The standardized six-section body, dispatched per faction. The explicit
+// albescent row renders "The Record" skin now (#232); it beats the albescent→ua
+// alias in pickVariant, so it no longer inherits the UA body.
 const FACTION_BODIES: Record<string, ComponentType<{ state: FactionDetailState }>> = {
   everymen: EverymenFactionBody,
   ua: UaFactionBody,
@@ -60,6 +63,7 @@ const FACTION_BODIES: Record<string, ComponentType<{ state: FactionDetailState }
   snide: SnideFactionBody,
   ephemerists: EphemeristsFactionBody,
   wow: WowFactionBody,
+  albescent: AlbescentFactionBody,
 };
 
 export default function FactionDetail({ slug: slugProp }: { slug?: string } = {}) {

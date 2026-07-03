@@ -76,8 +76,14 @@ describe('reframeLabel', () => {
     expect(reframeLabel('snide', 1)).toBe('meh')
   })
 
-  it('resolves the albescent→ua alias', () => {
-    expect(reframeLabel('albescent', 3)).toBe('accomplished')
+  it('labels albescent in its own first-class "bear witness" vocabulary (#232)', () => {
+    // No longer aliases to ua — albescent has its own witness scale.
+    expect(reframeLabel('albescent', 3)).toBe('Witnessed')
+    expect(reframeLabel('albescent', 5)).toBe('Inscribed')
+  })
+
+  it('still resolves the aged_out→ua alias', () => {
+    expect(reframeLabel('aged_out', 5)).toBe('masterwork')
   })
 
   it('falls back to the arabic number when no reframe exists', () => {

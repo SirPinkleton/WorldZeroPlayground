@@ -31,7 +31,8 @@ const FACTION_FALLBACKS: Record<string, FactionConfig> = {
   snide: { slug: "snide", name: "S.N.I.D.E.", color: "#6fae00" },
   ephemerists: { slug: "ephemerists", name: "The Ephemerists", color: "#1d6e72" },
   singularity: { slug: "singularity", name: "Singularity", color: "#2563eb" },
-  albescent: { slug: "albescent", name: "/Albescent", color: "#7c3aed" },
+  // First-class identity (#232): near-black ink, no hue — the order refuses the palette.
+  albescent: { slug: "albescent", name: "/Albescent", color: "#1c1c1a" },
   aged_out: { slug: "aged_out", name: "Aged Out", color: "#7c3aed" },
 };
 
@@ -65,7 +66,10 @@ export function populateFactionRegistry(
  * display names; only the visual identity aliases.)
  */
 export const FACTION_ALIASES: Record<string, string> = {
-  albescent: "ua",
+  // albescent dropped (#232): it is now first-class on every surface, with its
+  // own archetypes (CARD/PRAXIS/edit/detail/feed/avatar/backdrop/vote/comment/
+  // faction body+hero) and its own --faction-albescent-* / CSS_KEY entry. Only
+  // aged_out still borrows UA's identity.
   aged_out: "ua",
 };
 
@@ -80,6 +84,7 @@ const CSS_KEY: Record<string, string> = {
   snide: "snide",
   ephemerists: "ephemerists",
   singularity: "singularity",
+  albescent: "albescent", // first-class (#232) — its own --faction-albescent-* set
 };
 
 /**
