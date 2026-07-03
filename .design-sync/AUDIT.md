@@ -40,6 +40,58 @@ Then work the PRIORITY QUEUE top-down, autonomously, without stopping to ask me:
 Work in this worktree/branch. Commit ledger updates as you go; do not touch frontend/src.
 ```
 
+## ▶ RESUME PROMPT — PHASE 3 (page surfaces, after Molly's design migration lands)
+Use THIS one once the three page surfaces (Task Detail, Praxis Read, Faction Page) are migrated to `components/factions/` + new contracts. Design handoff was given to Claude Design 2026-07-02 (task-detail-contract.json + praxis-read-contract.json + per-faction `<F>{TaskDetail,PraxisRead,FactionPage}.jsx`; faction-contract.json already existed). The PRECONDITION check below stops the run if the handoff isn't in the project yet.
+
+```
+Resume the World Zero design-fidelity audit — PHASE 3: the three PAGE surfaces (Task Detail,
+Praxis Read, Faction Page) that were HELD pending design migration. Read .design-sync/AUDIT.md
+first — it holds all state, the direction-of-truth rule, the method, and the matrix. The ledger
+lives on branch/worktree claude/interesting-gates-022368; if that worktree is missing, recreate it:
+`git worktree add .claude/worktrees/interesting-gates-022368 claude/interesting-gates-022368`
+(branch is pushed to origin). Commit ledger updates as you go; never touch frontend/src.
+
+PRECONDITION — confirm the migration actually landed before auditing anything:
+DesignSync(list_files, projectId 019e221c-7853-7530-a934-7d3b2b7c8b43) must now show
+task-detail-contract.json, praxis-read-contract.json, and components/factions/<f>/<F>TaskDetail.jsx
+/ <F>PraxisRead.jsx / <F>FactionPage.jsx (faction-contract.json already existed). If they are NOT
+there, STOP and tell Molly the design handoff isn't in the project yet — do NOT fall back to the
+stale templates/.
+
+Then work each surface × faction top-down, autonomously, without stopping to ask:
+- READ THE CONTRACT JSON FIRST (authoritative slots), then the fresh per-faction cloud component,
+  then the repo archetype. Compare BOTH structure AND copy. Cloud design is canonical; any repo
+  divergence — layout, wording, or a missing contract slot — is drift.
+- Repo locations: Task Detail -> pages/taskDetail/archetypes/* + wrapper pages/TaskDetail.tsx;
+  Praxis Read -> pages/praxisDetail/archetypes/*PraxisDetail.tsx + praxisDetail/shared.tsx;
+  Faction Page -> pages/FactionDetail.tsx (FACTION_HEROES map + the faction body components).
+- NON-UA is the target (UA cells were match/triaged vs prior canon — re-confirm them cheaply against
+  the fresh components too). Albescent rolls into #232 — do NOT file per-cell albescent issues.
+
+HARD OVERRIDES (carry from phases 1-2):
+- NO VOTE AVERAGE (ADR-0014/#264). If the NEW design STILL shows an average (the old templates did:
+  "4.1 avg critique", "avg 4.0"), that's a DESIGN bug — flag it to Molly, do NOT port it; the repo
+  must show votePoints + marks + who-voted + a non-mean tier. Repo praxis-read is already avg-clean;
+  task-detail still computes avgVoteNumber (useTaskDetail.ts:229) -> that is #378, cross-link don't re-file.
+- votePoints has NO backend field on PraxisCardOut (see #375 comment). If the praxis-read design
+  surfaces votePoints, note the same backend prerequisite.
+- Pages COMPOSE cards (ADR-0002): task detail embeds the faction PraxisCard; faction page embeds
+  Task/PraxisCard previews. Those cards inherit #375 (praxis hero) — that is #375's scope, not the
+  page's; don't double-file it onto the page.
+- VERIFY BEFORE FILING: grep the PAGE wrapper too, not just the archetype (comments render via
+  TaskDetail.tsx CommentThread, NOT inside the archetype — a phantom was nearly filed there before).
+- ADR CHECK: skim docs/adr/* per surface; an ADR break is also an issue. Reconcile against existing
+  issues an ADR names (#378 averages, #375 praxis hero, #136 task-detail spec, #377 UA comment,
+  faction-contract). Cite the ADR. Flag a reversal for Molly if the design supersedes one.
+
+On drift: gh issue create --label ready-for-agent, one focused issue per surface, reusing repo
+atoms and citing them. On match: promote the matrix cell (triaged/pending) -> match. After EACH
+cell: update the matrix + findings log in AUDIT.md and git commit. Only stop to ask Molly if
+DesignSync auth is unavailable (/design-login) or a finding is a genuine product/copy DECISION
+rather than a clear design-vs-repo mismatch. Otherwise keep going until Task Detail, Praxis Read,
+and Faction Page have no triaged/pending cells left, then post a summary of every issue filed.
+```
+
 ## Priority queue (work top-down) — UPDATED 2026-07-02 for the design restructure
 **Split by whether the surface is MIGRATED to the new `components/factions/` + contract source (audit against fresh canon) or NOT-yet-migrated (only stale `templates/` exists — hold or audit repo-vs-contract, and flag staleness).**
 
