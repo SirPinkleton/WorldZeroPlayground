@@ -22,6 +22,14 @@ const STATUS_CAN_RETURN = 'can_return'
 /** Factions that should be hidden from the player-facing grid */
 const HIDDEN_SLUGS = new Set([NA_SLUG, AGED_OUT_SLUG, 'ua'])
 
+/**
+ * Factions grid — a directory of pure PREVIEW tiles (the design select.card
+ * archetypes). Each tile's CTA links to the faction's detail page
+ * (`/factions/:slug`), where ALL membership actions (Join / Leave / Accept /
+ * Decline) now live (issue #347). The grid itself carries no membership
+ * controls; it only previews each faction's archetype + the viewer's status,
+ * and orders the cards by that status.
+ */
 export default function Factions() {
   const { user } = useAuth()
   const character = user?.character ?? null
@@ -33,7 +41,7 @@ export default function Factions() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Invitations panel (collapsed by default once each card surfaces its own prompt)
+  // Invitations panel (collapsed by default once each card surfaces its own status)
   const [invitationsExpanded, setInvitationsExpanded] = useState(false)
 
   const fetchAll = async () => {
@@ -108,7 +116,7 @@ export default function Factions() {
         <p className="font-body text-sm text-red-600 border-2 border-red-300 px-3 py-2 mb-4">{error}</p>
       )}
 
-      {/* Invitation letters — collapsible; each card also surfaces its own prompt below */}
+      {/* Invitation letters — collapsible; each card also surfaces its own status below */}
       {character && invitations.length > 0 && (
         <div className="mb-6">
           <button
