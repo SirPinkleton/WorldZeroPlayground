@@ -339,7 +339,20 @@ async def list_praxes(
         query = query.where(Praxis.task_id == task_id)
 
     if character_id is not None:
-        query = query.where(Praxis.created_by_id == character_id)
+        if status == PraxisStatus.in_progress:
+            # ADR-0013: in-progress praxes are co-owned; surface any member's
+            # active draft, not just the creator's (bank cap already counts
+            # memberships — see _count_in_progress_praxes). Published/authored
+            # lists keep creator semantics below.
+            query = query.where(
+                Praxis.id.in_(
+                    select(PraxisMember.praxis_id).where(
+                        PraxisMember.character_id == character_id
+                    )
+                )
+            )
+        else:
+            query = query.where(Praxis.created_by_id == character_id)
 
     if status is not None:
         query = query.where(Praxis.status == status)

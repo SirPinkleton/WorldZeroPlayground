@@ -571,6 +571,55 @@ async def test_collab_invite_and_accept(
 
 
 @pytest.mark.asyncio
+async def test_collab_draft_visible_to_invitee_active_tasks(
+    client: AsyncClient,
+    character: Character,
+    character2: Character,
+    active_task: Task,
+    auth_headers: dict,
+    auth_headers2: dict,
+):
+    """#386: a joined collaborator sees the shared in_progress draft in their own
+    active-tasks list. ``character_id`` filters by membership (ADR-0013 co-owned
+    draft), not just the creator."""
+    # character2 creates the collab; character is invited and accepts.
+    create_resp = await client.post(
+        "/praxes",
+        json={"task_id": active_task.id, "type": "collab", "title": "Shared Draft"},
+        headers=auth_headers2,
+    )
+    praxis_id = create_resp.json()["id"]
+    invite_resp = await client.post(
+        f"/praxes/{praxis_id}/invite",
+        json={"invitee_id": character.id},
+        headers=auth_headers2,
+    )
+    invite_id = invite_resp.json()["id"]
+    await client.post(
+        f"/praxes/{praxis_id}/invite/{invite_id}/respond",
+        json={"accept": True},
+        headers=auth_headers,
+    )
+
+    # The invitee (not the creator) still sees the draft in their own list...
+    invitee_list = await client.get(
+        "/praxes",
+        params={"character_id": character.id, "status": "in_progress"},
+        headers=auth_headers,
+    )
+    assert invitee_list.status_code == 200
+    assert praxis_id in [p["id"] for p in invitee_list.json()]
+
+    # ...and so does the creator (membership includes them too).
+    creator_list = await client.get(
+        "/praxes",
+        params={"character_id": character2.id, "status": "in_progress"},
+        headers=auth_headers2,
+    )
+    assert praxis_id in [p["id"] for p in creator_list.json()]
+
+
+@pytest.mark.asyncio
 async def test_collab_invite_decline(
     client: AsyncClient,
     character: Character,
