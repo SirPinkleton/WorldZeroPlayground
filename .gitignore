@@ -15,3 +15,8 @@ dist/
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
+frontend/playwright/.auth/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+backend/uvicorn.log

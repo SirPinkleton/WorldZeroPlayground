@@ -1,14 +1,20 @@
+from typing import Optional
+
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from db import get_db
+from game_config import CURRENT_ERA
 from models.account import Account
 from schemas.auth import CurrentUser
+from schemas.character import CharacterCreate
 from services.auth import create_jwt, create_or_get_account, get_current_account
+from services.character import create_character, resolve_active_character
 from services.current_user import build_current_user
+from services.era import get_current_era_row, get_or_create_stats
 
 router = APIRouter()
 
@@ -94,19 +100,47 @@ async def auth_logout(response: Response):
 async def dev_login(
     response: Response,
     session: AsyncSession = Depends(get_db),
+    key: str = "1",
+    name: Optional[str] = None,
+    level: int = 0,
 ):
-    """Dev-only: create/get a test account and set a JWT cookie. Disabled in production."""
+    """Dev-only bot login (bypasses Google OAuth). Disabled in production.
+
+    Optional query params turn it into a one-call e2e fixture:
+      key   — distinct dev account selector ("1" = the legacy dev account)
+      name  — if set, ensure the account carries a character with this display name
+      level — if >0, seed the carried character's current-era level (collab needs >=1)
+    Returns account_id + character_id so tests can invite/credit by id.
+    """
     if settings.ENVIRONMENT == _ENV_PRODUCTION:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Not found.")
+
+    provider_user_id = "dev-user-1" if key == "1" else f"dev-{key}"
+    email = "dev@localhost" if key == "1" else f"dev-{key}@localhost"
 
     account = await create_or_get_account(
         provider="dev",
-        provider_user_id="dev-user-1",
-        email="dev@localhost",
+        provider_user_id=provider_user_id,
+        email=email,
         access_token="",
         session=session,
     )
+
+    character = await resolve_active_character(account, session)
+    if character is None and name is not None:
+        result = await create_character(
+            account.id, CharacterCreate(display_name=name), session
+        )
+        character = result.character
+
+    if character is not None and level > 0:
+        era_row = await get_current_era_row(session)
+        stats = await get_or_create_stats(session, character.id, era_row.id)
+        thresholds = CURRENT_ERA.level_thresholds
+        stats.level = level
+        stats.score = thresholds[level] if level < len(thresholds) else thresholds[-1]
+        stats.all_time_score = max(stats.all_time_score, stats.score)
+        await session.flush()
 
     jwt_token = create_jwt(account.id)
     response.set_cookie(
@@ -117,4 +151,9 @@ async def dev_login(
         secure=False,
         max_age=_COOKIE_MAX_AGE,
     )
-    return {"message": "Dev login successful"}
+    return {
+        "message": "Dev login successful",
+        "account_id": account.id,
+        "character_id": character.id if character else None,
+        "character_name": character.display_name if character else None,
+    }
