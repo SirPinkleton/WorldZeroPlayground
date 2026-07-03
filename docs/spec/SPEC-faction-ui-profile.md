@@ -134,7 +134,7 @@ Hand this to whoever wires the faction after design is delivered. (Designer only
 
 **What this is.** The *state* companion to §1's *contract*: which factions have a bespoke version of each surface wired **today**, and which fall back to a generic default. Use it to brief design ("commission an `X` for these factions") and to scope a new faction ("here's everything it could own"). Audited from the dispatchers in code on **2026-06-24** — re-audit by grepping `pickVariant(` and the `Record<slug, …>` maps if it looks stale.
 
-**Playable factions (6):** `ua` · `everymen` · `wow` · `snide` · `ephemerists` · `singularity`. (`ua_masters` is dormant → Era 2; `albescent`/`aged_out` are alias slugs that inherit `ua`'s archetype via `FACTION_ALIASES`, so they own nothing of their own by design.)
+**First-class factions (7):** `ua` · `everymen` · `wow` · `snide` · `ephemerists` · `singularity` · `albescent`. As of #232, `albescent` is a fully first-class identity: it owns a bespoke archetype on **every** surface (task/praxis card, edit-praxis, task/praxis detail, feed frame, avatar, backdrop, vote "bear witness", comment, faction body + hero) plus its own `--faction-albescent-*` token set and `CSS_KEY` entry — the `albescent → ua` alias has been **dropped** from `FACTION_ALIASES`. (`ua_masters` is dormant → Era 2; only `aged_out` remains a `ua` alias slug that owns nothing of its own by design.)
 
 ### A. Bespoke-component surfaces — "missing" = falls back to a generic `Default*`
 

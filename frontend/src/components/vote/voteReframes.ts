@@ -68,6 +68,17 @@ export const VOTE_REFRAMES: Record<string, VoteReframe> = {
       { value: 5, label: 'masterwork' },
     ],
   },
+  // Albescent "bear witness" vocabulary (#232) — how completely a task was
+  // attended, Unseeing → Inscribed. Words from docs/design/albescent-kit.
+  albescent: {
+    tiers: [
+      { value: 1, label: 'Unseeing' },
+      { value: 2, label: 'Glimpsed' },
+      { value: 3, label: 'Witnessed' },
+      { value: 4, label: 'Verified' },
+      { value: 5, label: 'Inscribed' },
+    ],
+  },
 }
 
 /**
