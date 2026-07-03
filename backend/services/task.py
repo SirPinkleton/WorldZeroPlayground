@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from game_config import CURRENT_ERA, EraConfig
 from models.character import Character
-from models.faction import Faction, FactionStatus
 from models.praxis import Praxis, PraxisMember, PraxisStatus
 from models.task import Task, TaskStatus, TaskType
 from schemas.task import TaskCreate, TaskOut
 from services.era import get_current_era_row, get_or_create_stats
+from services.faction_service import hidden_faction_slugs
 from services.praxis import (
     active_member_task_ids_subquery,
     allowed_praxis_modes,
@@ -211,11 +211,8 @@ async def list_tasks(
     ``sort='newest'`` orders by creation time (newest first); the default
     ordering surfaces the easiest, highest-value tasks first.
     """
-    # Collect hidden faction slugs to exclude their tasks
-    hidden_result = await session.execute(
-        select(Faction.slug).where(Faction.status != FactionStatus.visible)
-    )
-    hidden_slugs = [row[0] for row in hidden_result.all()]
+    # Collect hidden faction slugs to exclude their tasks (faction-rules seam, #171)
+    hidden_slugs = await hidden_faction_slugs(session)
 
     query = select(Task)
 

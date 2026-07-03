@@ -40,6 +40,7 @@ from schemas.praxis import (
 )
 from services import collab_consensus
 from services.character_stats import recalculate_character_stats
+from services.faction_service import faction_permits
 from services.era import get_current_era_row, get_or_create_stats
 from models.duel import Duel, DuelStatus
 from services.vote_tally import crowned_praxis_ids, get_tally, tally_votes
@@ -917,8 +918,10 @@ def is_task_eligible_for_character(
     """Return True if ``character`` is eligible to act on ``task``.
 
     For standard tasks the gate is only ``task.level_required``. For metatask
-    rows the character must also belong to the same faction as the metatask
-    (``task.metatask_faction_slug``). Anonymous viewers are never eligible.
+    rows the character's faction must also permit it — see
+    :func:`services.faction_service.faction_permits` (same faction as the
+    metatask, or Albescent, who may act on any). Anonymous viewers are never
+    eligible.
 
     Note this mirrors the metatask scoring gate in
     :func:`services.meta_task.get_meta_task_points`
@@ -931,11 +934,9 @@ def is_task_eligible_for_character(
         return False
     if character_level < task.level_required:
         return False
-    if task.task_type == TaskType.metatask:
-        if task.metatask_faction_slug is None:
-            return False
-        if character.faction_slug != task.metatask_faction_slug:
-            return False
+    # Faction gating routes through the single seam (ADR-0029, #171).
+    if not faction_permits(character, task):
+        return False
     return True
 
 
@@ -1265,6 +1266,9 @@ def _check_metatask_eligibility(
     era: EraConfig,
 ) -> Optional[str]:
     """Return a 403 reason string if this character can't apply ``task``, else None."""
+    # Albescent bypasses both the level and faction gates (its charter). The
+    # level gate is a separate axis; the faction decision routes through the
+    # single seam (ADR-0029, #171) — for non-Albescent it reduces to a slug match.
     if character.faction_slug == ALBESCENT_FACTION_SLUG:
         return None
     if character_level < era.metatask_apply_level:
@@ -1272,7 +1276,7 @@ def _check_metatask_eligibility(
             f"Must be level {era.metatask_apply_level} or above "
             "to apply metatasks."
         )
-    if character.faction_slug != task.metatask_faction_slug:
+    if not faction_permits(character, task, era):
         return (
             "This metatask belongs to a different faction. "
             "Only Albescent characters can apply any faction's metatask."
