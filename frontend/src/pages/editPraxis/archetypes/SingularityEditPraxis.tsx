@@ -34,7 +34,7 @@ const MODE_OPTIONS: Array<{ key: PraxisType; flag: string; desc: string }> = [
   { key: "duel", flag: "--adversarial", desc: "pvp. winner-take-all on vote median." },
 ];
 
-export default function EditPraxisTerminal({ state }: Props) {
+export default function SingularityEditPraxis({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
 

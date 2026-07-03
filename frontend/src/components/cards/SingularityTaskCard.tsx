@@ -45,7 +45,7 @@ function SprocketHoles() {
   );
 }
 
-export default function TaskCardSingularity({
+export default function SingularityTaskCard({
   task,
   displayPoints,
   onSignup,

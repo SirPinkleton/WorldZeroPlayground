@@ -22,7 +22,7 @@ import { formatTimestamp } from '../../../utils/dates'
 import { PraxisAdminBar, PraxisStatusBanners, PraxisOwnerActions, PraxisFlagBlock, PraxisVoterBreakdown, MemberByline } from '../shared'
 import type { PraxisDetailState } from '../usePraxisDetail'
 
-// ── whimsy.exe token vocabulary (same as TaskDetailWow) ──────────────────────
+// ── whimsy.exe token vocabulary (same as WowTaskDetail) ──────────────────────
 const PINK = 'var(--faction-wow)'
 const TITLE_TEXT = 'var(--faction-wow-title-text)'
 const CARD_TEXT = 'var(--faction-wow-card-text)'

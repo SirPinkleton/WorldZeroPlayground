@@ -184,7 +184,7 @@ function HandsRow({
   );
 }
 
-export default function TaskDetailEverymen({
+export default function EverymenTaskDetail({
   state,
 }: {
   state: TaskDetailState;

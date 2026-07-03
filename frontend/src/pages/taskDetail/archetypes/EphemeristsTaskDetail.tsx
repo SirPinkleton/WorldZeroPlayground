@@ -297,7 +297,7 @@ function SurveyorRow({
   );
 }
 
-export default function TaskDetailEphemerists({
+export default function EphemeristsTaskDetail({
   state,
 }: {
   state: TaskDetailState;

@@ -106,7 +106,7 @@ function RansomChar({ ch, index }: { ch: string; index: number }) {
   );
 }
 
-export default function EditPraxisPunkZine({ state }: Props) {
+export default function SNIDEEditPraxis({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
 

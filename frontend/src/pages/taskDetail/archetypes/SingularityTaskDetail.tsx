@@ -171,7 +171,7 @@ function ArrayRoster({
   );
 }
 
-export default function TaskDetailSingularity({
+export default function SingularityTaskDetail({
   state,
 }: {
   state: TaskDetailState;

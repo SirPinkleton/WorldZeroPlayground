@@ -285,7 +285,7 @@ function StatPlate({
   );
 }
 
-export default function TaskDetailUA({
+export default function UATaskDetail({
   state,
 }: {
   state: TaskDetailState;
