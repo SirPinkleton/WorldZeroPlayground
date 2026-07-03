@@ -1,5 +1,39 @@
 # Design-fidelity audit — cloud "World Zero Design System" vs repo
 
+**SESSION 4 (2026-07-03) — DRIFT BACKLOG BUILT; DIRECTION OF TRUTH PARTIALLY INVERTED; DS SLIMMED.**
+Molly's directive this session: the audit's instincts stand, but its *results* were stale — refresh
+against what is now implemented, slim the DS's faction components down to all-React, and adopt the
+DS's unified `<FACTION><Surface>` naming in the repo.
+
+1. **Every drift issue this audit filed is BUILT AND MERGED.** #372/#373/#374 (UA task card crest /
+   edit-praxis crest+copy / vote rungs), #375 (praxis vote-reframe hero, PR #384), #376 (feed
+   full-adoption — faction owns the whole row, PR #385), #377 (UAComment gilt salon + ADR-0026),
+   #378 (client-side vote averages removed), #379/#380 (edit-praxis description slot + faction
+   voice, PR #391). Matrix updated: those cells are now ✅ (built-to-design).
+2. **The praxis-card-contract average conflict is RESOLVED design-side too** — verified 2026-07-03:
+   `praxis-card-contract.json` now marks `rating` and `marks` DEPRECATED (2026-07-02), no aggregate
+   on any card; cards lead with base `points` + `votePoints`, labeled per faction
+   (`pointFigureLabels`). The "DESIGN-SIDE FOLLOW-UP (Molly owns)" flag below is CLOSED.
+3. **Direction of truth, updated (Molly 2026-07-03):** for the CARD-tier surfaces the design remains
+   canonical (`components/factions/` + contract JSONs). For the PAGE surfaces (task detail, praxis
+   read, faction page) the **repo implementation is now ahead of the DS** — the Phase-3 "wait for
+   the page-design migration" plan is retired; audit those pages against the repo, not templates/.
+4. **DS slim-down executed (this session):** the deprecated `templates/` tier was migrated-then-
+   deleted from the cloud project. The six per-faction **Join Screens** (the only design that
+   existed *only* in templates/) were extracted to React `components/factions/<slug>/<FACTION>Join.jsx`
+   + a `FactionJoin` switcher before deletion; everything else in templates/ was already superseded
+   by `components/` or by the shipped repo. Full verbatim copies of the join screens + the albescent
+   kit were vendored into the repo first (`docs/design/join/`, `docs/design/albescent-kit/`, PR #404).
+5. **Known DS gaps (design work for Molly):** UA has NO join/enlistment design (only faction without
+   one — flagged on #200/#243); the SNIDE join mockup's page chrome carried a pre-rename faction
+   roster (normalized in the React extraction, poster itself canonical).
+6. **Naming scheme adopted in repo (this session):** repo faction components renamed to the DS's
+   `<FACTION><Surface>` convention (ALLCAPS acronyms: UA/WOW/SNIDE) — `TaskCardUA`→`UATaskCard`,
+   `EditPraxisPunkZine`→`SNIDEEditPraxis`, `UaFeedFrame`→`UAFeedFrame`, etc.
+7. **Albescent:** #232 (first-class identity) built this session from the DS albescent kit; #390/#394/#395
+   (secret society: sticky reveal + wall page + join gate, ADR-0027) built alongside. The 🔁 albescent
+   matrix column resolves to real surfaces once those merge.
+
 **SESSION 3 (2026-07-02) — PHASE 3 PRECONDITION FAILED, STOPPED.** Ran the Phase-3 gate: `DesignSync(list_files, 019e221c-…)` does NOT contain the page-surface handoff. Missing: `task-detail-contract.json`, `praxis-read-contract.json`, and every per-faction `<F>TaskDetail.jsx` / `<F>PraxisRead.jsx` / `<F>FactionPage.jsx` (all 7 faction dirs still hold only Avatar/EditPraxis/NavBadge/PraxisCard/Sigil/TaskCard; SNIDE also has a `SNIDEPraxisRow.jsx` but that's a card row, not the read page). Present contracts: task-card, praxis-card, edit-praxis, faction, avatar-card. The 2026-07-02 design handoff to Claude Design has NOT synced into the project yet. Per the precondition, did NOT fall back to stale `templates/`; audited nothing; no issues filed; matrix unchanged. NEXT: re-run this same Phase-3 prompt once Molly confirms the migration landed (re-check the three ⬜/▸ page rows: Task Detail, Praxis Read, Faction Page — non-UA).
 
 **SESSION 2 (2026-07-02):** Queue **A1 DONE** — re-audited TaskCard + PraxisCard vs the new `components/factions/` + contracts. Task Card: no new required slots, #372 matches new canon, row firm. Praxis Card: `votePoints` slot has NO backend field → flagged as a backend prerequisite on #375 (comment). Matrix caveat resolved for both rows. **A2 DONE** — Edit Praxis row: #379 (description omitted, all 7) + #380 (snide/sing/wow generic mode/verb copy). **B3 DONE** — Avatar non-UA ⏭️ (no cloud design), Backdrop non-UA ✅ (all 6 realize faction ground, theme-aware, 0 hex). **B5 DONE-as-far-as-possible** — Praxis-read non-UA ▸ (no-average rule CLEAN; structural HELD — read-page design not migrated). **TERMINAL STATE: every MIGRATED-canon + no-cloud-design surface is audited. All remaining ▸ cells (Praxis-read, Faction Page, Task Detail non-UA) are BLOCKED on Molly migrating those designs to `components/factions/` — the direction-of-truth rule forbids auditing them against the stale `templates/`. No further ⬜ remain.** Session 2 filed #379 + #380, commented #375. (Infra note: the `interesting-gates-022368` worktree was removed mid-session by a concurrent cleanup; recreated it from the intact/pushed branch and continued — ledger is safe on origin.)
@@ -168,19 +202,24 @@ Molly is converting the designs into uniformly-named TS packages. **The canonica
 
 ## Matrix
 
+**Matrix as of 2026-07-03 (session 4):** every ⚠️ drift cell from sessions 1–2 was built and merged
+(#372–#385, #391); 🔁 albescent cells are being resolved by #232/#390/#394/#395 this session.
+✓#N = drift fixed by issue #N's merged build.
+
 | Surface \ Faction | ua | wow | snide | ephemerists | singularity | everymen | albescent |
 |---|---|---|---|---|---|---|---|
-| Task Card      | ⚠️→#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁 |
-| Task Detail    | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
-| Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
-| Praxis (read)  | ✅¢ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁 |
-| Praxis Card    | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | ⚠️→#375 | 🔁 |
-| Edit Praxis    | ⚠️→#373·#379 | ⚠️→#379·#380 | ⚠️→#379·#380 | ⚠️→#379 | ⚠️→#379·#380 | ⚠️→#379 | 🔁 |
-| Comment Box    | ⚠️→#377 | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁 |
-| Updates/Feed   | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | ⚠️→#376 | 🔁 |
-| Vote           | ⚠️→#374 | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁(#232) |
-| Avatar         | ⚠️→#200 | ⏭️ | ⏭️ | ⏭️ | ⏭️ | ⏭️ | 🔁(#232) |
-| Backdrop       | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁(#232) |
+| Task Card      | ✓#372 | ✅* | ✅ | ✅ | ✅ | ✅ | 🔁→#232 |
+| Task Detail    | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁→#232 |
+| Faction Page   | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | 🔁→#232 |
+| Praxis (read)  | ✅ | ▸ | ▸ | ▸ | ▸ | ▸ | ✅ (#231) |
+| Praxis Card    | ✓#375 | ✓#375 | ✓#375 | ✓#375 | ✓#375 | ✓#375 | 🔁→#232 |
+| Edit Praxis    | ✓#373·#379 | ✓#379·#380 | ✓#379·#380 | ✓#379 | ✓#379·#380 | ✓#379 | 🔁→#232 |
+| Comment Box    | ✓#377 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Updates/Feed   | ✓#376 | ✓#376 | ✓#376 | ✓#376 | ✓#376 | ✓#376 | 🔁→#232 |
+| Vote           | ✓#374 | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁→#232 |
+| Avatar         | ⚠️→#200 | ⏭️ | ⏭️ | ⏭️ | ⏭️ | ⏭️ | 🔁→#232 |
+| Backdrop       | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🔁→#232 |
+| Join           | ⚠️ no design (#200/#243) | ✅ DS | ✅ DS | ✅ DS | ✅ DS | ✅ DS | ✅ DS (#395) |
 
 > **MATRIX CAVEAT (2026-07-02 restructure):** ~~the **Task Card** ✅ marks and the **Praxis Card** (#375) row were assessed against the now-STALE `templates/` designs.~~ **RESOLVED (session 2, A1 done):** Task Card re-audited vs `components/factions/` + `task-card-contract.json` — contract is uniform 4-field, no new required slots; `components/factions/ua/UATaskCard.jsx` matches #372 exactly; row confirmed. Praxis Card re-audited vs `praxis-card-contract.json` — repo lacks the new `votePoints` field (backend gap flagged on #375); `task`/`marks`/`level`/`points` all present. Both rows now firm. **Praxis (read)** ua ✅¢ was still vs stale templates/ and the read PAGE isn't migrated (queue B5).
 
