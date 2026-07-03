@@ -6,6 +6,7 @@ import SnideBackdrop from './SnideBackdrop'
 import EphemeristsBackdrop from './EphemeristsBackdrop'
 import SingularityBackdrop from './SingularityBackdrop'
 import UABackdrop from './UABackdrop'
+import AlbescentBackdrop from './AlbescentBackdrop'
 import { useBackdropSlug } from './BackdropContext'
 import { pickVariant } from '../../utils/factionDispatch'
 
@@ -22,6 +23,7 @@ const FACTION_BACKDROPS: Record<string, ComponentType> = {
   ephemerists: EphemeristsBackdrop,
   singularity: SingularityBackdrop,
   ua: UABackdrop,
+  albescent: AlbescentBackdrop,
 }
 
 export default function FactionBackdrop() {
