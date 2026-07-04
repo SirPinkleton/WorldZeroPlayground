@@ -4,6 +4,7 @@ import { factionCssVar } from "../utils/factions";
 import { pickVariant } from "../utils/factionDispatch";
 import SnideMasthead from "./cards/SnideMasthead";
 import AlbescentMark from "./cards/AlbescentMark";
+import DefaultSigil from "./cards/DefaultSigil";
 import { EphMark, Foxing } from "./cards/ephemeristsAtoms";
 import {
   AdminOverlay,
@@ -613,31 +614,61 @@ function AlbescentPraxisCard({ praxis, adminProps, showCrown }: ArchetypeProps) 
   );
 }
 
-/** Fallback card for `na` / unknown task factions — a plain accent-bordered slab. */
+/**
+ * Fallback praxis card for `na` / unaffiliated + any task faction without a
+ * bespoke archetype — the spectrum default skin (#418). A clean sheet wrapped in
+ * the spectrum band and marked with the seven-segment ring; the shared
+ * PraxisBody inside. No longer borrows the task faction's costume. All colours
+ * via --faction-default-* tokens; flips light/dark.
+ */
 export function DefaultPraxisCard({ praxis, adminProps, showCrown }: ArchetypeProps) {
-  const slug = praxis.task_faction_slug ?? "ua";
   return (
+    // Spectrum band → clean inner sheet.
     <div
       style={{
         width: "100%",
         flex: "1 1 280px",
         minWidth: 280,
-        background: factionCssVar(slug, "card-bg"),
-        borderLeft: `4px solid ${factionCssVar(slug, "card-accent")}`,
-        color: factionCssVar(slug, "card-text"),
-        padding: "14px 16px",
-        position: "relative",
+        borderRadius: 10,
+        padding: 5,
+        background: "var(--faction-default-rainbow)",
+        boxShadow: "0 12px 26px -14px rgba(0,0,0,0.4)",
         boxSizing: "border-box",
       }}
     >
-      <AdminOverlay {...adminProps} />
-      <PraxisBody
-        praxis={praxis}
-        tint={factionCssVar(slug, "card-accent")}
-        muted={factionCssVar(slug, "card-muted")}
-        paper={factionCssVar(slug, "card-bg")}
-        showCrown={showCrown}
-      />
+      <div
+        style={{
+          position: "relative",
+          background: "var(--faction-default-card-bg)",
+          color: "var(--faction-default-card-text)",
+          borderRadius: 5,
+          padding: "14px 16px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 10,
+            fontFamily: "'Courier Prime', monospace",
+            fontSize: 8.5,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            color: "var(--faction-default-card-muted)",
+          }}
+        >
+          <DefaultSigil size={22} /> Praxis · unaffiliated
+        </div>
+        <AdminOverlay {...adminProps} />
+        <PraxisBody
+          praxis={praxis}
+          tint="var(--faction-default-card-accent)"
+          muted="var(--faction-default-card-muted)"
+          paper="var(--faction-default-card-bg)"
+          showCrown={showCrown}
+        />
+      </div>
     </div>
   );
 }

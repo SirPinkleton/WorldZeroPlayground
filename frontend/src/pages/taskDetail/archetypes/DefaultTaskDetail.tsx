@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import PraxisCard from "../../../components/PraxisCard";
 import LevelPill from "../../../components/ui/LevelPill";
 import FeedBadge from "../../../components/feed/FeedBadge";
+import DefaultSigil from "../../../components/cards/DefaultSigil";
 import { factionCssVar, factionName } from "../../../utils/factions";
 import { mediaUrl } from "../../../utils/media";
 import type { TaskDetailState } from "../useTaskDetail";
@@ -45,7 +46,10 @@ export default function DefaultTaskDetail({
   // Guarded non-null by the dispatcher.
   if (!task) return null;
 
-  const color = factionCssVar(task.primary_faction_slug);
+  // Unaffiliated / no-faction fallback — the spectrum default skin (#418), not
+  // the borrowed UA tint. The neutral --faction-default carries buttons/borders;
+  // the rainbow band + sigil carry the "all paths open" signature.
+  const color = "var(--faction-default)";
   const fname = factionName(task.primary_faction_slug);
   const showMultiplierTile = factionMultiplier !== 1.0;
 
@@ -88,11 +92,12 @@ export default function DefaultTaskDetail({
                 marginBottom: 10,
               }}
             >
+              <DefaultSigil size={20} />
               <span
                 className="pennant-shape"
                 style={{
                   display: "inline-block",
-                  background: color,
+                  background: "var(--faction-default-rainbow)",
                   color: "var(--color-text-on-accent)",
                   fontFamily: "'Courier Prime', monospace",
                   fontSize: 9,
@@ -311,8 +316,8 @@ export default function DefaultTaskDetail({
             >
               <div
                 style={{
-                  background: factionCssVar(task.primary_faction_slug, "light"),
-                  border: `1.5px solid ${factionCssVar(task.primary_faction_slug, "border")}`,
+                  background: "var(--faction-default-light)",
+                  border: "1.5px solid var(--faction-default-border)",
                   borderRadius: 8,
                   padding: "8px 16px",
                   display: "flex",
@@ -353,8 +358,8 @@ export default function DefaultTaskDetail({
             >
               <div
                 style={{
-                  background: factionCssVar(task.primary_faction_slug, "light"),
-                  border: `1.5px solid ${factionCssVar(task.primary_faction_slug, "border")}`,
+                  background: "var(--faction-default-light)",
+                  border: "1.5px solid var(--faction-default-border)",
                   borderRadius: 8,
                   padding: "8px 16px",
                   display: "flex",

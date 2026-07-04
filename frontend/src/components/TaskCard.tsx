@@ -9,6 +9,7 @@ import EphemeristsTaskCard from './cards/EphemeristsTaskCard'
 import SingularityTaskCard from './cards/SingularityTaskCard'
 import EverymenTaskCard from './cards/EverymenTaskCard'
 import AlbescentTaskCard from './cards/AlbescentTaskCard'
+import DefaultTaskCard from './cards/DefaultTaskCard'
 import { factionCssVar, factionName } from '../utils/factions'
 import { pickVariant } from '../utils/factionDispatch'
 import type { ComponentType } from 'react'
@@ -32,7 +33,9 @@ export const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
   albescent: AlbescentTaskCard,
 }
 
-export const DEFAULT_CARD = UATaskCard
+// `na` / unaffiliated + any faction without a bespoke card → the spectrum
+// default skin (#418). No longer borrows UA's costume.
+export const DEFAULT_CARD = DefaultTaskCard
 
 export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
   const { user } = useAuth()
