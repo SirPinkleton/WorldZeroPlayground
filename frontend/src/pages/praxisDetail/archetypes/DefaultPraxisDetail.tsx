@@ -3,7 +3,6 @@ import ReactMarkdown from 'react-markdown'
 import MediaGallery from '../../../components/MediaGallery'
 import { formatTimestamp } from '../../../utils/dates'
 import VoteUI from '../../../components/vote/VoteUI'
-import { factionCssVar } from '../../../utils/factions'
 import type { PraxisDetailState } from '../usePraxisDetail'
 import { PraxisAdminBar, PraxisStatusBanners, PraxisOwnerActions, PraxisFlagBlock, PraxisVoterBreakdown, MemberByline } from '../shared'
 
@@ -53,7 +52,7 @@ export default function DefaultPraxisDetail({
             style={{
               width: 42,
               height: 42,
-              background: `linear-gradient(135deg, ${factionCssVar(null, 'card-accent')}, ${factionCssVar(null, 'card-bg')})`,
+              background: 'var(--faction-default-rainbow)',
             }}
           />
         </Link>
@@ -61,7 +60,7 @@ export default function DefaultPraxisDetail({
           <MemberByline
             praxis={praxis}
             linkClassName="font-display italic"
-            linkStyle={{ fontSize: 14, color: factionCssVar(null, 'card-accent'), textDecoration: 'none' }}
+            linkStyle={{ fontSize: 14, color: 'var(--faction-default-card-accent)', textDecoration: 'none' }}
           />
           <span className="eyebrow">{formatTimestamp(praxis.created_at)}</span>
         </div>
@@ -96,7 +95,7 @@ export default function DefaultPraxisDetail({
       <div
         className="sidebar-card mb-5"
         style={{
-          borderLeft: `4px solid ${factionCssVar(null, 'card-accent')}`,
+          borderLeft: '4px solid var(--faction-default-card-accent)',
           borderRadius: '0 8px 8px 0',
           padding: '8px 14px',
           display: 'flex',

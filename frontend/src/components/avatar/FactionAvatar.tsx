@@ -9,13 +9,14 @@ import EphemeristsAvatar from './EphemeristsAvatar'
 import SingularityAvatar from './SingularityAvatar'
 import UAAvatar from './UAAvatar'
 import AlbescentAvatar from './AlbescentAvatar'
+import DefaultSigil from '../cards/DefaultSigil'
 
 /**
  * Per-faction avatar + membership-badge dispatcher (Tier-3 surface). Keyed by
- * the character's MEMBER faction (character.faction_slug). Faction variants
- * (cog sigil, moon glyph, …) register in Sessions 3-4. The default below is the
- * plain avatar circle previously inlined in CharacterBadge — no membership
- * badge — so behavior is unchanged until a variant opts in.
+ * the character's MEMBER faction (character.faction_slug). The default below is
+ * the UNAFFILIATED / no-faction (`na`) skin (#418): the portrait/monogram inside
+ * a thin spectrum ring, tagged with the seven-segment sigil — every path still
+ * open. All colours via --faction-default-* tokens; flips light/dark.
  */
 export interface FactionAvatarProps {
   character: CharacterOut
@@ -23,20 +24,64 @@ export interface FactionAvatarProps {
 }
 
 function DefaultAvatar({ character, size = 'md' }: FactionAvatarProps) {
-  const isSmall = size === 'sm'
-  return character.avatar_url ? (
-    <img
-      src={mediaUrl(character.avatar_url)}
-      alt={character.username}
-      className={`rounded-full border-2 border-border object-cover ${isSmall ? 'w-6 h-6' : 'w-8 h-8'}`}
-    />
-  ) : (
-    <span
-      className={`rounded-full border-2 border-border bg-paper flex items-center justify-center font-display font-bold text-ink ${
-        isSmall ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'
-      }`}
-    >
-      {character.username[0]?.toUpperCase()}
+  const dim = size === 'sm' ? 24 : 32
+  const badge = Math.max(12, Math.round(dim * 0.44))
+  return (
+    <span style={{ position: 'relative', display: 'inline-block', width: dim, height: dim }}>
+      {/* spectrum ring around the portrait / monogram */}
+      <span
+        style={{
+          display: 'block',
+          width: dim,
+          height: dim,
+          borderRadius: '50%',
+          padding: 2,
+          boxSizing: 'border-box',
+          background: 'var(--faction-default-rainbow)',
+        }}
+      >
+        {character.avatar_url ? (
+          <img
+            src={mediaUrl(character.avatar_url)}
+            alt={character.username}
+            className="rounded-full object-cover"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
+        ) : (
+          <span
+            className="rounded-full flex items-center justify-center italic"
+            style={{
+              width: '100%',
+              height: '100%',
+              background: 'var(--faction-default-card-bg)',
+              color: 'var(--faction-default-card-text)',
+              fontFamily: 'var(--faction-default-card-font)',
+              fontSize: Math.round(dim * 0.44),
+              lineHeight: 1,
+            }}
+          >
+            {character.username[0]?.toUpperCase()}
+          </span>
+        )}
+      </span>
+      {/* seven-segment sigil corner mark */}
+      <span
+        style={{
+          position: 'absolute',
+          right: -3,
+          bottom: -3,
+          width: badge,
+          height: badge,
+          borderRadius: '50%',
+          background: 'var(--faction-default-card-bg)',
+          boxShadow: '0 0 0 1.5px var(--faction-default-card-bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <DefaultSigil size={badge - 3} />
+      </span>
     </span>
   )
 }
