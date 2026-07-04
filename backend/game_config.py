@@ -54,7 +54,6 @@ class FactionConfig:
     slug: str
     name: str
     description: str
-    is_selectable: bool              # can players choose this faction at level 3?
     can_always_rejoin: bool          # True for UA Masters and Albescent
     own_task_modifier: float         # solo own-faction task multiplier
     other_task_modifier: float       # solo other-faction task multiplier

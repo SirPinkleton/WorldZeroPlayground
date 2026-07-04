@@ -64,24 +64,17 @@ def test_can_always_rejoin_factions():
     assert ERA_1.factions["wow"].can_always_rejoin is False
 
 
-def test_ua_faction_exists_and_not_selectable():
+def test_ua_faction_exists():
     assert "ua" in ERA_1.factions
-    assert ERA_1.factions["ua"].is_selectable is False
 
 
-def test_aged_out_faction_not_selectable():
-    assert "aged_out" in ERA_1.factions
-    assert ERA_1.factions["aged_out"].is_selectable is False
+def test_aged_out_faction_removed():
+    # ADR-0030 / #428: the vestigial aged_out placeholder is retired.
+    assert "aged_out" not in ERA_1.factions
 
 
-def test_albescent_faction_not_selectable():
+def test_albescent_faction_exists():
     assert "albescent" in ERA_1.factions
-    assert ERA_1.factions["albescent"].is_selectable is False
-
-
-def test_selectable_factions_exist():
-    selectable = [faction for faction in ERA_1.factions.values() if faction.is_selectable]
-    assert len(selectable) >= 1
 
 
 def test_vote_budget_base_positive():

@@ -36,8 +36,7 @@ from game_config import (
 # primary key in the database and must be stable once deployed.
 #
 # Required system factions (include these in every era):
-#   "ua"       -- default starting faction (is_selectable=False)
-#   "aged_out" -- retired placeholder; kept for existing characters, no new assignments
+#   "ua"       -- an ordinary invite-joinable faction (no starter privilege, ADR-0030)
 #   "na"       -- sentinel for tasks with no faction affiliation
 #
 # Modifier guide (1.0 = no change, >1.0 = bonus, <1.0 = penalty):
@@ -54,8 +53,7 @@ ERA_N_FACTIONS = {
     # "ua": FactionConfig(
     #     slug="ua",
     #     name="UA",
-    #     description="The default starting faction.",
-    #     is_selectable=False,
+    #     description="The Gilt Salon — an ordinary invite-joinable faction.",
     #     can_always_rejoin=False,
     #     own_task_modifier=1.0,
     #     other_task_modifier=1.0,
@@ -64,21 +62,10 @@ ERA_N_FACTIONS = {
     #     duel_win_modifier=1.0,
     #     duel_loss_modifier=1.0,
     # ),
-    # "aged_out": FactionConfig(
-    #     slug="aged_out",
-    #     name="AgedOutOfUA",
-    #     description="Placeholder for characters who hit level 3 while offline.",
-    #     is_selectable=False,
-    #     can_always_rejoin=False,
-    #     own_task_modifier=1.0, other_task_modifier=1.0,
-    #     collab_own_modifier=1.0, collab_other_modifier=1.0,
-    #     duel_win_modifier=1.0, duel_loss_modifier=1.0,
-    # ),
     # "na": FactionConfig(
     #     slug="na",
     #     name="None",
     #     description="Sentinel for tasks with no specific faction.",
-    #     is_selectable=False,
     #     can_always_rejoin=False,
     #     own_task_modifier=1.0, other_task_modifier=1.0,
     #     collab_own_modifier=1.0, collab_other_modifier=1.0,
@@ -91,7 +78,6 @@ ERA_N_FACTIONS = {
     #     slug="your_faction",
     #     name="Your Faction",
     #     description="What makes this faction unique.",
-    #     is_selectable=True,
     #     can_always_rejoin=False,
     #     own_task_modifier=1.0,
     #     other_task_modifier=1.0,

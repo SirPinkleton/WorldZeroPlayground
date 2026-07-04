@@ -172,7 +172,7 @@ async def _make_account_albescent_eligible(
     stats = result.scalar_one()
     stats.level = CURRENT_ERA.albescent_level_required
 
-    sentinel_slugs = frozenset({"na", "aged_out", "albescent"})
+    sentinel_slugs = frozenset({"na", "albescent"})
     for faction_slug in CURRENT_ERA.factions:
         if faction_slug in sentinel_slugs:
             continue
@@ -209,8 +209,8 @@ async def test_choose_albescent_ineligible_forbidden(
 ):
     """An account that hasn't met the ADR-0021 bar gets 403 defecting to Albescent.
 
-    Albescent is is_selectable=False + can_always_rejoin=True, which slips the
-    selectability guard — the eligibility guard must still refuse the join.
+    Albescent's can_always_rejoin=True clears the defection guard, so the
+    eligibility guard must still refuse the join.
     """
     await _seed_faction(db_session, "albescent")
     await db_session.commit()

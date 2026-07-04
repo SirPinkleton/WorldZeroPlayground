@@ -44,7 +44,6 @@ def test_ua_baseline():
     config = ERA_1.factions["ua"]
     assert config.own_task_modifier == 1.0
     assert config.other_task_modifier == 1.0
-    assert config.is_selectable is False
 
 
 def test_ephemerists_penalties():
@@ -65,22 +64,11 @@ def test_singularity_defaults():
     config = ERA_1.factions["singularity"]
     assert config.own_task_modifier == 1.0
     assert config.other_task_modifier == 1.0
-    assert config.is_selectable is True
 
 
 def test_na_sentinel():
     config = ERA_1.factions["na"]
-    assert config.is_selectable is False
     assert config.can_always_rejoin is False
-
-
-def test_selectable_factions_count():
-    selectable = [
-        slug for slug, config in ERA_1.factions.items()
-        if config.is_selectable
-    ]
-    # snide, wow, ephemerists, everymen, singularity = 5 (ua_masters cut)
-    assert len(selectable) == 5
 
 
 def test_can_always_rejoin_only_albescent():

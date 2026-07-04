@@ -82,10 +82,6 @@ describe('reframeLabel', () => {
     expect(reframeLabel('albescent', 5)).toBe('Inscribed')
   })
 
-  it('still resolves the aged_out→ua alias', () => {
-    expect(reframeLabel('aged_out', 5)).toBe('masterwork')
-  })
-
   it('falls back to the arabic number when no reframe exists', () => {
     expect(reframeLabel(null, 4)).toBe('4')
     expect(reframeLabel('nonexistent', 2)).toBe('2')

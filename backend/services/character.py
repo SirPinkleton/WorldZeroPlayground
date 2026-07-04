@@ -69,7 +69,7 @@ async def get_character_by_id(character_id: int, session: AsyncSession) -> Chara
 
 ALBESCENT_FACTION_SLUG = "albescent"
 
-_ALBESCENT_SENTINEL_SLUGS: frozenset[str] = frozenset({"na", "aged_out", "albescent"})
+_ALBESCENT_SENTINEL_SLUGS: frozenset[str] = frozenset({"na", "albescent"})
 
 
 async def _account_has_character_at_level(
@@ -125,8 +125,7 @@ async def can_start_as_albescent(
     Both conditions must hold on the *same* character:
     (a) active and at level ``era.albescent_level_required`` or above, and
     (b) has a submitted, non-hidden qualifying praxis for every non-sentinel
-        faction in the era (i.e. every faction except ``na``, ``aged_out``,
-        and ``albescent``).
+        faction in the era (i.e. every faction except ``na`` and ``albescent``).
     """
     required_faction_slugs = frozenset(
         slug for slug in era.factions if slug not in _ALBESCENT_SENTINEL_SLUGS
@@ -182,8 +181,8 @@ async def get_account_invited_faction_slugs(
 ) -> list[str]:
     """Faction slugs the account holds a current-era invitation for (ADR-0019).
 
-    Account-pooled: an invite on *any* of the account's characters counts. Sentinels
-    (``na``, ``aged_out``) and ``albescent`` are excluded — they are never invite-joinable.
+    Account-pooled: an invite on *any* of the account's characters counts. The
+    ``na`` sentinel and ``albescent`` are excluded — they are never invite-joinable.
     Returns ``[]`` when the era is unseeded or no invites exist (the norm until #272
     delivers invitations).
     """
