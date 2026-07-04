@@ -1,10 +1,34 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, type CSSProperties } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCharacter, updateCharacter, uploadCharacterAvatar, type CharacterOut } from '../api/characters'
 import { useAuth } from '../auth/AuthContext'
 import { extractError } from '../utils/errors'
 import { mediaUrl } from '../utils/media'
-import PageTitle from '../components/ui/PageTitle'
+import DefaultSigil from '../components/cards/DefaultSigil'
+
+/**
+ * Edit Character — themed in the spectrum default skin for EVERYONE, regardless
+ * of the character's faction (#434). "Your character is yours before any faction
+ * is": a spectrum hero band + card-wrapped sections (Portrait / Identity / Your
+ * story) on the --faction-default-* tokens. Retheme only — the three editable
+ * fields (display_name, bio, location), the avatar upload, and validation are
+ * unchanged. `@handle` is the auto-derived, unique username (ADR-0019): shown
+ * read-only, never an input. No pronouns field (a separate feature — new column).
+ */
+const DISPLAY = 'var(--faction-default-card-font)'
+
+const inputStyle: CSSProperties = {
+  width: '100%',
+  border: '1px solid var(--color-border-strong)',
+  borderRadius: 8,
+  background: 'var(--color-bg-page)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 13,
+  color: 'var(--color-text-primary)',
+  padding: '10px 13px',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
 
 export default function EditCharacter() {
   const { id } = useParams<{ id: string }>()
@@ -79,78 +103,243 @@ export default function EditCharacter() {
   if (!character) return <div className="py-8 font-body text-muted">Character not found.</div>
   if (!isOwner) return <div className="py-8 font-body text-muted">You can only edit your own character.</div>
 
-  return (
-    <div className="py-8 max-w-xl">
-      <PageTitle title="Edit Character" />
+  // Monogram tracks the display name as you type (falls back to the handle).
+  const initial = (displayName.trim()[0] || character.username[0] || '?').toUpperCase()
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        {/* Avatar preview */}
-        <div className="flex items-center gap-4">
-          {character.avatar_url ? (
-            <img
-              src={mediaUrl(character.avatar_url)}
-              alt={character.username}
-              className="w-16 h-16 rounded-full border-2 border-border object-cover"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-full border-2 border-border bg-paper flex items-center justify-center font-display text-2xl font-bold">
-              {character.username[0]?.toUpperCase()}
+  return (
+    <div className="py-8" style={{ maxWidth: 640, margin: '0 auto' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        {/* ── Hero band — spectrum, always unaffiliated skin ── */}
+        <div style={{ borderRadius: 12, padding: 5, background: 'var(--faction-default-rainbow)' }}>
+          <div
+            style={{
+              background: 'var(--faction-default-card-bg)',
+              color: 'var(--faction-default-card-text)',
+              borderRadius: 8,
+              padding: '24px 28px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+              <DefaultSigil size={34} />
+              <div>
+                <div
+                  className="eyebrow"
+                  style={{ color: 'var(--faction-default-card-muted)', marginBottom: 0 }}
+                >
+                  Unaffiliated · this is who you are
+                </div>
+                <h1
+                  style={{
+                    fontFamily: DISPLAY,
+                    fontStyle: 'italic',
+                    fontWeight: 700,
+                    fontSize: 32,
+                    lineHeight: 1,
+                    margin: '4px 0 0',
+                    color: 'var(--faction-default-card-text)',
+                  }}
+                >
+                  Edit character
+                </h1>
+              </div>
             </div>
-          )}
-          <div className="flex flex-col gap-1">
-            <label className="font-body text-sm font-bold">Avatar</label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="font-body text-sm"
-            />
-            {avatarError && <p className="font-body text-xs text-red-600 mt-1">{avatarError}</p>}
+            <p
+              style={{
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: 'var(--faction-default-card-muted)',
+                margin: '16px 0 0',
+                maxWidth: 440,
+              }}
+            >
+              Your character is yours before any faction is. Set your portrait, name and story —
+              it follows you onto every task and praxis you file.
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-bold">Display Name</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
-            maxLength={50}
-          />
-          <span className={`font-body text-xs self-end ${displayName.length >= 45 ? 'text-red-600' : 'text-muted'}`}>{displayName.length}/50</span>
-        </div>
+        {/* ── Portrait ── */}
+        <section className="sidebar-card" style={{ padding: '22px 24px' }}>
+          <div className="eyebrow" style={{ marginBottom: 16 }}>Portrait</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+            {/* Spectrum-framed portrait — the DefaultAvatar look at portrait size
+                (reuses DefaultSigil for the corner mark). Every path still open. */}
+            <div
+              style={{
+                position: 'relative',
+                width: 82,
+                height: 82,
+                borderRadius: '50%',
+                padding: 3,
+                boxSizing: 'border-box',
+                background: 'var(--faction-default-rainbow)',
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  background: 'var(--faction-default-card-bg)',
+                  color: 'var(--faction-default-card-text)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: DISPLAY,
+                  fontStyle: 'italic',
+                  fontSize: 34,
+                  lineHeight: 1,
+                }}
+              >
+                {character.avatar_url ? (
+                  <img
+                    src={mediaUrl(character.avatar_url)}
+                    alt={character.username}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  initial
+                )}
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  right: -2,
+                  bottom: -2,
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  background: 'var(--faction-default-card-bg)',
+                  boxShadow: '0 0 0 1.5px var(--faction-default-card-bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <DefaultSigil size={22} />
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label className="font-body text-sm font-bold" style={{ display: 'block', marginBottom: 6 }}>
+                Avatar
+              </label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="font-body text-sm"
+              />
+              {avatarError && <p className="font-body text-xs text-red-600 mt-1">{avatarError}</p>}
+              <p
+                style={{
+                  fontSize: 10.5,
+                  fontStyle: 'italic',
+                  fontFamily: DISPLAY,
+                  color: 'var(--color-text-tertiary)',
+                  margin: '11px 0 0',
+                  lineHeight: 1.5,
+                }}
+              >
+                Square image, at least 240px. Your monogram “{initial}” shows until you add one —
+                framed in the full spectrum, since every path is still open to you.
+              </p>
+            </div>
+          </div>
+        </section>
 
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-bold">Bio</label>
+        {/* ── Identity ── */}
+        <section className="sidebar-card" style={{ padding: '22px 24px' }}>
+          <div className="eyebrow" style={{ marginBottom: 16 }}>Identity</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <label style={{ display: 'block' }}>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 7 }}>
+                Display name
+              </span>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={50}
+                placeholder="What should people call you?"
+                style={inputStyle}
+              />
+              <span
+                className={`font-body text-xs ${displayName.length >= 45 ? 'text-red-600' : 'text-muted'}`}
+                style={{ display: 'block', textAlign: 'right', marginTop: 4 }}
+              >
+                {displayName.length}/50
+              </span>
+            </label>
+            <div>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 7 }}>
+                Handle
+              </span>
+              {/* Read-only: `username` is the auto-derived, unique handle (ADR-0019). */}
+              <div
+                style={{
+                  ...inputStyle,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  background: 'var(--color-bg-surface-alt)',
+                  color: 'var(--color-text-tertiary)',
+                  cursor: 'not-allowed',
+                }}
+              >
+                <span style={{ fontFamily: 'var(--font-body)' }}>@{character.username}</span>
+              </div>
+              <span className="eyebrow" style={{ display: 'block', marginTop: 6, color: 'var(--color-text-tertiary)' }}>
+                Auto-derived · permanent
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Your story ── */}
+        <section className="sidebar-card" style={{ padding: '22px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span className="eyebrow">Your story</span>
+            <span className={`font-body text-xs ${bio.length >= 450 ? 'text-red-600' : 'text-muted'}`}>
+              {bio.length} / 500
+            </span>
+          </div>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={4}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none resize-none"
             maxLength={500}
-            placeholder="Tell people about your character..."
+            placeholder="A line or two about what you're here to do…"
+            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
           />
-          <span className={`font-body text-xs self-end ${bio.length >= 450 ? 'text-red-600' : 'text-muted'}`}>{bio.length}/500</span>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-body text-sm font-bold">Location</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="border-2 border-border px-3 py-2 font-body text-sm bg-card focus:outline-none"
-            maxLength={100}
-            placeholder="Where are you based?"
-          />
-          <span className={`font-body text-xs self-end ${location.length >= 90 ? 'text-red-600' : 'text-muted'}`}>{location.length}/100</span>
-        </div>
+          <div style={{ marginTop: 18 }}>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 7 }}>
+              Where you're based <span style={{ color: 'var(--color-text-tertiary)' }}>· optional</span>
+            </span>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              maxLength={100}
+              placeholder="City, region…"
+              style={{ ...inputStyle, maxWidth: 280 }}
+            />
+            <span
+              className={`font-body text-xs ${location.length >= 90 ? 'text-red-600' : 'text-muted'}`}
+              style={{ display: 'block', marginTop: 4 }}
+            >
+              {location.length}/100
+            </span>
+          </div>
+        </section>
 
         {error && <p className="font-body text-sm text-red-600">{error}</p>}
 
-        <div className="flex gap-3">
+        {/* ── Actions ── */}
+        <div style={{ display: 'flex', gap: 12 }}>
           <button type="submit" disabled={saving} className="btn-primary">
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
