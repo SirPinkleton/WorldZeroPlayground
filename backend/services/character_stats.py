@@ -20,7 +20,7 @@ from services.praxis_scoring import Contribution, compute_contributions
 from services.scoring import compute_level
 
 # Factions that never receive invitation letters (ADR-0022 / ADR-0019 sentinels).
-_NON_INVITE_FACTION_SLUGS: frozenset[str] = frozenset({"na", "aged_out", "albescent"})
+_NON_INVITE_FACTION_SLUGS: frozenset[str] = frozenset({"na", "albescent"})
 
 
 async def _deliver_earned_invitations(
