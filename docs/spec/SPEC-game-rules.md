@@ -260,6 +260,7 @@ Point thresholds come from `era.level_thresholds` and vary per era.
 - At level 3, a player **may optionally** choose a faction if they have received at least one valid invitation. There is no forced graduation from UA — players can remain in UA indefinitely.
 - The `aged_out` / `AgedOutOfUA` mechanic is **retired**. `check_faction_graduation` removed — existing `aged_out` characters can still choose a faction; no new characters will be put there.
 - **Faction change / defection:** a character can switch factions subject to defection rules tracked in `FactionDefectionHistory`. `can_always_rejoin=True` factions (/Albescent) can always be rejoined after leaving.
+- **Invitation gate on switching (enforced, #454):** defecting into faction X requires the character to hold X's invitation letter for the current era (per-character; earned per ADR-0022) — the same rule that gates picking a faction at creation (ADR-0019, where invitations pool across the account). No grandfathering: rejoining a previously-held faction requires a fresh invitation. Exception: `can_always_rejoin=True` factions (/Albescent) never require an invitation — the ADR-0021 eligibility bar (level + full faction coverage) is their gate instead.
 
 ### Era 1 selectable factions
 

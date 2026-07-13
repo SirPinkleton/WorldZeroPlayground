@@ -103,6 +103,29 @@ async def can_join_faction(
     return result.scalar_one_or_none() is None
 
 
+async def has_invitation(
+    character_id: int,
+    faction_slug: str,
+    era_id: int,
+    session: AsyncSession,
+) -> bool:
+    """Whether the character holds this faction's invitation letter for the era.
+
+    Per-character, faction- and era-scoped — the defection-side lookup for the
+    invitation gate (#454). Creation-time gating (ADR-0019) pools invitations
+    across the account instead; see
+    :func:`services.character.get_account_invited_faction_slugs`.
+    """
+    result = await session.execute(
+        select(InvitationLetter.id).where(
+            InvitationLetter.character_id == character_id,
+            InvitationLetter.faction_slug == faction_slug,
+            InvitationLetter.era_id == era_id,
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def defect_to_faction(
     character: Character,
     target_slug: str,
@@ -114,9 +137,10 @@ async def defect_to_faction(
     Works for both the initial faction join and later defections.
     Raises 422 if the target is the current faction or the unaffiliated
     sentinel, 404 if the target doesn't exist, and 403 if the player previously
-    left this faction and it doesn't allow rejoining, or if the target is
-    Albescent and the account has not met the ADR-0021 eligibility bar (level +
-    full faction coverage).
+    left this faction and it doesn't allow rejoining, if the character does not
+    hold the target faction's current-era invitation letter (#454), or if the
+    target is Albescent and the account has not met the ADR-0021 eligibility
+    bar (level + full faction coverage).
     """
     if character.faction_slug == target_slug:
         raise HTTPException(
@@ -143,6 +167,19 @@ async def defect_to_faction(
         raise HTTPException(
             status_code=403,
             detail="Cannot rejoin a faction you have left.",
+        )
+
+    # #454: switching into a faction requires holding that faction's invitation
+    # letter for the current era — the same rule that gates picking a faction at
+    # character creation (ADR-0019), with no grandfathering for previously-held
+    # factions. `can_always_rejoin` factions (Albescent) are exempt: the
+    # ADR-0021 eligibility bar below is their gate instead, never an invitation.
+    if not faction_config.can_always_rejoin and not await has_invitation(
+        character.id, target_slug, era_row.id, session
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't hold an invitation for that faction.",
         )
 
     # ADR-0021: Albescent is joined in the field via defection, but only once the
