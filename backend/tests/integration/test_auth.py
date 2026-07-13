@@ -381,7 +381,7 @@ async def test_me_can_start_as_albescent_true_when_level_8_plus(
     await db_session.commit()
 
     # Seed one submitted praxis per non-sentinel faction so the full gate passes
-    sentinel_slugs = frozenset({"na", "aged_out", "albescent"})
+    sentinel_slugs = frozenset({"na", "albescent"})
     for faction_slug in CURRENT_ERA.factions:
         if faction_slug in sentinel_slugs:
             continue

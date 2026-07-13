@@ -96,6 +96,22 @@
   --faction-ephemerists-card-font: var(--eph-display);
   --faction-singularity-card-font: var(--font-faction-terminal);
 
+  /* ── DEFAULT · unaffiliated (no faction; rainbow = every path still open) ──
+     Not a rainbow-spine faction — the blank-slate / first-life state (na). Its
+     signature is the full spectrum at once. card-* tokens follow the faction
+     naming so shared components can skin it; the two gradient tokens flip
+     brighter in dark. Neutral --faction-default hex is canvas/SVG only. (#418) */
+  --faction-default: #6b6a7a;
+  --faction-default-light: rgba(107, 106, 122, 0.1);
+  --faction-default-border: rgba(0, 0, 0, 0.12);
+  --faction-default-rainbow: linear-gradient(90deg, #c1272d 0%, #c2541f 17%, #ca8a04 33%, #16a34a 50%, #1d6e72 67%, #2563eb 83%, #be185d 100%);
+  --faction-default-ring: conic-gradient(#c1272d 0 51deg, #c2541f 0 103deg, #ca8a04 0 154deg, #16a34a 0 206deg, #1d6e72 0 257deg, #2563eb 0 309deg, #be185d 0 360deg);
+  --faction-default-card-bg: #fffdf9;
+  --faction-default-card-text: #1a1209;
+  --faction-default-card-accent: #1a1209;
+  --faction-default-card-muted: #6b6050;
+  --faction-default-card-font: var(--font-display);
+
   /* ── S.N.I.D.E. punk extension — ransom/xerox/spray pigments + font set ──
      Extra named pigments beyond the standard suffix set, namespaced to the
      faction (sanctioned exception, see SPEC-faction-ui-profile.md §3). Card
@@ -377,6 +393,17 @@
   --faction-snide-wall-deep: #0b0a08;
   --faction-snide-wall-text: #e9e6da;
   --faction-singularity-card-muted: #60a5fa; /* blue brand chrome */
+
+  /* ── DEFAULT · unaffiliated (dark — brightened spectrum) ── */
+  --faction-default: #8b8aa0;
+  --faction-default-light: rgba(255, 255, 255, 0.06);
+  --faction-default-border: rgba(255, 255, 255, 0.12);
+  --faction-default-rainbow: linear-gradient(90deg, #e2433f 0%, #e07a3a 17%, #e6b94f 33%, #4ade80 50%, #3aa0a4 67%, #60a5fa 83%, #f472b6 100%);
+  --faction-default-ring: conic-gradient(#e2433f 0 51deg, #e07a3a 0 103deg, #e6b94f 0 154deg, #4ade80 0 206deg, #3aa0a4 0 257deg, #60a5fa 0 309deg, #f472b6 0 360deg);
+  --faction-default-card-bg: #1c1b24;
+  --faction-default-card-text: #f0e6d0;
+  --faction-default-card-accent: #f0e6d0;
+  --faction-default-card-muted: #9b9080;
 
   /* Albescent — always-light: identical to the :root values so the vellum
      register never dims, regardless of the global theme (#231/#232). */

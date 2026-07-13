@@ -48,7 +48,7 @@ function WindowDot({ color }: { color: string }) {
   );
 }
 
-export default function TaskCardWow({
+export default function WowTaskCard({
   task,
   displayPoints,
   onSignup,

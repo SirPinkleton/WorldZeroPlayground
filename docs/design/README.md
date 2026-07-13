@@ -24,8 +24,7 @@ stand-ins — discard them and consume the real state (`useTaskDetail`, `usePrax
 
 - **UA is the gilt salon** — burnt amber + antique gold on parchment (`--faction-ua-*` in
   `design-system/tokens/colors.css`), **always-light**. Ignore any older note calling UA
-  purple (`#7c3aed`); the praxis handoff README (`praxis-read/HANDOFF-README.md`) lists
-  pre-recolor colors in its tail section — the DS tokens win.
+  purple (`#7c3aed`) — the DS tokens win.
 - **Albescent is always-light** (vellum, near-black ink `#1c1c1a`); **Singularity is
   always-dark** (terminal). Always-fixed factions use identical light/dark token values —
   never by mutating the global `[data-theme]`.

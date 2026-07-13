@@ -81,7 +81,7 @@ async def choose_faction(
 ):
     """Choose or defect to a new faction.
 
-    Works for initial faction selection (from aged_out) and later defections.
+    Works for the initial faction join and later defections.
     Players cannot rejoin factions they have left, except UA Masters and Albescent.
     """
     updated_character = await defect_to_faction(

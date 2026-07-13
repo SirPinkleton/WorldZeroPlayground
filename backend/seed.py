@@ -36,7 +36,7 @@ from models.task import Task, TaskStatus, TaskType
 # Faction status mapping
 # ---------------------------------------------------------------------------
 # System factions that should be hidden in the UI.
-HIDDEN_FACTION_SLUGS = frozenset({"aged_out", "na"})
+HIDDEN_FACTION_SLUGS = frozenset({"na"})
 
 
 # ---------------------------------------------------------------------------

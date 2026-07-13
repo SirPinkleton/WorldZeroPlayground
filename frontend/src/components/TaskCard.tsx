@@ -2,13 +2,14 @@ import type { TaskOut } from '../api/tasks'
 import { useAuth } from '../auth/AuthContext'
 import { useAdminMode } from '../auth/AdminModeContext'
 import { updateTaskStatus } from '../api/admin'
-import TaskCardUA from './cards/TaskCardUA'
-import TaskCardWow from './cards/TaskCardWow'
-import TaskCardSNIDE from './cards/TaskCardSNIDE'
-import TaskCardEphemerists from './cards/TaskCardEphemerists'
-import TaskCardSingularity from './cards/TaskCardSingularity'
-import TaskCardEverymen from './cards/TaskCardEverymen'
+import UATaskCard from './cards/UATaskCard'
+import WowTaskCard from './cards/WowTaskCard'
+import SNIDETaskCard from './cards/SNIDETaskCard'
+import EphemeristsTaskCard from './cards/EphemeristsTaskCard'
+import SingularityTaskCard from './cards/SingularityTaskCard'
+import EverymenTaskCard from './cards/EverymenTaskCard'
 import AlbescentTaskCard from './cards/AlbescentTaskCard'
+import DefaultTaskCard from './cards/DefaultTaskCard'
 import { factionCssVar, factionName } from '../utils/factions'
 import { pickVariant } from '../utils/factionDispatch'
 import type { ComponentType } from 'react'
@@ -21,18 +22,20 @@ export interface CardProps {
 
 /** Style Guide §6 — one card archetype per faction. */
 export const CARD_COMPONENTS: Record<string, ComponentType<CardProps>> = {
-  ua: TaskCardUA,
-  everymen: TaskCardEverymen,
-  wow: TaskCardWow,
-  snide: TaskCardSNIDE,
-  ephemerists: TaskCardEphemerists,
-  singularity: TaskCardSingularity,
+  ua: UATaskCard,
+  everymen: EverymenTaskCard,
+  wow: WowTaskCard,
+  snide: SNIDETaskCard,
+  ephemerists: EphemeristsTaskCard,
+  singularity: SingularityTaskCard,
   // First-class Albescent identity (#232 slice 1). The explicit entry beats the
   // albescent→ua alias in pickVariant, so it renders immediately.
   albescent: AlbescentTaskCard,
 }
 
-export const DEFAULT_CARD = TaskCardUA
+// `na` / unaffiliated + any faction without a bespoke card → the spectrum
+// default skin (#418). No longer borrows UA's costume.
+export const DEFAULT_CARD = DefaultTaskCard
 
 export default function TaskCard({ task, displayPoints, onSignup }: CardProps) {
   const { user } = useAuth()

@@ -12,12 +12,12 @@ import PageTitle from "../components/ui/PageTitle";
 import { pickVariant } from "../utils/factionDispatch";
 import { useTaskDetail, type TaskDetailState } from "./taskDetail/useTaskDetail";
 import DefaultTaskDetail from "./taskDetail/archetypes/DefaultTaskDetail";
-import TaskDetailSNIDE from "./taskDetail/archetypes/TaskDetailSNIDE";
-import TaskDetailEverymen from "./taskDetail/archetypes/TaskDetailEverymen";
-import TaskDetailWow from "./taskDetail/archetypes/TaskDetailWow";
-import TaskDetailEphemerists from "./taskDetail/archetypes/TaskDetailEphemerists";
-import TaskDetailSingularity from "./taskDetail/archetypes/TaskDetailSingularity";
-import TaskDetailUA from "./taskDetail/archetypes/TaskDetailUA";
+import SNIDETaskDetail from "./taskDetail/archetypes/SNIDETaskDetail";
+import EverymenTaskDetail from "./taskDetail/archetypes/EverymenTaskDetail";
+import WowTaskDetail from "./taskDetail/archetypes/WowTaskDetail";
+import EphemeristsTaskDetail from "./taskDetail/archetypes/EphemeristsTaskDetail";
+import SingularityTaskDetail from "./taskDetail/archetypes/SingularityTaskDetail";
+import UATaskDetail from "./taskDetail/archetypes/UATaskDetail";
 import AlbescentTaskDetail from "./taskDetail/archetypes/AlbescentTaskDetail";
 import CommentThread from "../components/comments/CommentThread";
 
@@ -28,12 +28,12 @@ type Archetype = (props: { state: TaskDetailState }) => JSX.Element | null;
 // FIRST-CLASS identity (#232 slice 1) — its explicit entry beats the
 // albescent→ua alias in pickVariant.
 export const ARCHETYPE_BY_SLUG: Record<string, Archetype> = {
-  snide: TaskDetailSNIDE,
-  everymen: TaskDetailEverymen,
-  wow: TaskDetailWow,
-  ephemerists: TaskDetailEphemerists,
-  singularity: TaskDetailSingularity,
-  ua: TaskDetailUA,
+  snide: SNIDETaskDetail,
+  everymen: EverymenTaskDetail,
+  wow: WowTaskDetail,
+  ephemerists: EphemeristsTaskDetail,
+  singularity: SingularityTaskDetail,
+  ua: UATaskDetail,
   albescent: AlbescentTaskDetail,
 };
 

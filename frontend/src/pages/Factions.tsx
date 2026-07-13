@@ -10,7 +10,6 @@ import { factionCssVar } from '../utils/factions'
 import { relativeTime } from '../utils/dates'
 import { useAuth } from '../auth/AuthContext'
 
-const AGED_OUT_SLUG = 'aged_out'
 const NA_SLUG = 'na'
 
 const STATUS_MEMBER = 'member'
@@ -21,7 +20,7 @@ const STATUS_CAN_RETURN = 'can_return'
 
 /** System slugs hidden from the player-facing grid (not real factions). UA is
  *  shown — the design's select.card set includes its gilt-salon tile. */
-const HIDDEN_SLUGS = new Set([NA_SLUG, AGED_OUT_SLUG])
+const HIDDEN_SLUGS = new Set([NA_SLUG])
 
 /**
  * Factions grid — a directory of pure PREVIEW tiles (the design select.card

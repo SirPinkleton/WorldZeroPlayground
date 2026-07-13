@@ -461,7 +461,6 @@ const BY_FACTION: Record<string, (p: Omit<FactionSelectCardProps, "faction">) =>
 const LEGACY_SLUG: Record<string, string> = {
   gestalt: "wow",
   journeymen: "ephemerists",
-  aged_out: "ua",
 };
 
 export default function FactionSelectCard({ faction, ...rest }: FactionSelectCardProps) {

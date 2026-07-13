@@ -184,7 +184,7 @@ function PartyRow({
   );
 }
 
-export default function TaskDetailWow({ state }: { state: TaskDetailState }) {
+export default function WowTaskDetail({ state }: { state: TaskDetailState }) {
   const {
     task,
     signups,

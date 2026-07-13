@@ -33,7 +33,6 @@ const FACTION_FALLBACKS: Record<string, FactionConfig> = {
   singularity: { slug: "singularity", name: "Singularity", color: "#2563eb" },
   // First-class identity (#232): near-black ink, no hue — the order refuses the palette.
   albescent: { slug: "albescent", name: "/Albescent", color: "#1c1c1a" },
-  aged_out: { slug: "aged_out", name: "Aged Out", color: "#7c3aed" },
 };
 
 /** Live registry — starts as the fallback, overwritten by populateFactionRegistry(). */
@@ -59,19 +58,16 @@ export function populateFactionRegistry(
 }
 
 /**
- * Faction-identity aliases: derived/retired factions render with their
- * canonical faction's identity (archetype + CSS theme). Single source of truth
- * for the relationship — consumed here by factionCssVar and by pickVariant in
- * utils/factionDispatch.ts. (FACTION_FALLBACKS still carries their distinct
- * display names; only the visual identity aliases.)
+ * Faction-identity aliases: a derived/retired slug renders with its canonical
+ * faction's identity (archetype + CSS theme). Single source of truth for the
+ * relationship — consumed here by factionCssVar and by pickVariant in
+ * utils/factionDispatch.ts.
+ *
+ * Currently empty: albescent became first-class (#232) and the last remaining
+ * alias, aged_out, was retired with its faction (#428). Kept as the seam so a
+ * future derived slug has one home; unknown slugs pass through unaliased.
  */
-export const FACTION_ALIASES: Record<string, string> = {
-  // albescent dropped (#232): it is now first-class on every surface, with its
-  // own archetypes (CARD/PRAXIS/edit/detail/feed/avatar/backdrop/vote/comment/
-  // faction body+hero) and its own --faction-albescent-* / CSS_KEY entry. Only
-  // aged_out still borrows UA's identity.
-  aged_out: "ua",
-};
+export const FACTION_ALIASES: Record<string, string> = {};
 
 /**
  * Slug-to-CSS-variable-key mapping.

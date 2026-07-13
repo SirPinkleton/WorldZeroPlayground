@@ -8,7 +8,7 @@ import { type CommentProps, authorToCharacter, ComposerControls, MentionText } f
  * UA — University of Asthmatics. The gilt salon (ADR-0026, superseding
  * ADR-0018's comment-scoped orange letterhead): a gold museum-frame around a
  * parchment plate, Marcellus small-caps house line, Playfair-italic body. Mirrors
- * UaFeedFrame / UAPraxisDetail; all colors via --ua-* tokens (no hex — CLAUDE.md).
+ * UAFeedFrame / UAPraxisDetail; all colors via --ua-* tokens (no hex — CLAUDE.md).
  * UA is always-light, so tokens read identically in both themes.
  */
 const GILT = 'var(--ua-gilt)'

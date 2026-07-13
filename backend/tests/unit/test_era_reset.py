@@ -79,7 +79,7 @@ def test_full_reset_zeroes_level(sample_character, full_reset_era):
     assert result["level"] == 0
 
 
-def test_full_reset_sets_faction_to_aged_out(sample_character, full_reset_era):
+def test_full_reset_sets_faction_to_na(sample_character, full_reset_era):
     result = apply_era_reset(sample_character, full_reset_era)
     assert result["faction_slug"] == "na"
 

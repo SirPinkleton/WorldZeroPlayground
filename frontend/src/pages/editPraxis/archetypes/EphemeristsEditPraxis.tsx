@@ -76,7 +76,7 @@ const MODE_OPTIONS: Array<{ key: PraxisType; label: string; sub: string }> = [
   { key: "duel", label: "IN DISPUTE", sub: "accounts differ" },
 ];
 
-export default function EditPraxisEphemeris({ state }: Props) {
+export default function EphemeristsEditPraxis({ state }: Props) {
   const praxis = state.praxis!;
   const task = state.task;
   const allowedModes = task?.allowed_modes ?? ["solo", "collab", "duel"];

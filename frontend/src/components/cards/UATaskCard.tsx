@@ -23,7 +23,7 @@ interface Props {
   onSignup?: (id: number) => void;
 }
 
-export default function TaskCardUA({ task, displayPoints, onSignup }: Props) {
+export default function UATaskCard({ task, displayPoints, onSignup }: Props) {
   return (
     // Gilt frame: gold-leaf gradient border, then the parchment plate, hung with
     // a slight rotation like a plate on the salon wall.

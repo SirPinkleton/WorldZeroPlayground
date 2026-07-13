@@ -269,7 +269,7 @@ function AccompliceRow({
   );
 }
 
-export default function TaskDetailSNIDE({
+export default function SNIDETaskDetail({
   state,
 }: {
   state: TaskDetailState;

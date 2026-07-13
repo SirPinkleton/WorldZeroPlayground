@@ -12,7 +12,7 @@ import type { ReactNode } from 'react'
  *
  * Albescent is ALWAYS LIGHT: its --faction-albescent-* tokens are identical in
  * both themes, so the sheet reads as white paper regardless of the global theme
- * and never mutates data-theme (mirror of UaFeedFrame / SingularityFeedFrame).
+ * and never mutates data-theme (mirror of UAFeedFrame / SingularityFeedFrame).
  * It reads --faction-albescent-* directly rather than factionCssVar('albescent',
  * …), which still resolves the albescent→ua alias until the alias is dropped
  * (the final #232 step). An explicit `albescent` row in FACTION_FEED_FRAMES beats

@@ -111,11 +111,12 @@ async def defect_to_faction(
 ) -> Character:
     """Move a character to a new faction, recording the defection.
 
-    Works for both initial faction choice (from aged_out) and later defections.
-    Raises 422 if the target is the current faction, 404 if the target doesn't
-    exist or isn't selectable, and 403 if the player previously left this faction
-    and it doesn't allow rejoining, or if the target is Albescent and the account
-    has not met the ADR-0021 eligibility bar (level + full faction coverage).
+    Works for both the initial faction join and later defections.
+    Raises 422 if the target is the current faction or the unaffiliated
+    sentinel, 404 if the target doesn't exist, and 403 if the player previously
+    left this faction and it doesn't allow rejoining, or if the target is
+    Albescent and the account has not met the ADR-0021 eligibility bar (level +
+    full faction coverage).
     """
     if character.faction_slug == target_slug:
         raise HTTPException(
@@ -123,14 +124,16 @@ async def defect_to_faction(
             detail="Already a member of this faction.",
         )
 
-    faction_config = era.factions.get(target_slug)
-    if faction_config is None:
-        raise HTTPException(status_code=404, detail="Faction not found.")
-    if not faction_config.is_selectable and not faction_config.can_always_rejoin:
+    # `na` is the unaffiliated sentinel, not a joinable destination (ADR-0019/0030).
+    if target_slug == UNAFFILIATED_FACTION_SLUG:
         raise HTTPException(
             status_code=422,
             detail="This faction cannot be chosen directly.",
         )
+
+    faction_config = era.factions.get(target_slug)
+    if faction_config is None:
+        raise HTTPException(status_code=404, detail="Faction not found.")
 
     era_row = await get_current_era_row(session)
 

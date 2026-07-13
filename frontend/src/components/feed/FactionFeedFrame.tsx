@@ -19,7 +19,7 @@ import EphemeristsFeedFrame from './EphemeristsFeedFrame'
 import WowFeedFrame from './WowFeedFrame'
 import SnideFeedFrame from './SnideFeedFrame'
 import SingularityFeedFrame from './SingularityFeedFrame'
-import UaFeedFrame from './UaFeedFrame'
+import UAFeedFrame from './UAFeedFrame'
 import AlbescentFeedFrame from './AlbescentFeedFrame'
 
 type FrameProps = { children: ReactNode }
@@ -34,7 +34,7 @@ const FACTION_FEED_FRAMES: Record<string, ComponentType<FrameProps>> = {
   wow: WowFeedFrame,
   snide: SnideFeedFrame,
   singularity: SingularityFeedFrame,
-  ua: UaFeedFrame,
+  ua: UAFeedFrame,
   albescent: AlbescentFeedFrame,
 }
 
