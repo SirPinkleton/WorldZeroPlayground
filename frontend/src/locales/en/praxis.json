@@ -1,0 +1,6 @@
+{
+  "charLimit": {
+    "approaching": "{{remaining}} characters left — make them count",
+    "terminal": "{{max}} characters — your proof is complete. No more words."
+  }
+}

@@ -1,5 +1,10 @@
 # UI copy lives in a catalog, not inline JSX
 
+> **Superseded by ADR-0032** (react-i18next-copy-catalog): locale #2 is now
+> scheduled, so the deferred i18next migration this ADR planned for has
+> happened. `frontend/src/copy/en.ts` is gone; copy lives in
+> `frontend/src/locales/en/*.json`.
+
 User-facing chrome copy (currently hardcoded in components) moves into a single
 human-editable module, `frontend/src/copy/en.ts`, read through a tiny
 `t(key, vars)` helper. Keys are namespaced (`form.charLimit.reached`,
