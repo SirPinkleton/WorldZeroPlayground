@@ -1,0 +1,6 @@
+{
+  "charLimit": {
+    "approaching": "{{remaining}} characters remaining",
+    "reached": "{{max}}-character limit reached"
+  }
+}

@@ -35,6 +35,7 @@ Deeper notes: `docs/spec/SPEC-architecture.md`.
 | API routes + auth guards | `backend/routers/` (source files) |
 | Pages, routing, components | `frontend/src/` (source files) |
 | Frontend API clients | `frontend/src/api/` |
+| User-facing frontend copy (i18n catalogs) | `frontend/src/locales/en/*.json` — editor guide: `frontend/src/locales/README.md` |
 | Testing approach | `docs/spec/SPEC-testing.md` |
 | Design intent, UX, faction archetypes | `WORLD_ZERO_STYLE.md` |
 | CSS variables (colors, type, themes) | `frontend/src/index.css` |
