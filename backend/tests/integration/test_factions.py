@@ -97,8 +97,25 @@ async def test_defection_history_empty(
 # ---------------------------------------------------------------------------
 
 
+async def _seed_invitation(
+    session: AsyncSession,
+    character_id: int,
+    faction_slug: str,
+    era_id: int,
+) -> None:
+    """Seed the invitation letter that gates defecting into faction_slug (#454)."""
+    from models.invitation_letter import InvitationLetter
+
+    session.add(InvitationLetter(
+        character_id=character_id,
+        faction_slug=faction_slug,
+        era_id=era_id,
+    ))
+    await session.commit()
+
+
 @pytest.mark.asyncio
-async def test_choose_faction_from_ua(
+async def test_choose_faction_with_invitation_succeeds(
     client: AsyncClient,
     character: Character,
     auth_headers: dict,
@@ -106,7 +123,7 @@ async def test_choose_faction_from_ua(
     era: Era,
     db_session: AsyncSession,
 ):
-    """Character can defect from UA to wow (a selectable faction in era config)."""
+    """A character holding wow's current-era invitation can defect into wow."""
     from models.faction import Faction as FactionModel
     from sqlalchemy import select
 
@@ -121,6 +138,8 @@ async def test_choose_faction_from_ua(
         ))
         await db_session.commit()
 
+    await _seed_invitation(db_session, character.id, "wow", era.id)
+
     resp = await client.post(
         "/factions/choose",
         json={"faction_slug": "wow"},
@@ -128,6 +147,28 @@ async def test_choose_faction_from_ua(
     )
     assert resp.status_code == 200
     assert resp.json()["slug"] == "wow"
+
+
+@pytest.mark.asyncio
+async def test_choose_faction_without_invitation_forbidden(
+    client: AsyncClient,
+    character: Character,
+    auth_headers: dict,
+    faction_ua: Faction,
+    era: Era,
+    db_session: AsyncSession,
+):
+    """Defecting into a faction without holding its invitation letter is 403 (#454)."""
+    await _seed_faction(db_session, "wow")
+    await db_session.commit()
+
+    resp = await client.post(
+        "/factions/choose",
+        json={"faction_slug": "wow"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
+    assert character.faction_slug == "ua"
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +273,11 @@ async def test_choose_albescent_eligible_succeeds(
     era: Era,
     db_session: AsyncSession,
 ):
-    """An eligible account (level 8 + full faction coverage) may defect to Albescent."""
+    """An eligible account (level 8 + full faction coverage) may defect to Albescent.
+
+    No invitation letter is seeded: `can_always_rejoin` supersedes the #454
+    invitation gate — the ADR-0021 eligibility bar is Albescent's only gate.
+    """
     await _seed_faction(db_session, "albescent")
     await _make_account_albescent_eligible(db_session, character, era)
 
@@ -361,7 +406,9 @@ async def test_albescent_reveal_is_sticky_not_derived_from_membership(
     assert join.status_code == 200
 
     # Leave Albescent for a real faction (albescent can_always_rejoin, and the
-    # target is one covered by the eligibility seeding).
+    # target is one covered by the eligibility seeding). Leaving still means
+    # joining wow, so the character needs wow's invitation letter (#454).
+    await _seed_invitation(db_session, character.id, "wow", era.id)
     leave = await client.post(
         "/factions/choose",
         json={"faction_slug": "wow"},
