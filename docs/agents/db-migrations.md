@@ -63,3 +63,35 @@ stops the deploy.
 It will **never** auto-drop, auto-stamp, or self-heal — a deploy must never
 destroy data on its own (catastrophic under Strategy B). Recovery is always a
 human running `reset_db.sh`.
+
+## How to actually squash (step-by-step)
+
+Prerequisites: every environment is at the same schema state (or you're willing
+to wipe), and you've read every model in `backend/models/` to know the final schema.
+
+1. **Inventory enums.** `grep -rn "class.*enum.Enum" backend/models/`. For each,
+   note the lowercase PG type name (`class AccountStatus` → `accountstatus`) and its values.
+2. **Order tables by FK tier.** Tier 0 = no FK deps (`faction`, `contact_messages`);
+   Tier 1 depends only on Tier 0 (`account`, `role`); Tier 2+ on prior tiers.
+3. **Delete the chain.** `rm backend/alembic/versions/*.py`.
+4. **Write `0001_squashed_initial.py`** with `down_revision = None` (the new root):
+   - **A — enum types** via `op.execute("CREATE TYPE … AS ENUM (…)")`, each guarded
+     by a `SELECT 1 FROM pg_type WHERE typname = :name` existence check.
+   - **B — tables** via `op.create_table()` in FK order. Every `sa.Enum()` uses `create_type=False`.
+   - **C — seed** reference data (factions, roles) with parameterized `ON CONFLICT DO NOTHING`.
+   - **D — downgrade()** drops tables in reverse, then `DROP TYPE IF EXISTS` each enum.
+5. **Verify** on a fresh DB: `alembic upgrade head`, then `alembic check` (drift),
+   then a `downgrade base` → `upgrade head` round-trip, then spot-check seed rows.
+6. **Stamp, don't upgrade, live DBs** that already hold the schema: `alembic stamp 0001_squashed`
+   (writes the revision without running DDL — this is Strategy B above).
+
+Future squashes are identical with a bumped id (`0002_squashed`, `down_revision = None`).
+
+### The `create_type=False` convention (three-layer enum defense)
+
+PG enum types are created once via `CREATE TYPE`; SQLAlchemy tries to auto-create them
+whenever it sees `Enum()`, causing "type already exists" errors. So:
+
+1. Every model `Enum()` column uses `create_type=False`.
+2. `alembic/env.py` has a safety loop forcing `create_type=False` on all metadata enums.
+3. Migrations own all `CREATE TYPE` via explicit `op.execute()`.
