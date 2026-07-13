@@ -1,42 +1,40 @@
 # World Zero — Game Rules
 
-> This is the source-of-truth spec for World Zero game mechanics. It reflects the
-> intended rules after reconciliation with the Notion design docs (April 17, 2026)
-> and follow-up design decisions made the same day.
+> Source-of-truth spec for World Zero game mechanics. As of the **2026-07-13
+> reconciliation** this document describes the **rules as actually enforced in
+> code**. Rule *values* live in `backend/eras/era_1.py` (`CURRENT_ERA`); the
+> config *shape* in `backend/game_config.py`; the *formulas* in
+> `backend/services/scoring.py`. When a value here and the era file disagree,
+> **the era file wins** — update this doc.
 >
-> Code references: `backend/game_config.py` (config shape), `backend/eras/era_1.py`
-> (Era 1 values), `backend/services/scoring.py` (formulas). When code and this
-> document disagree, **this document is the target**; any gaps are flagged with
-> ⚠️ **Not yet implemented** and need backend work to close.
+> A handful of rules are intended but **not yet enforced**; each is flagged
+> ⚠️ with the GitHub issue tracking the build. Those are the only gaps.
 
 ---
 
 ## Change log
 
+**2026-07-13 — Reconciliation with live code**
+- Faction roster corrected: `ua_masters` **cut** from Era 1 (deferred to Era 2, ADR-0004); `gestalt` → **`wow`** ("Warriors of Whimsy"); `journeymen` → **`ephemerists`**; `analog` → **`everymen`**. Multiplier *values* were preserved across the renames.
+- Characters start **unaffiliated (`na`)**, not UA (ADR-0019/0030). UA is now an ordinary invite-joinable faction, not the starter.
+- Albescent is **joined in the field by defection** at level `albescent_level_required` (8) after completing at least one task from every faction — **implemented** (`services/character.py::can_start_as_albescent`). It **cannot** be chosen at character creation (returns 400). The old "starts in Albescent at creation" flow is gone.
+- `is_selectable` (FactionConfig) and the `aged_out` faction were **removed** (#428, migration `0012`). `check_faction_graduation` is gone — no forced graduation.
+- Level gates moved from hardcoded service constants to **`EraConfig` fields** (collab/duel/flag/metatask/comment/second-char/albescent levels). Values unchanged.
+- `task_submit_level_gap` **removed** entirely.
+- Open forks turned into issues: cross-faction modifier flattening (#452), metatask-list see-gate (#453), invitation-gated defection (#454), L5 "promote level-0 tasks" spec (#455).
+
 **2026-06-05 — June reconciliation (vault SOT sync)**
-- Additional character slot level gate: **4** (was 5 in spec and code; confirmed by requirements doc)
-- Faction choice at level 3: **opt-in, not forced**. `aged_out` / `AgedOutOfUA` graduation mechanic retired. `check_faction_graduation` removed — UA characters no longer auto-graduate.
-- /Albescent unlock condition: account must have a character at **level 8** who has completed **at least one task from each faction** (not "one of every task" — one per faction is the bar)
-- Collaboration participant cap: **removed**. Era 1 collaborations are unlimited. `max_collab_participants` removed from EraConfig.
+- Additional character slot level gate: **4**.
+- Faction choice: opt-in, not forced. `aged_out` graduation retired.
+- Albescent unlock: account has a character at **level 8** who has completed **at least one task from each faction**.
+- Collaboration participant cap **removed** — Era 1 collaborations are unlimited.
 
-**2026-04-17 — Design decisions (follow-up)**
-- Second character creation level gate raised from 3 → **5** (subsequently corrected to **4** — see 2026-06-05 entry)
-- Albescent faction choosable for new characters only when account has **at least one character at level 8**
-- Albescent onboarding: second character starts in Albescent (skips UA); at level 3 can optionally switch to another faction (not forced); `can_always_rejoin=True` so any character who has been Albescent can return
-- Vote budget: **on-read recomputation** — `votes_available` is always computed fresh from formula, never stored as a running counter
-
-**2026-04-17 — Truth reconciliation pass**
-- Snide tie rule: opponent now uses their own faction's `duel_loss_modifier`, not Snide's 0.0×
-- Task signup level gate: added (can only sign up for tasks ≤ your level)
-- `task_submit_level_gap` field: **removed** — once signed up, you can always submit
-- Metatask level privileges: corrected (see/propose at L6, apply own at L7) — L4 "meta task access" row removed ⚠️
-- Albescent: second-character starting faction at level 1, skips UA ⚠️
-- Duel anti-self-vote: now account-level (was character-level for duels)
-- Collab max participants: hard-capped at 20 ⚠️
-- Vote budget: continuously recomputed as score grows
-- Era reset level: 0 (Notion previously said 1 — corrected in Notion)
-- Sunyata faction: dropped from design entirely (was hidden, unused)
-- "The Terminal" display name replaced with "Singularity" throughout
+**2026-04-17 — Truth reconciliation pass** (historical)
+- Snide tie rule: opponent uses their own faction's `duel_loss_modifier`.
+- Task signup level gate added; `task_submit_level_gap` removed.
+- Duel anti-self-vote made account-level.
+- Vote budget switched to on-read recomputation.
+- "The Terminal" display name → "Singularity". Sunyata faction dropped.
 
 ---
 
@@ -47,49 +45,60 @@
 | Field | Era 1 value | Effect |
 |---|---|---|
 | `max_task_signups` | 20 | Max concurrent in-progress praxes per character (bank cap) |
-| `max_duel_participants` | 2 | Max members in a duel praxis |
-| ~~`max_collab_participants`~~ | removed | Era 1 collaborations have no participant cap. Field was never added to code; do not add it. |
+| `max_duel_participants` | 2 | Max members in a duel |
 | `vote_budget_base` | 100 | Base votes for a new character; also the reset floor |
 | `vote_budget_multiplier` | 2.0 | Votes grow by `floor(multiplier × score)` |
-| `level_thresholds` | `(0,10,70,170,330,610,1090,1840,3040)` | Score required to reach each level (index = level) |
-| `reset_score` | `True` | Whether era reset zeroes character score |
-| `reset_level` | `True` | Whether era reset zeroes character level |
-| `reset_faction` | `True` | Whether era reset returns characters to `"na"` |
-| `reset_vote_budget` | `True` | Whether era reset resets votes_available to `vote_budget_base` |
-| `reset_all_time_score` | `False` | Whether era reset clears all-time score (almost always False) |
-| `factions` | dict of `FactionConfig` | Per-faction point multipliers and duel modifiers |
+| `level_thresholds` | `(0,10,70,170,330,610,1090,1840,3040)` | Score to reach each level (index = level) |
+| `level_to_propose_task` | 3 | Min level to propose a task |
+| `level_to_propose_metatask` | 6 | Min level to propose a metatask |
+| `level_to_see_retired_tasks` | 2 | Min level to see retired tasks |
+| `level_to_see_pending_tasks` | 3 | Min level to see pending (in-review) tasks |
+| `duel_level_required` | 2 | Min level to issue a duel challenge |
+| `collaboration_level_required` | 1 | Min level to create a collab |
+| `collab_auto_submit_days` | 10 | Silence-is-consent publish window for collabs (ADR-0012) |
+| `metatask_apply_level` | 7 | Min level to apply a metatask (non-Albescent) |
+| `flag_level_required` | 4 | Min level to flag a praxis for moderation |
+| `comment_level_required` | 2 | Min level to post a comment (ADR-0006) |
+| `comment_flag_review_threshold` | 1 | Flags before a comment hits the review queue |
+| `second_character_level_required` | 4 | Min level on an existing character to create another |
+| `albescent_level_required` | 8 | Min level (+ task coverage) to join Albescent |
+| `faction_graduation_level` | 3 | **DORMANT** — retired by ADR-0022; not read as a gate |
+| `invitation_task_threshold` | 2 | Completed tasks for faction X to earn X's invite (ADR-0022) |
+| `invitation_point_threshold` | 50 | Points from X's tasks to earn X's invite (ADR-0022) |
+| `reset_score` / `reset_level` / `reset_faction` / `reset_vote_budget` | `True` | Era-reset behaviour flags |
+| `reset_all_time_score` | `False` | Whether reset clears all-time score (almost always False) |
+| `allow_praxis_on_retired_task_factions` | `{ephemerists}` | Factions allowed to praxis on retired tasks (Task Vision) |
+| `allow_praxis_on_pending_task_factions` | `∅` | Factions allowed to praxis on pending tasks |
+| `factions` | dict of `FactionConfig` | Per-faction multipliers and duel modifiers |
 | `tasks` | tuple of `TaskDef` | Task definitions seeded for this era |
-| `taunt_templates` | dict | Per-faction taunt message templates |
+| `level_profiles` | tuple of `LevelProfile` | Rank + unlock copy for the level-up pop-up |
+| `taunt_templates` | dict | Per-faction taunt templates |
 
-**Removed:** `task_submit_level_gap` — dropped entirely. Once a character signs up for a task (signup is level-gated; see below), they can always submit it regardless of their current level or subsequent era resets.
-
-Per-faction fields on `FactionConfig` (all configurable per era):
+Per-faction fields on `FactionConfig`:
 
 | Field | Effect |
 |---|---|
-| `own_task_modifier` | Solo multiplier when task faction matches character faction (or task is unaffiliated) |
-| `other_task_modifier` | Solo multiplier on all other tasks |
+| `own_task_modifier` | Solo/duel multiplier on own-faction (or `na`) tasks |
+| `other_task_modifier` | Solo/duel multiplier on other-faction tasks |
 | `collab_own_modifier` | Collab multiplier on own-faction tasks |
 | `collab_other_modifier` | Collab multiplier on other-faction tasks |
-| `duel_win_modifier` | Applied to base points if this character wins a duel |
-| `duel_loss_modifier` | Applied to base points if this character loses a duel |
-| `is_selectable` | Whether players can choose this faction at level 3 |
-| `can_always_rejoin` | Whether a character who left can return (UA Masters, Albescent) |
+| `duel_win_modifier` | Applied to base points on a duel win |
+| `duel_loss_modifier` | Applied to base points on a duel loss |
+| `can_always_rejoin` | Whether a character who left may return (Albescent only, in Era 1) |
 
-### Hardcoded in service code
+> **Removed fields:** `is_selectable` (FactionConfig) and `task_submit_level_gap` (EraConfig) no longer exist. Once a character signs up for a task (signup is level-gated), they can always submit it.
+
+### Genuinely hardcoded in service code
 
 | Rule | Value | Where |
 |---|---|---|
-| Task signup minimum level | `task.level_required ≤ character.level` | `services/praxis.py::_check_create_preconditions` |
-| Collaboration minimum level | 1 | `services/praxis.py::COLLABORATION_LEVEL_REQUIRED` |
-| Duel minimum level | 2 | `services/praxis.py::DUEL_LEVEL_REQUIRED` |
-| Flagging minimum level | 4 | `services/praxis.py::flag_praxis` |
-| Second character requires level | 4 on any existing character | `era.second_character_level_required` in `eras/era_1.py` |
-| Albescent faction choosable for new characters | Requires account to have at least one character at level 8 who has completed at least one task from each faction | ⚠️ Not yet enforced — see SESSION R |
-| Faction choice | Level 3+ with a valid faction invite may optionally join a faction. No forced graduation — opt-in only. | ✅ `check_faction_graduation` removed — UA characters no longer auto-graduate |
+| Task signup gate | `task.level_required ≤ character.level` | `services/praxis.py` (`evaluate_signup`) |
 | Stars range | 1–5 | `services/vote.py` |
-| Snide tiebreaker rule | Snide always wins a tie vs non-Snide | `services/scoring.py::compute_duel_multiplier` |
-| Unaffiliated task slug | `"na"` | `services/scoring.py::UNAFFILIATED_FACTION_SLUG` |
+| Unaffiliated slug | `"na"` | `services/scoring.py::UNAFFILIATED_FACTION_SLUG` |
+| Snide slug (tiebreaker) | `"snide"` | `services/scoring.py::SNIDE_FACTION_SLUG` |
+| Era-reset default faction | `"na"` | `services/era.py::ERA_RESET_DEFAULT_FACTION` |
+
+Everything else that used to be "hardcoded" (collab/duel/flag/metatask/second-char/albescent levels) is now an `EraConfig` field — see the table above.
 
 ---
 
@@ -102,12 +111,12 @@ praxis_score = (task_point_value + meta_task_points) × faction_multiplier × du
 ```
 
 - **`task_point_value`** — set on the Task by the proposer/admin.
-- **`meta_task_points`** — flat bonus from attached MetaTask(s); multiple metatasks stack additively. 0 if none, or if the character doesn't have access to that metatask for this praxis (see Metatask access). Applied per-member for collab and duel.
-- **`faction_multiplier`** — see Faction Multipliers section below.
-- **`duel_multiplier`** — 1.0 for solo and collab; outcome-based for duels (see Duel section).
-- **`total_stars`** — sum of all raw star ratings across every vote on this praxis. Stars add flat after all multipliers. Not an average.
+- **`meta_task_points`** — flat bonus from attached metatask(s); stacks additively; applied per-member for collab/duel.
+- **`faction_multiplier`** — see Faction multipliers.
+- **`duel_multiplier`** — 1.0 for solo/collab; outcome-based for duels.
+- **`total_stars`** — sum of all raw star ratings across every vote; added flat after all multipliers. Not an average.
 
-Score is **not stored** — it is computed on the fly from votes whenever requested.
+Score is **not stored** — computed on the fly from votes. Implemented in `services/scoring.py::compute_praxis_score`.
 
 ### Character score
 
@@ -115,11 +124,11 @@ Score is **not stored** — it is computed on the fly from votes whenever reques
 character.score = sum of praxis_score for all non-hidden, non-withdrawn praxes this era
 ```
 
-Updated synchronously on every vote cast/updated and on withdraw/resubmit. The `CharacterStats` row for the current era holds the cached score.
+Updated synchronously on every vote cast/updated and on withdraw/resubmit. Cached on the current-era `CharacterStats` row.
 
 ### All-time score
 
-Increments with every point gain. Never decremented, including on era reset. Stored on `CharacterStats.all_time_score`.
+Increments with every point gain; never decremented, including on era reset (unless `reset_all_time_score`). Stored on `CharacterStats.all_time_score`.
 
 ### Vote budget
 
@@ -127,14 +136,12 @@ Increments with every point gain. Never decremented, including on era reset. Sto
 votes_available = vote_budget_base + floor(vote_budget_multiplier × character.score) − votes_spent_this_era
 ```
 
-`votes_available` is **always recomputed on read** from this formula — it is never stored as a running counter. `votes_spent_this_era` is the count of distinct praxes the character has cast a first vote on during this era (updates to existing votes cost 0).
+Always **recomputed on read** (`services/scoring.py::compute_votes_available`), clamped at 0; never stored as a running counter. The stored column is `votes_spent_this_era`.
 
 - **First cast** on a praxis costs 1 (increments `votes_spent_this_era`).
-- **Updating** an existing vote (changing star value) costs 0 — budget is not re-deducted on updates.
-- `votes_available == 0` blocks new votes but not updates.
-- Budget grows organically as the character earns points: 2 additional votes per point earned in Era 1.
-
-Implemented as on-read recomputation in `services/scoring.py::compute_votes_available` — the budget is computed fresh from the formula on every read (stored column is `votes_spent_this_era` only), consumed in `services/vote.py` and `routers/characters.py`.
+- **Updating** an existing vote costs 0.
+- `votes_available ≤ 0` blocks new casts but not updates.
+- Era 1: budget grows by 2 votes per point earned.
 
 ### Level computation
 
@@ -142,43 +149,43 @@ Implemented as on-read recomputation in `services/scoring.py::compute_votes_avai
 character.level = highest index i where character.score ≥ era.level_thresholds[i]
 ```
 
-Level is recalculated synchronously every time score changes (via `recalculate_character_stats`). It is stored on `CharacterStats.level` for query performance.
+Recalculated synchronously on every score change (`recalculate_character_stats`); stored on `CharacterStats.level`.
 
 ---
 
 ## Faction multipliers
 
-Multipliers are applied based on the character's faction and the task's `primary_faction_slug`. A task with `primary_faction_slug = "na"` is treated as own-faction for all characters (no penalty).
+Applied from the character's faction and the task's `primary_faction_slug`. A task with `primary_faction_slug = "na"` (or none) is treated as own-faction — no penalty. Votes are always added flat after all multipliers.
 
-### Solo and duel (use `own_task_modifier` / `other_task_modifier`)
+> ⚠️ **Pending #452:** all *other-faction* modifiers are slated to flatten to 1.0 (no cross-faction penalty for now). The tables below show **current** Era 1 values.
 
-| Faction | Own-faction task | Other-faction task |
+### Solo and duel (`own_task_modifier` / `other_task_modifier`)
+
+| Faction | Own-faction | Other-faction |
 |---|---|---|
-| UA | 1.0× | 1.0× |
-| UA Masters | 0.8× | 0.8× |
-| S.N.I.D.E. | 1.0× | 0.7× |
-| Gestalt | 1.1× | 0.7× |
-| Ephemerists | 1.0× | 0.7× |
-| Analog | 1.0× | 0.7× |
-| Singularity | 1.0× | 0.7× |
-| /Albescent | 1.0× | 1.0× |
+| UA (`ua`) | 1.0× | 1.0× |
+| S.N.I.D.E. (`snide`) | 1.0× | 0.7× |
+| Warriors of Whimsy (`wow`) | 1.1× | 0.7× |
+| The Ephemerists (`ephemerists`) | 1.0× | 0.7× |
+| Everymen (`everymen`) | 1.0× | 0.7× |
+| Singularity (`singularity`) | 1.0× | 1.0× |
+| /Albescent (`albescent`) | 1.0× | 1.0× |
 
-For duels, `faction_multiplier` uses the solo own/other modifiers, and `duel_multiplier` is applied on top.
+For duels, `faction_multiplier` uses these own/other modifiers, and `duel_multiplier` (below) is applied on top.
 
-### Collab (use `collab_own_modifier` / `collab_other_modifier`)
+### Collab (`collab_own_modifier` / `collab_other_modifier`)
 
-Each member's score is computed independently using their own faction's collab modifiers.
+Each member's score is computed independently with their own faction's collab modifiers.
 
-| Faction | Own-faction collab | Other-faction collab |
+| Faction | Own-faction | Other-faction |
 |---|---|---|
-| UA | 1.0× | 1.0× |
-| UA Masters | 0.8× | 0.8× |
-| S.N.I.D.E. | 1.0× | 0.7× |
-| Gestalt | 1.1× | 0.9× (less penalty than solo) |
-| Ephemerists | 1.0× | 0.7× |
-| Analog | 1.0× | 0.7× |
-| Singularity | 1.0× | 0.7× |
-| /Albescent | 1.0× | 1.0× |
+| UA (`ua`) | 1.0× | 1.0× |
+| S.N.I.D.E. (`snide`) | 1.0× | 0.7× |
+| Warriors of Whimsy (`wow`) | 1.1× | 0.9× |
+| The Ephemerists (`ephemerists`) | 1.0× | 0.7× |
+| Everymen (`everymen`) | 1.0× | 0.7× |
+| Singularity (`singularity`) | 1.0× | 1.0× |
+| /Albescent (`albescent`) | 1.0× | 1.0× |
 
 ---
 
@@ -186,69 +193,69 @@ Each member's score is computed independently using their own faction's collab m
 
 ### Solo
 
-- Any character who meets the task's `level_required` and has bank capacity can create a solo praxis.
-- **Signup level gate:** character.level ≥ task.level_required. Enforced in `services/praxis.py::_check_create_preconditions`.
-- Creator is automatically added as the sole `PraxisMember`.
-- Votes are praxis-wide (no `praxis_member_id` required). Anti-self-vote is enforced at account level.
+- Any character meeting the task's `level_required` with bank capacity can create a solo praxis.
+- **Signup level gate:** `character.level ≥ task.level_required` (`services/praxis.py`, `evaluate_signup`).
+- Creator is auto-added as the sole `PraxisMember`.
+- Votes are praxis-wide. Anti-self-vote is account-level.
 
 ### Collaboration
 
-- Requires character level ≥ 1 (hardcoded) **to *create* a collab**.
-- **No participant cap** in Era 1 — any number of characters may join a collaboration.
-- Creator invites other characters. Each accepts or declines via the invite flow.
-- **Level-lift rule (by design):** accepting a collab invite lets a **lower-level player collaborate on a task above their own sign-up level**. `respond_to_invite` gates the accept only on the invitee's **bank cap** and the collab not already being **submitted** — it deliberately does **not** check the invitee's level or the task's `level_required`. An invite is a lift by a qualified creator; this is not a bypass to be "fixed" later.
-- A collab reaches `submitted` status when **all current members** have individually marked `has_submitted = True`.
-- Each member's score is computed independently using their own faction modifiers.
-- Votes are praxis-wide. Members cannot vote on their own collab (account-level anti-self-vote).
+- Requires `character.level ≥ era.collaboration_level_required` (Era 1: 1) **to create**.
+- **No participant cap** in Era 1.
+- Creator invites other characters; each accepts or declines.
+- **Level-lift rule (by design):** accepting a collab invite lets a lower-level player work a task above their own signup level. `respond_to_invite` gates the accept **only** on the invitee's bank cap and the collab not being already submitted — it deliberately does **not** check the invitee's level or the task's `level_required`.
+- **Publish:** a collab reaches `submitted` when all current members mark `has_submitted = True`. Lazy-consensus publish window: `era.collab_auto_submit_days` (Era 1: 10) days of silence counts as consent (ADR-0012).
+- Each member scores independently with their own faction modifiers.
 
 ### Duel
 
-- Requires character level ≥ 2 (hardcoded).
-- Max participants: `era.max_duel_participants` (Era 1: 2).
-- Creator invites one opponent. Opponent accepts or declines.
-- Votes are **per-member** (`praxis_member_id` required). Voters may vote for one or both members — each is a separate `Vote` row.
-- Duel participants cannot vote on **either side** of a duel they're in, at the **account level** — a voter cannot use any of their characters to rate the challenger's *or* the opponent's side. Enforced per-praxis in `services/vote.py`: the account-level anti-self-vote blocks the participant's own side, and when the target praxis is a duel side, the vote is additionally rejected (403) if the voter's account owns either side of that duel (#309).
-- Winner is determined by the highest `total_stars` across each member's votes.
-- **Forfeit (sticky).** Unsubmitting a `settled` duel side, or having your character banned, forfeits the contest: the opponent wins by default — win/loss faction modifiers apply and vote tallies are ignored — and the duel stays `settled`. Recorded once in `Duel.forfeited_by_character_id`; resubmitting does not restore the contest (ADR-0011 §Forfeit). Scored in `services/praxis_scoring.py::compute_contributions`; triggered by `withdraw_praxis` / `soft_delete_character`.
+- Issued via the **challenge endpoint** (`services/duel.py`), not the praxis-create path (ADR-0011). Requires `character.level ≥ era.duel_level_required` (Era 1: 2).
+- A duel is two linked praxes; max members `era.max_duel_participants` (Era 1: 2).
+- Votes are **per-member** (`praxis_member_id` required); voters may vote for one or both sides — separate `Vote` rows.
+- **Anti-self-vote (account-level, both sides):** a duel participant — any character on their account — cannot rate **either** side of a duel they're in. Enforced in `services/vote.py` (#309).
+- Winner = highest `total_stars` across each member's votes.
+- **Forfeit (sticky):** unsubmitting a settled duel side, or having your character banned, forfeits — the opponent wins by default (win/loss modifiers apply, vote tallies ignored) and the duel stays settled. Recorded in `Duel.forfeited_by_character_id`; resubmitting does not restore it (ADR-0011).
 
 ### Duel outcome multipliers (Era 1)
 
 | Faction | Win | Loss |
 |---|---|---|
-| UA | 1.5× | 0.5× |
-| UA Masters | 0.8× | 0.8× |
-| **S.N.I.D.E.** | **2.0×** | **0.0×** |
-| Gestalt | 1.5× | 0.5× |
-| Ephemerists | 1.5× | 0.5× |
-| Analog | 1.5× | 0.5× |
-| Singularity | 1.5× | 0.5× |
-| /Albescent | 1.5× | 0.5× |
+| UA (`ua`) | 1.5× | 0.5× |
+| S.N.I.D.E. (`snide`) | **2.0×** | **0.0×** |
+| Warriors of Whimsy (`wow`) | 1.5× | 0.5× |
+| The Ephemerists (`ephemerists`) | 1.5× | 0.5× |
+| Everymen (`everymen`) | 1.5× | 0.5× |
+| Singularity (`singularity`) | 1.5× | 0.5× |
+| /Albescent (`albescent`) | 1.5× | 0.5× |
 
-**Tie tiebreaker rule:**
-- If exactly one participant is Snide: Snide wins the tie. **Snide receives their own `duel_win_modifier` (2.0×); the other player receives their own faction's `duel_loss_modifier`** (e.g. a UA player in this situation receives 0.5×, not Snide's 0.0×). Implemented in `services/scoring.py::compute_duel_multiplier` (the modifier is resolved from each character's own faction).
-- If neither or both are Snide: both get 1.0× (no win/loss applied).
+**Tie tiebreaker** (`services/scoring.py::compute_duel_multiplier`):
+- Exactly one participant is Snide → Snide wins the tie: Snide gets its own `duel_win_modifier` (2.0×); the other player gets **their own** faction's `duel_loss_modifier` (e.g. a UA player gets 0.5×, not Snide's 0.0×).
+- Neither or both Snide → both get 1.0×.
 
 ---
 
 ## Level privileges
 
-| Level | Points (Era 1) | Unlocks |
-|---|---|---|
-| 0 | 0 | Browse tasks |
-| 1 | 10 | Sign up for tasks; start collaborations |
-| 2 | 70 | See pretired tasks; start duels; group pages |
-| 3 | 170 | Optionally choose a faction if invited (not forced; may stay in UA indefinitely); propose tasks |
-| 4 | 330 | Flag praxes; create additional characters |
-| 5 | 610 | Vote to promote level-0 tasks; new UX secrets |
-| 6 | 1090 | See metatask list; propose metatasks |
-| 7 | 1840 | Apply metatasks from own faction |
-| 8 | 3040 | New UX secrets; /Albescent invitation triggered when player has completed at least one task from each faction; once received, /Albescent is choosable for any future characters on this account |
+Ability rows map to real gate constants in `era_1.py`. Rank names come from `level_profiles` (the level-up pop-up).
+
+| Level | Points | Rank | Unlocks |
+|---|---|---|---|
+| 0 | 0 | — | Browse tasks |
+| 1 | 10 | Trailhead | Sign up for tasks (`task.level_required ≤ level`); start collaborations |
+| 2 | 70 | Ranger | Issue duel challenges; post comments; see retired tasks |
+| 3 | 170 | Surveyor | Propose tasks; see pending (in-review) tasks |
+| 4 | 330 | Warden | Flag praxes; create additional characters |
+| 5 | 610 | Voyager | *(no rules gate — flavor only; see #455)* |
+| 6 | 1090 | Chronicler | Propose metatasks; see the metatask list ⚠️ *(see-gate pending #453)* |
+| 7 | 1840 | Luminary | Apply your own faction's metatasks |
+| 8 | 3040 | Paragon | Join /Albescent (once you've completed a task from every faction) |
 
 **Notes:**
-- Invitation letters are *not* a level-table unlock. Per **ADR-0022**, a character earns faction X's invitation once it meets **both** conditions, per-character / faction-scoped / era-scoped: (1) `invitation_task_threshold` tasks completed for X (default **2**), and (2) `invitation_point_threshold` points earned from X's tasks (default **50**). The old level≥3 / score≥20 gate and the "Pledge allegiance to [faction]" praxis condition are **dropped**. Points include vote-driven points, so a letter can land when later votes push a faction's total past the threshold. Delivery happens in `services.character_stats` after a praxis is scored and is idempotent on the (character, faction, era) key; letters surface in the player's update feed. Earning is per-character — account-pooling applies only later, at the *join* gate (ADR-0019).
-- Metatask access for /Albescent is a faction perk, not a level privilege: Albescent characters may apply metatasks from any faction.
+- Faction choice is **not** a level unlock — it's invitation-gated (see Factions). The dormant `faction_graduation_level` is not read.
+- Invitation letters are earned per ADR-0022 (see below), not a level-table unlock.
+- Albescent's any-faction metatask access is a faction perk, not a level privilege.
 
-Point thresholds come from `era.level_thresholds` and vary per era.
+Point thresholds come from `era.level_thresholds`.
 
 ---
 
@@ -256,134 +263,110 @@ Point thresholds come from `era.level_thresholds` and vary per era.
 
 ### Faction selection
 
-- All characters start in **UA** (not selectable — assigned automatically), **except** /Albescent second-or-later characters which start in `/Albescent` at level 1 and never enter UA. ⚠️ Albescent-at-creation not yet implemented.
-- At level 3, a player **may optionally** choose a faction if they have received at least one valid invitation. There is no forced graduation from UA — players can remain in UA indefinitely.
-- The `aged_out` / `AgedOutOfUA` mechanic is **retired**. `check_faction_graduation` removed — existing `aged_out` characters can still choose a faction; no new characters will be put there.
-- **Faction change / defection:** a character can switch factions subject to defection rules tracked in `FactionDefectionHistory`. `can_always_rejoin=True` factions (/Albescent) can always be rejoined after leaving.
+- Characters start **unaffiliated (`na`)** — assigned automatically at creation (`services/character.py`, ADR-0019). No character starts in UA.
+- Joining a faction is **invitation-gated**. A character earns faction X's invitation per ADR-0022 (below). At character *creation*, a non-`na` starting faction must be one the account already holds an invite for (Albescent excluded — it's never a creation option).
+- **Defection** (`services/faction_service.py::defect_to_faction`) switches an existing character's faction. It enforces rejoin permission, faction existence, and the Albescent gate. ⚠️ It does **not** yet require the target faction's invitation — that gate is pending **#454** (the intended rule is: joining X requires X's invite, same as at creation).
+- There is **no level gate** on faction choice, and **no forced graduation** — a character may stay unaffiliated indefinitely.
+- `can_always_rejoin=True` factions (Albescent) can always be re-entered after leaving; defection history is tracked in `FactionDefectionHistory`.
 
-### Era 1 selectable factions
-
-| Slug | Name | Identity |
-|---|---|---|
-| `ua_masters` | UA Masters | Veterans aged out of UA. Flat 0.8× on everything. |
-| `snide` | S.N.I.D.E. | High-risk duel specialists. 2.0× wins, 0.0× losses. |
-| `gestalt` | Gestalt | Collective-minded. Bonus on own tasks, penalty on other. |
-| `journeymen` | The Ephemerists | Wanderers recording fleeting truths. Task Vision (access to select retired tasks — deferred v2). |
-| `analog` | Analog | Depth over breadth. Double Dipper (repeat one task per level — deferred v2). |
-| `singularity` | Singularity | Hidden/lurker faction. Currently 1.0× own / 0.7× other. Lurker ability (vote bank +100 on trigger) — deferred. |
-
-### Special / non-selectable factions
+### Era 1 factions
 
 | Slug | Name | Notes |
 |---|---|---|
-| `ua` | UA | Starting faction. Full points. Players may stay indefinitely (opt-in faction choice from L3). |
-| `albescent` | /Albescent | Second-or-later character starting faction. Unlocked when account has a character at level 8 who has completed at least one task from each faction. Full points on everything, any metatasks. `can_always_rejoin=True`. |
-| `aged_out` | AgedOutOfUA | **Retired.** No new characters will enter this state. Existing `aged_out` characters can still choose a faction normally. |
-| `na` | None | Sentinel for tasks with no faction affiliation. Treated as own-faction. |
+| `ua` | UA — The Gilt Salon | Full points everywhere. Ordinary invite-joinable faction (ADR-0030); not a starter. |
+| `snide` | S.N.I.D.E. | Duel specialists. 2.0× wins, 0.0× losses. |
+| `wow` | Warriors of Whimsy | Collective-minded. +10% own-faction, penalty elsewhere. (Formerly `gestalt`.) |
+| `ephemerists` | The Ephemerists | Task Vision — may praxis on retired tasks (`allow_praxis_on_retired_task_factions`). (Formerly `journeymen`.) |
+| `everymen` | Everymen | Reliable generalists. (Formerly `analog`.) |
+| `singularity` | Singularity | Hidden/lurker faction. Currently full points; abilities TBD. |
+| `albescent` | /Albescent | Unlock-only, joined in the field (see below). Full points, any-faction metatasks. `can_always_rejoin=True`. |
+| `na` | None | Sentinel for unaffiliated characters and no-faction tasks. Treated as own-faction. |
 
-### Albescent — second-or-later character flow
+> **Not in Era 1:** `ua_masters` is deferred to Era 2 (ADR-0004); its old L4–L7 tasks are reassigned to `ua`. The `aged_out` / AgedOutOfUA faction is **retired** (migration `0012`) — no code path produces it.
 
-- Albescent becomes a choosable faction for new characters when **any character on the account reaches level 8 and has completed at least one task from each faction**. ⚠️ Not yet gated in code.
-- When a second-or-later character is created as Albescent, they start in `/Albescent` at level 1 and bypass UA entirely. ⚠️ Not yet implemented.
-- At level 3, an Albescent character may optionally choose a selectable faction (same faction-choice flow as any other character). Unlike UA characters, they are **not forced** to leave — staying in Albescent is valid.
-- Any character who has previously been in Albescent can always return (`can_always_rejoin=True`), even after defecting.
-- `/Albescent` grants: full points (1.0×) on all tasks, access to any-faction metatasks, and same retired/pretired task access as the Ephemerists.
+### Albescent — join-in-the-field flow
+
+- Albescent **cannot** be chosen at character creation — attempting it returns `400 "Albescent is joined in the field, not chosen at creation."`
+- A character joins Albescent by **defection** once `can_start_as_albescent` is satisfied (`services/character.py`): the account has a character at `era.albescent_level_required` (8) **and** that character has completed at least one submitted, non-hidden praxis for **every** faction (each slug except `na`/`albescent`). Enforced — not a stub.
+- Albescent grants full points (1.0×) on all tasks and the ability to apply any faction's metatasks. `can_always_rejoin=True`.
 
 ### Metatask access
 
-Metatasks are a task type (see SESSION M). Access is level- and faction-gated:
+Metatasks are a task type. Access is level- and faction-gated (faction rule routes through the seam below):
 
-- Below level 6: cannot see the metatask list. Can see metatasks applied to others' praxes.
-- Level 6: can see the metatask list and **propose** new metatasks for any faction (pending admin approval).
-- Level 7: can **apply** metatasks from their **own faction** to their praxes.
-- /Albescent characters (any level): can apply metatasks from **any faction**.
+- **See the metatask list:** intended at level 6. ⚠️ Not yet enforced — any authenticated user currently sees the list (pending **#453**).
+- **Propose** a metatask: `era.level_to_propose_metatask` (6).
+- **Apply** a metatask: `era.metatask_apply_level` (7) for your **own** faction; **/Albescent** may apply **any** faction's metatask at any level.
 
-Metatask bonuses are flat point values, added before faction multipliers. Multiple metatasks stack additively.
+Metatask bonuses are flat points, added before multipliers, and stack additively.
 
 ### Faction gating — the single seam
 
-Every "does a faction rule change whether this character may act on this task?"
-decision routes through **one** game-logic predicate,
-`services.faction_service.faction_permits(character, task, era) -> bool`
-(ADR-0029, #171). A new faction rule is a one-function edit there; every call
-site inherits it. Callers must never re-implement a faction check inline.
-
-Today the only faction rule is the metatask gate above: standard tasks are
-faction-open, a metatask requires the character's faction to match
-`task.metatask_faction_slug`, and /Albescent may act on any faction's metatask.
-The apply-time level gate and the task-bank cap are *separate axes* and stay
-where they are. Listing visibility (hidden/deprecated factions are excluded
-from task lists) is a faction-*status* axis, not a per-character permit, so it
-lives beside the seam as `faction_service.hidden_faction_slugs(session)`.
+Every "may this character act on this task?" faction decision routes through one predicate: `services.faction_service.faction_permits(character, task, era) -> bool` (ADR-0029, #171). Today the only rule is the metatask gate: standard tasks are faction-open; a metatask requires the character's faction to match `task.metatask_faction_slug`; /Albescent may act on any. The apply-time **level** gate and the **bank cap** are separate axes. Listing visibility (hidden/deprecated factions excluded from task lists) is a faction-*status* axis, exposed as `faction_service.hidden_faction_slugs(session)`.
 
 ---
 
 ## Bank cap (task signups)
 
-A character may have at most `era.max_task_signups` (Era 1: 20) in-progress praxes at once, counted across all types. Withdrawn praxes do not count against the cap. Attempting to create a new praxis when at capacity returns a 400 error.
+A character may hold at most `era.max_task_signups` (Era 1: 20) in-progress praxes at once, across all types. Withdrawn praxes don't count. Creating past capacity returns 400.
 
 ---
 
 ## Praxis lifecycle
 
 ```
-in_progress -> submitted        (all members call /submit)
-            -> withdrawn        (creator calls /withdraw; can resubmit)
-submitted   -> in_progress      (creator calls /reopen; resets all has_submitted flags)
-any state   -> [deleted]        (creator; only if in_progress or withdrawn — not if submitted)
+in_progress -> submitted     (all members call /submit; or lazy-consensus after collab_auto_submit_days)
+            -> withdrawn      (creator calls /withdraw; can resubmit)
+submitted   -> in_progress    (creator calls /reopen; resets all has_submitted flags)
+any state   -> [deleted]      (creator; only if in_progress or withdrawn — not if submitted)
 ```
 
-- **Moderation status** (set by admin, not players): `visible | flagged | hidden | failed`
-- Hidden praxes are excluded from public listings; their scores are excluded from character stats.
-- Failed praxes carry an `admin_note` explaining the decision.
-- Players can **flag** a praxis (level 4+ required; cannot flag own praxis).
+- **Moderation status** (admin-set): `visible | flagged | hidden | failed`.
+- Hidden praxes are excluded from public listings and from character score.
+- Failed praxes carry an `admin_note`.
+- Players may **flag** a praxis at `era.flag_level_required` (4); cannot flag their own (account-level check).
 
 ---
 
 ## Era reset
 
-Triggered by admin via `POST /admin/eras`. All behaviour is driven by the incoming era's `EraConfig` flags:
+Triggered by admin (`POST /admin/eras`); driven by the incoming era's flags (`services/era.py::apply_era_reset`):
 
 ```
-if reset_score       -> new CharacterStats.score = 0
-if reset_level       -> new CharacterStats.level = 0
-if reset_faction     -> character.faction_slug = "na" + defection history cleared
-if reset_vote_budget -> new CharacterStats.votes_spent_this_era = 0
-if reset_all_time_score -> new CharacterStats.all_time_score = 0  (almost always False)
+if reset_score          -> new CharacterStats.score = 0
+if reset_level          -> new CharacterStats.level = 0
+if reset_faction        -> character.faction_slug = "na"; defection history cleared for the new era
+if reset_vote_budget    -> new CharacterStats.votes_spent_this_era = 0
+if reset_all_time_score -> new CharacterStats.all_time_score = 0   (almost always False)
 ```
 
 Always on reset (not config-driven):
-- New `Era` DB row created with `config_key` referencing the new `EraConfig`.
-- Old `CharacterStats` rows preserved for historical queries; new rows created per character.
-- All active tasks -> retired.
-- In-progress praxis memberships carry over (signup level gate grandfathers them in).
+- New `Era` row created with `config_key` for the new `EraConfig`.
+- Old `CharacterStats` rows preserved; new per-character rows created.
+- All active tasks → retired.
+- In-progress praxis memberships **carry over** untouched (the signup level gate grandfathers them in).
 
 ---
 
 ## Deferred features (v2)
 
-These have schema support or design intent but no live service enforcement:
+Schema/design intent but no live enforcement:
 
 | Feature | Faction | What's missing |
 |---|---|---|
-| Task Vision | The Ephemerists | Retired/pretired tasks are not surfaced to the Ephemerists based on the `journeymen_visible` task flag. |
-| Double Dipper | Analog | No per-level task-repeat tracking. |
-| Lurker vote bank +100 | Singularity | Trigger condition TBD; no vote_bank increment logic. |
-| Multi-faction tasks | — | `TaskFaction` junction table was dropped. Only `Task.primary_faction_slug` is live; multi-faction support would require a new design. |
+| Task Vision (full) | The Ephemerists | Retired tasks aren't *surfaced* to Ephemerists (praxis-on-retired is allowed via `allow_praxis_on_retired_task_factions`, but discovery/listing isn't). |
+| Double Dipper | Everymen | No per-level task-repeat tracking. |
+| Lurker vote bank +100 | Singularity | Trigger + increment logic unbuilt. |
+| Multi-faction tasks | — | Only `Task.primary_faction_slug` is live; the `TaskFaction` junction was dropped. |
+| Promote level-0 tasks by vote | — | Unspecced; tracked in **#455**. |
 
 ---
 
-## Backend fix list (open items — SESSION R)
+## Open items (issues)
 
-Items flagged ⚠️ above, consolidated for engineering:
+The old "SESSION R" backend fix list is closed — those items are all implemented. Remaining intended-but-unbuilt rules:
 
-1. ~~Enforce task signup level gate (`character.level ≥ task.level_required` on praxis creation).~~ — ✅ **done** (`services/praxis.py::_check_create_preconditions`).
-2. Remove `task_submit_level_gap` from `EraConfig` and any references.
-3. ~~Add `max_collab_participants` to `EraConfig`~~ — **removed**. Era 1 collaborations are unlimited. Do not add this field.
-4. ~~Switch duel anti-self-vote from character-level to account-level (same behavior as solo/collab).~~ — ✅ **done** (account-level anti-self-vote per-praxis in `services/vote.py`; opponent-side blocking landed in #309 — a participant cannot rate either side of their duel).
-5. ~~Vote budget on-read recomputation: compute `votes_available = vote_budget_base + floor(multiplier × score) − votes_spent_this_era` fresh on every read. Replace stored running counter with stored `votes_spent_this_era` only.~~ — ✅ **done** (`services/scoring.py::compute_votes_available`; stored column is `votes_spent_this_era`).
-6. ~~Snide tie rule: opponent gets **own** faction's `duel_loss_modifier`, not Snide's. Update `compute_duel_multiplier`.~~ — ✅ **done** (`services/scoring.py::compute_duel_multiplier`).
-7. Second character level gate: raise from 3 → **4**. Gate the Albescent faction choice for new characters behind "account has at least one character at level 8 who has completed at least one task from each faction."
-8. Albescent second-character onboarding: when a second-or-later character is created as Albescent, start them in `albescent` at level 1, skip UA assignment.
-9. Metatask level privileges: remove any level-4 metatask access; implement level-6 "see list + propose", level-7 "apply own faction", Albescent "apply any faction".
-10. Level table display: remove "group welcome letters" from level-2 frontend display (letters flow lives in Faction spec, not level table).
+- **#452** — flatten all cross-faction (other/collab-other) modifiers to 1.0 for Era 1.
+- **#453** — gate metatask-list visibility behind level 6.
+- **#454** — require the target faction's invitation on defection.
+- **#455** — spec the level-5 "promote level-0 tasks" mechanic.
