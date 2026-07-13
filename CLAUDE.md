@@ -38,7 +38,7 @@ Deeper notes: `docs/spec/SPEC-architecture.md`.
 | Testing approach | `docs/spec/SPEC-testing.md` |
 | Design intent, UX, faction archetypes | `WORLD_ZERO_STYLE.md` |
 | CSS variables (colors, type, themes) | `frontend/src/index.css` |
-| JS faction config | `frontend/src/factions.ts` |
+| JS faction config | `frontend/src/utils/factions.ts` |
 | Open work / issues | GitHub Issues — `gh issue list` (see `docs/agents/issue-tracker.md`) |
 | Past task history (archived) | `docs/archive/TASKS-completed.md` |
 | Squashing migrations / resetting the DB | `docs/agents/db-migrations.md` |
@@ -95,6 +95,9 @@ Read only what your task needs.
 ## Agent skills
 
 This repo is configured for the engineering skill set (`triage`, `qa`, `review`, `tdd`, etc.). Details live in `docs/agents/`.
+
+### Scoped subagents
+For file-editing work, dispatch to a specialist that loads only its own context: `backend`, `frontend-feature`, `frontend-style`. Definitions and the dispatch shape are in `.claude/agents/README.md`. Orchestration (clarify + dispatch) is this main session's job, not a subagent.
 
 `/wz-next-issue` picks up where `/triage` stops: it selects the best unblocked `ready-for-agent` issue (dependency-aware), builds it in a worktree, and opens a draft PR — commenting on the issue and stopping if it needs a human.
 

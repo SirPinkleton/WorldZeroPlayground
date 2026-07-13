@@ -11,7 +11,8 @@ htmlcov/
 *.egg-info/
 dist/
 .pytest_cache/
-/.claude
+/.claude/*
+!/.claude/agents/
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
