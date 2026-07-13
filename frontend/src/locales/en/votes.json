@@ -1,0 +1,44 @@
+{
+  "ephemerists": {
+    "apocryphal": "apocryphal",
+    "disputed": "disputed",
+    "plausible": "plausible",
+    "corroborated": "corroborated",
+    "canonical": "canonical"
+  },
+  "everymen": {
+    "a-start": "a start",
+    "solid": "solid",
+    "good": "good",
+    "excellent": "excellent",
+    "legendary": "legendary"
+  },
+  "wow": {
+    "a-start": "a start",
+    "solid": "solid",
+    "good": "good",
+    "excellent": "excellent",
+    "legendary": "legendary"
+  },
+  "snide": {
+    "meh": "meh",
+    "not-bad": "not bad",
+    "rad": "rad",
+    "sick": "sick",
+    "anarchy": "ANARCHY"
+  },
+  "singularity": {
+    "noise": "NOISE",
+    "weak": "WEAK",
+    "signal": "SIGNAL",
+    "clear": "CLEAR",
+    "verified": "VERIFIED"
+  },
+  "ua": {
+    "rough-sketch": "rough sketch",
+    "study": "study",
+    "accomplished": "accomplished",
+    "distinguished": "distinguished",
+    "masterwork": "masterwork"
+  }
+}
