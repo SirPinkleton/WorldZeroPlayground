@@ -75,7 +75,7 @@ export default function InvitationWatcher() {
       stored === null || nextStored.length !== stored.length
     if (changed) localStorage.setItem(key, JSON.stringify(nextStored))
     if (toAnnounce.length > 0) setQueue((prev) => [...prev, ...toAnnounce])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Deps intentionally narrow: re-run only on character switch or invite-set change.
   }, [character?.id, invitesKey])
 
   if (queue.length === 0) return null
