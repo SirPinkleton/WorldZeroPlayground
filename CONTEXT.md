@@ -393,3 +393,26 @@ entirely); "reopen"/"resubmit" as separate operations (retired in ADR-0007).
 A co-owner. Solo/duel praxes have exactly one (the creator); a collab has all its
 collaborators (ADR-0013). Membership — not authorship — is the visibility and edit key for
 an `in_progress` praxis. _Avoid_: "owner"/"creator" when the rule is really "any member".
+
+## Task promotion
+
+**Promotion vote** *(distinct from a praxis star-vote)*:
+An eligible player's single binary "list this task" approval on a `pending` task. Not a
+1–5 star rating and not scored — it spends no vote budget. Deduped and anti-self'd at the
+**account** level: your account cannot promote its own proposal, and alts can't stack. The
+model is `TaskPromotionVote`, separate from the praxis `Vote`. _Avoid_: calling it a
+"star", "rating", or "upvote" (there is no downvote — dissent is abstention, not a veto).
+
+**Eligible promoter**:
+An **account** holding at least one level-≥5 character in the current era. This is both who
+may cast a promotion vote *and* the denominator the promotion threshold is a fraction of —
+numerator and denominator are the same currency (accounts, not characters). _Avoid_:
+counting characters; counting cross-era levels.
+
+**Community promotion** *(vs admin approval)*:
+The `pending → active` flip driven by promotion votes crossing the threshold, as opposed to
+an admin clicking approve. The two **coexist**: community promotion is an additional path;
+admins keep approve/retire as the override. A promoted task is `active` like any other —
+"promoted" is the event, not a lasting task state. _Avoid_: treating promotion as reversible
+(it is one-way; the reverse is an admin **retire**), or as changing a task's `level_required`
+(it changes only `status`).
